@@ -21,12 +21,10 @@ bcrypt==4.0.1
 # AI - Claude
 anthropic==0.40.0
 
-# AI - HuggingFace (local models)
-sentence-transformers>=2.2.0
-transformers>=4.35.0
-# torch installed separately in Dockerfile (CPU-only)
+# AI - HuggingFace (optional, lazy-loaded at runtime)
+# These are large packages. On Railway free tier, install at runtime instead.
+# To enable: pip install sentence-transformers transformers torch --index-url https://download.pytorch.org/whl/cpu
 numpy>=1.24.0
-scikit-learn>=1.3.0
 
 # Microsoft Graph API
 msal==1.31.0
