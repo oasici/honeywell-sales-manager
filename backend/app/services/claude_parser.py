@@ -128,6 +128,8 @@ async def parse_email(body: str, subject: str = "") -> dict:
         logger.warning("ANTHROPIC_API_KEY not set; returning empty parse result")
         return _empty_result()
 
+    logger.info("Claude parsing with key: %s...", settings.ANTHROPIC_API_KEY[:10])
+
     client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
     user_message = f"Subject: {subject}\n\n{body}" if subject else body
 
@@ -135,7 +137,7 @@ async def parse_email(body: str, subject: str = "") -> dict:
     for attempt in range(MAX_RETRIES):
         try:
             response = await client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-20250514",  # Falls back gracefully
                 max_tokens=1024,
                 system=_SYSTEM_PROMPT,
                 tools=[_EXTRACTION_TOOL],
@@ -144,6 +146,7 @@ async def parse_email(body: str, subject: str = "") -> dict:
             )
 
             # Extract the tool use block
+            logger.info("Claude response blocks: %s", [b.type for b in response.content])
             for block in response.content:
                 if block.type == "tool_use" and block.name == "extract_email_data":
                     result = block.input
@@ -155,8 +158,12 @@ async def parse_email(body: str, subject: str = "") -> dict:
                         result.get("confidence", 0),
                     )
                     return result
+                elif block.type == "tool_use":
+                    logger.warning("Unexpected tool_use: %s", block.name)
+                elif block.type == "text":
+                    logger.info("Claude text response: %s", block.text[:200])
 
-            logger.warning("No tool_use block found in Claude response")
+            logger.warning("No tool_use block found in Claude response. Stop reason: %s", response.stop_reason)
             return _empty_result()
 
         except Exception as exc:
