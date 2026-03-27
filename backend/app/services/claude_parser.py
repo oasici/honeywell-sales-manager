@@ -137,7 +137,7 @@ async def parse_email(body: str, subject: str = "") -> dict:
     for attempt in range(MAX_RETRIES):
         try:
             response = await client.messages.create(
-                model="claude-sonnet-4-20250514",  # Falls back gracefully
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1024,
                 system=_SYSTEM_PROMPT,
                 tools=[_EXTRACTION_TOOL],
