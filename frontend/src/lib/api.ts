@@ -16,8 +16,10 @@ import type {
 } from './types';
 
 // ── Axios instance ───────────────────────────────────
+const BACKEND_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: BACKEND_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
