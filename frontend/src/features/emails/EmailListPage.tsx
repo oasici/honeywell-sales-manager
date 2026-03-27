@@ -104,9 +104,19 @@ export default function EmailListPage() {
     [setSearchParams],
   );
 
+  // Fetch full email detail when popup opens
+  const { data: emailDetail } = useQuery<EmailRequest>({
+    queryKey: ['email-detail', detailEmail?.id],
+    queryFn: () => emailsApi.getEmail(detailEmail!.id),
+    enabled: !!detailEmail?.id,
+  });
+
+  // Use fetched detail (has body_text + parsed_data) or fallback to list item
+  const activeEmail = emailDetail || detailEmail;
+
   // Extract parsed data from email
-  const getParsedData = (email: EmailRequest) => {
-    if (!email.parsed_data) return null;
+  const getParsedData = (email: EmailRequest | null) => {
+    if (!email?.parsed_data) return null;
     try {
       return typeof email.parsed_data === 'string'
         ? JSON.parse(email.parsed_data)
@@ -200,7 +210,7 @@ export default function EmailListPage() {
     },
   ];
 
-  const detailParsed = detailEmail ? getParsedData(detailEmail) : null;
+  const detailParsed = activeEmail ? getParsedData(activeEmail) : null;
 
   return (
     <div>
@@ -274,7 +284,7 @@ export default function EmailListPage() {
         title="Email Detayi"
         size="lg"
       >
-        {detailEmail && (
+        {activeEmail && (
           <div className="space-y-4">
             {/* Header info */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -282,7 +292,7 @@ export default function EmailListPage() {
                 <Mail size={16} className="mt-0.5 shrink-0 text-gray-400" />
                 <div>
                   <span className="text-xs text-gray-500">Gonderen</span>
-                  <p className="text-sm font-medium text-gray-900">{detailEmail.from_address}</p>
+                  <p className="text-sm font-medium text-gray-900">{activeEmail.from_address}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
@@ -290,7 +300,7 @@ export default function EmailListPage() {
                 <div>
                   <span className="text-xs text-gray-500">Tarih</span>
                   <p className="text-sm text-gray-900">
-                    {formatDateTime(detailEmail.received_at || detailEmail.created_at)}
+                    {formatDateTime(activeEmail.received_at || activeEmail.created_at)}
                   </p>
                 </div>
               </div>
@@ -302,7 +312,7 @@ export default function EmailListPage() {
               <div>
                 <span className="text-xs text-gray-500">Konu</span>
                 <p className="text-sm font-semibold text-gray-900">
-                  {detailEmail.subject || '(Konu yok)'}
+                  {activeEmail.subject || '(Konu yok)'}
                 </p>
               </div>
             </div>
@@ -311,34 +321,34 @@ export default function EmailListPage() {
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
               <span className="mb-2 block text-xs font-medium text-gray-500">Email Icerigi</span>
               <p className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
-                {detailEmail.body_text || '(Icerik yok)'}
+                {activeEmail.body_text || '(Icerik yok)'}
               </p>
             </div>
 
             {/* Status badges */}
             <div className="flex flex-wrap gap-2">
-              {detailEmail.category && (
+              {activeEmail.category && (
                 <Badge variant="info">
                   <Tag size={12} className="mr-1" />
-                  {CATEGORY_LABELS[detailEmail.category] || detailEmail.category}
+                  {CATEGORY_LABELS[activeEmail.category] || activeEmail.category}
                 </Badge>
               )}
-              {detailEmail.status && (
-                <Badge variant={detailEmail.status === 'parsed' ? 'success' : 'default'}>
-                  {STATUS_LABELS[detailEmail.status] || detailEmail.status}
+              {activeEmail.status && (
+                <Badge variant={activeEmail.status === 'parsed' ? 'success' : 'default'}>
+                  {STATUS_LABELS[activeEmail.status] || activeEmail.status}
                 </Badge>
               )}
-              {detailEmail.review_status && (
+              {activeEmail.review_status && (
                 <Badge
                   variant={
-                    detailEmail.review_status === 'approved'
+                    activeEmail.review_status === 'approved'
                       ? 'success'
-                      : detailEmail.review_status === 'rejected'
+                      : activeEmail.review_status === 'rejected'
                         ? 'danger'
                         : 'warning'
                   }
                 >
-                  {REVIEW_STATUS_LABELS[detailEmail.review_status] || detailEmail.review_status}
+                  {REVIEW_STATUS_LABELS[activeEmail.review_status] || activeEmail.review_status}
                 </Badge>
               )}
             </div>
@@ -419,7 +429,7 @@ export default function EmailListPage() {
                 variant="secondary"
                 size="sm"
                 loading={createCustomerMutation.isPending}
-                onClick={() => handleCreateCustomer(detailEmail)}
+                onClick={() => handleCreateCustomer(activeEmail!)}
                 disabled={!detailParsed}
               >
                 Musteri Olustur
