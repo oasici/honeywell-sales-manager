@@ -114,8 +114,36 @@ async def create_manual_email(
     await db.flush()
     await db.refresh(email)
 
-    # TODO: Trigger Claude parsing via service layer
-    # await email_parsing_service.parse(email.id)
+    # Parse with Claude
+    try:
+        from app.services.claude_parser import parse_email
+        body = body_text or ""
+        parsed = await parse_email(body)
+
+        if parsed:
+            import json
+            email.parsed_data = json.dumps(parsed)
+            email.language = parsed.get("language")
+            email.status = "parsed"
+
+            from app.services.email_classifier import classify_email
+            classification = classify_email(subject or "", body)
+            email.category = classification.get("category")
+            email.category_confidence = classification.get("confidence")
+            email.price_sensitivity = classification.get("price_sensitivity")
+
+            if email.category_confidence and email.category_confidence < 0.75:
+                email.review_status = "pending_review"
+            else:
+                email.review_status = "approved"
+
+            await db.flush()
+            await db.refresh(email)
+    except Exception as e:
+        email.status = "error"
+        email.error_message = str(e)[:500]
+        await db.flush()
+        await db.refresh(email)
 
     return _email_to_dict(email, include_body=True)
 
@@ -145,16 +173,46 @@ async def reparse_email(
     if not email:
         raise NotFoundException(f"Email with id {email_id} not found")
 
-    # Reset status for re-parsing
+    # Reset status
     email.status = "new"
     email.parsed_data = None
     email.error_message = None
     await db.flush()
 
-    # TODO: Trigger Claude parsing via service layer
-    # await email_parsing_service.parse(email.id)
+    # Parse with Claude
+    try:
+        from app.services.claude_parser import parse_email
+        body = email.body_text or email.body_html or ""
+        parsed = await parse_email(body)
 
-    return {"message": f"Email {email_id} queued for re-parsing"}
+        if parsed:
+            import json
+            email.parsed_data = json.dumps(parsed)
+            email.language = parsed.get("language")
+            email.status = "parsed"
+
+            # Classify
+            from app.services.email_classifier import classify_email
+            classification = classify_email(email.subject or "", body)
+            email.category = classification.get("category")
+            email.category_confidence = classification.get("confidence")
+            email.price_sensitivity = classification.get("price_sensitivity")
+
+            # Review gate
+            if email.category_confidence and email.category_confidence < 0.75:
+                email.review_status = "pending_review"
+            else:
+                email.review_status = "approved"
+        else:
+            email.status = "error"
+            email.error_message = "Claude parse returned empty"
+    except Exception as e:
+        email.status = "error"
+        email.error_message = str(e)[:500]
+
+    await db.flush()
+
+    return {"message": f"Email {email_id} parsed", "status": email.status}
 
 
 @router.get("/{email_id}/matches")
