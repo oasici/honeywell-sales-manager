@@ -179,7 +179,7 @@ export const dashboardApi = {
 // ── Emails ───────────────────────────────────────────
 export const emailsApi = {
   getEmails: async (params?: Record<string, unknown>): Promise<PaginatedResponse<EmailRequest>> => {
-    const { data } = await api.get<PaginatedResponse<EmailRequest>>('/emails', { params });
+    const { data } = await api.get<PaginatedResponse<EmailRequest>>('/emails/', { params });
     return data;
   },
 
@@ -258,7 +258,7 @@ export const partsApi = {
 // ── Prices ───────────────────────────────────────────
 export const pricesApi = {
   getPrices: async (params?: Record<string, unknown>): Promise<PaginatedResponse<PriceEntry>> => {
-    const { data } = await api.get<PaginatedResponse<PriceEntry>>('/prices', { params });
+    const { data } = await api.get<PaginatedResponse<PriceEntry>>('/prices/', { params });
     return data;
   },
 
@@ -281,7 +281,7 @@ export const pricesApi = {
 // ── Customers ────────────────────────────────────────
 export const customersApi = {
   getCustomers: async (params?: Record<string, unknown>): Promise<PaginatedResponse<Customer>> => {
-    const { data } = await api.get<PaginatedResponse<Customer>>('/customers', { params });
+    const { data } = await api.get<PaginatedResponse<Customer>>('/customers/', { params });
     return data;
   },
 
@@ -313,7 +313,7 @@ export const customersApi = {
 // ── Quotes ───────────────────────────────────────────
 export const quotesApi = {
   getQuotes: async (params?: Record<string, unknown>): Promise<PaginatedResponse<Quote>> => {
-    const { data } = await api.get<PaginatedResponse<Quote>>('/quotes', { params });
+    const { data } = await api.get<PaginatedResponse<Quote>>('/quotes/', { params });
     return data;
   },
 
@@ -386,7 +386,7 @@ export const analyticsApi = {
 // ── Settings ─────────────────────────────────────────
 export const settingsApi = {
   getSettings: async (): Promise<Record<string, unknown>> => {
-    const { data } = await api.get<Record<string, unknown>>('/settings');
+    const { data } = await api.get<Record<string, unknown>>('/settings/');
     return data;
   },
 
