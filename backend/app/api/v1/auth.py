@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -16,14 +19,18 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    hash_password,
     revoke_token,
     validate_password_strength,
+    verify_password,
 )
 from app.models.user import User
 from app.schemas.auth import TokenResponse, UserCreate, UserResponse
 from app.services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 class RefreshRequest(BaseModel):
@@ -35,7 +42,9 @@ class LogoutRequest(BaseModel):
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -50,6 +59,7 @@ async def login(
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
+        password_change_required=user.password_change_required,
         user=UserResponse.model_validate(user),
     )
 
@@ -131,3 +141,29 @@ async def logout(
     if body.refresh_token:
         revoke_token(body.refresh_token)
     return {"message": "Logged out successfully"}
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Change the current user's password."""
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise BadRequestException("Current password is incorrect")
+
+    pw_error = validate_password_strength(body.new_password)
+    if pw_error:
+        raise BadRequestException(pw_error)
+
+    current_user.hashed_password = hash_password(body.new_password)
+    current_user.password_change_required = False
+    await db.flush()
+
+    return {"message": "Password changed successfully"}

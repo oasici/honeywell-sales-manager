@@ -129,7 +129,7 @@ async def parse_email(body: str, subject: str = "") -> dict:
         logger.warning("ANTHROPIC_API_KEY not set; returning empty parse result")
         return _empty_result()
 
-    logger.info("Claude parsing with key: %s...", settings.ANTHROPIC_API_KEY[:10])
+    logger.info("Claude parsing initiated")
 
     client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
     user_message = f"Subject: {subject}\n\n{body}" if subject else body

@@ -42,6 +42,7 @@ aiosmtplib==3.0.2
 
 # Security
 slowapi==0.1.9
+cryptography==44.0.0
 python-multipart==0.0.18
 
 # Background jobs

@@ -1,6 +1,7 @@
-import base64
+import os
 from datetime import datetime, timezone
 
+from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -18,14 +19,20 @@ router = APIRouter(prefix="/settings", tags=["Settings"])
 
 # ── Password encryption helpers ──
 
+def _get_fernet():
+    key = os.environ.get("ENCRYPTION_KEY", "")
+    if not key:
+        key = Fernet.generate_key().decode()
+        os.environ["ENCRYPTION_KEY"] = key
+    return Fernet(key.encode() if isinstance(key, str) else key)
+
+
 def _encrypt_password(password: str) -> str:
-    """Encode a password with base64 for at-rest obfuscation."""
-    return base64.b64encode(password.encode()).decode()
+    return _get_fernet().encrypt(password.encode()).decode()
 
 
 def _decrypt_password(encrypted: str) -> str:
-    """Decode a base64-encoded password."""
-    return base64.b64decode(encrypted.encode()).decode()
+    return _get_fernet().decrypt(encrypted.encode()).decode()
 
 
 # ── Pydantic schemas ──
@@ -51,6 +58,13 @@ def _detect_provider(email: str) -> tuple[str, int, str, int]:
         return _PROVIDER_MAP[domain]
     # Default to Outlook/O365 for corporate domains
     return "outlook.office365.com", 993, "smtp.office365.com", 587
+
+
+class SettingsUpdateRequest(BaseModel):
+    quote_prefix: str | None = None
+    default_tax_rate: float | None = None
+    default_currency: str | None = None
+    quote_validity_days: int | None = None
 
 
 class EmailCredentials(BaseModel):
@@ -84,17 +98,14 @@ async def get_settings(
 
 @router.put("/")
 async def update_settings(
-    data: dict,
+    data: SettingsUpdateRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update settings from a dict of key-value pairs."""
+    """Update settings from a validated request body."""
     updated_keys = []
 
-    for key, value in data.items():
-        # Don't allow updating email_password through generic endpoint
-        if key == "email_password":
-            continue
+    for key, value in data.model_dump(exclude_none=True).items():
 
         result = await db.execute(select(Setting).where(Setting.key == key))
         setting = result.scalar_one_or_none()

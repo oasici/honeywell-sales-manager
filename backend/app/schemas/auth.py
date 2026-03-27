@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     email_setup_completed: bool = False
+    password_change_required: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -33,4 +34,5 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    password_change_required: bool = False
     user: UserResponse

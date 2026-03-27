@@ -2,6 +2,7 @@ import json
 import math
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +14,10 @@ from app.models.enums import ReviewStatus, UserRole
 from app.models.user import User
 from app.schemas.email_request import ManualEmailCreate
 from app.services.email_processing_service import EmailProcessingService
+
+
+class EmailReviewRequest(BaseModel):
+    action: str = Field(..., pattern="^(approve|reject)$")
 
 router = APIRouter(prefix="/emails", tags=["Emails"])
 
@@ -161,14 +166,12 @@ async def get_email_matches(
 @router.patch("/{email_id}/review")
 async def review_email(
     email_id: int,
-    data: dict,
+    data: EmailReviewRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Approve or reject an email (sales_manager only)."""
-    action = data.get("action")
-    if action not in ("approve", "reject"):
-        raise BadRequestException("action must be 'approve' or 'reject'")
+    action = data.action
 
     result = await db.execute(
         select(EmailRequest).where(EmailRequest.id == email_id)

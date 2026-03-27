@@ -16,6 +16,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="sales_rep")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     email_setup_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    password_change_required: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

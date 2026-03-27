@@ -232,6 +232,13 @@ async def import_catalog(
     if len(content) > cfg.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
         raise BadRequestException(f"File too large (max {cfg.MAX_UPLOAD_SIZE_MB} MB)")
 
+    # Validate file content (magic bytes)
+    content_start = content[:4]
+    if suffix in ('.xlsx', '.xls'):
+        # XLSX starts with PK (zip), XLS starts with D0 CF
+        if not (content_start[:2] == b'PK' or content_start[:2] == b'\xd0\xcf'):
+            raise BadRequestException("File content does not match extension")
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(content)
         tmp_path = tmp.name

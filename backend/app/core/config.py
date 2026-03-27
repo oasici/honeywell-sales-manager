@@ -2,6 +2,7 @@
 
 import secrets
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
     ENV: str = "development"  # development | staging | production
 
     # ── Database ──
-    DATABASE_URL: str = "postgresql+asyncpg://honeywell:honeywell123@db:5432/honeywell_sales"
+    DATABASE_URL: str = ""
 
     # ── Auth / JWT ──
     JWT_SECRET_KEY: str = secrets.token_hex(32)  # Random per-start in dev; MUST set in .env for prod
@@ -20,7 +21,13 @@ class Settings(BaseSettings):
 
     # ── Default Admin ──
     DEFAULT_ADMIN_EMAIL: str = "admin@honeywell.com"
-    DEFAULT_ADMIN_PASSWORD: str = "Admin123!"
+    DEFAULT_ADMIN_PASSWORD: str = ""
+
+    @model_validator(mode="after")
+    def _validate_production_settings(self):
+        if self.ENV == "production" and not self.DATABASE_URL:
+            raise ValueError("DATABASE_URL must be set in production environment")
+        return self
 
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost,http://localhost:80,http://localhost:5173"
