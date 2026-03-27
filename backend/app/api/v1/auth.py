@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.dependencies import Role, get_current_user, require_role
+from app.core.dependencies import get_current_user, require_role
+from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, UnauthorizedException
 from app.core.security import (
     create_access_token,
@@ -57,7 +58,7 @@ async def login(
 async def register_user(
     body: UserCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_role(Role.SALES_MANAGER))],
+    current_user: Annotated[User, Depends(require_role(UserRole.SALES_MANAGER))],
 ):
     """Register a new user. Only sales_manager role can create users."""
     # Validate password strength

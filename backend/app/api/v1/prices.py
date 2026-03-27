@@ -7,7 +7,8 @@ from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.dependencies import Role, get_current_user, require_role
+from app.core.dependencies import get_current_user, require_role
+from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.price_entry import PriceEntry
 from app.models.spare_part import SparePart
@@ -61,7 +62,7 @@ async def list_prices(
 @router.post("/", status_code=201)
 async def create_price(
     data: dict,
-    current_user: User = Depends(require_role(Role.OPERATIONS)),
+    current_user: User = Depends(require_role(UserRole.OPERATIONS)),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new price entry (operations only)."""
@@ -103,7 +104,7 @@ async def create_price(
 @router.post("/import", status_code=201)
 async def import_prices(
     file: UploadFile = File(...),
-    current_user: User = Depends(require_role(Role.OPERATIONS)),
+    current_user: User = Depends(require_role(UserRole.OPERATIONS)),
     db: AsyncSession = Depends(get_db),
 ):
     """Import price entries from Excel (.xlsx) or CSV file."""

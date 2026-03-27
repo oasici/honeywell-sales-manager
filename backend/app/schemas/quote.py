@@ -93,3 +93,9 @@ class QuoteResponse(BaseModel):
     customer: CustomerResponse | None = None
 
     model_config = {"from_attributes": True}
+
+
+# Aliases for service-layer consumers
+QuoteItemInput = QuoteItemCreate
+QuoteCreateRequest = QuoteCreate
+QuoteUpdateRequest = QuoteUpdate

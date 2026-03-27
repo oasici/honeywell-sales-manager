@@ -1,7 +1,43 @@
 import { create } from 'zustand';
+import type { AxiosError } from 'axios';
+
 import type { User } from '../lib/types';
 import { authApi } from '../lib/api';
 import { storage } from '../lib/storage';
+
+interface ApiErrorResponse {
+  error?: { message?: string };
+  detail?: string | Array<{ msg?: string }>;
+  message?: string;
+}
+
+const LOGIN_ERROR_MESSAGES: Record<number, string> = {
+  401: 'E-posta veya sifre hatali',
+  403: 'Hesabiniz devre disi birakilmis',
+  404: 'Kullanici bulunamadi',
+  429: 'Cok fazla deneme yaptiniz, lutfen bekleyin',
+};
+
+function extractLoginErrorMessage(error: unknown): string {
+  const axiosError = error as AxiosError<ApiErrorResponse>;
+
+  if (!axiosError.response) {
+    return 'Sunucuya baglanilamiyor, internet baglantinizi kontrol edin';
+  }
+
+  const { status, data } = axiosError.response;
+
+  const serverMessage =
+    data?.error?.message ||
+    (typeof data?.detail === 'string' ? data.detail : undefined) ||
+    data?.message;
+
+  if (serverMessage) {
+    return serverMessage;
+  }
+
+  return LOGIN_ERROR_MESSAGES[status] || 'Giris basarisiz, lutfen tekrar deneyin';
+}
 
 interface AuthState {
   user: User | null;
@@ -41,8 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
       });
     } catch (e) {
-      const message =
-        e instanceof Error ? e.message : 'Giris basarisiz';
+      const message = extractLoginErrorMessage(e);
       set({ error: message });
       throw e;
     } finally {

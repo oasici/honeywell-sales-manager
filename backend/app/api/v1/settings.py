@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
@@ -6,12 +7,25 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.dependencies import Role, get_current_user, require_role
+from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException
+from app.models.enums import UserRole
 from app.models.setting import Setting
 from app.models.user import User
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
+
+
+# ── Password encryption helpers ──
+
+def _encrypt_password(password: str) -> str:
+    """Encode a password with base64 for at-rest obfuscation."""
+    return base64.b64encode(password.encode()).decode()
+
+
+def _decrypt_password(encrypted: str) -> str:
+    """Decode a base64-encoded password."""
+    return base64.b64decode(encrypted.encode()).decode()
 
 
 # ── Pydantic schemas ──
@@ -52,7 +66,7 @@ class EmailCredentials(BaseModel):
 
 @router.get("/")
 async def get_settings(
-    current_user: User = Depends(require_role(Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Get all settings as a key-value map (sales_manager only)."""
@@ -61,7 +75,7 @@ async def get_settings(
 
     settings_dict = {s.key: s.value for s in settings}
 
-    # Never expose password in plain text - show masked version
+    # Never expose password - show masked version
     if "email_password" in settings_dict:
         settings_dict["email_password"] = "********"
 
@@ -71,7 +85,7 @@ async def get_settings(
 @router.put("/")
 async def update_settings(
     data: dict,
-    current_user: User = Depends(require_role(Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Update settings from a dict of key-value pairs."""
@@ -127,7 +141,6 @@ async def save_email_credentials(
     detected_imap, detected_imap_port, detected_smtp, detected_smtp_port = _detect_provider(body.email_address)
 
     # Use detected values if user didn't explicitly set custom ones
-    # (i.e., if they left the defaults or empty)
     default_hosts = {"", "outlook.office365.com", "smtp.office365.com"}
     if not body.imap_host or body.imap_host in default_hosts:
         body.imap_host = detected_imap
@@ -136,16 +149,23 @@ async def save_email_credentials(
         body.smtp_host = detected_smtp
         body.smtp_port = detected_smtp_port
 
-    # If password is placeholder, keep existing
-    if body.email_password == "___KEEP_EXISTING___":
+    # If password is placeholder, keep existing encrypted value
+    password_value = body.email_password
+    if password_value == "___KEEP_EXISTING___":
         existing_pw = await db.execute(select(Setting).where(Setting.key == "email_password"))
         pw_setting = existing_pw.scalar_one_or_none()
         if pw_setting:
-            body.email_password = pw_setting.value
+            # Already stored encrypted; keep as-is
+            password_value = pw_setting.value or ""
+        else:
+            password_value = ""
+    else:
+        # Encrypt before storing
+        password_value = _encrypt_password(password_value)
 
     cred_map = {
         "email_address": body.email_address,
-        "email_password": body.email_password,
+        "email_password": password_value,
         "imap_host": body.imap_host,
         "imap_port": str(body.imap_port),
         "smtp_host": body.smtp_host,
@@ -216,7 +236,7 @@ async def test_email_connection(
         imap_host = body.imap_host
         imap_port = body.imap_port
     else:
-        # Fall back to stored credentials
+        # Fall back to stored credentials (password is encrypted)
         result = await db.execute(
             select(Setting).where(
                 Setting.key.in_(["email_address", "email_password", "imap_host", "imap_port"])
@@ -224,7 +244,8 @@ async def test_email_connection(
         )
         stored = {s.key: s.value for s in result.scalars().all()}
         email_addr = stored.get("email_address", "")
-        email_pass = stored.get("email_password", "")
+        encrypted_pass = stored.get("email_password", "")
+        email_pass = _decrypt_password(encrypted_pass) if encrypted_pass else ""
         imap_host = stored.get("imap_host", "")
         imap_port = int(stored.get("imap_port", "993"))
 

@@ -55,3 +55,7 @@ class EmailResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# Alias for service-layer consumers
+ManualEmailRequest = ManualEmailCreate

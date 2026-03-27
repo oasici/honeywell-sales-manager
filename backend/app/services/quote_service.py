@@ -1,0 +1,295 @@
+"""Service layer for quote creation, update, and approval."""
+import json
+import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.exceptions import BadRequestException, NotFoundException
+from app.models.customer import Customer
+from app.models.email_request import EmailRequest
+from app.models.enums import EmailStatus, QuoteStatus
+from app.models.quote import Quote
+from app.models.quote_item import QuoteItem
+from app.models.spare_part import SparePart
+
+
+class QuoteService:
+    """Encapsulates all quote business logic."""
+
+    def __init__(self, db: AsyncSession) -> None:
+        self._db = db
+
+    async def create_quote(
+        self,
+        customer_id: int | None,
+        items: list[dict],
+        language: str = "tr",
+        currency: str = "TRY",
+        tax_rate: float = 20.0,
+        notes: str | None = None,
+        created_by: int | None = None,
+        valid_days: int = 30,
+    ) -> Quote:
+        """Create a new quote with optional line items."""
+        if customer_id:
+            await self._validate_customer(customer_id)
+
+        quote_number = self.generate_quote_number()
+
+        quote = Quote(
+            quote_number=quote_number,
+            customer_id=customer_id,
+            created_by=created_by,
+            status=QuoteStatus.DRAFT.value,
+            language=language,
+            currency=currency,
+            tax_rate=tax_rate,
+            valid_days=valid_days,
+            notes=notes,
+        )
+        self._db.add(quote)
+        await self._db.flush()
+
+        await self._create_quote_items(quote.id, items)
+        await self._recalculate_totals(quote)
+        await self._db.refresh(quote)
+
+        return quote
+
+    async def create_quote_from_email(
+        self,
+        email_id: int,
+        created_by: int | None = None,
+    ) -> Quote:
+        """Create a quote from a parsed email request."""
+        email = await self._get_email_or_raise(email_id)
+
+        if email.status == EmailStatus.NEW.value:
+            raise BadRequestException("Email has not been parsed yet")
+
+        quote_number = self.generate_quote_number()
+
+        quote = Quote(
+            quote_number=quote_number,
+            customer_id=email.customer_id,
+            email_request_id=email.id,
+            created_by=created_by,
+            status=QuoteStatus.DRAFT.value,
+            language=email.language or "tr",
+        )
+        self._db.add(quote)
+        await self._db.flush()
+
+        if email.parsed_data:
+            await self._create_items_from_parsed_data(quote.id, email.parsed_data)
+
+        email.status = EmailStatus.QUOTED.value
+        await self._db.flush()
+
+        await self._recalculate_totals(quote)
+        await self._db.refresh(quote)
+
+        return quote
+
+    async def update_quote(self, quote_id: int, data: dict, items: list[dict] | None = None) -> Quote:
+        """Update quote header fields and optionally replace items."""
+        quote = await self._get_quote_or_raise(quote_id)
+
+        editable_statuses = (QuoteStatus.DRAFT.value, QuoteStatus.PENDING_APPROVAL.value)
+        if quote.status not in editable_statuses:
+            raise BadRequestException(
+                f"Cannot edit quote in '{quote.status}' status. "
+                "Only draft or pending_approval quotes can be edited."
+            )
+
+        header_fields = [
+            "customer_id",
+            "language",
+            "currency",
+            "tax_rate",
+            "valid_days",
+            "notes",
+        ]
+        for field in header_fields:
+            if field in data:
+                setattr(quote, field, data[field])
+
+        if items is not None:
+            await self._replace_items(quote_id, items)
+
+        await self._recalculate_totals(quote)
+        await self._db.refresh(quote)
+
+        return quote
+
+    async def approve_quote(self, quote_id: int, approved_by: int) -> Quote:
+        """Approve a quote (generates PDF in future)."""
+        quote = await self._get_quote_or_raise(quote_id)
+
+        approvable_statuses = (QuoteStatus.DRAFT.value, QuoteStatus.PENDING_APPROVAL.value)
+        if quote.status not in approvable_statuses:
+            raise BadRequestException(
+                f"Cannot approve quote in '{quote.status}' status"
+            )
+
+        quote.status = QuoteStatus.APPROVED.value
+        quote.approved_by = approved_by
+
+        # TODO: Generate PDF via service layer
+        # pdf_path = await pdf_service.generate_quote_pdf(quote)
+        # quote.pdf_path = pdf_path
+
+        await self._db.flush()
+        await self._db.refresh(quote)
+
+        return quote
+
+    @staticmethod
+    def generate_quote_number() -> str:
+        """Generate a unique quote number."""
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+        short_id = uuid.uuid4().hex[:6].upper()
+        return f"QT-{timestamp}-{short_id}"
+
+    # ---- Private helpers ----
+
+    async def _recalculate_totals(self, quote: Quote) -> None:
+        """Recalculate quote subtotal, tax, and grand total in-place."""
+        items_result = await self._db.execute(
+            select(QuoteItem).where(QuoteItem.quote_id == quote.id)
+        )
+        items = items_result.scalars().all()
+
+        subtotal = sum(item.line_total for item in items)
+        tax_amount = subtotal * (quote.tax_rate / 100)
+        grand_total = subtotal + tax_amount - quote.discount_total
+
+        quote.subtotal = round(subtotal, 2)
+        quote.tax_amount = round(tax_amount, 2)
+        quote.grand_total = round(grand_total, 2)
+
+        await self._db.flush()
+
+    async def _create_quote_items(
+        self, quote_id: int, items_data: list[dict]
+    ) -> None:
+        """Create QuoteItem records from a list of item dicts."""
+        for i, item_data in enumerate(items_data):
+            spare_part_id = item_data.get("spare_part_id")
+            quantity = int(item_data.get("quantity", 1))
+            unit_price = float(item_data.get("unit_price", 0.0))
+            discount_pct = float(item_data.get("discount_pct", 0.0))
+
+            honeywell_code = item_data.get("honeywell_code")
+            description = item_data.get("description")
+
+            if spare_part_id and not honeywell_code:
+                part = await self._find_spare_part_by_id(spare_part_id)
+                if part:
+                    honeywell_code = honeywell_code or part.honeywell_code
+                    description = description or part.name_en
+
+            discounted_price = unit_price * (1 - discount_pct / 100)
+            line_total = quantity * discounted_price
+
+            qi = QuoteItem(
+                quote_id=quote_id,
+                spare_part_id=spare_part_id,
+                original_text=item_data.get("original_text"),
+                honeywell_code=honeywell_code,
+                description=description,
+                quantity=quantity,
+                unit_price=unit_price,
+                discount_pct=discount_pct,
+                line_total=round(line_total, 2),
+                match_score=item_data.get("match_score"),
+                match_strategy=item_data.get("match_strategy"),
+                is_confirmed=item_data.get("is_confirmed", False),
+                sort_order=i,
+            )
+            self._db.add(qi)
+
+        await self._db.flush()
+
+    async def _create_items_from_parsed_data(
+        self, quote_id: int, parsed_data_json: str
+    ) -> None:
+        """Create quote items from email parsed_data JSON."""
+        try:
+            parsed = json.loads(parsed_data_json)
+        except json.JSONDecodeError:
+            return
+
+        items = parsed.get("items", [])
+        for i, item in enumerate(items):
+            code = item.get("honeywell_code") or item.get("code", "")
+            quantity = int(item.get("quantity", 1))
+
+            spare_part_id = None
+            unit_price = 0.0
+            if code:
+                part = await self._find_spare_part_by_code(code)
+                if part:
+                    spare_part_id = part.id
+                    if part.prices:
+                        unit_price = part.prices[0].net_price
+
+            line_total = quantity * unit_price
+
+            qi = QuoteItem(
+                quote_id=quote_id,
+                spare_part_id=spare_part_id,
+                original_text=item.get("original_text", ""),
+                honeywell_code=code,
+                description=item.get("description", ""),
+                quantity=quantity,
+                unit_price=unit_price,
+                line_total=line_total,
+                match_score=item.get("match_score"),
+                match_strategy=item.get("match_strategy"),
+                sort_order=i,
+            )
+            self._db.add(qi)
+
+        await self._db.flush()
+
+    async def _replace_items(
+        self, quote_id: int, items_data: list[dict]
+    ) -> None:
+        """Delete existing items and create new ones."""
+        existing_result = await self._db.execute(
+            select(QuoteItem).where(QuoteItem.quote_id == quote_id)
+        )
+        for item in existing_result.scalars().all():
+            await self._db.delete(item)
+        await self._db.flush()
+
+        await self._create_quote_items(quote_id, items_data)
+
+    async def _validate_customer(self, customer_id: int) -> Customer:
+        """Raise NotFoundException if customer does not exist."""
+        return await self._get_or_raise(Customer, customer_id, "Customer")
+
+    async def _get_quote_or_raise(self, quote_id: int) -> Quote:
+        return await self._get_or_raise(Quote, quote_id, "Quote")
+
+    async def _get_email_or_raise(self, email_id: int) -> EmailRequest:
+        return await self._get_or_raise(EmailRequest, email_id, "Email")
+
+    async def _get_or_raise(self, model: type, record_id: int, label: str):
+        """Generic fetch-by-id with NotFoundException."""
+        result = await self._db.execute(select(model).where(model.id == record_id))
+        record = result.scalar_one_or_none()
+        if not record:
+            raise NotFoundException(f"{label} with id {record_id} not found")
+        return record
+
+    async def _find_spare_part_by_id(self, part_id: int) -> SparePart | None:
+        result = await self._db.execute(select(SparePart).where(SparePart.id == part_id))
+        return result.scalar_one_or_none()
+
+    async def _find_spare_part_by_code(self, code: str) -> SparePart | None:
+        result = await self._db.execute(select(SparePart).where(SparePart.honeywell_code == code))
+        return result.scalar_one_or_none()

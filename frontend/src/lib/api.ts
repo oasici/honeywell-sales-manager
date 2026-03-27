@@ -32,22 +32,90 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ── Token refresh queue ─────────────────────────────
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (token) {
+      resolve(token);
+    } else {
+      reject(error);
+    }
+  });
+  failedQueue = [];
+};
+
+const clearAuthAndRedirect = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+  window.location.href = '/login';
+};
+
 // Response interceptor – handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (!error.response) {
       toast.error('Baglanti hatasi');
       return Promise.reject(error);
     }
 
     const { status, data } = error.response;
+    const originalRequest = error.config;
 
-    if (status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    if (status === 401 && !originalRequest._retry) {
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (!refreshToken) {
+        clearAuthAndRedirect();
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const { data: tokenData } = await axios.post<TokenResponse>(
+          `${BACKEND_URL}/auth/refresh`,
+          { refresh_token: refreshToken },
+          { headers: { 'Content-Type': 'application/json' } },
+        );
+
+        const newToken = tokenData.access_token;
+        localStorage.setItem('token', newToken);
+
+        if (tokenData.refresh_token) {
+          localStorage.setItem('refreshToken', tokenData.refresh_token);
+        }
+
+        processQueue(null, newToken);
+
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        clearAuthAndRedirect();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    } else if (status === 401) {
+      clearAuthAndRedirect();
     } else if (status === 403) {
       toast.error('Bu isleme yetkiniz yok');
     } else if (status === 422) {

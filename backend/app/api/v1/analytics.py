@@ -5,7 +5,8 @@ from sqlalchemy import func, select, and_, extract, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.dependencies import Role, require_role
+from app.core.dependencies import require_role
+from app.models.enums import UserRole
 from app.models.price_entry import PriceEntry
 from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 async def get_top_parts(
     days: int = Query(30, ge=1, le=365, description="Lookback period in days"),
     limit: int = Query(10, ge=1, le=100, description="Number of results"),
-    current_user: User = Depends(require_role(Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Top requested parts by quote item count within the lookback period."""
@@ -67,7 +68,7 @@ async def get_top_parts(
 @router.get("/monthly-trend")
 async def get_monthly_trend(
     months: int = Query(12, ge=1, le=36, description="Number of months to look back"),
-    current_user: User = Depends(require_role(Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Monthly quote count and revenue trend."""
@@ -112,7 +113,7 @@ async def get_monthly_trend(
 @router.get("/category-breakdown")
 async def get_category_breakdown(
     days: int = Query(30, ge=1, le=365, description="Lookback period in days"),
-    current_user: User = Depends(require_role(Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Category distribution of quoted items within the lookback period."""
@@ -148,7 +149,7 @@ async def get_category_breakdown(
 
 @router.get("/parts-without-price")
 async def get_parts_without_price(
-    current_user: User = Depends(require_role(Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Parts that have been requested in quotes but have no price entry."""

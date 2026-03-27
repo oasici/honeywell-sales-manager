@@ -9,14 +9,20 @@ interface NavItem {
   label: string;
   to: string;
   icon: ReactNode;
+  roles?: string[];
 }
 
 const yedekParcaItems: NavItem[] = [
-  { label: 'Mailler', to: '/emails', icon: <Mail size={18} className="shrink-0" /> },
+  { label: 'Mailler', to: '/emails', icon: <Mail size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
   { label: 'Parcalar', to: '/parts', icon: <Cog size={18} className="shrink-0" /> },
-  { label: 'Teklifler', to: '/quotes', icon: <FileText size={18} className="shrink-0" /> },
-  { label: 'Musteriler', to: '/customers', icon: <Users size={18} className="shrink-0" /> },
+  { label: 'Teklifler', to: '/quotes', icon: <FileText size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
+  { label: 'Musteriler', to: '/customers', icon: <Users size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
 ];
+
+function filterByRole(items: NavItem[], role: string | undefined): NavItem[] {
+  if (!role) return items;
+  return items.filter((item) => !item.roles || item.roles.includes(role));
+}
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -46,9 +52,13 @@ export function Sidebar() {
     localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed));
   }, [collapsed]);
 
+  const userRole = user?.role;
+  const visibleYedekParcaItems = filterByRole(yedekParcaItems, userRole);
+  const canSeeSettings = !userRole || ['sales_manager', 'operations'].includes(userRole);
+
   // Auto-expand if user navigates to a yedek parca route
   useEffect(() => {
-    const isYedekParcaRoute = yedekParcaItems.some((item) =>
+    const isYedekParcaRoute = visibleYedekParcaItems.some((item) =>
       location.pathname.startsWith(item.to),
     );
     if (isYedekParcaRoute && collapsed) {
@@ -87,7 +97,7 @@ export function Sidebar() {
 
           {!collapsed && (
             <div className="ml-4 mt-1 space-y-1">
-              {yedekParcaItems.map((item) => (
+              {visibleYedekParcaItems.map((item) => (
                 <NavLink key={item.to} to={item.to} className={navLinkClass}>
                   {item.icon}
                   {item.label}
@@ -97,11 +107,13 @@ export function Sidebar() {
           )}
         </div>
 
-        {/* Ayarlar */}
-        <NavLink to="/settings" className={navLinkClass}>
-          <Settings size={18} className="shrink-0" />
-          Ayarlar
-        </NavLink>
+        {/* Ayarlar - only for sales_manager and operations */}
+        {canSeeSettings && (
+          <NavLink to="/settings" className={navLinkClass}>
+            <Settings size={18} className="shrink-0" />
+            Ayarlar
+          </NavLink>
+        )}
       </nav>
 
       {/* User info at bottom */}

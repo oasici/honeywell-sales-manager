@@ -1,18 +1,18 @@
 import json
 import math
-import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.dependencies import Role, get_current_user, require_role
+from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.email_request import EmailRequest
-from app.models.quote_item import QuoteItem
+from app.models.enums import ReviewStatus, UserRole
 from app.models.user import User
+from app.schemas.email_request import ManualEmailCreate
+from app.services.email_processing_service import EmailProcessingService
 
 router = APIRouter(prefix="/emails", tags=["Emails"])
 
@@ -25,7 +25,7 @@ async def list_emails(
     review_status: str | None = Query(None, description="Filter by review status"),
     category: str | None = Query(None, description="Filter by category"),
     search: str | None = Query(None, description="Search in subject or from_address"),
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """List emails with pagination and filtering."""
@@ -73,7 +73,7 @@ async def list_emails(
 @router.get("/{email_id}")
 async def get_email(
     email_id: int,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Get email detail by ID."""
@@ -89,68 +89,25 @@ async def get_email(
 
 @router.post("/manual", status_code=201)
 async def create_manual_email(
-    data: dict,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    data: ManualEmailCreate,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Manual email entry. Creates an email request and triggers parsing."""
-    from_address = data.get("from_address")
-    subject = data.get("subject")
-    body_text = data.get("body_text")
-
-    if not from_address or not body_text:
-        raise BadRequestException("from_address and body_text are required")
-
-    email = EmailRequest(
-        message_id=f"manual-{uuid.uuid4().hex}",
-        from_address=from_address,
-        subject=subject or "(No Subject)",
-        body_text=body_text,
-        status="new",
-        received_at=datetime.now(timezone.utc),
+    service = EmailProcessingService(db)
+    email = await service.create_manual_email(
+        from_address=data.from_address,
+        subject=data.subject,
+        body_text=data.body_text,
         assigned_to=current_user.id,
     )
-    db.add(email)
-    await db.flush()
-    await db.refresh(email)
-
-    # Parse with Claude
-    try:
-        from app.services.claude_parser import parse_email
-        body = body_text or ""
-        parsed = await parse_email(body)
-
-        if parsed:
-            import json
-            email.parsed_data = json.dumps(parsed)
-            email.language = parsed.get("language")
-            email.status = "parsed"
-
-            from app.services.email_classifier import classify_email
-            classification = classify_email(subject or "", body)
-            email.category = classification.get("category")
-            email.category_confidence = classification.get("confidence")
-            email.price_sensitivity = classification.get("price_sensitivity")
-
-            if email.category_confidence and email.category_confidence < 0.75:
-                email.review_status = "pending_review"
-            else:
-                email.review_status = "approved"
-
-            await db.flush()
-            await db.refresh(email)
-    except Exception as e:
-        email.status = "error"
-        email.error_message = str(e)[:500]
-        await db.flush()
-        await db.refresh(email)
 
     return _email_to_dict(email, include_body=True)
 
 
 @router.post("/poll", status_code=200)
 async def poll_emails(
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Trigger email fetch from Microsoft Graph API."""
@@ -162,55 +119,12 @@ async def poll_emails(
 @router.post("/{email_id}/reparse", status_code=200)
 async def reparse_email(
     email_id: int,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Re-parse an email with Claude."""
-    result = await db.execute(
-        select(EmailRequest).where(EmailRequest.id == email_id)
-    )
-    email = result.scalar_one_or_none()
-    if not email:
-        raise NotFoundException(f"Email with id {email_id} not found")
-
-    # Reset status
-    email.status = "new"
-    email.parsed_data = None
-    email.error_message = None
-    await db.flush()
-
-    # Parse with Claude
-    try:
-        from app.services.claude_parser import parse_email
-        body = email.body_text or email.body_html or ""
-        parsed = await parse_email(body)
-
-        if parsed:
-            import json
-            email.parsed_data = json.dumps(parsed)
-            email.language = parsed.get("language")
-            email.status = "parsed"
-
-            # Classify
-            from app.services.email_classifier import classify_email
-            classification = classify_email(email.subject or "", body)
-            email.category = classification.get("category")
-            email.category_confidence = classification.get("confidence")
-            email.price_sensitivity = classification.get("price_sensitivity")
-
-            # Review gate
-            if email.category_confidence and email.category_confidence < 0.75:
-                email.review_status = "pending_review"
-            else:
-                email.review_status = "approved"
-        else:
-            email.status = "error"
-            email.error_message = "Claude parse returned empty"
-    except Exception as e:
-        email.status = "error"
-        email.error_message = str(e)[:500]
-
-    await db.flush()
+    service = EmailProcessingService(db)
+    email = await service.process_email(email_id)
 
     return {"message": f"Email {email_id} parsed", "status": email.status}
 
@@ -218,7 +132,7 @@ async def reparse_email(
 @router.get("/{email_id}/matches")
 async def get_email_matches(
     email_id: int,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Get part match results for a parsed email."""
@@ -248,7 +162,7 @@ async def get_email_matches(
 async def review_email(
     email_id: int,
     data: dict,
-    current_user: User = Depends(require_role(Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Approve or reject an email (sales_manager only)."""
@@ -263,12 +177,12 @@ async def review_email(
     if not email:
         raise NotFoundException(f"Email with id {email_id} not found")
 
-    if email.review_status != "pending_review":
+    if email.review_status != ReviewStatus.PENDING_REVIEW.value:
         raise BadRequestException(
             f"Email is not pending review (current status: {email.review_status})"
         )
 
-    email.review_status = "approved" if action == "approve" else "rejected"
+    email.review_status = ReviewStatus.APPROVED.value if action == "approve" else ReviewStatus.REJECTED.value
     email.reviewed_by = current_user.id
     await db.flush()
 

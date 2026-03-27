@@ -6,16 +6,20 @@ from app.schemas.email_request import (
     EmailParsedData,
     EmailResponse,
     ManualEmailCreate,
+    ManualEmailRequest,
     ParsedPart,
 )
 from app.schemas.spare_part import SparePartCreate, SparePartResponse, SparePartUpdate
 from app.schemas.price_entry import PriceEntryCreate, PriceEntryResponse
 from app.schemas.quote import (
     QuoteCreate,
+    QuoteCreateRequest,
     QuoteItemCreate,
+    QuoteItemInput,
     QuoteItemResponse,
     QuoteResponse,
     QuoteUpdate,
+    QuoteUpdateRequest,
 )
 from app.schemas.dashboard import DashboardStats, TopPart, TrendData
 
@@ -34,6 +38,7 @@ __all__ = [
     "EmailParsedData",
     "EmailResponse",
     "ManualEmailCreate",
+    "ManualEmailRequest",
     "ParsedPart",
     "SparePartCreate",
     "SparePartResponse",
@@ -41,10 +46,13 @@ __all__ = [
     "PriceEntryCreate",
     "PriceEntryResponse",
     "QuoteCreate",
+    "QuoteCreateRequest",
     "QuoteItemCreate",
+    "QuoteItemInput",
     "QuoteItemResponse",
     "QuoteResponse",
     "QuoteUpdate",
+    "QuoteUpdateRequest",
     "DashboardStats",
     "TopPart",
     "TrendData",

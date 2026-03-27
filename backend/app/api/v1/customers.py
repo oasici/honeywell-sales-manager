@@ -6,7 +6,8 @@ from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.dependencies import Role, get_current_user, require_role
+from app.core.dependencies import get_current_user, require_role
+from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.customer import Customer
 from app.models.quote import Quote
@@ -117,7 +118,7 @@ async def get_customer(
 @router.post("/", status_code=201)
 async def create_customer(
     data: dict,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new customer."""
@@ -155,7 +156,7 @@ async def create_customer(
 async def update_customer(
     customer_id: int,
     data: dict,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a customer."""
@@ -182,7 +183,7 @@ async def update_customer(
 @router.post("/import", status_code=201)
 async def import_customers(
     file: UploadFile = File(...),
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Import customers from Excel (.xlsx) or CSV file."""

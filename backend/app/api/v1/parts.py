@@ -7,7 +7,8 @@ from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.dependencies import Role, get_current_user, require_role
+from app.core.dependencies import get_current_user, require_role
+from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.spare_part import SparePart
 from app.models.user import User
@@ -115,7 +116,7 @@ async def get_part(
 @router.post("/", status_code=201)
 async def create_part(
     data: dict,
-    current_user: User = Depends(require_role(Role.OPERATIONS)),
+    current_user: User = Depends(require_role(UserRole.OPERATIONS)),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new spare part (operations only)."""
@@ -152,7 +153,7 @@ async def create_part(
 async def update_part(
     part_id: int,
     data: dict,
-    current_user: User = Depends(require_role(Role.OPERATIONS)),
+    current_user: User = Depends(require_role(UserRole.OPERATIONS)),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a spare part (operations only)."""
@@ -180,7 +181,7 @@ async def update_part(
 @router.delete("/{part_id}", status_code=200)
 async def delete_part(
     part_id: int,
-    current_user: User = Depends(require_role(Role.OPERATIONS)),
+    current_user: User = Depends(require_role(UserRole.OPERATIONS)),
     db: AsyncSession = Depends(get_db),
 ):
     """Soft delete a spare part (set is_active=False)."""
@@ -200,7 +201,7 @@ async def delete_part(
 @router.post("/import", status_code=201)
 async def import_catalog(
     file: UploadFile = File(...),
-    current_user: User = Depends(require_role(Role.OPERATIONS, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.OPERATIONS, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Import parts + prices from a single Excel/CSV file.

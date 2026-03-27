@@ -1,7 +1,4 @@
-import json
 import math
-import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
@@ -10,14 +7,13 @@ from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.dependencies import Role, get_current_user, require_role
+from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, NotFoundException
-from app.models.customer import Customer
-from app.models.email_request import EmailRequest
+from app.models.enums import UserRole
 from app.models.quote import Quote
-from app.models.quote_item import QuoteItem
-from app.models.spare_part import SparePart
 from app.models.user import User
+from app.schemas.quote import QuoteCreate, QuoteUpdate
+from app.services.quote_service import QuoteService
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
@@ -83,45 +79,21 @@ async def get_quote(
 
 @router.post("/", status_code=201)
 async def create_quote(
-    data: dict,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    data: QuoteCreate,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a quote manually."""
-    customer_id = data.get("customer_id")
-
-    # Validate customer if provided
-    if customer_id:
-        cust_result = await db.execute(
-            select(Customer).where(Customer.id == customer_id)
-        )
-        if not cust_result.scalar_one_or_none():
-            raise NotFoundException(f"Customer with id {customer_id} not found")
-
-    # Generate quote number
-    quote_number = f"QT-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
-
-    quote = Quote(
-        quote_number=quote_number,
-        customer_id=customer_id,
+    service = QuoteService(db)
+    quote = await service.create_quote(
+        customer_id=data.customer_id,
+        items=[item.model_dump() for item in data.items],
+        language=data.language,
+        currency=data.currency,
+        tax_rate=data.tax_rate,
+        notes=data.notes,
         created_by=current_user.id,
-        status="draft",
-        language=data.get("language", "tr"),
-        currency=data.get("currency", "TRY"),
-        tax_rate=float(data.get("tax_rate", 20.0)),
-        valid_days=int(data.get("valid_days", 30)),
-        notes=data.get("notes"),
     )
-    db.add(quote)
-    await db.flush()
-
-    # Add items if provided
-    items_data = data.get("items", [])
-    await _create_quote_items(db, quote.id, items_data)
-
-    # Recalculate totals
-    await _recalculate_quote(db, quote)
-    await db.refresh(quote)
 
     return _quote_to_dict(quote, include_items=True)
 
@@ -129,82 +101,15 @@ async def create_quote(
 @router.post("/from-email/{email_id}", status_code=201)
 async def create_quote_from_email(
     email_id: int,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a quote from a parsed email."""
-    email_result = await db.execute(
-        select(EmailRequest).where(EmailRequest.id == email_id)
-    )
-    email = email_result.scalar_one_or_none()
-    if not email:
-        raise NotFoundException(f"Email with id {email_id} not found")
-
-    if email.status == "new":
-        raise BadRequestException("Email has not been parsed yet")
-
-    # Generate quote number
-    quote_number = f"QT-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
-
-    quote = Quote(
-        quote_number=quote_number,
-        customer_id=email.customer_id,
-        email_request_id=email.id,
+    service = QuoteService(db)
+    quote = await service.create_quote_from_email(
+        email_id=email_id,
         created_by=current_user.id,
-        status="draft",
-        language=email.language or "tr",
     )
-    db.add(quote)
-    await db.flush()
-
-    # If parsed_data contains items, create quote items from them
-    if email.parsed_data:
-        try:
-            parsed = json.loads(email.parsed_data)
-            items = parsed.get("items", [])
-            for i, item in enumerate(items):
-                code = item.get("honeywell_code") or item.get("code", "")
-                quantity = int(item.get("quantity", 1))
-
-                # Try to find matching spare part
-                spare_part_id = None
-                unit_price = 0.0
-                if code:
-                    part_result = await db.execute(
-                        select(SparePart).where(SparePart.honeywell_code == code)
-                    )
-                    part = part_result.scalar_one_or_none()
-                    if part:
-                        spare_part_id = part.id
-                        # Use first available price
-                        if part.prices:
-                            unit_price = part.prices[0].net_price
-
-                line_total = quantity * unit_price
-
-                qi = QuoteItem(
-                    quote_id=quote.id,
-                    spare_part_id=spare_part_id,
-                    original_text=item.get("original_text", ""),
-                    honeywell_code=code,
-                    description=item.get("description", ""),
-                    quantity=quantity,
-                    unit_price=unit_price,
-                    line_total=line_total,
-                    match_score=item.get("match_score"),
-                    match_strategy=item.get("match_strategy"),
-                    sort_order=i,
-                )
-                db.add(qi)
-        except (json.JSONDecodeError, KeyError):
-            pass
-
-    # Update email status
-    email.status = "quoted"
-    await db.flush()
-
-    await _recalculate_quote(db, quote)
-    await db.refresh(quote)
 
     return _quote_to_dict(quote, include_items=True)
 
@@ -212,48 +117,22 @@ async def create_quote_from_email(
 @router.put("/{quote_id}")
 async def update_quote(
     quote_id: int,
-    data: dict,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    data: QuoteUpdate,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Update quote header and items."""
-    result = await db.execute(
-        select(Quote).where(Quote.id == quote_id)
+    payload = data.model_dump(exclude_unset=True)
+    items = None
+    if "items" in payload and payload["items"] is not None:
+        items = payload.pop("items")
+
+    service = QuoteService(db)
+    quote = await service.update_quote(
+        quote_id=quote_id,
+        data=payload,
+        items=items,
     )
-    quote = result.scalar_one_or_none()
-    if not quote:
-        raise NotFoundException(f"Quote with id {quote_id} not found")
-
-    if quote.status not in ("draft", "pending_approval"):
-        raise BadRequestException(
-            f"Cannot edit quote in '{quote.status}' status. Only draft or pending_approval quotes can be edited."
-        )
-
-    # Update header fields
-    header_fields = [
-        "customer_id", "language", "currency", "tax_rate",
-        "valid_days", "notes",
-    ]
-    for field in header_fields:
-        if field in data:
-            setattr(quote, field, data[field])
-
-    # Replace items if provided
-    if "items" in data:
-        # Delete existing items
-        existing_items = await db.execute(
-            select(QuoteItem).where(QuoteItem.quote_id == quote_id)
-        )
-        for item in existing_items.scalars().all():
-            await db.delete(item)
-        await db.flush()
-
-        # Create new items
-        await _create_quote_items(db, quote_id, data["items"])
-
-    # Recalculate totals
-    await _recalculate_quote(db, quote)
-    await db.refresh(quote)
 
     return _quote_to_dict(quote, include_items=True)
 
@@ -261,31 +140,15 @@ async def update_quote(
 @router.patch("/{quote_id}/approve")
 async def approve_quote(
     quote_id: int,
-    current_user: User = Depends(require_role(Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Approve a quote and generate PDF (sales_manager only)."""
-    result = await db.execute(
-        select(Quote).where(Quote.id == quote_id)
+    service = QuoteService(db)
+    quote = await service.approve_quote(
+        quote_id=quote_id,
+        approved_by=current_user.id,
     )
-    quote = result.scalar_one_or_none()
-    if not quote:
-        raise NotFoundException(f"Quote with id {quote_id} not found")
-
-    if quote.status not in ("draft", "pending_approval"):
-        raise BadRequestException(
-            f"Cannot approve quote in '{quote.status}' status"
-        )
-
-    quote.status = "approved"
-    quote.approved_by = current_user.id
-
-    # TODO: Generate PDF via service layer
-    # pdf_path = await pdf_service.generate_quote_pdf(quote)
-    # quote.pdf_path = pdf_path
-
-    await db.flush()
-    await db.refresh(quote)
 
     return _quote_to_dict(quote, include_items=True)
 
@@ -294,7 +157,7 @@ async def approve_quote(
 async def send_quote(
     quote_id: int,
     data: dict | None = None,
-    current_user: User = Depends(require_role(Role.SALES_REP, Role.SALES_MANAGER)),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Send a quote via email."""
@@ -337,7 +200,7 @@ async def download_quote_pdf(
         raise NotFoundException(f"Quote with id {quote_id} not found")
 
     # Authorization: only creator or manager can download
-    if quote.created_by != current_user.id and current_user.role != "sales_manager":
+    if quote.created_by != current_user.id and current_user.role != UserRole.SALES_MANAGER.value:
         from app.core.exceptions import ForbiddenException
         raise ForbiddenException("Bu teklifi indirme yetkiniz yok")
 
@@ -360,70 +223,6 @@ async def download_quote_pdf(
 
 
 # ---- Helper Functions ----
-
-async def _create_quote_items(
-    db: AsyncSession, quote_id: int, items_data: list[dict]
-) -> None:
-    """Create QuoteItem records from a list of item dicts."""
-    for i, item_data in enumerate(items_data):
-        spare_part_id = item_data.get("spare_part_id")
-        quantity = int(item_data.get("quantity", 1))
-        unit_price = float(item_data.get("unit_price", 0.0))
-        discount_pct = float(item_data.get("discount_pct", 0.0))
-
-        # If spare_part_id given, look up code/description
-        honeywell_code = item_data.get("honeywell_code")
-        description = item_data.get("description")
-
-        if spare_part_id and not honeywell_code:
-            part_result = await db.execute(
-                select(SparePart).where(SparePart.id == spare_part_id)
-            )
-            part = part_result.scalar_one_or_none()
-            if part:
-                honeywell_code = honeywell_code or part.honeywell_code
-                description = description or part.name_en
-
-        discounted_price = unit_price * (1 - discount_pct / 100)
-        line_total = quantity * discounted_price
-
-        qi = QuoteItem(
-            quote_id=quote_id,
-            spare_part_id=spare_part_id,
-            original_text=item_data.get("original_text"),
-            honeywell_code=honeywell_code,
-            description=description,
-            quantity=quantity,
-            unit_price=unit_price,
-            discount_pct=discount_pct,
-            line_total=round(line_total, 2),
-            match_score=item_data.get("match_score"),
-            match_strategy=item_data.get("match_strategy"),
-            is_confirmed=item_data.get("is_confirmed", False),
-            sort_order=i,
-        )
-        db.add(qi)
-
-    await db.flush()
-
-
-async def _recalculate_quote(db: AsyncSession, quote: Quote) -> None:
-    """Recalculate quote totals from items."""
-    items_result = await db.execute(
-        select(QuoteItem).where(QuoteItem.quote_id == quote.id)
-    )
-    items = items_result.scalars().all()
-
-    subtotal = sum(item.line_total for item in items)
-    tax_amount = subtotal * (quote.tax_rate / 100)
-    grand_total = subtotal + tax_amount - quote.discount_total
-
-    quote.subtotal = round(subtotal, 2)
-    quote.tax_amount = round(tax_amount, 2)
-    quote.grand_total = round(grand_total, 2)
-
-    await db.flush()
-
 
 def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
     """Convert Quote to a dictionary response."""
