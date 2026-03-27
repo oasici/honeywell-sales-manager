@@ -39,6 +39,7 @@ class EmailProcessingService:
                 self._apply_parsed_data(email, parsed)
                 self._classify_email(email)
                 self._set_review_status(email)
+                await self._auto_create_customer(email, parsed)
             else:
                 email.status = EmailStatus.ERROR.value
                 email.error_message = "Claude parse returned empty"
@@ -79,6 +80,7 @@ class EmailProcessingService:
                 self._apply_parsed_data(email, parsed)
                 self._classify_email(email)
                 self._set_review_status(email)
+                await self._auto_create_customer(email, parsed)
                 await self._db.flush()
                 await self._db.refresh(email)
         except Exception as exc:
@@ -134,3 +136,41 @@ class EmailProcessingService:
             email.review_status = ReviewStatus.PENDING_REVIEW.value
         else:
             email.review_status = ReviewStatus.APPROVED.value
+
+    async def _auto_create_customer(self, email: EmailRequest, parsed: dict) -> None:
+        """Auto-create customer from parsed email data if not exists."""
+        from app.models.customer import Customer
+
+        customer_name = parsed.get("customer_name", "")
+        customer_company = parsed.get("customer_company", "")
+        from_address = email.from_address
+
+        if not from_address:
+            return
+
+        # Check if customer with this email already exists
+        result = await self._db.execute(
+            select(Customer).where(Customer.email == from_address)
+        )
+        existing = result.scalar_one_or_none()
+
+        if existing:
+            # Link email to existing customer
+            email.customer_id = existing.id
+            # Update name/company if parsed and currently empty
+            if customer_name and not existing.name:
+                existing.name = customer_name
+            if customer_company and not existing.company:
+                existing.company = customer_company
+        else:
+            # Create new customer
+            name = customer_name or from_address.split("@")[0]
+            customer = Customer(
+                name=name,
+                email=from_address,
+                company=customer_company or None,
+            )
+            self._db.add(customer)
+            await self._db.flush()
+            email.customer_id = customer.id
+            logger.info("Auto-created customer: %s <%s>", name, from_address)

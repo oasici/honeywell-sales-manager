@@ -1,14 +1,16 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Mail, User, Building2, Clock, Tag, FileText } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
-import { emailsApi } from '../../lib/api';
+import { Badge } from '../../components/ui/Badge';
+import { emailsApi, customersApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import {
   CATEGORY_LABELS,
@@ -21,7 +23,7 @@ import type { EmailRequest, PaginatedResponse } from '../../lib/types';
 
 const REVIEW_TABS = [
   { value: '', label: 'Tumu' },
-  { value: 'pending', label: 'Inceleme Bekleyen' },
+  { value: 'pending_review', label: 'Inceleme Bekleniyor' },
   { value: 'approved', label: 'Onaylanan' },
   { value: 'rejected', label: 'Reddedilen' },
 ];
@@ -32,7 +34,6 @@ const CATEGORY_OPTIONS = [
 ];
 
 export default function EmailListPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -41,6 +42,7 @@ export default function EmailListPage() {
   const [reviewTab, setReviewTab] = useState(searchParams.get('review_status') || '');
   const [category, setCategory] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailEmail, setDetailEmail] = useState<EmailRequest | null>(null);
   const [manualForm, setManualForm] = useState({
     from_address: '',
     subject: '',
@@ -71,12 +73,22 @@ export default function EmailListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof manualForm) => emailsApi.createManualEmail(payload),
     onSuccess: () => {
-      toast.success('Email basariyla eklendi');
+      toast.success('Email eklendi ve Claude ile ayristirildi');
       setModalOpen(false);
       setManualForm({ from_address: '', subject: '', body_text: '' });
       queryClient.invalidateQueries({ queryKey: ['emails'] });
     },
     onError: () => toast.error('Email eklenemedi'),
+  });
+
+  const createCustomerMutation = useMutation({
+    mutationFn: (payload: { name: string; email: string; company?: string }) =>
+      customersApi.createCustomer(payload),
+    onSuccess: (customer) => {
+      toast.success(`Musteri olusturuldu: ${customer.name}`);
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: () => toast.error('Musteri olusturulamadi (zaten mevcut olabilir)'),
   });
 
   const handleTabChange = useCallback(
@@ -91,6 +103,34 @@ export default function EmailListPage() {
     },
     [setSearchParams],
   );
+
+  // Extract parsed data from email
+  const getParsedData = (email: EmailRequest) => {
+    if (!email.parsed_data) return null;
+    try {
+      return typeof email.parsed_data === 'string'
+        ? JSON.parse(email.parsed_data)
+        : email.parsed_data;
+    } catch {
+      return null;
+    }
+  };
+
+  // Auto-create customer from parsed email
+  const handleCreateCustomer = (email: EmailRequest) => {
+    const parsed = getParsedData(email);
+    if (!parsed) {
+      toast.error('Email henuz ayristirilmamis');
+      return;
+    }
+    const name = parsed.customer_name || email.from_address.split('@')[0];
+    const company = parsed.customer_company || '';
+    createCustomerMutation.mutate({
+      name,
+      email: email.from_address,
+      ...(company && { company }),
+    });
+  };
 
   const columns = [
     {
@@ -107,20 +147,16 @@ export default function EmailListPage() {
       key: 'from_address',
       header: 'Gonderen',
       render: (row: EmailRequest) => (
-        <span className="max-w-[200px] truncate block">{row.from_address}</span>
+        <span className="max-w-[200px] truncate block text-sm">{row.from_address}</span>
       ),
     },
     {
       key: 'subject',
       header: 'Konu',
       render: (row: EmailRequest) => (
-        <button
-          type="button"
-          onClick={() => navigate(`/emails/${row.id}`)}
-          className="max-w-[260px] truncate block text-left font-medium text-honeywell-red hover:underline"
-        >
+        <span className="max-w-[260px] truncate block text-sm font-medium text-honeywell-red">
           {row.subject || '(Konu yok)'}
-        </button>
+        </span>
       ),
     },
     {
@@ -163,6 +199,8 @@ export default function EmailListPage() {
       },
     },
   ];
+
+  const detailParsed = detailEmail ? getParsedData(detailEmail) : null;
 
   return (
     <div>
@@ -217,7 +255,7 @@ export default function EmailListPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table - rows clickable */}
       <DataTable
         columns={columns}
         data={data?.items || []}
@@ -226,7 +264,173 @@ export default function EmailListPage() {
         page={data?.page || page}
         totalPages={data?.pages || 1}
         onPageChange={setPage}
+        onRowClick={(row) => setDetailEmail(row as EmailRequest)}
       />
+
+      {/* ── Email Detail Popup ── */}
+      <Modal
+        isOpen={!!detailEmail}
+        onClose={() => setDetailEmail(null)}
+        title="Email Detayi"
+        size="lg"
+      >
+        {detailEmail && (
+          <div className="space-y-4">
+            {/* Header info */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex items-start gap-2">
+                <Mail size={16} className="mt-0.5 shrink-0 text-gray-400" />
+                <div>
+                  <span className="text-xs text-gray-500">Gonderen</span>
+                  <p className="text-sm font-medium text-gray-900">{detailEmail.from_address}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Clock size={16} className="mt-0.5 shrink-0 text-gray-400" />
+                <div>
+                  <span className="text-xs text-gray-500">Tarih</span>
+                  <p className="text-sm text-gray-900">
+                    {formatDateTime(detailEmail.received_at || detailEmail.created_at)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Subject */}
+            <div className="flex items-start gap-2">
+              <FileText size={16} className="mt-0.5 shrink-0 text-gray-400" />
+              <div>
+                <span className="text-xs text-gray-500">Konu</span>
+                <p className="text-sm font-semibold text-gray-900">
+                  {detailEmail.subject || '(Konu yok)'}
+                </p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <span className="mb-2 block text-xs font-medium text-gray-500">Email Icerigi</span>
+              <p className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
+                {detailEmail.body_text || '(Icerik yok)'}
+              </p>
+            </div>
+
+            {/* Status badges */}
+            <div className="flex flex-wrap gap-2">
+              {detailEmail.category && (
+                <Badge variant="info">
+                  <Tag size={12} className="mr-1" />
+                  {CATEGORY_LABELS[detailEmail.category] || detailEmail.category}
+                </Badge>
+              )}
+              {detailEmail.status && (
+                <Badge variant={detailEmail.status === 'parsed' ? 'success' : 'default'}>
+                  {STATUS_LABELS[detailEmail.status] || detailEmail.status}
+                </Badge>
+              )}
+              {detailEmail.review_status && (
+                <Badge
+                  variant={
+                    detailEmail.review_status === 'approved'
+                      ? 'success'
+                      : detailEmail.review_status === 'rejected'
+                        ? 'danger'
+                        : 'warning'
+                  }
+                >
+                  {REVIEW_STATUS_LABELS[detailEmail.review_status] || detailEmail.review_status}
+                </Badge>
+              )}
+            </div>
+
+            {/* Parsed data - customer & parts */}
+            {detailParsed && (
+              <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-blue-700">
+                  Claude AI Ayristirma Sonucu
+                </h4>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {detailParsed.customer_name && (
+                    <div className="flex items-center gap-2">
+                      <User size={14} className="text-blue-500" />
+                      <span className="text-sm">
+                        <strong>Musteri:</strong> {detailParsed.customer_name}
+                      </span>
+                    </div>
+                  )}
+                  {detailParsed.customer_company && (
+                    <div className="flex items-center gap-2">
+                      <Building2 size={14} className="text-blue-500" />
+                      <span className="text-sm">
+                        <strong>Sirket:</strong> {detailParsed.customer_company}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Parts list */}
+                {detailParsed.parts && detailParsed.parts.length > 0 && (
+                  <div>
+                    <span className="text-xs font-medium text-blue-600">
+                      Talep Edilen Parcalar ({detailParsed.parts.length})
+                    </span>
+                    <div className="mt-1 space-y-1">
+                      {detailParsed.parts.map((p: any, i: number) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between rounded bg-white px-3 py-1.5 text-sm"
+                        >
+                          <span className="font-mono font-semibold text-gray-800">
+                            {p.part_code}
+                          </span>
+                          <span className="text-gray-600">{p.part_description}</span>
+                          <span className="font-medium">{p.quantity} adet</span>
+                          <Badge
+                            variant={
+                              p.urgency === 'critical'
+                                ? 'danger'
+                                : p.urgency === 'high'
+                                  ? 'warning'
+                                  : 'default'
+                            }
+                            size="sm"
+                          >
+                            {p.urgency}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Confidence */}
+                {detailParsed.confidence != null && (
+                  <div className="text-xs text-blue-600">
+                    Guven Skoru: %{Math.round(detailParsed.confidence * 100)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={createCustomerMutation.isPending}
+                onClick={() => handleCreateCustomer(detailEmail)}
+                disabled={!detailParsed}
+              >
+                Musteri Olustur
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setDetailEmail(null)}>
+                Kapat
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Manual Email Modal */}
       <Modal
@@ -246,24 +450,18 @@ export default function EmailListPage() {
             label="Gonderen"
             placeholder="ornek@sirket.com"
             value={manualForm.from_address}
-            onChange={(e) =>
-              setManualForm((p) => ({ ...p, from_address: e.target.value }))
-            }
+            onChange={(e) => setManualForm((p) => ({ ...p, from_address: e.target.value }))}
             required
           />
           <Input
             label="Konu"
             placeholder="Email konusu"
             value={manualForm.subject}
-            onChange={(e) =>
-              setManualForm((p) => ({ ...p, subject: e.target.value }))
-            }
+            onChange={(e) => setManualForm((p) => ({ ...p, subject: e.target.value }))}
             required
           />
           <div className="w-full">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Icerik
-            </label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Icerik</label>
             <textarea
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
                 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light
@@ -271,9 +469,7 @@ export default function EmailListPage() {
               rows={6}
               placeholder="Email icerigi..."
               value={manualForm.body_text}
-              onChange={(e) =>
-                setManualForm((p) => ({ ...p, body_text: e.target.value }))
-              }
+              onChange={(e) => setManualForm((p) => ({ ...p, body_text: e.target.value }))}
               required
             />
           </div>
