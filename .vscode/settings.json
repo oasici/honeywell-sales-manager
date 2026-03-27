@@ -1,0 +1,85 @@
+{
+  // ── Editor ──
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+  "editor.minimap.enabled": false,
+
+  // ── ESLint ──
+  "eslint.workingDirectories": ["./frontend"],
+  "eslint.validate": ["typescript", "typescriptreact"],
+
+  // ── Prettier ──
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // ── Tailwind CSS IntelliSense ──
+  "tailwindCSS.experimental.classRegex": [
+    ["className\\s*=\\s*[\"'`]([^\"'`]*)[\"'`]"],
+    ["className\\s*=\\s*\\{`([^`]*)`\\}"]
+  ],
+  "tailwindCSS.rootFontSize": 16,
+  "tailwindCSS.emmetCompletions": true,
+
+  // ── Python / Pylance ──
+  "python.defaultInterpreterPath": "./backend/.venv/bin/python",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.python",
+    "editor.formatOnSave": true
+  },
+
+  // ── Docker ──
+  "docker.composeCommand": "docker compose",
+  "docker.containers.label": "honeywell",
+  "docker.showStartPage": false,
+
+  // ── GitLens ──
+  "gitlens.codeLens.enabled": true,
+  "gitlens.currentLine.enabled": true,
+  "gitlens.hovers.currentLine.over": "line",
+
+  // ── Error Lens ──
+  "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+  "errorLens.delay": 500,
+
+  // ── Thunder Client ──
+  "thunder-client.saveToWorkspace": true,
+
+  // ── Database Client ──
+  "database-client.autoSync": false,
+
+  // ── File Explorer ──
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/*.pyc": true
+  },
+  "files.associations": {
+    "*.html": "html"
+  },
+
+  // ── Search ──
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/__pycache__": true,
+    "**/package-lock.json": true
+  }
+}

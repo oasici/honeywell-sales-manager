@@ -1,0 +1,53 @@
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.database import Base
+
+
+class EmailRequest(Base):
+    __tablename__ = "email_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    customer_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("customers.id"), nullable=True
+    )
+    message_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    from_address: Mapped[str] = mapped_column(String(255), nullable=False)
+    subject: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    body_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    body_html: Mapped[str | None] = mapped_column(Text, nullable=True)
+    language: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Processing status
+    status: Mapped[str] = mapped_column(String(20), default="new", index=True)
+    # new -> parsed -> quoted -> sent -> error
+    parsed_data: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Classification
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    category_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    price_sensitivity: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    sentiment: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    sentiment_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    is_duplicate: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    duplicate_of_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Review workflow
+    review_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # pending_review -> approved -> rejected
+    assigned_to: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+    reviewed_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    customer = relationship("Customer", back_populates="email_requests", lazy="selectin")

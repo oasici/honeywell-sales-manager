@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #333; font-size: 12px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #D32F2F; padding-bottom: 20px; margin-bottom: 30px; }
+  .company-name { font-size: 24px; font-weight: bold; color: #D32F2F; }
+  .company-info { font-size: 10px; color: #666; line-height: 1.6; }
+  .quote-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 20px; }
+  .info-grid { display: flex; justify-content: space-between; margin-bottom: 30px; }
+  .info-box { width: 48%; }
+  .info-box h3 { font-size: 12px; color: #D32F2F; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .info-box p { margin: 3px 0; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  th { background: #D32F2F; color: white; padding: 8px 10px; text-align: left; font-size: 11px; }
+  td { padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 11px; }
+  tr:nth-child(even) { background: #f9f9f9; }
+  .totals { width: 300px; margin-left: auto; }
+  .totals td { padding: 5px 10px; }
+  .totals .label { text-align: right; font-weight: bold; }
+  .totals .grand-total { font-size: 14px; color: #D32F2F; border-top: 2px solid #D32F2F; }
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 10px; color: #999; text-align: center; }
+  .notes { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="company-name">{{ company_name }}</div>
+      <div class="company-info">
+        {{ company_address }}<br>
+        Tel: {{ company_phone }}<br>
+        {% if company_tax_id %}Vergi No: {{ company_tax_id }}{% endif %}
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div class="quote-title">TEKLİF</div>
+      <div style="font-size: 11px;">
+        <strong>Teklif No:</strong> {{ quote_number }}<br>
+        <strong>Tarih:</strong> {{ date }}<br>
+        <strong>Geçerlilik:</strong> {{ valid_days }} gün
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <h3>Müşteri Bilgileri</h3>
+      <p><strong>{{ customer_name }}</strong></p>
+      {% if customer_company %}<p>{{ customer_company }}</p>{% endif %}
+      {% if customer_email %}<p>{{ customer_email }}</p>{% endif %}
+      {% if customer_phone %}<p>Tel: {{ customer_phone }}</p>{% endif %}
+      {% if customer_address %}<p>{{ customer_address }}</p>{% endif %}
+    </div>
+    <div class="info-box">
+      <h3>Teklif Detayları</h3>
+      <p><strong>Para Birimi:</strong> {{ currency }}</p>
+      <p><strong>KDV Oranı:</strong> %{{ tax_rate }}</p>
+      <p><strong>Durum:</strong> {{ status }}</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Honeywell Kodu</th>
+        <th>Açıklama</th>
+        <th style="text-align:center">Adet</th>
+        <th style="text-align:right">Birim Fiyat</th>
+        <th style="text-align:center">İskonto %</th>
+        <th style="text-align:right">Toplam</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.honeywell_code or '-' }}</td>
+        <td>{{ item.description or '-' }}</td>
+        <td style="text-align:center">{{ item.quantity }}</td>
+        <td style="text-align:right">{{ "%.2f"|format(item.unit_price) }}</td>
+        <td style="text-align:center">{% if item.discount_pct %}%{{ "%.1f"|format(item.discount_pct) }}{% else %}-{% endif %}</td>
+        <td style="text-align:right">{{ "%.2f"|format(item.line_total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr><td class="label">Ara Toplam:</td><td style="text-align:right">{{ "%.2f"|format(subtotal) }} {{ currency }}</td></tr>
+    {% if discount_total > 0 %}
+    <tr><td class="label">İskonto:</td><td style="text-align:right">-{{ "%.2f"|format(discount_total) }} {{ currency }}</td></tr>
+    {% endif %}
+    <tr><td class="label">KDV (%{{ tax_rate }}):</td><td style="text-align:right">{{ "%.2f"|format(tax_amount) }} {{ currency }}</td></tr>
+    <tr class="grand-total"><td class="label">Genel Toplam:</td><td style="text-align:right"><strong>{{ "%.2f"|format(grand_total) }} {{ currency }}</strong></td></tr>
+  </table>
+
+  {% if notes %}
+  <div class="notes">
+    <strong>Notlar:</strong><br>
+    {{ notes }}
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    {{ company_name }} | Bu teklif {{ valid_days }} gün geçerlidir. | Sayfa 1/1
+  </div>
+</body>
+</html>

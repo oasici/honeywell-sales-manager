@@ -1,0 +1,13 @@
+[
+  {
+    "_id": "env_local",
+    "name": "Local",
+    "default": true,
+    "data": [
+      { "name": "baseUrl", "value": "http://localhost:8000/api/v1" },
+      { "name": "token", "value": "" },
+      { "name": "adminEmail", "value": "admin@honeywell.com" },
+      { "name": "adminPassword", "value": "admin123" }
+    ]
+  }
+]

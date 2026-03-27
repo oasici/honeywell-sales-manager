@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Helvetica, Arial, sans-serif; color: #333; line-height: 1.6;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="border-bottom: 3px solid #D32F2F; padding-bottom: 15px; margin-bottom: 20px;">
+      <span style="font-size: 20px; font-weight: bold; color: #D32F2F;">{{ company_name }}</span>
+    </div>
+
+    <p>Sayın {{ customer_name }},</p>
+
+    <p>Talebiniz doğrultusunda hazırladığımız teklif ekte bilgilerinize sunulmuştur.</p>
+
+    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+      <p style="margin: 5px 0;"><strong>Teklif No:</strong> {{ quote_number }}</p>
+      <p style="margin: 5px 0;"><strong>Toplam:</strong> {{ grand_total }} {{ currency }}</p>
+      <p style="margin: 5px 0;"><strong>Geçerlilik:</strong> {{ valid_days }} gün</p>
+    </div>
+
+    <p>Herhangi bir sorunuz olması halinde bizimle iletişime geçmekten çekinmeyiniz.</p>
+
+    <p>Saygılarımızla,<br>
+    <strong>{{ company_name }}</strong><br>
+    {{ company_phone }}</p>
+  </div>
+</body>
+</html>

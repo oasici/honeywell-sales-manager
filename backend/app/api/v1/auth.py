@@ -1,0 +1,132 @@
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.core.dependencies import Role, get_current_user, require_role
+from app.core.exceptions import BadRequestException, UnauthorizedException
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    revoke_token,
+    validate_password_strength,
+)
+from app.models.user import User
+from app.schemas.auth import TokenResponse, UserCreate, UserResponse
+from app.services import auth_service
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str | None = None
+
+
+@router.post("/login", response_model=TokenResponse)
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """OAuth2-compatible login with rate limiting."""
+    user = await auth_service.authenticate(db, form_data.username, form_data.password)
+    if user is None:
+        raise UnauthorizedException("Invalid email or password")
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse.model_validate(user),
+    )
+
+
+@router.post("/register", response_model=UserResponse)
+async def register_user(
+    body: UserCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_role(Role.SALES_MANAGER))],
+):
+    """Register a new user. Only sales_manager role can create users."""
+    # Validate password strength
+    pw_error = validate_password_strength(body.password)
+    if pw_error:
+        raise BadRequestException(pw_error)
+
+    try:
+        user = await auth_service.register(
+            db,
+            email=body.email,
+            password=body.password,
+            full_name=body.full_name,
+            role=body.role,
+        )
+    except ValueError as e:
+        raise BadRequestException(str(e))
+
+    return UserResponse.model_validate(user)
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """Return the current authenticated user's info."""
+    return UserResponse.model_validate(current_user)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token_endpoint(
+    body: RefreshRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Exchange a refresh token for new tokens. Old refresh token is revoked."""
+    payload = decode_token(body.refresh_token)
+    if payload is None or payload.get("type") != "refresh":
+        raise UnauthorizedException("Invalid or expired refresh token")
+
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise UnauthorizedException("Invalid refresh token payload")
+
+    from sqlalchemy import select
+    result = await db.execute(select(User).where(User.id == int(user_id)))
+    user = result.scalar_one_or_none()
+
+    if user is None or not user.is_active:
+        raise UnauthorizedException("User not found or inactive")
+
+    # Revoke old refresh token (rotation)
+    revoke_token(body.refresh_token)
+
+    new_access = create_access_token(data={"sub": str(user.id)})
+    new_refresh = create_refresh_token(data={"sub": str(user.id)})
+
+    return TokenResponse(
+        access_token=new_access,
+        refresh_token=new_refresh,
+        user=UserResponse.model_validate(user),
+    )
+
+
+@router.post("/logout")
+async def logout(
+    body: LogoutRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """Revoke refresh token on logout."""
+    if body.refresh_token:
+        revoke_token(body.refresh_token)
+    return {"message": "Logged out successfully"}

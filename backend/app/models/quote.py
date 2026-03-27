@@ -1,0 +1,61 @@
+from datetime import datetime, timezone
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.database import Base
+
+
+class Quote(Base):
+    __tablename__ = "quotes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    quote_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    customer_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("customers.id"), nullable=True
+    )
+    email_request_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("email_requests.id"), nullable=True
+    )
+    created_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+    approved_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+
+    # Status: draft -> pending_approval -> approved -> sent -> accepted -> rejected -> expired
+    status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
+    language: Mapped[str] = mapped_column(String(5), default="tr")
+    currency: Mapped[str] = mapped_column(String(10), default="TRY")
+
+    # Financials
+    subtotal: Mapped[float] = mapped_column(Float, default=0.0)
+    discount_total: Mapped[float] = mapped_column(Float, default=0.0)
+    tax_rate: Mapped[float] = mapped_column(Float, default=20.0)
+    tax_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    grand_total: Mapped[float] = mapped_column(Float, default=0.0)
+
+    valid_days: Mapped[int] = mapped_column(Integer, default=30)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Versioning
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    parent_quote_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("quotes.id"), nullable=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    customer = relationship("Customer", back_populates="quotes", lazy="selectin")
+    items = relationship(
+        "QuoteItem", back_populates="quote", lazy="selectin", cascade="all, delete-orphan"
+    )

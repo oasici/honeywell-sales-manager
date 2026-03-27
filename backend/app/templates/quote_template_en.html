@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #333; font-size: 12px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #D32F2F; padding-bottom: 20px; margin-bottom: 30px; }
+  .company-name { font-size: 24px; font-weight: bold; color: #D32F2F; }
+  .company-info { font-size: 10px; color: #666; line-height: 1.6; }
+  .quote-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 20px; }
+  .info-grid { display: flex; justify-content: space-between; margin-bottom: 30px; }
+  .info-box { width: 48%; }
+  .info-box h3 { font-size: 12px; color: #D32F2F; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .info-box p { margin: 3px 0; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  th { background: #D32F2F; color: white; padding: 8px 10px; text-align: left; font-size: 11px; }
+  td { padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 11px; }
+  tr:nth-child(even) { background: #f9f9f9; }
+  .totals { width: 300px; margin-left: auto; }
+  .totals td { padding: 5px 10px; }
+  .totals .label { text-align: right; font-weight: bold; }
+  .totals .grand-total { font-size: 14px; color: #D32F2F; border-top: 2px solid #D32F2F; }
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 10px; color: #999; text-align: center; }
+  .notes { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="company-name">{{ company_name }}</div>
+      <div class="company-info">
+        {{ company_address }}<br>
+        Phone: {{ company_phone }}<br>
+        {% if company_tax_id %}Tax ID: {{ company_tax_id }}{% endif %}
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div class="quote-title">QUOTATION</div>
+      <div style="font-size: 11px;">
+        <strong>Quote No:</strong> {{ quote_number }}<br>
+        <strong>Date:</strong> {{ date }}<br>
+        <strong>Valid for:</strong> {{ valid_days }} days
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <h3>Customer Information</h3>
+      <p><strong>{{ customer_name }}</strong></p>
+      {% if customer_company %}<p>{{ customer_company }}</p>{% endif %}
+      {% if customer_email %}<p>{{ customer_email }}</p>{% endif %}
+      {% if customer_phone %}<p>Phone: {{ customer_phone }}</p>{% endif %}
+      {% if customer_address %}<p>{{ customer_address }}</p>{% endif %}
+    </div>
+    <div class="info-box">
+      <h3>Quote Details</h3>
+      <p><strong>Currency:</strong> {{ currency }}</p>
+      <p><strong>Tax Rate:</strong> {{ tax_rate }}%</p>
+      <p><strong>Status:</strong> {{ status }}</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Honeywell Code</th>
+        <th>Description</th>
+        <th style="text-align:center">Qty</th>
+        <th style="text-align:right">Unit Price</th>
+        <th style="text-align:center">Discount %</th>
+        <th style="text-align:right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.honeywell_code or '-' }}</td>
+        <td>{{ item.description or '-' }}</td>
+        <td style="text-align:center">{{ item.quantity }}</td>
+        <td style="text-align:right">{{ "%.2f"|format(item.unit_price) }}</td>
+        <td style="text-align:center">{% if item.discount_pct %}{{ "%.1f"|format(item.discount_pct) }}%{% else %}-{% endif %}</td>
+        <td style="text-align:right">{{ "%.2f"|format(item.line_total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr><td class="label">Subtotal:</td><td style="text-align:right">{{ "%.2f"|format(subtotal) }} {{ currency }}</td></tr>
+    {% if discount_total > 0 %}
+    <tr><td class="label">Discount:</td><td style="text-align:right">-{{ "%.2f"|format(discount_total) }} {{ currency }}</td></tr>
+    {% endif %}
+    <tr><td class="label">Tax ({{ tax_rate }}%):</td><td style="text-align:right">{{ "%.2f"|format(tax_amount) }} {{ currency }}</td></tr>
+    <tr class="grand-total"><td class="label">Grand Total:</td><td style="text-align:right"><strong>{{ "%.2f"|format(grand_total) }} {{ currency }}</strong></td></tr>
+  </table>
+
+  {% if notes %}
+  <div class="notes">
+    <strong>Notes:</strong><br>
+    {{ notes }}
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    {{ company_name }} | This quotation is valid for {{ valid_days }} days. | Page 1/1
+  </div>
+</body>
+</html>

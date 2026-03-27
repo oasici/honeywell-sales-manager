@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-honeywell_sales}
+      POSTGRES_USER: ${POSTGRES_USER:-honeywell}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-honeywell123}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # DB port NOT exposed externally (internal network only)
+    # Use docker-compose.override.yml for dev access
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-honeywell}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-honeywell}:${POSTGRES_PASSWORD:-honeywell123}@db:5432/${POSTGRES_DB:-honeywell_sales}
+    volumes:
+      - backend_data:/app/data
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:
+  backend_data:
