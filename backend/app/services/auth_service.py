@@ -65,7 +65,13 @@ async def create_default_admin(db: AsyncSession) -> None:
     existing = result.scalar_one_or_none()
 
     if existing is not None:
-        logger.info("Default admin user already exists: %s", settings.DEFAULT_ADMIN_EMAIL)
+        # Sync password with env variable on every startup
+        if not verify_password(settings.DEFAULT_ADMIN_PASSWORD, existing.hashed_password):
+            existing.hashed_password = hash_password(settings.DEFAULT_ADMIN_PASSWORD)
+            await db.commit()
+            logger.info("Default admin password updated from env: %s", settings.DEFAULT_ADMIN_EMAIL)
+        else:
+            logger.info("Default admin user already exists: %s", settings.DEFAULT_ADMIN_EMAIL)
         return
 
     admin = User(
