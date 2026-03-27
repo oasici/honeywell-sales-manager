@@ -12,6 +12,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # In-memory cache (SHA256 hash -> parse result)
+# Only cache successful results (with parts)
 _parse_cache: dict[str, dict] = {}
 
 # Tool definition for structured extraction
@@ -150,7 +151,9 @@ async def parse_email(body: str, subject: str = "") -> dict:
             for block in response.content:
                 if block.type == "tool_use" and block.name == "extract_email_data":
                     result = block.input
-                    _parse_cache[cache_key] = result
+                    # Only cache if we got actual parts
+                    if result.get("parts"):
+                        _parse_cache[cache_key] = result
                     logger.info(
                         "Parsed email: category=%s, parts=%d, confidence=%.2f",
                         result.get("category"),
