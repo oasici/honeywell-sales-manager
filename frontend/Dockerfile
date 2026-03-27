@@ -1,18 +1,18 @@
 FROM node:20-alpine AS build
 
 WORKDIR /app
-
 COPY package*.json ./
 RUN npm ci
-
 COPY . .
 RUN npm run build
 
-FROM nginx:1.25-alpine
+# Serve with a simple Node.js static server instead of nginx
+FROM node:20-alpine
 
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN npm install -g serve
+
+COPY --from=build /app/dist /app/dist
 
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["serve", "-s", "/app/dist", "-l", "8080"]
