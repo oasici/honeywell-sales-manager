@@ -4,7 +4,12 @@ import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.services.claude_parser import parse_email, clear_cache, _empty_result
+from app.services.claude_parser import (
+    ClaudeApiError,
+    parse_email,
+    clear_cache,
+    _empty_result,
+)
 
 
 # ── Cycle 1: Empty result when no API key ──
@@ -167,11 +172,11 @@ async def test_should_retry_on_api_failure_and_succeed():
     assert mock_client.messages.create.call_count == 3
 
 
-# ── Cycle 5: All retries exhausted returns empty ──
+# ── Cycle 5: All retries exhausted raises ClaudeApiError ──
 
 @pytest.mark.asyncio
-async def test_should_return_empty_when_all_retries_fail():
-    """RED: parse_email should return empty result when all 3 retries fail."""
+async def test_should_raise_error_when_all_retries_fail():
+    """RED: parse_email should raise ClaudeApiError when all 3 retries fail."""
     clear_cache()
 
     mock_client = AsyncMock()
@@ -183,9 +188,9 @@ async def test_should_return_empty_when_all_retries_fail():
          patch("app.services.claude_parser.AsyncAnthropic", return_value=mock_client), \
          patch("asyncio.sleep", new_callable=AsyncMock):
         mock_settings.ANTHROPIC_API_KEY = "sk-test-key"
-        result = await parse_email("Some email content")
+        with pytest.raises(ClaudeApiError):
+            await parse_email("Some email content")
 
-    assert result == _empty_result()
     assert mock_client.messages.create.call_count == 3
 
 

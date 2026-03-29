@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 import uuid
 from datetime import datetime, timezone
 
@@ -11,6 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundException
 from app.models.email_request import EmailRequest
 from app.models.enums import EmailStatus, ReviewStatus
+from app.services.parse_metrics import (
+    ESTIMATED_COST_PER_CALL,
+    elapsed_ms,
+    log_parse_metrics,
+)
+from app.services.regex_fallback_parser import (
+    pre_filter_email,
+    regex_fallback_parse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +35,7 @@ class EmailProcessingService:
         self._db = db
 
     async def process_email(self, email_id: int) -> EmailRequest:
-        """Full pipeline: parse with Claude, classify, set review status."""
+        """Full pipeline: pre-filter, parse, classify, set review status."""
         email = await self._get_email_or_raise(email_id)
 
         email.status = EmailStatus.NEW.value
@@ -34,15 +44,15 @@ class EmailProcessingService:
         await self._db.flush()
 
         try:
-            parsed = await self._parse_with_claude(email)
+            parsed = await self._parse_email_with_fallback(email)
             if parsed:
                 self._apply_parsed_data(email, parsed)
-                self._classify_email(email)
+                self._classify_with_consolidation(email, parsed)
                 self._set_review_status(email)
                 await self._auto_create_customer(email, parsed)
             else:
                 email.status = EmailStatus.ERROR.value
-                email.error_message = "Claude parse returned empty"
+                email.error_message = "Parse returned empty"
         except Exception as exc:
             logger.exception("Failed to process email %d", email_id)
             email.status = EmailStatus.ERROR.value
@@ -75,10 +85,10 @@ class EmailProcessingService:
         await self._db.refresh(email)
 
         try:
-            parsed = await self._parse_with_claude(email)
+            parsed = await self._parse_email_with_fallback(email)
             if parsed:
                 self._apply_parsed_data(email, parsed)
-                self._classify_email(email)
+                self._classify_with_consolidation(email, parsed)
                 self._set_review_status(email)
                 await self._auto_create_customer(email, parsed)
                 await self._db.flush()
@@ -103,13 +113,115 @@ class EmailProcessingService:
             raise NotFoundException(f"Email with id {email_id} not found")
         return email
 
+    async def _parse_email_with_fallback(
+        self,
+        email: EmailRequest,
+    ) -> dict | None:
+        """Parse with pre-filtering, Claude API, and regex fallback."""
+        body = email.body_text or email.body_html or ""
+        subject = email.subject or ""
+        start_time = time.monotonic()
+
+        filter_result = pre_filter_email(body, subject)
+
+        if filter_result == "skip":
+            log_parse_metrics(
+                email_id=email.id,
+                duration_ms=0,
+                parts_count=0,
+                confidence=0.0,
+                category="general_inquiry",
+                is_fallback=False,
+                is_skipped=True,
+                api_cost=0.0,
+            )
+            return _empty_parse_result()
+
+        try:
+            from app.services.claude_parser import parse_email
+
+            parsed = await parse_email(body, subject)
+
+            log_parse_metrics(
+                email_id=email.id,
+                duration_ms=elapsed_ms(start_time),
+                parts_count=len(parsed.get("parts", [])),
+                confidence=parsed.get("confidence", 0.0),
+                category=parsed.get("category", "unknown"),
+                is_fallback=False,
+                is_skipped=False,
+                api_cost=ESTIMATED_COST_PER_CALL,
+            )
+            return parsed
+
+        except Exception as exc:
+            logger.warning(
+                "Claude API failed for email %d, using regex fallback: %s",
+                email.id,
+                exc,
+            )
+            parsed = regex_fallback_parse(body, subject)
+
+            log_parse_metrics(
+                email_id=email.id,
+                duration_ms=elapsed_ms(start_time),
+                parts_count=len(parsed.get("parts", [])),
+                confidence=parsed.get("confidence", 0.0),
+                category=parsed.get("category", "unknown"),
+                is_fallback=True,
+                is_skipped=False,
+                api_cost=0.0,
+            )
+            return parsed
+
     @staticmethod
-    async def _parse_with_claude(email: EmailRequest) -> dict | None:
-        """Call Claude parser on the email body."""
-        from app.services.claude_parser import parse_email
+    def _classify_with_consolidation(
+        email: EmailRequest,
+        parsed: dict,
+    ) -> None:
+        """Use Claude classification as primary, keyword as validation."""
+        from app.services.email_classifier import classify_email
+
+        claude_category = parsed.get("category", "general_inquiry")
+        claude_confidence = parsed.get("confidence", 0.0)
 
         body = email.body_text or email.body_html or ""
-        return await parse_email(body)
+        keyword_result = classify_email(email.subject or "", body)
+        keyword_category = keyword_result.get("category", "general_inquiry")
+        keyword_confidence = keyword_result.get("confidence", 0.0)
+
+        email.price_sensitivity = keyword_result.get("price_sensitivity")
+
+        if claude_category == keyword_category:
+            email.category = claude_category
+            email.category_confidence = max(
+                claude_confidence,
+                keyword_confidence,
+            )
+        elif claude_confidence >= CONFIDENCE_THRESHOLD:
+            email.category = claude_category
+            email.category_confidence = claude_confidence
+            logger.info(
+                "Classification mismatch for email %d: "
+                "claude=%s(%.2f) vs keyword=%s(%.2f). Using Claude.",
+                email.id,
+                claude_category,
+                claude_confidence,
+                keyword_category,
+                keyword_confidence,
+            )
+        else:
+            email.category = keyword_category
+            email.category_confidence = keyword_confidence
+            logger.info(
+                "Low-confidence Claude classification for email %d: "
+                "claude=%s(%.2f). Falling back to keyword=%s(%.2f).",
+                email.id,
+                claude_category,
+                claude_confidence,
+                keyword_category,
+                keyword_confidence,
+            )
 
     @staticmethod
     def _apply_parsed_data(email: EmailRequest, parsed: dict) -> None:
@@ -119,25 +231,19 @@ class EmailProcessingService:
         email.status = EmailStatus.PARSED.value
 
     @staticmethod
-    def _classify_email(email: EmailRequest) -> None:
-        """Run the keyword/ML classifier on the email."""
-        from app.services.email_classifier import classify_email
-
-        body = email.body_text or email.body_html or ""
-        classification = classify_email(email.subject or "", body)
-        email.category = classification.get("category")
-        email.category_confidence = classification.get("confidence")
-        email.price_sensitivity = classification.get("price_sensitivity")
-
-    @staticmethod
     def _set_review_status(email: EmailRequest) -> None:
         """Gate low-confidence classifications for manual review."""
-        if email.category_confidence and email.category_confidence < CONFIDENCE_THRESHOLD:
+        confidence = email.category_confidence
+        if confidence and confidence < CONFIDENCE_THRESHOLD:
             email.review_status = ReviewStatus.PENDING_REVIEW.value
         else:
             email.review_status = ReviewStatus.APPROVED.value
 
-    async def _auto_create_customer(self, email: EmailRequest, parsed: dict) -> None:
+    async def _auto_create_customer(
+        self,
+        email: EmailRequest,
+        parsed: dict,
+    ) -> None:
         """Auto-create customer from parsed email data if not exists."""
         from app.models.customer import Customer
 
@@ -148,22 +254,18 @@ class EmailProcessingService:
         if not from_address:
             return
 
-        # Check if customer with this email already exists
         result = await self._db.execute(
             select(Customer).where(Customer.email == from_address)
         )
         existing = result.scalar_one_or_none()
 
         if existing:
-            # Link email to existing customer
             email.customer_id = existing.id
-            # Update name/company if parsed and currently empty
             if customer_name and not existing.name:
                 existing.name = customer_name
             if customer_company and not existing.company:
                 existing.company = customer_company
         else:
-            # Create new customer
             name = customer_name or from_address.split("@")[0]
             customer = Customer(
                 name=name,
@@ -173,4 +275,20 @@ class EmailProcessingService:
             self._db.add(customer)
             await self._db.flush()
             email.customer_id = customer.id
-            logger.info("Auto-created customer: %s <%s>", name, from_address)
+            logger.info(
+                "Auto-created customer: %s <%s>",
+                name,
+                from_address,
+            )
+
+
+def _empty_parse_result() -> dict:
+    return {
+        "language": "tr",
+        "customer_name": "",
+        "customer_company": "",
+        "parts": [],
+        "is_spare_part_request": False,
+        "category": "general_inquiry",
+        "confidence": 0.0,
+    }

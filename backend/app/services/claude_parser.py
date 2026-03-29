@@ -2,7 +2,6 @@
 
 import asyncio
 import hashlib
-import json
 import logging
 
 from anthropic import AsyncAnthropic
@@ -12,15 +11,17 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # In-memory cache (SHA256 hash -> parse result)
-# Only cache successful results (with parts)
 _parse_cache: dict[str, dict] = {}
 
 # Tool definition for structured extraction
 _EXTRACTION_TOOL = {
     "name": "extract_email_data",
     "description": (
-        "Extract structured data from a customer email requesting spare parts or services. "
-        "Identify the language, customer info, requested parts, and classify the request."
+        "Extract structured data from a customer email. "
+        "Always extract ALL part numbers and descriptions found in the email, "
+        "even if mentioned informally or embedded in sentences. "
+        "If no specific part code is found but a part is described, use an empty "
+        "string for part_code and fill in part_description."
     ),
     "input_schema": {
         "type": "object",
@@ -32,42 +33,76 @@ _EXTRACTION_TOOL = {
             },
             "customer_name": {
                 "type": "string",
-                "description": "Name of the person sending the email, if identifiable.",
+                "description": (
+                    "Full name of the person sending the email. "
+                    "Look in signature lines, 'From:', or greeting closings. "
+                    "Return empty string if not identifiable."
+                ),
             },
             "customer_company": {
                 "type": "string",
-                "description": "Company name of the sender, if identifiable.",
+                "description": (
+                    "Company name of the sender. Look in signature, "
+                    "email domain, or explicit mentions. "
+                    "Return empty string if not identifiable."
+                ),
             },
             "parts": {
                 "type": "array",
-                "description": "List of requested parts or items.",
+                "description": (
+                    "List of ALL requested parts or items. Include every part "
+                    "mentioned, even without explicit part codes. "
+                    "Common Honeywell part code formats: C7061A1012, "
+                    "RM7895A1014, R7847A1033, 51309276-150, ST3000."
+                ),
                 "items": {
                     "type": "object",
                     "properties": {
                         "part_code": {
                             "type": "string",
-                            "description": "Part number / code mentioned (e.g., 'C7061A1012').",
+                            "description": (
+                                "Part number/code (e.g., 'C7061A1012'). "
+                                "Empty string if no code is mentioned."
+                            ),
                         },
                         "part_description": {
                             "type": "string",
-                            "description": "Description or name of the part as mentioned by the customer.",
+                            "description": (
+                                "Description of the part as mentioned by the customer. "
+                                "Include the original wording."
+                            ),
                         },
                         "quantity": {
                             "type": "integer",
-                            "description": "Requested quantity. Default 1 if not specified.",
+                            "description": (
+                                "Requested quantity. Default to 1 if not "
+                                "explicitly specified."
+                            ),
                         },
                         "urgency": {
                             "type": "string",
                             "enum": ["low", "normal", "high", "critical"],
-                            "description": "Urgency level based on context.",
+                            "description": (
+                                "Urgency: 'critical' if words like acil/urgent/"
+                                "asap; 'high' if soon/hemen; 'normal' default; "
+                                "'low' if no rush mentioned."
+                            ),
                         },
                     },
-                    "required": ["part_code", "part_description", "quantity", "urgency"],
+                    "required": [
+                        "part_code",
+                        "part_description",
+                        "quantity",
+                        "urgency",
+                    ],
                 },
             },
             "is_spare_part_request": {
                 "type": "boolean",
-                "description": "True if the email is requesting spare parts or pricing for parts.",
+                "description": (
+                    "True if the email requests spare parts, pricing for parts, "
+                    "or mentions specific part numbers."
+                ),
             },
             "category": {
                 "type": "string",
@@ -79,11 +114,22 @@ _EXTRACTION_TOOL = {
                     "technical_support",
                     "general_inquiry",
                 ],
-                "description": "Category of the email request.",
+                "description": (
+                    "Primary category of this email. "
+                    "'spare_part_request' if ordering/requesting parts. "
+                    "'price_inquiry' if asking for quotation/pricing. "
+                    "'complaint' if reporting a problem/defect. "
+                    "'order_status' if asking about delivery/shipment. "
+                    "'technical_support' if asking for technical help. "
+                    "'general_inquiry' for everything else."
+                ),
             },
             "confidence": {
                 "type": "number",
-                "description": "Confidence score from 0.0 to 1.0 for the overall parsing accuracy.",
+                "description": (
+                    "Confidence score 0.0-1.0 for overall parsing accuracy. "
+                    "Lower if email is ambiguous or poorly formatted."
+                ),
             },
         },
         "required": [
@@ -98,14 +144,42 @@ _EXTRACTION_TOOL = {
     },
 }
 
-_SYSTEM_PROMPT = (
-    "You are an email parser for a Honeywell spare parts sales team in Turkey. "
-    "Analyze the customer email and extract all structured information. "
-    "The emails may be in Turkish or English. "
-    "Look for part numbers (e.g., C7061A1012, RM7895A1014), quantities, "
-    "and any urgency indicators. "
-    "Use the extract_email_data tool to return structured results."
-)
+_SYSTEM_PROMPT = """\
+You are an expert email parser for a Honeywell spare parts sales team in Turkey.
+Your job is to extract ALL structured information from customer emails accurately.
+
+CRITICAL RULES:
+1. Extract EVERY part number mentioned, even if embedded in sentences or tables.
+2. Honeywell part codes follow patterns like: C7061A1012, RM7895A1014, \
+R7847A1033, 51309276-150, ST3000, ML7984A4009.
+3. If a customer describes a part without a code (e.g., "flame detector" or \
+"alev dedektoru"), still include it with an empty part_code.
+4. Quantities may appear as "X adet", "X pcs", "X pieces", "qty: X", or \
+simply a number before/after the part code.
+5. Look for urgency clues: "acil", "urgent", "asap", "hemen", "kritik" = \
+critical/high. Default is "normal".
+6. Customer name and company are often in the email signature (last lines).
+7. Emails may be in Turkish, English, or mixed.
+
+EXAMPLES:
+
+Email: "Merhaba, asagidaki parcalara ihtiyacimiz var:\\n\
+C7061A1012 - 2 adet\\nRM7895A1014 - 1 adet\\nAcil gonderim gerekiyor.\\n\
+Saygilarimla, Ahmet Yilmaz\\nABC Endustriyel"
+-> parts: [{part_code: "C7061A1012", quantity: 2, urgency: "critical"}, \
+{part_code: "RM7895A1014", quantity: 1, urgency: "critical"}]
+-> customer_name: "Ahmet Yilmaz", customer_company: "ABC Endustriyel"
+
+Email: "Hi, we need a flame detector for our boiler system. Please send quote."
+-> parts: [{part_code: "", part_description: "flame detector for boiler system", \
+quantity: 1, urgency: "normal"}]
+-> category: "price_inquiry"
+
+Email: "Siparis 12345 ne zaman teslim edilecek?"
+-> parts: [], category: "order_status"
+
+Always use the extract_email_data tool to return results.\
+"""
 
 MAX_RETRIES = 3
 BASE_BACKOFF = 1.0
@@ -119,7 +193,6 @@ async def parse_email(body: str, subject: str = "") -> dict:
 
     Uses SHA256 caching and retries with exponential backoff.
     """
-    # Build cache key
     cache_key = hashlib.sha256(f"{subject}||{body}".encode()).hexdigest()
     if cache_key in _parse_cache:
         logger.debug("Cache hit for email parse: %s", cache_key[:12])
@@ -146,12 +219,9 @@ async def parse_email(body: str, subject: str = "") -> dict:
                 messages=[{"role": "user", "content": user_message}],
             )
 
-            # Extract the tool use block
-            logger.info("Claude response blocks: %s", [b.type for b in response.content])
             for block in response.content:
                 if block.type == "tool_use" and block.name == "extract_email_data":
                     result = block.input
-                    # Only cache if we got actual parts
                     if result.get("parts"):
                         _parse_cache[cache_key] = result
                     logger.info(
@@ -163,10 +233,11 @@ async def parse_email(body: str, subject: str = "") -> dict:
                     return result
                 elif block.type == "tool_use":
                     logger.warning("Unexpected tool_use: %s", block.name)
-                elif block.type == "text":
-                    logger.info("Claude text response: %s", block.text[:200])
 
-            logger.warning("No tool_use block found in Claude response. Stop reason: %s", response.stop_reason)
+            logger.warning(
+                "No tool_use block in response. Stop reason: %s",
+                response.stop_reason,
+            )
             return _empty_result()
 
         except Exception as exc:
@@ -183,7 +254,11 @@ async def parse_email(body: str, subject: str = "") -> dict:
                 await asyncio.sleep(wait)
 
     logger.error("All %d Claude API attempts failed: %s", MAX_RETRIES, last_error)
-    return _empty_result()
+    raise ClaudeApiError(f"All {MAX_RETRIES} attempts failed: {last_error}")
+
+
+class ClaudeApiError(Exception):
+    """Raised when all Claude API retry attempts are exhausted."""
 
 
 def _empty_result() -> dict:
