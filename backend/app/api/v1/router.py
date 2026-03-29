@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.customer_health import router as customer_health_router
 from app.api.v1.customers import router as customers_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.emails import router as emails_router
@@ -17,6 +18,7 @@ v1_router.include_router(dashboard_router)
 v1_router.include_router(emails_router)
 v1_router.include_router(parts_router)
 v1_router.include_router(prices_router)
+v1_router.include_router(customer_health_router)
 v1_router.include_router(customers_router)
 v1_router.include_router(quotes_router)
 v1_router.include_router(analytics_router)

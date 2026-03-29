@@ -8,10 +8,11 @@ import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { customersApi, quotesApi } from '../../lib/api';
+import { customersApi, quotesApi, customerHealthApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 import { STATUS_LABELS, STATUS_COLORS } from '../../lib/constants';
-import type { Customer, Quote, PaginatedResponse } from '../../lib/types';
+import { HealthScoreCard } from './HealthScoreCard';
+import type { Customer, Quote, PaginatedResponse, CustomerHealthReport } from '../../lib/types';
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +40,12 @@ export default function CustomerDetailPage() {
   const { data: quotesData, isLoading: quotesLoading } = useQuery<PaginatedResponse<Quote>>({
     queryKey: ['customer-quotes', customerId],
     queryFn: () => quotesApi.getQuotes({ customer_id: customerId, page_size: 50 }),
+    enabled: !!customerId,
+  });
+
+  const { data: healthData, isLoading: healthLoading } = useQuery<CustomerHealthReport>({
+    queryKey: ['customer-health', customerId],
+    queryFn: () => customerHealthApi.getCustomerHealth(customerId),
     enabled: !!customerId,
   });
 
@@ -292,6 +299,13 @@ export default function CustomerDetailPage() {
             </p>
           </div>
         </div>
+
+        {/* Health Score */}
+        {healthLoading ? (
+          <Skeleton variant="card" />
+        ) : healthData ? (
+          <HealthScoreCard health={healthData} />
+        ) : null}
 
         {/* Quote History */}
         <Card title="Teklif Gecmisi">

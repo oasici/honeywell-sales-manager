@@ -32,6 +32,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { dashboardApi, analyticsApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type { DashboardStats, TopPart, TrendData } from '../../lib/types';
+import { AtRiskCustomersCard } from './AtRiskCustomersCard';
 import { KpiCard } from './KpiCard';
 import { DoughnutChart } from './DoughnutChart';
 import { SortableItem } from './SortableItem';
@@ -56,7 +57,7 @@ const DEFAULT_KPI = [
   'pending_review',
 ];
 const DEFAULT_DOUGHNUTS = ['d_mail', 'd_value', 'd_count', 'd_quote'];
-const DEFAULT_SECTIONS = ['doughnuts', 'top_parts', 'trends', 'action_required'];
+const DEFAULT_SECTIONS = ['doughnuts', 'at_risk_customers', 'top_parts', 'trends', 'action_required'];
 
 /* ─────────────────── MAIN ─────────────────── */
 export default function DashboardPage() {
@@ -177,6 +178,8 @@ export default function DashboardPage() {
         </div>
       );
     })(),
+
+    at_risk_customers: <AtRiskCustomersCard />,
 
     top_parts: (
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">

@@ -179,6 +179,42 @@ export interface MatchResult {
   strategy: string;
 }
 
+// ── Customer Health ─────────────────────────────────
+export interface HealthIndicator {
+  name: string;
+  label: string;
+  score: number;
+  weight: number;
+  raw_value: string | number;
+  description: string;
+}
+
+export interface CustomerHealthReport {
+  customer_id: number;
+  customer_name: string;
+  company: string | null;
+  score: number;
+  risk_level: 'healthy' | 'at_risk' | 'churning';
+  indicators: HealthIndicator[];
+  recommendations: string[];
+}
+
+export interface HealthOverview {
+  summary: {
+    total_customers: number;
+    healthy_count: number;
+    at_risk_count: number;
+    churning_count: number;
+    average_score: number;
+  };
+  customers: CustomerHealthReport[];
+}
+
+export interface AtRiskResponse {
+  count: number;
+  customers: CustomerHealthReport[];
+}
+
 // ── Pagination ───────────────────────────────────────
 export interface PaginatedResponse<T> {
   items: T[];

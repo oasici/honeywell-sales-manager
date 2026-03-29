@@ -13,6 +13,9 @@ import type {
   TrendData,
   MatchResult,
   PaginatedResponse,
+  CustomerHealthReport,
+  HealthOverview,
+  AtRiskResponse,
 } from './types';
 
 // ── Axios instance ───────────────────────────────────
@@ -305,6 +308,26 @@ export const customersApi = {
     formData.append('file', file);
     const { data } = await api.post<{ imported: number }>('/customers/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+};
+
+// ── Customer Health ─────────────────────────────────
+export const customerHealthApi = {
+  getCustomerHealth: async (id: number): Promise<CustomerHealthReport> => {
+    const { data } = await api.get<CustomerHealthReport>(`/customers/health/${id}`);
+    return data;
+  },
+
+  getHealthOverview: async (): Promise<HealthOverview> => {
+    const { data } = await api.get<HealthOverview>('/customers/health/overview');
+    return data;
+  },
+
+  getAtRiskCustomers: async (limit: number = 5): Promise<AtRiskResponse> => {
+    const { data } = await api.get<AtRiskResponse>('/customers/health/at-risk', {
+      params: { limit },
     });
     return data;
   },
