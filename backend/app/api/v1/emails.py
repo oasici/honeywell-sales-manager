@@ -162,20 +162,21 @@ async def poll_emails(
         imap.login(email_addr, email_pass)
         imap.select("INBOX", readonly=True)
 
-        # Search for unseen emails (or all if first poll)
-        search_criteria = "UNSEEN" if last_uid == 0 else f"UID {last_uid + 1}:*"
+        # Search for recent unseen emails only (last 2 days to avoid overload)
+        from datetime import datetime, timedelta
+        since_date = (datetime.now() - timedelta(days=2)).strftime("%d-%b-%Y")
         if last_uid > 0:
             status, data = imap.uid("search", None, f"UID {last_uid + 1}:*")
         else:
-            status, data = imap.search(None, "UNSEEN")
+            status, data = imap.search(None, f'(UNSEEN SINCE "{since_date}")')
 
         if status != "OK" or not data[0]:
             imap.logout()
             return {"message": "Yeni email bulunamadi", "fetched_count": 0}
 
         msg_ids = data[0].split()
-        # Limit to latest 20 to avoid overload
-        msg_ids = msg_ids[-20:]
+        # Limit to latest 5 to avoid timeout on Render free tier
+        msg_ids = msg_ids[-5:]
 
         fetched_count = 0
         max_uid = last_uid
