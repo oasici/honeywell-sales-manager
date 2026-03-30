@@ -361,7 +361,7 @@ export const quotesApi = {
   },
 
   approveQuote: async (id: number): Promise<Quote> => {
-    const { data } = await api.post<Quote>(`/quotes/${id}/approve`);
+    const { data } = await api.patch<Quote>(`/quotes/${id}/approve`);
     return data;
   },
 

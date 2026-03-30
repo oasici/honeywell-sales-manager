@@ -625,13 +625,13 @@ export default function QuoteEditorPage() {
                     const lineGross = item.quantity * item.unit_price;
                     const lineNet = lineGross - lineGross * (item.discount_pct / 100);
                     return (
-                      <div key={idx} className="flex items-start justify-between gap-2 py-1.5 border-b border-dashed border-gray-300 last:border-b-0">
-                        <div className="flex-1 min-w-0">
+                      <div key={idx} className="py-2 border-b border-dashed border-gray-300 last:border-b-0">
+                        <div className="mb-1">
                           <span className="text-gray-900 font-semibold">{item.honeywell_code}</span>
                           <span className="text-gray-400 mx-1.5">-</span>
-                          <span className="text-gray-600 truncate">{item.description}</span>
+                          <span className="text-gray-600">{item.description}</span>
                         </div>
-                        <div className="shrink-0 text-right tabular-nums whitespace-nowrap">
+                        <div className="text-right tabular-nums">
                           <span className="text-gray-500">{item.quantity} x {formatCurrency(item.unit_price, currency)}</span>
                           <span className="ml-3 font-semibold text-gray-900">{formatCurrency(lineNet, currency)}</span>
                         </div>
