@@ -188,7 +188,7 @@ async def download_quote_pdf(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Download quote PDF with path traversal protection."""
+    """Download quote PDF — regenerates on-the-fly if file is missing."""
     from app.core.security import is_safe_path
     from app.core.config import settings as cfg
 
@@ -204,13 +204,24 @@ async def download_quote_pdf(
         from app.core.exceptions import ForbiddenException
         raise ForbiddenException("Bu teklifi indirme yetkiniz yok")
 
-    if not quote.pdf_path:
-        raise NotFoundException(
-            "PDF henuz olusturulmamis. Teklifi onaylayarak PDF olusturabilirsiniz."
-        )
+    # Regenerate PDF if file is missing (ephemeral filesystem on Render)
+    pdf_file = Path(quote.pdf_path) if quote.pdf_path else None
+    needs_regeneration = not pdf_file or not pdf_file.exists()
+
+    if needs_regeneration:
+        try:
+            from app.services.quote_generator import generate_quote_pdf
+
+            service = QuoteService(db)
+            quote_data = await service._build_quote_data(quote, quote.approved_by or quote.created_by)
+            pdf_path = await generate_quote_pdf(quote_data, quote.language)
+            quote.pdf_path = pdf_path
+            await db.flush()
+            pdf_file = Path(pdf_path)
+        except Exception as exc:
+            raise BadRequestException(f"PDF olusturma basarisiz oldu: {exc}")
 
     # Path traversal protection
-    pdf_file = Path(quote.pdf_path)
     if not is_safe_path(cfg.QUOTES_DIR, str(pdf_file)):
         raise BadRequestException("Invalid PDF path")
 
