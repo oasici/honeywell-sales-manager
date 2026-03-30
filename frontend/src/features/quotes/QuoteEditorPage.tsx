@@ -207,6 +207,27 @@ export default function QuoteEditorPage() {
     [],
   );
 
+  const addBlankItemAfter = useCallback((index: number) => {
+    setItems((prev) => {
+      const blank: EditableItem = {
+        spare_part_id: null,
+        honeywell_code: '',
+        description: '',
+        quantity: 1,
+        unit_price: 0,
+        discount_pct: 0,
+        sort_order: prev.length + 1,
+      };
+      const next = [...prev];
+      next.splice(index + 1, 0, blank);
+      return next;
+    });
+  }, []);
+
+  const removeLastItem = useCallback(() => {
+    setItems((prev) => (prev.length <= 1 ? prev : prev.slice(0, -1)));
+  }, []);
+
   const removeItem = useCallback((index: number) => {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
@@ -437,7 +458,7 @@ export default function QuoteEditorPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-12">
+                    <th className="px-2 py-2 text-xs font-semibold text-gray-500 w-24">
                       Sira
                     </th>
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500">
@@ -458,7 +479,6 @@ export default function QuoteEditorPage() {
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-28 text-right">
                       Toplam
                     </th>
-                    <th className="px-3 py-2 w-10" />
                   </tr>
                 </thead>
                 <tbody>
@@ -471,7 +491,32 @@ export default function QuoteEditorPage() {
                         key={idx}
                         className="border-b border-gray-100 hover:bg-gray-50"
                       >
-                        <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
+                        <td className="px-2 py-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500 w-5 text-center">{idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => addBlankItemAfter(idx)}
+                              className="flex h-5 w-5 items-center justify-center rounded bg-green-50 text-green-600 hover:bg-green-100 transition-colors text-xs font-bold"
+                              title="Alt satira yeni kalem ekle"
+                            >
+                              +
+                            </button>
+                            <button
+                              type="button"
+                              onClick={removeLastItem}
+                              disabled={items.length <= 1}
+                              className={`flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
+                                items.length <= 1
+                                  ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                  : 'bg-red-50 text-red-500 hover:bg-red-100'
+                              }`}
+                              title="En alttaki kalemi sil"
+                            >
+                              -
+                            </button>
+                          </div>
+                        </td>
                         <td className="px-3 py-2">
                           <input
                             type="text"
@@ -538,28 +583,6 @@ export default function QuoteEditorPage() {
                         </td>
                         <td className="px-3 py-2 text-right font-medium">
                           {formatCurrency(lineNet, currency)}
-                        </td>
-                        <td className="px-3 py-2">
-                          <button
-                            type="button"
-                            onClick={() => removeItem(idx)}
-                            className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                            title="Kalemi sil"
-                          >
-                            <svg
-                              className="h-4 w-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
                         </td>
                       </tr>
                     );
