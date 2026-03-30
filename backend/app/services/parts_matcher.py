@@ -10,6 +10,7 @@ Strategies (cascade):
 
 import logging
 import re
+import time
 from typing import Any
 
 from rapidfuzz import fuzz
@@ -24,6 +25,21 @@ TOP_N = 5
 FUZZY_CODE_CUTOFF = 75.0
 FUZZY_NAME_CUTOFF = 50.0
 PREFIX_MIN_CHARS = 4
+CACHE_TTL = 300
+
+_catalog_cache: dict[str, Any] = {"parts": None, "ts": 0}
+
+
+async def _get_cached_catalog(db: AsyncSession) -> list[SparePart]:
+    """Return active spare parts with a simple time-based cache."""
+    now = time.time()
+    if _catalog_cache["parts"] is not None and (now - _catalog_cache["ts"]) < CACHE_TTL:
+        return _catalog_cache["parts"]
+    result = await db.execute(select(SparePart).where(SparePart.is_active.is_(True)))
+    parts = list(result.scalars().all())
+    _catalog_cache["parts"] = parts
+    _catalog_cache["ts"] = now
+    return parts
 
 
 def _normalize_code(code: str) -> str:
@@ -44,10 +60,8 @@ async def match_parts(
     3. Fuzzy code match (RapidFuzz token_sort_ratio) -> 75%+ cutoff
     4. Fuzzy name match (on name_tr + name_en) -> 50%+ cutoff
     """
-    # Load all active spare parts from DB
-    stmt = select(SparePart).where(SparePart.is_active.is_(True))
-    result = await db.execute(stmt)
-    catalog: list[SparePart] = list(result.scalars().all())
+    # Load all active spare parts from DB (cached)
+    catalog: list[SparePart] = await _get_cached_catalog(db)
 
     if not catalog:
         logger.warning("Spare parts catalog is empty")
@@ -101,7 +115,7 @@ async def match_parts(
                 score = fuzz.token_sort_ratio(query_norm, norm_code)
                 if score >= FUZZY_CODE_CUTOFF:
                     matches.append(
-                        _make_match(part, round(score * 0.75 / 100 * 100, 1), "fuzzy_code")
+                        _make_match(part, round(score, 1), "fuzzy_code")
                     )
             existing_ids = {m["spare_part_id"] for m in matches}
             for part, norm_model in catalog_model_normalized:
@@ -110,7 +124,7 @@ async def match_parts(
                 score = fuzz.token_sort_ratio(query_norm, norm_model)
                 if score >= FUZZY_CODE_CUTOFF:
                     matches.append(
-                        _make_match(part, round(score * 0.75 / 100 * 100, 1), "fuzzy_model")
+                        _make_match(part, round(score, 1), "fuzzy_model")
                     )
 
         # Strategy 4: Fuzzy name match
@@ -133,7 +147,7 @@ async def match_parts(
                     matches.append(
                         _make_match(
                             part,
-                            round(best_name_score * 0.50 / 100 * 100, 1),
+                            round(best_name_score, 1),
                             "fuzzy_name",
                         )
                     )

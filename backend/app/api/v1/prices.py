@@ -78,7 +78,7 @@ async def create_price(
         select(SparePart).where(SparePart.id == spare_part_id)
     )
     if not part_result.scalar_one_or_none():
-        raise NotFoundException(f"Spare part with id {spare_part_id} not found")
+        raise NotFoundException(f"{spare_part_id} numarali yedek parca bulunamadi")
 
     # Parse optional date fields
     valid_from = _parse_date(data.get("valid_from"))

@@ -24,7 +24,7 @@ router = APIRouter(prefix="/emails", tags=["Emails"])
 
 @router.get("/")
 async def list_emails(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     status: str | None = Query(None, description="Filter by processing status"),
     review_status: str | None = Query(None, description="Filter by review status"),
@@ -87,7 +87,7 @@ async def get_email(
     )
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"Email with id {email_id} not found")
+        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
 
     return _email_to_dict(email, include_body=True)
 
@@ -146,7 +146,7 @@ async def get_email_matches(
     )
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"Email with id {email_id} not found")
+        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
 
     parsed_data = None
     if email.parsed_data:
@@ -178,11 +178,11 @@ async def review_email(
     )
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"Email with id {email_id} not found")
+        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
 
     if email.review_status != ReviewStatus.PENDING_REVIEW.value:
         raise BadRequestException(
-            f"Email is not pending review (current status: {email.review_status})"
+            f"E-posta inceleme beklemede degil (mevcut durum: {email.review_status})"
         )
 
     email.review_status = ReviewStatus.APPROVED.value if action == "approve" else ReviewStatus.REJECTED.value

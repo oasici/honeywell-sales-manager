@@ -60,7 +60,11 @@ class EmailProcessingService:
         except Exception as exc:
             logger.exception("Failed to process email %d", email_id)
             email.status = EmailStatus.ERROR.value
-            email.error_message = str(exc)[:ERROR_MESSAGE_MAX_LENGTH]
+            error_str = str(exc)
+            if len(error_str) > ERROR_MESSAGE_MAX_LENGTH:
+                email.error_message = error_str[:ERROR_MESSAGE_MAX_LENGTH] + "..."
+            else:
+                email.error_message = error_str
 
         await self._db.flush()
         await self._db.refresh(email)
@@ -105,7 +109,11 @@ class EmailProcessingService:
         except Exception as exc:
             logger.exception("Failed to parse manual email %d", email.id)
             email.status = EmailStatus.ERROR.value
-            email.error_message = str(exc)[:ERROR_MESSAGE_MAX_LENGTH]
+            error_str = str(exc)
+            if len(error_str) > ERROR_MESSAGE_MAX_LENGTH:
+                email.error_message = error_str[:ERROR_MESSAGE_MAX_LENGTH] + "..."
+            else:
+                email.error_message = error_str
             await self._db.flush()
             await self._db.refresh(email)
 
@@ -119,7 +127,7 @@ class EmailProcessingService:
         )
         email = result.scalar_one_or_none()
         if not email:
-            raise NotFoundException(f"Email with id {email_id} not found")
+            raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
         return email
 
     async def _parse_email_with_fallback(
@@ -296,7 +304,16 @@ class EmailProcessingService:
         parsed: dict,
     ) -> None:
         """Auto-create a draft quote from parsed email parts."""
+        from app.models.quote import Quote
         from app.services.quote_service import QuoteService
+
+        # Guard against duplicate quote creation for the same email
+        existing = await self._db.execute(
+            select(Quote).where(Quote.email_request_id == email.id).limit(1)
+        )
+        if existing.scalar_one_or_none():
+            logger.info("Quote already exists for email %d", email.id)
+            return
 
         if not email.customer_id:
             logger.debug(

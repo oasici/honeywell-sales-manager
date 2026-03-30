@@ -18,49 +18,58 @@ router = APIRouter(prefix="/customers", tags=["Customers"])
 
 @router.get("/")
 async def list_customers(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = Query(None, description="Search by name, company, or email"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List customers with pagination and search."""
-    query = select(Customer)
     count_query = select(func.count(Customer.id))
 
+    search_condition = None
     if search:
         search_term = f"%{search}%"
-        condition = or_(
+        search_condition = or_(
             Customer.name.ilike(search_term),
             Customer.company.ilike(search_term),
             Customer.email.ilike(search_term),
         )
-        query = query.where(condition)
-        count_query = count_query.where(condition)
+        count_query = count_query.where(search_condition)
 
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
+    # Subquery for quote stats to avoid N+1
+    quote_stats = (
+        select(
+            Quote.customer_id,
+            func.count(Quote.id).label("qcount"),
+            func.coalesce(func.sum(Quote.grand_total), 0.0).label("qvalue"),
+        )
+        .group_by(Quote.customer_id)
+        .subquery()
+    )
+
+    main_query = (
+        select(Customer, quote_stats.c.qcount, quote_stats.c.qvalue)
+        .outerjoin(quote_stats, Customer.id == quote_stats.c.customer_id)
+    )
+
+    if search_condition is not None:
+        main_query = main_query.where(search_condition)
+
     offset = (page - 1) * page_size
-    query = query.order_by(Customer.name).offset(offset).limit(page_size)
+    main_query = main_query.order_by(Customer.name).offset(offset).limit(page_size)
 
-    result = await db.execute(query)
-    customers = result.scalars().all()
+    result = await db.execute(main_query)
+    rows = result.all()
 
-    # Add quote stats for each customer
     items = []
-    for c in customers:
-        d = _customer_to_dict(c)
-        qc = await db.execute(
-            select(func.count(Quote.id)).where(Quote.customer_id == c.id)
-        )
-        qv = await db.execute(
-            select(func.coalesce(func.sum(Quote.grand_total), 0.0)).where(
-                Quote.customer_id == c.id
-            )
-        )
-        d["quote_count"] = qc.scalar() or 0
-        d["total_quote_value"] = round(qv.scalar() or 0.0, 2)
+    for customer, qcount, qvalue in rows:
+        d = _customer_to_dict(customer)
+        d["quote_count"] = qcount or 0
+        d["total_quote_value"] = round(qvalue or 0.0, 2)
         items.append(d)
 
     return {
@@ -84,7 +93,7 @@ async def get_customer(
     )
     customer = result.scalar_one_or_none()
     if not customer:
-        raise NotFoundException(f"Customer with id {customer_id} not found")
+        raise NotFoundException(f"{customer_id} numarali musteri bulunamadi")
 
     # Quote statistics
     quote_count_q = await db.execute(
@@ -126,14 +135,14 @@ async def create_customer(
     email = data.get("email")
 
     if not name or not email:
-        raise BadRequestException("name and email are required")
+        raise BadRequestException("name ve email alanlari gereklidir")
 
     # Check for duplicate email
     existing = await db.execute(
         select(Customer).where(Customer.email == email)
     )
     if existing.scalar_one_or_none():
-        raise BadRequestException(f"Customer with email '{email}' already exists")
+        raise BadRequestException(f"'{email}' e-posta adresine sahip musteri zaten mevcut")
 
     customer = Customer(
         name=name,
@@ -165,7 +174,7 @@ async def update_customer(
     )
     customer = result.scalar_one_or_none()
     if not customer:
-        raise NotFoundException(f"Customer with id {customer_id} not found")
+        raise NotFoundException(f"{customer_id} numarali musteri bulunamadi")
 
     updatable_fields = [
         "name", "company", "email", "phone", "address", "tax_id", "preferred_lang",
@@ -188,11 +197,11 @@ async def import_customers(
 ):
     """Import customers from Excel (.xlsx) or CSV file."""
     if not file.filename:
-        raise BadRequestException("No file provided")
+        raise BadRequestException("Dosya saglanmadi")
 
     filename_lower = file.filename.lower()
     if not (filename_lower.endswith(".csv") or filename_lower.endswith(".xlsx")):
-        raise BadRequestException("Only .csv and .xlsx files are supported")
+        raise BadRequestException("Yalnizca .csv ve .xlsx dosyalari desteklenmektedir")
 
     content = await file.read()
 
@@ -254,7 +263,7 @@ async def import_customers(
     except BadRequestException:
         raise
     except Exception as e:
-        raise BadRequestException(f"Error processing file: {str(e)}")
+        raise BadRequestException(f"Dosya isleme hatasi: {str(e)}")
 
     return {
         "message": "Import completed",

@@ -18,7 +18,7 @@ router = APIRouter(prefix="/parts", tags=["Spare Parts"])
 
 @router.get("/")
 async def list_parts(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = Query(None, description="Search by code or name"),
     category: str | None = Query(None, description="Filter by category"),
@@ -95,7 +95,7 @@ async def get_part(
     )
     part = result.scalar_one_or_none()
     if not part:
-        raise NotFoundException(f"Part with id {part_id} not found")
+        raise NotFoundException(f"{part_id} numarali parca bulunamadi")
 
     data = _part_to_dict(part)
     data["prices"] = [
@@ -123,14 +123,14 @@ async def create_part(
     """Create a new spare part (operations only)."""
     honeywell_code = data.get("honeywell_code")
     if not honeywell_code:
-        raise BadRequestException("honeywell_code is required")
+        raise BadRequestException("honeywell_code alani gereklidir")
 
     # Check for duplicate
     existing = await db.execute(
         select(SparePart).where(SparePart.honeywell_code == honeywell_code)
     )
     if existing.scalar_one_or_none():
-        raise BadRequestException(f"Part with code '{honeywell_code}' already exists")
+        raise BadRequestException(f"'{honeywell_code}' kodlu parca zaten mevcut")
 
     part = SparePart(
         honeywell_code=honeywell_code,
@@ -163,7 +163,7 @@ async def update_part(
     )
     part = result.scalar_one_or_none()
     if not part:
-        raise NotFoundException(f"Part with id {part_id} not found")
+        raise NotFoundException(f"{part_id} numarali parca bulunamadi")
 
     updatable_fields = [
         "honeywell_code", "model_number", "info", "name_en", "name_tr",
@@ -192,7 +192,7 @@ async def delete_part(
     )
     part = result.scalar_one_or_none()
     if not part:
-        raise NotFoundException(f"Part with id {part_id} not found")
+        raise NotFoundException(f"{part_id} numarali parca bulunamadi")
 
     part.is_active = False
     await db.flush()
@@ -220,7 +220,7 @@ async def import_catalog(
     from app.core.security import sanitize_filename
 
     if not file.filename:
-        raise BadRequestException("No file provided")
+        raise BadRequestException("Dosya saglanmadi")
 
     safe_name = sanitize_filename(file.filename)
     suffix = os.path.splitext(safe_name)[1].lower()

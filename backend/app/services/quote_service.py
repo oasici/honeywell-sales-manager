@@ -73,7 +73,7 @@ class QuoteService:
         email = await self._get_email_or_raise(email_id)
 
         if email.status == EmailStatus.NEW.value:
-            raise BadRequestException("Email has not been parsed yet")
+            raise BadRequestException("E-posta henuz ayristirilmadi")
 
         quote_number = self.generate_quote_number()
 
@@ -104,11 +104,7 @@ class QuoteService:
         quote = await self._get_quote_or_raise(quote_id)
 
         editable_statuses = (QuoteStatus.DRAFT.value, QuoteStatus.PENDING_APPROVAL.value)
-        if quote.status not in editable_statuses:
-            raise BadRequestException(
-                f"Cannot edit quote in '{quote.status}' status. "
-                "Only draft or pending_approval quotes can be edited."
-            )
+        self._require_status(quote, editable_statuses, "duzenleme")
 
         header_fields = [
             "customer_id",
@@ -135,15 +131,11 @@ class QuoteService:
         quote = await self._get_quote_or_raise(quote_id)
 
         approvable_statuses = (QuoteStatus.DRAFT.value, QuoteStatus.PENDING_APPROVAL.value)
-        if quote.status not in approvable_statuses:
-            raise BadRequestException(
-                f"Cannot approve quote in '{quote.status}' status"
-            )
+        self._require_status(quote, approvable_statuses, "onaylama")
 
-        quote.status = QuoteStatus.APPROVED.value
         quote.approved_by = approved_by
 
-        # Generate PDF on approval
+        # Generate PDF before marking as approved
         try:
             from app.services.quote_generator import generate_quote_pdf
 
@@ -161,6 +153,11 @@ class QuoteService:
                 quote.quote_number,
                 exc,
             )
+            raise BadRequestException(
+                f"PDF olusturma basarisiz oldu: {exc}"
+            )
+
+        quote.status = QuoteStatus.APPROVED.value
 
         await self._db.flush()
         await self._db.refresh(quote)
@@ -173,6 +170,16 @@ class QuoteService:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d")
         short_id = uuid.uuid4().hex[:6].upper()
         return f"QT-{timestamp}-{short_id}"
+
+    @staticmethod
+    def _require_status(quote: Quote, allowed: tuple[str, ...], action: str) -> None:
+        """Raise BadRequestException if quote is not in an allowed status."""
+        if quote.status not in allowed:
+            allowed_labels = ", ".join(allowed)
+            raise BadRequestException(
+                f"'{quote.status}' durumundaki teklif icin '{action}' islemi yapilamaz. "
+                f"Izin verilen durumlar: {allowed_labels}"
+            )
 
     # ---- Private helpers ----
 
@@ -405,7 +412,7 @@ class QuoteService:
         result = await self._db.execute(select(model).where(model.id == record_id))
         record = result.scalar_one_or_none()
         if not record:
-            raise NotFoundException(f"{label} with id {record_id} not found")
+            raise NotFoundException(f"{record_id} numarali {label} bulunamadi")
         return record
 
     async def _find_spare_part_by_id(self, part_id: int) -> SparePart | None:

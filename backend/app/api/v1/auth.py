@@ -110,7 +110,7 @@ async def refresh_token_endpoint(
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active:
-        raise UnauthorizedException("User not found or inactive")
+        raise UnauthorizedException("Kullanici bulunamadi veya aktif degil")
 
     # Revoke old refresh token (rotation)
     revoke_token(body.refresh_token)

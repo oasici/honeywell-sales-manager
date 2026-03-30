@@ -20,7 +20,7 @@ router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
 @router.get("/")
 async def list_quotes(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     status: str | None = Query(None, description="Filter by status"),
     customer_id: int | None = Query(None, description="Filter by customer"),
@@ -72,7 +72,7 @@ async def get_quote(
     )
     quote = result.scalar_one_or_none()
     if not quote:
-        raise NotFoundException(f"Quote with id {quote_id} not found")
+        raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
 
     return _quote_to_dict(quote, include_items=True)
 
@@ -166,11 +166,11 @@ async def send_quote(
     )
     quote = result.scalar_one_or_none()
     if not quote:
-        raise NotFoundException(f"Quote with id {quote_id} not found")
+        raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
 
     if quote.status not in ("approved", "sent"):
         raise BadRequestException(
-            f"Quote must be approved before sending (current status: {quote.status})"
+            f"Teklif gonderilmeden once onaylanmalidir (mevcut durum: {quote.status})"
         )
 
     # TODO: Send email via service layer
@@ -197,7 +197,7 @@ async def download_quote_pdf(
     )
     quote = result.scalar_one_or_none()
     if not quote:
-        raise NotFoundException(f"Quote with id {quote_id} not found")
+        raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
 
     # Authorization: only creator or manager can download
     if quote.created_by != current_user.id and current_user.role != UserRole.SALES_MANAGER.value:
@@ -215,7 +215,7 @@ async def download_quote_pdf(
         raise BadRequestException("Invalid PDF path")
 
     if not pdf_file.exists():
-        raise NotFoundException("PDF file not found on disk")
+        raise NotFoundException("PDF dosyasi diskte bulunamadi")
 
     return FileResponse(
         path=str(pdf_file),
