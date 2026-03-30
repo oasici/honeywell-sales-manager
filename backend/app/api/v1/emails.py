@@ -115,10 +115,189 @@ async def poll_emails(
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger email fetch from Microsoft Graph API."""
-    # TODO: Implement Graph API polling via service layer
-    # fetched = await graph_service.fetch_new_emails()
-    return {"message": "Email polling triggered", "fetched_count": 0}
+    """Fetch new emails via IMAP using stored credentials."""
+    import imaplib
+    import email as email_lib
+    from email.header import decode_header
+    from app.models.setting import Setting
+
+    # Load stored IMAP credentials
+    result = await db.execute(
+        select(Setting).where(
+            Setting.key.in_(["email_address", "email_password", "imap_host", "imap_port"])
+        )
+    )
+    stored = {s.key: s.value for s in result.scalars().all()}
+
+    email_addr = stored.get("email_address", "")
+    encrypted_pass = stored.get("email_password", "")
+    imap_host = stored.get("imap_host", "")
+    imap_port = int(stored.get("imap_port", "993"))
+
+    if not email_addr or not encrypted_pass:
+        raise BadRequestException(
+            "Email bilgileri ayarlanmamis. Ayarlar sayfasindan email baglantisi kurun."
+        )
+
+    # Decrypt password
+    from app.api.v1.settings import _decrypt_password, _detect_provider
+    email_pass = _decrypt_password(encrypted_pass)
+
+    # Auto-detect provider if needed
+    detected_h, detected_p, _, _ = _detect_provider(email_addr)
+    default_hosts = {"", "outlook.office365.com"}
+    if not imap_host or imap_host in default_hosts:
+        imap_host = detected_h
+        imap_port = detected_p
+
+    # Get last poll timestamp to only fetch new emails
+    ts_result = await db.execute(
+        select(Setting).where(Setting.key == "last_imap_poll_uid")
+    )
+    last_uid_setting = ts_result.scalar_one_or_none()
+    last_uid = int(last_uid_setting.value) if last_uid_setting and last_uid_setting.value else 0
+
+    try:
+        imap = imaplib.IMAP4_SSL(imap_host, imap_port)
+        imap.login(email_addr, email_pass)
+        imap.select("INBOX", readonly=True)
+
+        # Search for unseen emails (or all if first poll)
+        search_criteria = "UNSEEN" if last_uid == 0 else f"UID {last_uid + 1}:*"
+        if last_uid > 0:
+            status, data = imap.uid("search", None, f"UID {last_uid + 1}:*")
+        else:
+            status, data = imap.search(None, "UNSEEN")
+
+        if status != "OK" or not data[0]:
+            imap.logout()
+            return {"message": "Yeni email bulunamadi", "fetched_count": 0}
+
+        msg_ids = data[0].split()
+        # Limit to latest 20 to avoid overload
+        msg_ids = msg_ids[-20:]
+
+        fetched_count = 0
+        max_uid = last_uid
+        service = EmailProcessingService(db)
+
+        for msg_id in msg_ids:
+            try:
+                if last_uid > 0:
+                    fetch_status, msg_data = imap.uid("fetch", msg_id, "(RFC822)")
+                else:
+                    fetch_status, msg_data = imap.fetch(msg_id, "(RFC822)")
+
+                if fetch_status != "OK" or not msg_data[0]:
+                    continue
+
+                raw_email = msg_data[0][1]
+                msg = email_lib.message_from_bytes(raw_email)
+
+                # Parse UID for tracking
+                if last_uid > 0:
+                    uid_val = int(msg_id)
+                    if uid_val > max_uid:
+                        max_uid = uid_val
+
+                # Decode subject
+                subject_parts = decode_header(msg.get("Subject", ""))
+                subject = ""
+                for part, charset in subject_parts:
+                    if isinstance(part, bytes):
+                        subject += part.decode(charset or "utf-8", errors="replace")
+                    else:
+                        subject += part
+
+                # Parse from address
+                from_raw = msg.get("From", "")
+                from_parts = decode_header(from_raw)
+                from_str = ""
+                for part, charset in from_parts:
+                    if isinstance(part, bytes):
+                        from_str += part.decode(charset or "utf-8", errors="replace")
+                    else:
+                        from_str += part
+
+                # Extract email address from "Name <email>" format
+                from_addr = from_str
+                if "<" in from_str and ">" in from_str:
+                    from_addr = from_str.split("<")[1].split(">")[0]
+
+                # Skip internal emails
+                from app.core.config import settings as cfg
+                from_domain = from_addr.rsplit("@", 1)[-1].lower() if "@" in from_addr else ""
+                if from_domain in cfg.internal_domains_list:
+                    continue
+
+                # Skip if already exists (by message_id)
+                message_id = msg.get("Message-ID", f"imap-{msg_id.decode()}")
+                existing = await db.execute(
+                    select(EmailRequest).where(EmailRequest.message_id == message_id)
+                )
+                if existing.scalar_one_or_none():
+                    continue
+
+                # Extract body text
+                body_text = ""
+                body_html = ""
+                if msg.is_multipart():
+                    for part in msg.walk():
+                        content_type = part.get_content_type()
+                        if content_type == "text/plain" and not body_text:
+                            payload = part.get_payload(decode=True)
+                            if payload:
+                                charset = part.get_content_charset() or "utf-8"
+                                body_text = payload.decode(charset, errors="replace")
+                        elif content_type == "text/html" and not body_html:
+                            payload = part.get_payload(decode=True)
+                            if payload:
+                                charset = part.get_content_charset() or "utf-8"
+                                body_html = payload.decode(charset, errors="replace")
+                else:
+                    payload = msg.get_payload(decode=True)
+                    if payload:
+                        charset = msg.get_content_charset() or "utf-8"
+                        if msg.get_content_type() == "text/html":
+                            body_html = payload.decode(charset, errors="replace")
+                        else:
+                            body_text = payload.decode(charset, errors="replace")
+
+                if not body_text and not body_html:
+                    continue
+
+                # Create email request and process
+                email_req = await service.create_manual_email(
+                    from_address=from_addr,
+                    subject=subject or "(Konu yok)",
+                    body_text=body_text or body_html,
+                    assigned_to=current_user.id,
+                )
+                fetched_count += 1
+
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).warning("Email parse hatasi: %s", exc)
+                continue
+
+        imap.logout()
+
+        # Update last UID
+        if max_uid > last_uid:
+            if last_uid_setting:
+                last_uid_setting.value = str(max_uid)
+            else:
+                db.add(Setting(key="last_imap_poll_uid", value=str(max_uid)))
+
+        return {
+            "message": f"{fetched_count} yeni email alindi",
+            "fetched_count": fetched_count,
+        }
+
+    except imaplib.IMAP4.error as e:
+        raise BadRequestException(f"IMAP giris hatasi: {str(e)}")
+    except Exception as e:
+        raise BadRequestException(f"Email cekme hatasi: {str(e)}")
 
 
 @router.post("/{email_id}/reparse", status_code=200)
