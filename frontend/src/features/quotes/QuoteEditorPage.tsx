@@ -238,9 +238,12 @@ export default function QuoteEditorPage() {
     setShowCustomerDropdown(false);
   }, []);
 
-  const handleDownloadPdf = useCallback(() => {
-    if (quoteId) {
-      window.open(quotesApi.getQuotePdfUrl(quoteId), '_blank');
+  const handleDownloadPdf = useCallback(async () => {
+    if (!quoteId) return;
+    try {
+      await quotesApi.downloadQuotePdf(quoteId);
+    } catch {
+      toast.error('PDF indirilemedi');
     }
   }, [quoteId]);
 
