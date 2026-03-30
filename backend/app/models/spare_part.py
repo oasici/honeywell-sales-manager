@@ -11,10 +11,10 @@ class SparePart(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     honeywell_code: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, index=True
+        String(500), unique=True, nullable=False, index=True
     )
-    name_en: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    name_tr: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    name_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    name_tr: Mapped[str | None] = mapped_column(Text, nullable=True)
     description_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     description_tr: Mapped[str | None] = mapped_column(Text, nullable=True)
     category: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
@@ -27,6 +27,7 @@ class SparePart(Base):
     )
     transfer_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     supplier_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    price_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

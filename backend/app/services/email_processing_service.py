@@ -50,6 +50,10 @@ class EmailProcessingService:
                 self._classify_with_consolidation(email, parsed)
                 self._set_review_status(email)
                 await self._auto_create_customer(email, parsed)
+
+                # Auto-create draft quote if parts found with sufficient confidence
+                if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
+                    await self._auto_create_draft_quote(email, parsed)
             else:
                 email.status = EmailStatus.ERROR.value
                 email.error_message = "Parse returned empty"
@@ -91,6 +95,11 @@ class EmailProcessingService:
                 self._classify_with_consolidation(email, parsed)
                 self._set_review_status(email)
                 await self._auto_create_customer(email, parsed)
+
+                # Auto-create draft quote if parts found with sufficient confidence
+                if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
+                    await self._auto_create_draft_quote(email, parsed)
+
                 await self._db.flush()
                 await self._db.refresh(email)
         except Exception as exc:
@@ -279,6 +288,40 @@ class EmailProcessingService:
                 "Auto-created customer: %s <%s>",
                 name,
                 from_address,
+            )
+
+    async def _auto_create_draft_quote(
+        self,
+        email: EmailRequest,
+        parsed: dict,
+    ) -> None:
+        """Auto-create a draft quote from parsed email parts."""
+        from app.services.quote_service import QuoteService
+
+        if not email.customer_id:
+            logger.debug(
+                "Skipping auto-quote for email %d: no customer_id",
+                email.id,
+            )
+            return
+
+        try:
+            service = QuoteService(self._db)
+            quote = await service.create_quote_from_email(
+                email_id=email.id,
+                created_by=None,
+            )
+            email.status = EmailStatus.QUOTED.value
+            logger.info(
+                "Auto-created draft quote %s from email %d",
+                quote.quote_number,
+                email.id,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Auto-quote creation failed for email %d: %s",
+                email.id,
+                exc,
             )
 
 

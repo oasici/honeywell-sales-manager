@@ -11,6 +11,25 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Month names for bilingual date formatting
+_ENGLISH_MONTHS = [
+    "", "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+]
+_TURKISH_MONTHS = [
+    "", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+]
+
+
+def _format_bilingual_date(date_obj: datetime) -> str:
+    """Format date as 'March 30, 2026 - 30 Mart 2026'."""
+    en_month = _ENGLISH_MONTHS[date_obj.month]
+    tr_month = _TURKISH_MONTHS[date_obj.month]
+    en_part = f"{en_month} {date_obj.day}, {date_obj.year}"
+    tr_part = f"{date_obj.day} {tr_month} {date_obj.year}"
+    return f"{en_part} - {tr_part}"
+
 # Labels for bilingual support
 _LABELS = {
     "tr": {
@@ -183,9 +202,11 @@ async def generate_quote_pdf(quote_data: dict, language: str = "tr") -> str:
         created_dt = datetime.strptime(created_date, "%Y-%m-%d")
         valid_until = (created_dt + timedelta(days=valid_days)).strftime("%Y-%m-%d")
     except (ValueError, TypeError):
+        created_dt = datetime.now(timezone.utc)
         valid_until = ""
 
     validity_note = labels["validity_note"].format(days=valid_days)
+    bilingual_date = _format_bilingual_date(created_dt)
 
     template_context = {
         "labels": labels,
@@ -195,9 +216,18 @@ async def generate_quote_pdf(quote_data: dict, language: str = "tr") -> str:
         "quote_number": quote_data.get("quote_number", ""),
         "created_date": created_date,
         "valid_until": valid_until,
+        "valid_days": valid_days,
+        "bilingual_date": bilingual_date,
         "currency": quote_data.get("currency", settings.DEFAULT_CURRENCY),
         "customer_name": quote_data.get("customer_name", ""),
         "customer_company": quote_data.get("customer_company", ""),
+        "customer_address": quote_data.get("customer_address", ""),
+        "customer_phone": quote_data.get("customer_phone", ""),
+        "customer_email": quote_data.get("customer_email", ""),
+        "customer_tax_id": quote_data.get("customer_tax_id", ""),
+        "prepared_by_name": quote_data.get("prepared_by_name", ""),
+        "prepared_by_email": quote_data.get("prepared_by_email", ""),
+        "prepared_by_department": quote_data.get("prepared_by_department", "Sales Department"),
         "items": quote_data.get("items", []),
         "subtotal": quote_data.get("subtotal", 0),
         "discount_total": quote_data.get("discount_total", 0),
@@ -208,8 +238,8 @@ async def generate_quote_pdf(quote_data: dict, language: str = "tr") -> str:
         "validity_note": validity_note,
     }
 
-    # Try to load custom template, fall back to built-in
-    html_content = _render_template(template_context)
+    # Try Honeywell template first, fall back to default
+    html_content = _render_honeywell_template(template_context, language)
 
     # Ensure output directory exists
     quotes_dir = Path(settings.QUOTES_DIR)
@@ -239,8 +269,35 @@ async def generate_quote_pdf(quote_data: dict, language: str = "tr") -> str:
     return html_path
 
 
+def _render_honeywell_template(context: dict, language: str = "tr") -> str:
+    """Try to render the official Honeywell template, fall back to default."""
+    templates_dir = Path(settings.TEMPLATES_DIR)
+    honeywell_template = templates_dir / f"honeywell_quote_{language}.html"
+
+    if honeywell_template.exists():
+        env = Environment(
+            loader=FileSystemLoader(str(templates_dir)),
+            autoescape=True,
+        )
+        template = env.get_template(f"honeywell_quote_{language}.html")
+        return template.render(**context)
+
+    # Fall back to honeywell_quote_tr.html for any language
+    honeywell_tr = templates_dir / "honeywell_quote_tr.html"
+    if honeywell_tr.exists():
+        env = Environment(
+            loader=FileSystemLoader(str(templates_dir)),
+            autoescape=True,
+        )
+        template = env.get_template("honeywell_quote_tr.html")
+        return template.render(**context)
+
+    # Fall back to legacy template
+    return _render_template(context)
+
+
 def _render_template(context: dict) -> str:
-    """Render the quote HTML template."""
+    """Render the legacy quote HTML template."""
     templates_dir = Path(settings.TEMPLATES_DIR)
     template_file = templates_dir / "quote_template.html"
 

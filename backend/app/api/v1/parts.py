@@ -225,8 +225,9 @@ async def import_catalog(
     safe_name = sanitize_filename(file.filename)
     suffix = os.path.splitext(safe_name)[1].lower()
 
-    if suffix not in cfg.allowed_extensions:
-        raise BadRequestException(f"Only {', '.join(cfg.allowed_extensions)} files are supported")
+    allowed = list(cfg.allowed_extensions) + [".json"]
+    if suffix not in allowed:
+        raise BadRequestException(f"Only {', '.join(allowed)} files are supported")
 
     content = await file.read()
 
@@ -237,9 +238,11 @@ async def import_catalog(
     # Validate file content (magic bytes)
     content_start = content[:4]
     if suffix in ('.xlsx', '.xls'):
-        # XLSX starts with PK (zip), XLS starts with D0 CF
         if not (content_start[:2] == b'PK' or content_start[:2] == b'\xd0\xcf'):
             raise BadRequestException("File content does not match extension")
+    elif suffix == '.json':
+        if content_start[:1] not in (b'{', b'[', b'\xef'):  # UTF-8 BOM or JSON start
+            raise BadRequestException("File content does not look like JSON")
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(content)
@@ -269,6 +272,7 @@ def _part_to_dict(part: SparePart) -> dict:
         "subcategory": part.subcategory,
         "transfer_price": part.transfer_price,
         "supplier_price": part.supplier_price,
+        "price_currency": part.price_currency,
         "keywords_json": part.keywords_json,
         "aliases_json": part.aliases_json,
         "is_active": part.is_active,

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Mail, User, Building2, Clock, Tag, FileText } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -10,7 +10,7 @@ import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
-import { emailsApi, customersApi } from '../../lib/api';
+import { emailsApi, customersApi, quotesApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import {
   CATEGORY_LABELS,
@@ -35,6 +35,7 @@ const CATEGORY_OPTIONS = [
 
 export default function EmailListPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [page, setPage] = useState(1);
@@ -89,6 +90,16 @@ export default function EmailListPage() {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
     onError: () => toast.error('Musteri olusturulamadi (zaten mevcut olabilir)'),
+  });
+
+  const createQuoteMutation = useMutation({
+    mutationFn: (emailId: number) => quotesApi.createQuoteFromEmail(emailId),
+    onSuccess: (quote) => {
+      toast.success(`Taslak teklif olusturuldu: ${quote.quote_number}`);
+      setDetailEmail(null);
+      navigate(`/quotes/${quote.id}`);
+    },
+    onError: () => toast.error('Teklif olusturulamadi'),
   });
 
   const handleTabChange = useCallback(
@@ -425,15 +436,26 @@ export default function EmailListPage() {
 
             {/* Actions */}
             <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={createCustomerMutation.isPending}
-                onClick={() => handleCreateCustomer(activeEmail!)}
-                disabled={!detailParsed}
-              >
-                Musteri Olustur
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={createCustomerMutation.isPending}
+                  onClick={() => handleCreateCustomer(activeEmail!)}
+                  disabled={!detailParsed}
+                >
+                  Musteri Olustur
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={createQuoteMutation.isPending}
+                  onClick={() => createQuoteMutation.mutate(activeEmail!.id)}
+                  disabled={!detailParsed?.parts?.length}
+                >
+                  Teklif Olustur
+                </Button>
+              </div>
               <Button variant="secondary" size="sm" onClick={() => setDetailEmail(null)}>
                 Kapat
               </Button>

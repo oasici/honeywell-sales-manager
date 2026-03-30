@@ -6,7 +6,6 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
-import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { partsApi } from '../../lib/api';
 import type { SparePart, PaginatedResponse } from '../../lib/types';
@@ -58,18 +57,14 @@ function PartDetailModal({
           <DetailField label="Kategori" value={part.category} />
           <DetailField label="Alt Kategori" value={part.subcategory} />
           <DetailField
-            label="Transfer Fiyati"
-            value={formatPrice(part.transfer_price)}
+            label="T.P. (Transfer Price)"
+            value={part.transfer_price != null ? `${formatPrice(part.transfer_price)} ${part.price_currency || ''}` : null}
             isHighlight={part.transfer_price != null}
           />
           <DetailField
-            label="Tedarikci Fiyati"
-            value={formatPrice(part.supplier_price)}
+            label="L.P. (List Price)"
+            value={part.supplier_price != null ? `${formatPrice(part.supplier_price)} ${part.price_currency || ''}` : null}
             isHighlight={part.supplier_price != null}
-          />
-          <DetailField
-            label="Durum"
-            value={part.is_active ? 'Aktif' : 'Pasif'}
           />
           <DetailField label="Olusturma Tarihi" value={part.created_at?.split('T')[0]} />
         </div>
@@ -190,31 +185,25 @@ export default function PartsPage() {
     },
     {
       key: 'transfer_price',
-      header: 'T.P. Fiyat',
+      header: 'T.P.',
       render: (row: SparePart) => (
         <span className="text-sm font-medium text-gray-900">
-          {formatPrice(row.transfer_price)}
+          {row.transfer_price != null
+            ? `${formatPrice(row.transfer_price)} ${row.price_currency || ''}`
+            : '-'}
         </span>
       ),
     },
     {
       key: 'supplier_price',
-      header: 'Tedarikci Fiyat',
+      header: 'L.P.',
       render: (row: SparePart) => (
         <span className="text-sm text-gray-700">
-          {formatPrice(row.supplier_price)}
+          {row.supplier_price != null
+            ? `${formatPrice(row.supplier_price)} ${row.price_currency || ''}`
+            : '-'}
         </span>
       ),
-    },
-    {
-      key: 'is_active',
-      header: 'Durum',
-      render: (row: SparePart) =>
-        row.is_active ? (
-          <Badge variant="success">Aktif</Badge>
-        ) : (
-          <Badge variant="default">Pasif</Badge>
-        ),
     },
   ];
 
@@ -225,7 +214,7 @@ export default function PartsPage() {
           type="file"
           ref={fileRef}
           onChange={handleImport}
-          accept=".xlsx,.xls,.csv"
+          accept=".xlsx,.xls,.csv,.json"
           className="hidden"
         />
         <Button

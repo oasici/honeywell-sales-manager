@@ -205,7 +205,9 @@ async def download_quote_pdf(
         raise ForbiddenException("Bu teklifi indirme yetkiniz yok")
 
     if not quote.pdf_path:
-        raise BadRequestException("PDF has not been generated for this quote")
+        raise NotFoundException(
+            "PDF henuz olusturulmamis. Teklifi onaylayarak PDF olusturabilirsiniz."
+        )
 
     # Path traversal protection
     pdf_file = Path(quote.pdf_path)

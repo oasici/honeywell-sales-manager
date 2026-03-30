@@ -78,6 +78,7 @@ export interface SparePart {
   subcategory: string;
   transfer_price?: number | null;
   supplier_price?: number | null;
+  price_currency?: string | null;
   is_active: boolean;
   has_price: boolean;
   created_at: string;
