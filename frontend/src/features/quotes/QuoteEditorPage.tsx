@@ -181,6 +181,7 @@ export default function QuoteEditorPage() {
   }, [customerId, language, currency, taxRate, notes, items, saveMutation]);
 
   const addPartToItems = useCallback((part: SparePart) => {
+    const price = part.supplier_price ?? part.transfer_price ?? 0;
     setItems((prev) => [
       ...prev,
       {
@@ -188,7 +189,7 @@ export default function QuoteEditorPage() {
         honeywell_code: part.honeywell_code,
         description: part.name_tr || part.name_en,
         quantity: 1,
-        unit_price: 0,
+        unit_price: price,
         discount_pct: 0,
         sort_order: prev.length + 1,
       },
