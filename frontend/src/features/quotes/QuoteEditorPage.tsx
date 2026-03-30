@@ -242,8 +242,11 @@ export default function QuoteEditorPage() {
     if (!quoteId) return;
     try {
       await quotesApi.downloadQuotePdf(quoteId);
-    } catch {
-      toast.error('PDF indirilemedi');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error?.message
+        || err?.response?.data?.detail
+        || 'PDF indirilemedi';
+      toast.error(msg);
     }
   }, [quoteId]);
 
