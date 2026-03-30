@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -30,9 +28,6 @@ from app.services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-limiter = Limiter(key_func=get_remote_address)
-
-
 class RefreshRequest(BaseModel):
     refresh_token: str
 
@@ -42,9 +37,7 @@ class LogoutRequest(BaseModel):
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("5/minute")
 async def login(
-    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
