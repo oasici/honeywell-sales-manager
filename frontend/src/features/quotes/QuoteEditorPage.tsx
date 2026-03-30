@@ -284,12 +284,14 @@ export default function QuoteEditorPage() {
         <Button variant="secondary" onClick={() => navigate('/quotes')}>
           Geri Don
         </Button>
-        <Button
-          loading={saveMutation.isPending}
-          onClick={handleSave}
-        >
-          Kaydet
-        </Button>
+        {(!quoteId || status === 'draft' || status === 'pending_approval') && (
+          <Button
+            loading={saveMutation.isPending}
+            onClick={handleSave}
+          >
+            Kaydet
+          </Button>
+        )}
         {quoteId && status === 'draft' && (
           <Button
             variant="secondary"
