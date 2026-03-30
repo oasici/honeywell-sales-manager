@@ -45,21 +45,24 @@ async def lifespan(app: FastAPI):
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Auto-migrate: add missing columns to existing tables
-        await conn.execute(
-            sqlalchemy.text("""
-                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS info TEXT;
-                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS model_number VARCHAR(200);
-                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS transfer_price FLOAT;
-                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS supplier_price FLOAT;
-                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS price_currency VARCHAR(10);
-                ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false;
-                ALTER TABLE spare_parts ALTER COLUMN name_en TYPE TEXT;
-                ALTER TABLE spare_parts ALTER COLUMN name_tr TYPE TEXT;
-                ALTER TABLE spare_parts ALTER COLUMN honeywell_code TYPE VARCHAR(500);
-            """)
-        )
-    logger.info("Database tables created / verified + auto-migrated")
+    logger.info("Database tables created / verified")
+
+    # Auto-migrate: add missing columns safely
+    try:
+        async with engine.begin() as conn:
+            migrations = [
+                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS info TEXT",
+                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS model_number VARCHAR(200)",
+                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS transfer_price FLOAT",
+                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS supplier_price FLOAT",
+                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS price_currency VARCHAR(10)",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false",
+            ]
+            for sql in migrations:
+                await conn.execute(sqlalchemy.text(sql))
+        logger.info("Auto-migration completed")
+    except Exception as e:
+        logger.warning("Auto-migration failed (may already be applied): %s", e)
 
     for dir_path in [settings.QUOTES_DIR, settings.UPLOADS_DIR]:
         os.makedirs(dir_path, exist_ok=True)

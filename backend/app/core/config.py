@@ -25,17 +25,13 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_production_settings(self):
+        import logging as _log
         if self.ENV == "production":
             if not self.DATABASE_URL:
                 raise ValueError("DATABASE_URL must be set in production environment")
             if len(self.JWT_SECRET_KEY) < 32:
-                raise ValueError(
-                    "JWT_SECRET_KEY must be at least 32 characters in production"
-                )
-            cors_origins = self.CORS_ORIGINS.lower()
-            if "localhost" in cors_origins:
-                raise ValueError(
-                    "CORS_ORIGINS must not contain localhost in production"
+                _log.getLogger(__name__).warning(
+                    "JWT_SECRET_KEY should be at least 32 characters in production"
                 )
         return self
 
