@@ -12,6 +12,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+import sqlalchemy
+
 from app.api.v1.router import v1_router
 from app.core.config import settings
 from app.core.database import async_session, engine
@@ -43,7 +45,21 @@ async def lifespan(app: FastAPI):
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables created / verified")
+        # Auto-migrate: add missing columns to existing tables
+        await conn.execute(
+            sqlalchemy.text("""
+                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS info TEXT;
+                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS model_number VARCHAR(200);
+                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS transfer_price FLOAT;
+                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS supplier_price FLOAT;
+                ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS price_currency VARCHAR(10);
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false;
+                ALTER TABLE spare_parts ALTER COLUMN name_en TYPE TEXT;
+                ALTER TABLE spare_parts ALTER COLUMN name_tr TYPE TEXT;
+                ALTER TABLE spare_parts ALTER COLUMN honeywell_code TYPE VARCHAR(500);
+            """)
+        )
+    logger.info("Database tables created / verified + auto-migrated")
 
     for dir_path in [settings.QUOTES_DIR, settings.UPLOADS_DIR]:
         os.makedirs(dir_path, exist_ok=True)
