@@ -53,9 +53,14 @@ async def match_parts(
         logger.warning("Spare parts catalog is empty")
         return [{"requested": part, "matches": []} for part in requested_parts]
 
-    # Pre-compute normalized codes for the catalog
+    # Pre-compute normalized codes for the catalog (honeywell_code + model_number)
     catalog_normalized: list[tuple[SparePart, str]] = [
         (part, _normalize_code(part.honeywell_code)) for part in catalog
+    ]
+    catalog_model_normalized: list[tuple[SparePart, str]] = [
+        (part, _normalize_code(part.model_number))
+        for part in catalog
+        if part.model_number
     ]
 
     results: list[dict[str, Any]] = []
@@ -67,19 +72,27 @@ async def match_parts(
 
         matches: list[dict[str, Any]] = []
 
-        # Strategy 1: Exact code match
+        # Strategy 1: Exact code match (honeywell_code and model_number)
         if query_norm:
             for part, norm_code in catalog_normalized:
                 if norm_code == query_norm:
                     matches.append(_make_match(part, 100.0, "exact_code"))
+            if not matches:
+                for part, norm_model in catalog_model_normalized:
+                    if norm_model == query_norm:
+                        matches.append(_make_match(part, 100.0, "exact_model"))
 
         # Strategy 2: Prefix match (only if we don't already have exact)
         if query_norm and len(query_norm) >= PREFIX_MIN_CHARS and not matches:
+            existing_ids = {m["spare_part_id"] for m in matches}
             for part, norm_code in catalog_normalized:
                 if norm_code.startswith(query_norm) and norm_code != query_norm:
                     matches.append(_make_match(part, 85.0, "prefix_code"))
+            for part, norm_model in catalog_model_normalized:
+                if part.id not in existing_ids and norm_model.startswith(query_norm) and norm_model != query_norm:
+                    matches.append(_make_match(part, 85.0, "prefix_model"))
 
-        # Strategy 3: Fuzzy code match
+        # Strategy 3: Fuzzy code match (honeywell_code + model_number)
         if query_norm and len(matches) < TOP_N:
             existing_ids = {m["spare_part_id"] for m in matches}
             for part, norm_code in catalog_normalized:
@@ -89,6 +102,15 @@ async def match_parts(
                 if score >= FUZZY_CODE_CUTOFF:
                     matches.append(
                         _make_match(part, round(score * 0.75 / 100 * 100, 1), "fuzzy_code")
+                    )
+            existing_ids = {m["spare_part_id"] for m in matches}
+            for part, norm_model in catalog_model_normalized:
+                if part.id in existing_ids:
+                    continue
+                score = fuzz.token_sort_ratio(query_norm, norm_model)
+                if score >= FUZZY_CODE_CUTOFF:
+                    matches.append(
+                        _make_match(part, round(score * 0.75 / 100 * 100, 1), "fuzzy_model")
                     )
 
         # Strategy 4: Fuzzy name match
@@ -158,6 +180,7 @@ def _make_match(part: SparePart, score: float, strategy: str) -> dict[str, Any]:
     return {
         "spare_part_id": part.id,
         "honeywell_code": part.honeywell_code,
+        "model_number": part.model_number,
         "name_en": part.name_en,
         "name_tr": part.name_tr,
         "category": part.category,

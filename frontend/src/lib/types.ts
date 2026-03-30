@@ -68,12 +68,16 @@ export interface EmailRequest {
 export interface SparePart {
   id: number;
   honeywell_code: string;
+  model_number?: string | null;
+  info?: string | null;
   name_en: string;
   name_tr: string;
   description_en: string;
   description_tr: string;
   category: string;
   subcategory: string;
+  transfer_price?: number | null;
+  supplier_price?: number | null;
   is_active: boolean;
   has_price: boolean;
   created_at: string;

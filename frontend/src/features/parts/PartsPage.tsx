@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -7,14 +7,102 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
 import { partsApi } from '../../lib/api';
 import type { SparePart, PaginatedResponse } from '../../lib/types';
+
+const CURRENCY_FORMATTER = new Intl.NumberFormat('tr-TR', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+});
+
+function formatPrice(value: number | null | undefined): string {
+  if (value == null) return '-';
+  return CURRENCY_FORMATTER.format(value);
+}
+
+interface PartsImportResponse {
+  imported: number;
+  parts_created?: number;
+  parts_updated?: number;
+  prices_created?: number;
+  skipped?: number;
+}
+
+function PartDetailModal({
+  part,
+  onClose,
+}: {
+  part: SparePart | null;
+  onClose: () => void;
+}) {
+  if (!part) return null;
+
+  return (
+    <Modal isOpen={!!part} onClose={onClose} title="Urun Detayi" size="lg">
+      <div className="space-y-4">
+        {/* Info highlight box */}
+        {part.info && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <span className="font-semibold">Bilgi: </span>
+            {part.info}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <DetailField label="Honeywell Kodu" value={part.honeywell_code} />
+          <DetailField label="Model No" value={part.model_number} />
+          <DetailField label="Tanim (TR)" value={part.description_tr || part.name_tr} />
+          <DetailField label="Tanim (EN)" value={part.description_en || part.name_en} />
+          <DetailField label="Kategori" value={part.category} />
+          <DetailField label="Alt Kategori" value={part.subcategory} />
+          <DetailField
+            label="Transfer Fiyati"
+            value={formatPrice(part.transfer_price)}
+            isHighlight={part.transfer_price != null}
+          />
+          <DetailField
+            label="Tedarikci Fiyati"
+            value={formatPrice(part.supplier_price)}
+            isHighlight={part.supplier_price != null}
+          />
+          <DetailField
+            label="Durum"
+            value={part.is_active ? 'Aktif' : 'Pasif'}
+          />
+          <DetailField label="Olusturma Tarihi" value={part.created_at?.split('T')[0]} />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function DetailField({
+  label,
+  value,
+  isHighlight = false,
+}: {
+  label: string;
+  value: string | null | undefined;
+  isHighlight?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-xs font-medium text-gray-500">{label}</dt>
+      <dd className={`mt-0.5 ${isHighlight ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+        {value || '-'}
+      </dd>
+    </div>
+  );
+}
 
 export default function PartsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [selectedPart, setSelectedPart] = useState<SparePart | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery<PaginatedResponse<SparePart>>({
@@ -33,21 +121,14 @@ export default function PartsPage() {
     queryFn: partsApi.getCategories,
   });
 
-  interface PartsImportResponse {
-    imported: number;
-    parts_created?: number;
-    parts_updated?: number;
-    prices_created?: number;
-  }
-
   const importMutation = useMutation<PartsImportResponse, Error, File>({
     mutationFn: (file: File) => partsApi.importParts(file) as Promise<PartsImportResponse>,
     onSuccess: (res) => {
       const parts = (res.parts_created || 0) + (res.parts_updated || 0);
-      const prices = res.prices_created || 0;
       toast.success(
         `${parts} parca (${res.parts_created || 0} yeni, ${res.parts_updated || 0} guncellendi)` +
-        (prices > 0 ? ` ve ${prices} fiyat ice aktarildi` : ' ice aktarildi')
+        (res.skipped ? `, ${res.skipped} atlandi` : '') +
+        ' ice aktarildi',
       );
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       queryClient.invalidateQueries({ queryKey: ['parts-categories'] });
@@ -61,6 +142,10 @@ export default function PartsPage() {
     e.target.value = '';
   };
 
+  const handleRowClick = useCallback((part: SparePart) => {
+    setSelectedPart(part);
+  }, []);
+
   const categoryOptions = [
     { value: '', label: 'Tum Kategoriler' },
     ...(categories || []).map((c) => ({ value: c, label: c })),
@@ -68,27 +153,32 @@ export default function PartsPage() {
 
   const columns = [
     {
+      key: 'model_number',
+      header: 'Model No',
+      sortable: true,
+      render: (row: SparePart) => (
+        <span className="font-mono text-sm font-semibold text-gray-900">
+          {row.model_number || row.honeywell_code}
+        </span>
+      ),
+    },
+    {
       key: 'honeywell_code',
       header: 'Honeywell Kodu',
       sortable: true,
       render: (row: SparePart) => (
-        <span className="font-mono text-sm font-semibold text-gray-900">
+        <span className="font-mono text-xs text-gray-600">
           {row.honeywell_code}
         </span>
       ),
     },
     {
       key: 'name_tr',
-      header: 'Isim (TR)',
+      header: 'Tanim',
       render: (row: SparePart) => (
-        <span className="text-sm">{row.name_tr || '-'}</span>
-      ),
-    },
-    {
-      key: 'name_en',
-      header: 'Isim (EN)',
-      render: (row: SparePart) => (
-        <span className="text-sm">{row.name_en || '-'}</span>
+        <span className="text-sm" title={row.description_tr || row.name_tr || ''}>
+          {row.name_tr || row.name_en || '-'}
+        </span>
       ),
     },
     {
@@ -99,14 +189,22 @@ export default function PartsPage() {
       ),
     },
     {
-      key: 'has_price',
-      header: 'Fiyat Durumu',
-      render: (row: SparePart) =>
-        row.has_price ? (
-          <Badge variant="success">Fiyatli</Badge>
-        ) : (
-          <Badge variant="warning">Fiyatsiz</Badge>
-        ),
+      key: 'transfer_price',
+      header: 'T.P. Fiyat',
+      render: (row: SparePart) => (
+        <span className="text-sm font-medium text-gray-900">
+          {formatPrice(row.transfer_price)}
+        </span>
+      ),
+    },
+    {
+      key: 'supplier_price',
+      header: 'Tedarikci Fiyat',
+      render: (row: SparePart) => (
+        <span className="text-sm text-gray-700">
+          {formatPrice(row.supplier_price)}
+        </span>
+      ),
     },
     {
       key: 'is_active',
@@ -140,7 +238,8 @@ export default function PartsPage() {
 
       {/* Info banner */}
       <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-        <strong>Excel Formatı:</strong> honeywell_code (zorunlu), name_tr, name_en, category, list_price, discount_pct, currency sütunlarını içeren tek bir dosya yükleyin. Parça ve fiyat bilgileri otomatik okunur.
+        <strong>Excel Formati:</strong> Model No / Honeywell Code (zorunlu), aciklama, transfer price,
+        supplier price sutunlarini iceren tek bir dosya yukleyin. Sutun eslestirme otomatik yapilir.
       </div>
 
       {/* Filters */}
@@ -176,6 +275,13 @@ export default function PartsPage() {
         page={data?.page || page}
         totalPages={data?.pages || 1}
         onPageChange={setPage}
+        onRowClick={handleRowClick}
+      />
+
+      {/* Product detail modal */}
+      <PartDetailModal
+        part={selectedPart}
+        onClose={() => setSelectedPart(null)}
       />
     </div>
   );

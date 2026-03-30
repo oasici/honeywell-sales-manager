@@ -35,6 +35,7 @@ async def list_parts(
         conditions.append(
             or_(
                 SparePart.honeywell_code.ilike(search_term),
+                SparePart.model_number.ilike(search_term),
                 SparePart.name_en.ilike(search_term),
                 SparePart.name_tr.ilike(search_term),
             )
@@ -165,8 +166,9 @@ async def update_part(
         raise NotFoundException(f"Part with id {part_id} not found")
 
     updatable_fields = [
-        "honeywell_code", "name_en", "name_tr", "description_en",
-        "description_tr", "category", "subcategory", "keywords_json", "aliases_json",
+        "honeywell_code", "model_number", "info", "name_en", "name_tr",
+        "description_en", "description_tr", "category", "subcategory",
+        "transfer_price", "supplier_price", "keywords_json", "aliases_json",
     ]
     for field in updatable_fields:
         if field in data:
@@ -244,8 +246,8 @@ async def import_catalog(
         tmp_path = tmp.name
 
     try:
-        from app.services.import_service import import_catalog_from_file
-        result = await import_catalog_from_file(db, tmp_path)
+        from app.services.product_import_pipeline import import_products_from_file
+        result = await import_products_from_file(db, tmp_path)
     finally:
         os.unlink(tmp_path)
 
@@ -257,12 +259,16 @@ def _part_to_dict(part: SparePart) -> dict:
     return {
         "id": part.id,
         "honeywell_code": part.honeywell_code,
+        "model_number": part.model_number,
+        "info": part.info,
         "name_en": part.name_en,
         "name_tr": part.name_tr,
         "description_en": part.description_en,
         "description_tr": part.description_tr,
         "category": part.category,
         "subcategory": part.subcategory,
+        "transfer_price": part.transfer_price,
+        "supplier_price": part.supplier_price,
         "keywords_json": part.keywords_json,
         "aliases_json": part.aliases_json,
         "is_active": part.is_active,

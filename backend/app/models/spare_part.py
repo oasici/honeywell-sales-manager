@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -21,6 +21,12 @@ class SparePart(Base):
     subcategory: Mapped[str | None] = mapped_column(String(200), nullable=True)
     keywords_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
     aliases_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
+    info: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model_number: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, index=True
+    )
+    transfer_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    supplier_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
