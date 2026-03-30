@@ -141,23 +141,39 @@ export default function DashboardPage() {
   }
 
   /* ── KPI map ── */
+  const s = {
+    total_emails: stats.total_emails ?? 0,
+    total_quotes: stats.total_quotes ?? 0,
+    total_parts: stats.total_parts ?? 0,
+    total_customers: stats.total_customers ?? 0,
+    conversion_rate: stats.conversion_rate ?? 0,
+    pending_review_count: stats.pending_review_count ?? 0,
+    pending_value: stats.pending_value ?? 0,
+    answered_emails: stats.answered_emails ?? 0,
+    total_parts_value: stats.total_parts_value ?? 0,
+    answered_parts_value: stats.answered_parts_value ?? 0,
+    total_parts_count: stats.total_parts_count ?? 0,
+    answered_parts_count: stats.answered_parts_count ?? 0,
+    approved_quotes: stats.approved_quotes ?? 0,
+  };
+
   const kpiMap: Record<string, ReactNode> = {
-    total_emails: <KpiCard label="Toplam Mail" value={stats.total_emails} onClick={() => navigate('/emails')} />,
-    total_quotes: <KpiCard label="Toplam Teklif" value={stats.total_quotes} onClick={() => navigate('/quotes')} />,
-    total_parts: <KpiCard label="Toplam Parca" value={stats.total_parts} onClick={() => navigate('/parts')} />,
-    total_customers: <KpiCard label="Toplam Musteri" value={stats.total_customers} onClick={() => navigate('/customers')} />,
-    conversion_rate: <KpiCard label="Donusum Orani" value={`%${stats.conversion_rate}`} />,
-    pending_review: <KpiCard label="Inceleme Bekleyen" value={stats.pending_review_count} onClick={() => navigate('/emails?review=pending_review')} />,
+    total_emails: <KpiCard label="Toplam Mail" value={s.total_emails} onClick={() => navigate('/emails')} />,
+    total_quotes: <KpiCard label="Toplam Teklif" value={s.total_quotes} onClick={() => navigate('/quotes')} />,
+    total_parts: <KpiCard label="Toplam Parca" value={s.total_parts} onClick={() => navigate('/parts')} />,
+    total_customers: <KpiCard label="Toplam Musteri" value={s.total_customers} onClick={() => navigate('/customers')} />,
+    conversion_rate: <KpiCard label="Donusum Orani" value={`%${s.conversion_rate}`} />,
+    pending_review: <KpiCard label="Inceleme Bekleyen" value={s.pending_review_count} onClick={() => navigate('/emails?review=pending_review')} />,
   };
 
   /* ── section map ── */
   const secMap: Record<string, ReactNode> = {
     doughnuts: (() => {
       const doughnutMap: Record<string, ReactNode> = {
-        d_mail: <DoughnutChart title="Cevaplanan Mail Orani" filled={stats.answered_emails} total={stats.total_emails} colorIndex={0} />,
-        d_value: <DoughnutChart title="Cevaplanan Parca Degeri" filled={stats.answered_parts_value} total={stats.total_parts_value} unit="USD" colorIndex={1} />,
-        d_count: <DoughnutChart title="Cevaplanan Parca Sayisi" filled={stats.answered_parts_count} total={stats.total_parts_count} unit="adet" colorIndex={2} />,
-        d_quote: <DoughnutChart title="Onaylanan Teklif Orani" filled={stats.approved_quotes} total={stats.total_quotes} colorIndex={3} />,
+        d_mail: <DoughnutChart title="Cevaplanan Mail Orani" filled={s.answered_emails} total={s.total_emails} colorIndex={0} />,
+        d_value: <DoughnutChart title="Cevaplanan Parca Degeri" filled={s.answered_parts_value} total={s.total_parts_value} unit="USD" colorIndex={1} />,
+        d_count: <DoughnutChart title="Cevaplanan Parca Sayisi" filled={s.answered_parts_count} total={s.total_parts_count} unit="adet" colorIndex={2} />,
+        d_quote: <DoughnutChart title="Onaylanan Teklif Orani" filled={s.approved_quotes} total={s.total_quotes} colorIndex={3} />,
       };
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -223,9 +239,9 @@ export default function DashboardPage() {
         </h3>
         {trend && trend.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trend}>
+            <LineChart data={trend.map((t) => ({ ...t, label: `${t.year}-${String(t.month).padStart(2, '0')}` }))}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={{ fontSize: 12 }} />
@@ -251,14 +267,14 @@ export default function DashboardPage() {
             onClick={() => navigate('/emails?review=pending_review')}
           >
             <p className="text-sm font-medium text-amber-900">Inceleme Bekleyen Mailler</p>
-            <p className="mt-1 text-2xl font-bold text-amber-800">{stats.pending_review_count}</p>
+            <p className="mt-1 text-2xl font-bold text-amber-800">{s.pending_review_count}</p>
           </div>
           <div
             className="cursor-pointer rounded-lg border-l-4 border-l-honeywell-red bg-red-50 p-4 hover:bg-red-100 transition-colors"
             onClick={() => navigate('/quotes?status=draft')}
           >
             <p className="text-sm font-medium text-red-900">Bekleyen Teklif Degeri</p>
-            <p className="mt-1 text-2xl font-bold text-red-800">{formatCurrency(stats.pending_value, 'TRY')}</p>
+            <p className="mt-1 text-2xl font-bold text-red-800">{formatCurrency(s.pending_value, 'TRY')}</p>
           </div>
         </div>
       </div>

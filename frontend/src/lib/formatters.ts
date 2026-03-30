@@ -2,13 +2,13 @@
  * Format a number as currency (Turkish locale).
  * Defaults to USD if no currency specified.
  */
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
+export function formatCurrency(amount: number | null | undefined, currency: string = 'USD'): string {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(amount ?? 0);
 }
 
 /** Format an ISO date string as Turkish date (dd.MM.yyyy) */

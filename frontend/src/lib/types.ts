@@ -170,9 +170,11 @@ export interface TopPart {
 }
 
 export interface TrendData {
-  period: string;
+  year: number;
+  month: number;
   quote_count: number;
-  total_value: number;
+  revenue: number;
+  sent_count: number;
 }
 
 // ── Part Matching ────────────────────────────────────
