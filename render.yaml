@@ -1,0 +1,57 @@
+# Render Blueprint - Honeywell Sales Manager
+# Deploy: https://render.com/deploy?repo=https://github.com/oasici/honeywell-sales-manager
+
+databases:
+  - name: honeywell-db
+    plan: free
+    databaseName: honeywell_sales
+    user: honeywell
+
+services:
+  - type: web
+    name: honeywell-backend
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: honeywell-db
+          property: connectionString
+      - key: ENV
+        value: production
+      - key: PORT
+        value: "8000"
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DEFAULT_ADMIN_EMAIL
+        value: admin@honeywell.com
+      - key: DEFAULT_ADMIN_PASSWORD
+        value: Honeywell2026!
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        generateValue: true
+
+  - type: web
+    name: honeywell-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://honeywell-backend.onrender.com/api/*
+    envVars:
+      - key: VITE_API_URL
+        value: https://honeywell-backend.onrender.com/api/v1
