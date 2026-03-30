@@ -572,8 +572,36 @@ export default function QuoteEditorPage() {
 
         {/* ── Summary ───────────────────────────────── */}
         <Card title="Ozet">
-          <div className="flex justify-end">
-            <div className="w-full max-w-xs space-y-2 text-sm">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Receipt-style item list */}
+            <div className="flex-1 min-w-0">
+              {items.length > 0 ? (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 font-mono text-xs">
+                  {items.map((item, idx) => {
+                    const lineGross = item.quantity * item.unit_price;
+                    const lineNet = lineGross - lineGross * (item.discount_pct / 100);
+                    return (
+                      <div key={idx} className="flex items-start justify-between gap-2 py-1.5 border-b border-dashed border-gray-300 last:border-b-0">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-gray-900 font-semibold">{item.honeywell_code}</span>
+                          <span className="text-gray-400 mx-1.5">-</span>
+                          <span className="text-gray-600 truncate">{item.description}</span>
+                        </div>
+                        <div className="shrink-0 text-right tabular-nums whitespace-nowrap">
+                          <span className="text-gray-500">{item.quantity} x {formatCurrency(item.unit_price, currency)}</span>
+                          <span className="ml-3 font-semibold text-gray-900">{formatCurrency(lineNet, currency)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic">Henuz kalem eklenmedi</p>
+              )}
+            </div>
+
+            {/* Totals */}
+            <div className="w-full max-w-xs shrink-0 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Alt Toplam:</span>
                 <span className="font-medium">
