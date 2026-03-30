@@ -235,7 +235,7 @@ export const partsApi = {
   },
 
   createPart: async (payload: Partial<SparePart>): Promise<SparePart> => {
-    const { data } = await api.post<SparePart>('/parts', payload);
+    const { data } = await api.post<SparePart>('/parts/', payload);
     return data;
   },
 
@@ -266,7 +266,7 @@ export const pricesApi = {
   },
 
   createPrice: async (payload: Partial<PriceEntry>): Promise<PriceEntry> => {
-    const { data } = await api.post<PriceEntry>('/prices', payload);
+    const { data } = await api.post<PriceEntry>('/prices/', payload);
     return data;
   },
 
@@ -294,7 +294,7 @@ export const customersApi = {
   },
 
   createCustomer: async (payload: Partial<Customer>): Promise<Customer> => {
-    const { data } = await api.post<Customer>('/customers', payload);
+    const { data } = await api.post<Customer>('/customers/', payload);
     return data;
   },
 
@@ -346,7 +346,7 @@ export const quotesApi = {
   },
 
   createQuote: async (payload: Record<string, unknown>): Promise<Quote> => {
-    const { data } = await api.post<Quote>('/quotes', payload);
+    const { data } = await api.post<Quote>('/quotes/', payload);
     return data;
   },
 
@@ -414,7 +414,7 @@ export const settingsApi = {
   },
 
   updateSettings: async (payload: Record<string, unknown>): Promise<Record<string, unknown>> => {
-    const { data } = await api.put<Record<string, unknown>>('/settings', payload);
+    const { data } = await api.put<Record<string, unknown>>('/settings/', payload);
     return data;
   },
 
