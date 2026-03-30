@@ -359,10 +359,23 @@ async def import_products_from_file(db: AsyncSession, file_path: str) -> dict[st
 
     logger.info("Import: created=%d updated=%d skipped=%d errors=%d", created, updated, skipped, len(errors))
 
+    # Incrementally update embeddings for new/modified parts only
+    embedding_stats: dict = {}
+    if created > 0 or updated > 0:
+        try:
+            from app.services.embedding_service import update_embeddings_incremental
+
+            embedding_stats = await update_embeddings_incremental(db)
+            logger.info("Incremental embeddings: %s", embedding_stats)
+        except Exception as e:
+            logger.warning("Incremental embedding update failed: %s", e)
+            embedding_stats = {"error": str(e)}
+
     return {
         "parts_created": created,
         "parts_updated": updated,
         "skipped": skipped,
         "errors": errors[:20],
         "column_mapping": field_to_col,
+        "embeddings": embedding_stats,
     }

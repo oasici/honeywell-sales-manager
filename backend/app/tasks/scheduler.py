@@ -43,6 +43,49 @@ async def poll_emails_task():
         logger.error(f"Email polling failed: {e}")
 
 
+async def batch_process_pending_emails():
+    """Process pending emails in batch (cost-efficient, runs hourly)."""
+    from sqlalchemy import select
+
+    from app.core.database import async_session
+    from app.models.email_request import EmailRequest
+    from app.services.email_processing_service import EmailProcessingService
+
+    try:
+        async with async_session() as db:
+            result = await db.execute(
+                select(EmailRequest)
+                .where(EmailRequest.status == "new")
+                .order_by(EmailRequest.created_at)
+                .limit(50)
+            )
+            emails = result.scalars().all()
+
+            if not emails:
+                return
+
+            logger.info("Batch processing %d pending emails", len(emails))
+            service = EmailProcessingService(db)
+
+            processed = 0
+            for email in emails:
+                try:
+                    await service.process_email(email.id)
+                    processed += 1
+                except Exception as exc:
+                    logger.warning(
+                        "Batch process failed for email %d: %s",
+                        email.id,
+                        exc,
+                    )
+
+            await db.commit()
+            logger.info("Batch processed %d/%d emails", processed, len(emails))
+
+    except Exception as e:
+        logger.error("Batch email processing failed: %s", e)
+
+
 async def check_expired_quotes_task():
     """Background task: mark expired quotes."""
     from datetime import datetime, timedelta, timezone
@@ -91,6 +134,13 @@ def start_scheduler():
         "interval",
         hours=1,
         id="quote_expiry",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        batch_process_pending_emails,
+        "interval",
+        hours=1,
+        id="batch_email_process",
         replace_existing=True,
     )
     scheduler.start()

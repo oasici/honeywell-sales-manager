@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import logging
+from collections import OrderedDict
 
 from anthropic import AsyncAnthropic
 
@@ -10,8 +11,14 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# In-memory cache (SHA256 hash -> parse result)
-_parse_cache: dict[str, dict] = {}
+MAX_CACHE_SIZE = 5000
+
+# LRU cache: OrderedDict gives O(1) move-to-end on access
+_parse_cache: OrderedDict[str, dict] = OrderedDict()
+
+# Cache hit/miss counters for observability
+_cache_hits = 0
+_cache_misses = 0
 
 # Tool definition for structured extraction
 _EXTRACTION_TOOL = {
@@ -193,10 +200,23 @@ async def parse_email(body: str, subject: str = "") -> dict:
 
     Uses SHA256 caching and retries with exponential backoff.
     """
+    global _cache_hits, _cache_misses
+
     cache_key = hashlib.sha256(f"{subject}||{body}".encode()).hexdigest()
     if cache_key in _parse_cache:
-        logger.debug("Cache hit for email parse: %s", cache_key[:12])
+        _cache_hits += 1
+        _parse_cache.move_to_end(cache_key)
+        if _cache_hits % 100 == 0:
+            total = _cache_hits + _cache_misses
+            rate = _cache_hits / total * 100 if total else 0
+            logger.info(
+                "Parse cache: %d hits, %d misses (%.1f%% hit rate)",
+                _cache_hits,
+                _cache_misses,
+                rate,
+            )
         return _parse_cache[cache_key]
+    _cache_misses += 1
 
     if not settings.ANTHROPIC_API_KEY:
         logger.warning("ANTHROPIC_API_KEY not set; returning empty parse result")
@@ -224,6 +244,8 @@ async def parse_email(body: str, subject: str = "") -> dict:
                     result = block.input
                     if result.get("parts"):
                         _parse_cache[cache_key] = result
+                        if len(_parse_cache) > MAX_CACHE_SIZE:
+                            _parse_cache.popitem(last=False)
                     logger.info(
                         "Parsed email: category=%s, parts=%d, confidence=%.2f",
                         result.get("category"),
