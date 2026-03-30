@@ -3,133 +3,381 @@
 <head>
 <meta charset="UTF-8">
 <style>
-  @page { size: A4; margin: 25mm 20mm; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #333; line-height: 1.5; }
-  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #E31937; padding-bottom: 10px; margin-bottom: 20px; }
-  .honeywell-logo { font-size: 28px; font-weight: bold; color: #E31937; letter-spacing: 2px; }
-  .slogan { font-size: 10px; color: #666; letter-spacing: 1px; font-weight: bold; }
-  .date-line { font-size: 11px; margin-bottom: 15px; }
-  .customer-block { margin-bottom: 20px; }
+  @page {
+    size: A4;
+    margin: 20mm 20mm 25mm 20mm;
+    @bottom-left { content: ""; }
+    @bottom-right { content: ""; }
+  }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #333; line-height: 1.45; }
+
+  /* ── Header ── */
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #E31937; padding-bottom: 12px; margin-bottom: 18px; }
+  .honeywell-logo { font-size: 30px; font-weight: bold; color: #E31937; letter-spacing: 1px; }
+  .slogan { font-size: 11px; color: #0071B3; letter-spacing: 0.5px; font-weight: bold; }
+
+  /* ── Page footer ── */
+  .page-footer { font-size: 8.5px; color: #999; border-top: 1px solid #ccc; padding-top: 6px; margin-top: 30px; display: flex; justify-content: space-between; }
+
+  /* ── Confidential top block ── */
+  .conf-top { font-size: 8.5px; color: #555; line-height: 1.35; margin-bottom: 18px; }
+
+  /* ── Date ── */
+  .date-line { font-size: 11px; margin-bottom: 14px; }
+
+  /* ── Customer block ── */
+  .customer-block { margin-bottom: 12px; }
   .customer-block table { border-collapse: collapse; }
-  .customer-block td { padding: 3px 10px 3px 0; vertical-align: top; font-size: 11px; }
-  .customer-block td.label { font-weight: normal; color: #666; min-width: 120px; }
-  .intro-text { margin: 20px 0; font-size: 11px; }
-  .signature { margin: 15px 0 25px; font-size: 11px; }
+  .customer-block td { padding: 2px 10px 2px 0; vertical-align: top; font-size: 10.5px; }
+  .customer-block td.label { font-weight: normal; color: #555; min-width: 130px; }
 
-  /* Materials table */
-  .section-title { font-size: 13px; font-weight: bold; color: #0071B3; margin: 25px 0 10px; }
-  table.materials { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-  table.materials th { background: #0071B3; color: white; padding: 8px 6px; font-size: 10px; text-align: left; font-weight: bold; }
-  table.materials td { padding: 8px 6px; border-bottom: 1px solid #ddd; font-size: 10px; }
-  table.materials tr:nth-child(even) { background: #f9f9f9; }
-  .total-row { font-size: 12px; font-weight: bold; margin-top: 5px; text-align: right; padding: 10px 0; border-top: 2px solid #0071B3; }
+  /* ── Intro & signature ── */
+  .intro-text { margin: 18px 0; font-size: 10.5px; line-height: 1.55; }
+  .signature { margin: 14px 0 20px; font-size: 10.5px; line-height: 1.5; }
+  .signature a { color: #0071B3; text-decoration: none; }
 
-  /* Terms sections */
-  .terms-title { font-size: 12px; font-weight: bold; color: #0071B3; margin: 20px 0 8px; }
-  .terms-list { padding-left: 20px; font-size: 10px; }
-  .terms-list li { margin-bottom: 5px; }
+  /* ── Section titles ── */
+  .section-title { font-size: 13px; font-weight: bold; color: #0071B3; margin: 22px 0 10px; }
 
-  /* Footer */
-  .footer { font-size: 9px; color: #999; border-top: 1px solid #ddd; padding-top: 8px; margin-top: 30px; display: flex; justify-content: space-between; }
-  .confidential { font-size: 9px; color: #666; margin-top: 30px; padding: 10px; border: 1px solid #ddd; background: #fafafa; }
+  /* ── Materials table ── */
+  table.materials { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  table.materials th { background: #f0f0f0; color: #333; padding: 7px 6px; font-size: 9.5px; text-align: left; font-weight: bold; border: 1px solid #ccc; }
+  table.materials td { padding: 7px 6px; border: 1px solid #ddd; font-size: 10px; vertical-align: top; }
+  .total-row { font-size: 12px; font-weight: bold; text-align: right; padding: 8px 6px; border-top: 2px solid #333; margin-bottom: 20px; }
+
+  /* ── Terms ── */
+  .terms-title { font-size: 12px; font-weight: bold; color: #0071B3; margin: 22px 0 8px; }
+  .terms-list { padding-left: 18px; font-size: 10px; line-height: 1.5; }
+  .terms-list li { margin-bottom: 6px; }
+  .terms-text { font-size: 10px; line-height: 1.5; margin-bottom: 6px; }
+  .terms-sub { padding-left: 30px; font-size: 10px; }
+  .terms-sub li { margin-bottom: 3px; }
+
+  /* ── Legal fine print ── */
+  .legal-section { font-size: 9px; line-height: 1.4; color: #444; margin-top: 15px; }
+  .legal-section h3 { font-size: 10px; font-weight: bold; color: #0071B3; margin: 14px 0 4px; }
+  .legal-section p { margin: 4px 0; }
+
+  /* ── Confidential bottom ── */
+  .conf-bottom { font-size: 8.5px; color: #555; margin-top: 25px; padding: 8px 10px; border: 1px solid #ddd; background: #fafafa; line-height: 1.35; }
+
+  /* ── Contact table ── */
+  table.contact { border-collapse: collapse; margin: 10px 0; }
+  table.contact th, table.contact td { border: 1px solid #ccc; padding: 6px 12px; font-size: 10px; }
+  table.contact th { background: #f0f0f0; font-weight: bold; }
+
+  /* page break helper */
+  .page-break { page-break-before: always; }
 </style>
 </head>
 <body>
-  <!-- Header -->
-  <div class="header">
-    <div>
-      <div class="honeywell-logo">Honeywell</div>
-    </div>
-    <div class="slogan">THE FUTURE IS WHAT WE MAKE IT</div>
-  </div>
 
-  <!-- Date -->
-  <div class="date-line">{{ bilingual_date }}</div>
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 1: Cover / Customer Info
+     ═══════════════════════════════════════════════════════ -->
 
-  <!-- Customer Info -->
-  <div class="customer-block">
-    <p>Sayın:</p>
-    <table>
-      <tr><td class="label">Müşteri Adı:</td><td><strong>{{ customer_name }}{% if customer_company %} - {{ customer_company }}{% endif %}</strong></td></tr>
-      {% if customer_address %}<tr><td class="label">Müşteri Adresi:</td><td>{{ customer_address }}</td></tr>{% endif %}
-      {% if customer_phone %}<tr><td class="label">Telefon No.:</td><td>{{ customer_phone }}</td></tr>{% endif %}
-      {% if customer_email %}<tr><td class="label">E-posta:</td><td>{{ customer_email }}</td></tr>{% endif %}
-      <tr><td class="label">Teklif No:</td><td><strong>{{ quote_number }}</strong></td></tr>
-    </table>
-  </div>
+<!-- Header -->
+<div class="header">
+  <div class="honeywell-logo">Honeywell</div>
+  <div class="slogan">THE FUTURE IS WHAT WE MAKE IT</div>
+</div>
 
-  <!-- Intro -->
-  <div class="intro-text">
-    Talebiniz üzere hazırlamış olduğumuz teklifimizi bilgilerinize sunarız. Teklifimiz, üzerinde taşıdığı tarihten itibaren {{ valid_days }} gün süreyle geçerlidir.
-    <br><br>
-    Teklifimize ilişkin her türlü sorunuz veya diğer teklif talepleriniz için, {{ company_phone }} numaralı telefonu arayabilirsiniz.
-  </div>
+<!-- Confidential notice top -->
+<div class="conf-top">
+Bu teklif değerli, özel ve gizli Honeywell bilgileri içerir ve Honeywell tarafından yazılı olarak açık bir kabul olmaksızın
+herhangi bir üçüncü tarafa açıklanmamalıdır. Bu teklifte yer alan bilgiler, Honeywell ile bu teklifin yönlendirildiği taraf ("Alıcı")
+arasında geçerli olan gizlilik veya bilgilerin açıklanmamasına ilişkin sözleşmelere tabidir. Bu teklifi aldığını kabul ederek,
+Alıcı bu teklifin, önceden Alıcı tarafından sağlanmış olan ve teklifte yer alan bilgiler dışında Honeywell'in gizli bilgileri
+olduğunu kabul eder. Alıcı, bu teklifi, kendi bilgilerini gizli tuttuğu standartlarla aynı şekilde gizli tutmalıdır.
+</div>
 
-  <!-- Signature -->
-  <div class="signature">
-    Saygılarımızla,<br>
-    <strong>{{ prepared_by_name }}</strong><br>
-    {{ prepared_by_email }}<br>
-    {{ prepared_by_department }}
-  </div>
+<!-- Date -->
+<div class="date-line">{{ bilingual_date }}</div>
 
-  <!-- Materials List -->
-  <div class="section-title">Malzeme Listesi</div>
-  <table class="materials">
-    <thead>
-      <tr>
-        <th style="width:40px">Sıra #</th>
-        <th style="width:50px">Adet</th>
-        <th style="width:120px">PN</th>
-        <th>Parça / Model Açıklaması</th>
-        <th style="width:90px;text-align:right">Birim Satış Fiyatı</th>
-        <th style="width:90px;text-align:right">Toplam Satış Fiyatı</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in items %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ item.quantity }}</td>
-        <td>{{ item.honeywell_code or '-' }}</td>
-        <td>{{ item.description or '-' }}</td>
-        <td style="text-align:right">{{ "%.2f"|format(item.unit_price) }}</td>
-        <td style="text-align:right">{{ "%.2f"|format(item.line_total) }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
+<!-- Customer Info -->
+<div class="customer-block">
+  <p style="margin:0 0 8px">Sayın:</p>
+  <table>
+    <tr>
+      <td class="label">Müşteri Adı:</td>
+      <td><strong>{{ customer_name }}{% if customer_company %} - {{ customer_company }}{% endif %}</strong></td>
+    </tr>
+    {% if customer_address %}
+    <tr><td class="label">Müşteri Adresi:</td><td>{{ customer_address }}</td></tr>
+    {% endif %}
+    {% if customer_phone %}
+    <tr><td class="label">Telefon No.:</td><td>{{ customer_phone }}</td></tr>
+    {% endif %}
+    {% if customer_email %}
+    <tr><td class="label">E-posta:</td><td>{{ customer_email }}</td></tr>
+    {% endif %}
+    <tr><td class="label">Teklif No:</td><td><strong>{{ quote_number }}</strong></td></tr>
+    {% if customer_tax_id %}
+    <tr><td class="label">Müşteri Yorumları:</td><td></td></tr>
+    {% endif %}
+    <tr><td class="label">Sistem No:</td><td></td></tr>
+    <tr><td class="label">RFQ:</td><td></td></tr>
   </table>
+</div>
 
-  <div class="total-row">
-    Toplam Fiyat: {{ "%.2f"|format(grand_total) }} {{ currency }}
-  </div>
+<!-- Intro text -->
+<div class="intro-text">
+Talebiniz üzere hazırlamış olduğumuz teklifimizi bilgilerinize sunarız. Teklifimiz, üzerinde taşıdığı
+tarihten itibaren {{ valid_days }} gün süreyle geçerlidir.
+<br><br>
+Teklifimize ilişkin her türlü sorunuz veya diğer teklif talepleriniz için, {{ company_phone }} numaralı
+telefonu arayabilirsiniz.
+</div>
 
-  <!-- Terms -->
-  <div class="terms-title">Fiyat, Teslimat ve Ödeme</div>
-  <ul class="terms-list">
-    <li>Yukarıdaki tabloda özellikle belirtilmedikçe, hiç bir kurulum, kablaj, montaj, işçilik, proje yönetimi veya mühendislik hizmeti dahil değildir.</li>
-    <li>Fiyatlarımıza KDV dahil değildir.</li>
-    <li>Minimum Sipariş Değeri 3.000 ABD doları veya yerel para birimindeki eşdeğeridir.</li>
-    <li>Tahmini sevk tarihi, Honeywell'in sipariş teyit tarihinden itibaren 20-22 haftadır.</li>
-    <li>Ödeme Süreleri, aksi Mevcut Sözleşmede belirtilmedikçe, fatura tarihinden itibaren net 30 gündür.</li>
-    <li>Ürünlerimiz üretim hatalarına karşı 1 yıl garantilidir.</li>
-  </ul>
+<!-- Signature -->
+<div class="signature">
+  Saygılarımızla,<br>
+  <strong>{{ prepared_by_name }}</strong><br>
+  <a href="mailto:{{ prepared_by_email }}">{{ prepared_by_email }}</a><br>
+  {{ prepared_by_department }}
+</div>
 
-  {% if notes %}
-  <div class="terms-title">Notlar</div>
-  <p style="font-size:10px">{{ notes }}</p>
-  {% endif %}
+<!-- Confidential bottom -->
+<div class="conf-bottom">
+Bu teklif değerli, özel ve gizli Honeywell bilgileri içerir ve Honeywell tarafından yazılı olarak açık bir kabul olmaksızın
+herhangi bir üçüncü tarafa açıklanmamalıdır. Bu teklifte yer alan bilgiler, Honeywell ile bu teklifin yönlendirildiği taraf ("Alıcı")
+arasında geçerli olan gizlilik veya bilgilerin açıklanmamasına ilişkin sözleşmelere tabidir. Bu teklifi aldığını kabul ederek,
+Alıcı bu teklifin, önceden Alıcı tarafından sağlanmış olan ve teklifte yer alan bilgiler dışında Honeywell'in gizli bilgileri
+olduğunu kabul eder. Alıcı, bu teklifi, kendi bilgilerini gizli tuttuğu standartlarla aynı şekilde gizli tutmalıdır.
+</div>
 
-  <!-- Confidential notice -->
-  <div class="confidential">
-    Bu teklif değerli, özel ve gizli Honeywell bilgileri içerir ve Honeywell tarafından yazılı olarak açık bir kabul olmaksızın herhangi bir üçüncü tarafa açıklanmamalıdır.
-  </div>
 
-  <!-- Footer -->
-  <div class="footer">
-    <span>{{ customer_name }}{% if customer_company %} - {{ customer_company }}{% endif %}</span>
-    <span>Teklif No. {{ quote_number }}</span>
-    <span>{{ bilingual_date }}</span>
-  </div>
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 2: Malzeme Listesi + Fiyat/Teslimat/Ödeme
+     ═══════════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+
+<div class="header">
+  <div class="honeywell-logo">Honeywell</div>
+  <div class="slogan">THE FUTURE IS WHAT WE MAKE IT</div>
+</div>
+
+<div class="section-title">Malzeme Listesi</div>
+<table class="materials">
+  <thead>
+    <tr>
+      <th style="width:40px">Sıra #</th>
+      <th style="width:45px">Adet</th>
+      <th style="width:110px">PN</th>
+      <th>Parça / Model Açıklaması</th>
+      <th style="width:80px;text-align:right">Birim Satış Fiyatı</th>
+      <th style="width:80px;text-align:right">Toplam Satış Fiyatı</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ item.quantity }}</td>
+      <td>{{ item.honeywell_code or '-' }}</td>
+      <td>{{ item.description or '-' }}</td>
+      <td style="text-align:right">{{ "%.2f"|format(item.unit_price) }}</td>
+      <td style="text-align:right">{{ "%.2f"|format(item.line_total) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="total-row">
+  Toplam Fiyat: {{ "%.2f"|format(grand_total) }} {{ currency }}
+</div>
+
+{% if notes %}
+<div class="terms-title">Notlar</div>
+<p class="terms-text">{{ notes }}</p>
+{% endif %}
+
+<!-- Fiyat, Teslimat ve Ödeme -->
+<div class="terms-title">Fiyat, Teslimat ve Ödeme</div>
+<ul class="terms-list">
+  <li>Yukarıdaki tabloda özellikle belirtilmedikçe, hiç bir kurulum, kablaj, montaj, işçilik, proje yönetimi veya mühendislik hizmeti dahil değildir.</li>
+  <li>Fiyatlarımıza KDV dahil değildir. Teklifimizdeki fiyatlarda, her türlü vergi, komisyon, harç veya benzer diğer ücretler hariçtir.</li>
+  <li>Minimum Sipariş Değeri 3.000 ABD doları veya yerel para birimindeki eşdeğeridir. Bu eşik değerin altındaki siparişler kabul edilmeyecektir. Lütfen Minimum Sipariş Değerine ulaşmak için sipariş miktarını artırın veya diğer ürünlerle birlikte sipariş verin.</li>
+  <li>Tahmini sevk tarihi, Honeywell'in sipariş teyit tarihinden itibaren 20-22 haftadır.</li>
+  <li>Ödeme Süreleri, aksi Mevcut Sözleşmede belirtilmedikçe, fatura tarihinden itibaren net 30 gündür.</li>
+  <li>Lütfen bütün yazışmalarda veya sipariş yazılarınızda ilgili teklif numarasını belirtiniz.</li>
+  <li>Ödeme malzeme tesliminde fatura karşılığı yapılacaktır.</li>
+  <li>Faturalama ve ödemeler aksine hüküm olmadıkça döviz olarak yapılacaktır. Ödeme tarihi ile fatura tarihi arasındaki kur farkından dolayı oluşan farklar, kur farkı faturası ile mahsuplaşılacaktır.</li>
+  <li>Ödemenin TL olarak yapılması durumunda ödeme günündeki TCMB EUR efektif satış kurundan TL'sına çevrilerek yapılacaktır.</li>
+  <li>Teklif edilen fiyatlar net alış fiyatlarınızdır.</li>
+  <li>Ürünlerimiz üretim hatalarına karşı 1 yıl garantilidir. Kötü saklama koşulları ve kullanıcı hataları garanti kapsamı dışındadır.</li>
+  <li>Banka hesap bilgilerimiz; TEB Kozyatağı Kurumsal Şubesi
+    <br>IBAN TL&nbsp;&nbsp;: TR45 0003 2000 0180 0000 1000 95
+    <br>IBAN USD: TR10 0003 2000 0180 0000 1001 43
+    <br>IBAN EUR: TR28 0003 2000 0180 0000 1002 07
+  </li>
+  <li>Vergi Dairesi: Boğaziçi Kurumlar, Vergi Kimlik No: 463 004 0560</li>
+</ul>
+
+<!-- Page footer -->
+<div class="page-footer">
+  <span>{{ customer_name }}{% if customer_company %} - {{ customer_company }}{% endif %}</span>
+  <span>Özel ve Gizli</span>
+  <span>Teklif No. {{ quote_number }}</span>
+  <span>{{ bilingual_date }}</span>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 3: Ticari Koşullar + Mevcut Sözleşme + İşçilik
+     ═══════════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+
+<div class="header">
+  <div class="honeywell-logo">Honeywell</div>
+  <div class="slogan">THE FUTURE IS WHAT WE MAKE IT</div>
+</div>
+
+<div class="terms-title">Ticari Koşullar</div>
+<ul class="terms-list">
+  <li>Bu teklif ve sonucunda ortaya çıkan sipariş, ekli Honeywell standart Satış Hüküm ve Şartlarına tabi olacaktır. Ancak, aşağıdaki "Mevcut Sözleşme" bölümü, yukarıda listelenen öğelerin satın alınmasını kapsayan ve güncel olarak geçerli olan bir sözleşmeyi içeriyorsa, söz konusu sözleşmenin koşulları ekli Satış Kayıt ve Koşullarının yerine geçecektir.</li>
+  <li>Mücbir Sebep: Burada atıfta bulunulan hüküm ve koşulların aksine herhangi bir ifadeye bakılmaksızın, teslimatlar, (a) dünya genelinde belediye, il veya ulusal makamlar tarafından uygulanan ve seyahatleri kısıtlayan, yerel karantinalar oluşturan veya şirketlerin COVID-19'un yayılmasını önleyecek şekilde operasyonları durdurmalarını gerektiren tedbirlerden veya (b) COVID-19'un yayılmasını önlemek için alınan hükümet önerilerine uyum için hükümetlerin, ilgili sağlık otoritelerinin veya özel kuruluşların alacağı tedbirlerden etkilenebilir. Honeywell, tanınmış sağlık veya diğer yetkililerin yasalarına ve tavsiyelerine uygun olarak, bu tür olaylardan kaynaklanan aksaklıkları en aza indirmek için makul çabayı gösterecektir.</li>
+  <li>Geliştirme ve güncelleme kitlerine ("K&amp;E; Kits and Enhancement") ilişkin fiyatlandırmanın tamamı, K&amp;E parçalarıyla değiştirilen parçaların iadesini temel alır ve değiştirilen parçaların sevkiyattan sonra 90 gün içinde Honeywell'e iade edilmemesi durumunda ek ücretler faturalandırılacaktır.</li>
+  <li>Teklife Honeywell Geri Dönüştürülmüş Parçaları dahilse, söz konusu parçaların temini sadece sipariş sırasındaki envanter durumuna göre sağlanabilecektir.</li>
+  <li>Honeywell hiçbir durumda meydana gelebilecek ya da talep edilebilecek doğrudan ve ardışıl zararlardan sorumlu tutulamaz. Honeywell'in alacağı toplam sorumluluk, sipariş tutarı ile sınırlı olacaktır.</li>
+</ul>
+
+<div class="terms-title">Mevcut Sözleşme</div>
+<p class="terms-text">Not: Aşağıda belirtilenden başka sözleşme yoksa, ekli Honeywell standart Satış Hüküm ve Şartları geçerli olacaktır.</p>
+<p class="terms-text">Bu teklif Honeywell ile firmanız arasında yapılan aşağıdaki sözleşmeye tabidir:</p>
+
+<div class="terms-title">İşçilik Hizmetleri</div>
+<p class="terms-text">İşçilik içeren teklifler için, aşağıdaki koşullar geçerli olacaktır.</p>
+<ul class="terms-list">
+  <li>Mühendislik ve malzeme esasında sağlanan hizmetler söz konusu olduğunda, gerçekleştirilen hizmetler ilgili ay içerisinde faturalandırılacaktır.</li>
+  <li>Standart iş günü 8,5 saattir.</li>
+  <li>Saha ücretlendirmesi hafta içi mesai saatleri (08:30-18:00) dışında %50, cumartesi günü mesai saatleri içinde %50, mesai saatleri harici %100, pazar günü ve resmi tatillerde %100 zamlı olacaktır.</li>
+  <li>Seyahat süresi, geçerli işçilik ücretleri üzerinden ek olarak faturalandırılacaktır.</li>
+  <li>Seyahat ve Konaklama masrafları (varsa), maliyet artı %10 şeklinde ücretlendirilecektir.</li>
+</ul>
+
+<!-- Page footer -->
+<div class="page-footer">
+  <span>{{ customer_name }}{% if customer_company %} - {{ customer_company }}{% endif %}</span>
+  <span>Özel ve Gizli</span>
+  <span>Teklif No. {{ quote_number }}</span>
+  <span>{{ bilingual_date }}</span>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 4: Bölge ve Ülke Koşulları
+     ═══════════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+
+<div class="header">
+  <div class="honeywell-logo">Honeywell</div>
+  <div class="slogan">THE FUTURE IS WHAT WE MAKE IT</div>
+</div>
+
+<div class="terms-title">Bölge ve Ülke Koşulları</div>
+<ul class="terms-list">
+  <li>Bu teklifte Honeywell Teknoloji A.Ş Küçükbakkalköy Mah. Kayışdağı Cad. No:1 Allianz Tower, Kat:27, 34750 Ataşehir, İstanbul, Türkiye HONEYWELL olarak anılmaktadır.</li>
+  <li>Müşteri Satın Alma Siparişi aşağıdakileri içermelidir:
+    <ul class="terms-sub">
+      <li>Müşterinin yasal adı ve adresi</li>
+      <li>Müşteri Satın Alma Siparişi Numarası</li>
+      <li>Sevkiyat adresi (Ülke içermelidir)</li>
+      <li>Teslimat Tarihi veya Birden fazla gönderi için İstenen Teslimat Programı</li>
+      <li>Ödeme Koşulu</li>
+      <li>Vergi Bilgileri</li>
+      <li>Teknik olarak doğrulanmış parça numaraları veya malzeme listesi</li>
+      <li>Her malzeme başına Fiyat, Adet ve Ölçü Birimi</li>
+      <li>Satın Alma Siparişi Toplam Net Değeri</li>
+      <li>Satış Para Birimi</li>
+      <li>Teslimat (Incoterms uluslararası teslim ve taşıma şekilleri ve açıklamaları) ve faturalandırma ile ilgili Şartlar ve Koşullar</li>
+    </ul>
+  </li>
+  <li>Lütfen siparişinizi yukarıda belirtilen Honeywell kuruluşu adına düzenleyiniz.</li>
+  <li>Teslimat Şekli, aksi belirtilmedikçe, Fabrika Teslim şeklindedir.</li>
+  <li>Bu 'Bölge ve Ülke Koşulları' bölümünde listelenen koşullar ile ekteki Honeywell Standart Satış Hüküm ve Şartlarında çelişen durum olması durumunda bu teklif koşulları öncelikli olarak uygulanır.</li>
+  <li>Malzeme iadesi karşılığı bir yeni bir malzeme teslimi durumu sözkonusu ise, telefon veya faks aracılığıyla Honeywell HPS Solution Destek Merkezi ile iletişim kurarak lütfen bir iade yetki numarası isteyiniz.</li>
+  <li>Sipariş vermek için lütfen Honeywell temsilcinizle her zaman iletişim kurabilirsiniz.</li>
+</ul>
+
+<table class="contact">
+  <tr>
+    <th></th>
+    <th>Telefon No.</th>
+    <th>Faks No.</th>
+  </tr>
+  <tr>
+    <td>Honeywell Teknoloji A.S.</td>
+    <td>+90 216 578 71 00</td>
+    <td>+90 216 575 66 35</td>
+  </tr>
+</table>
+
+<!-- Page footer -->
+<div class="page-footer">
+  <span>{{ customer_name }}{% if customer_company %} - {{ customer_company }}{% endif %}</span>
+  <span>Özel ve Gizli</span>
+  <span>Teklif No. {{ quote_number }}</span>
+  <span>{{ bilingual_date }}</span>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 5+: Honeywell Hüküm ve Koşullar
+     ═══════════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+
+<div class="header">
+  <div class="honeywell-logo">Honeywell</div>
+  <div class="slogan">THE FUTURE IS WHAT WE MAKE IT</div>
+</div>
+
+<div class="legal-section">
+<h3>Honeywell Hüküm ve Koşullar</h3>
+
+<p><strong>1. Genel Tanımlar.</strong> "İştirak", bir diğer tüzel kişiyi kontrol eden, onun tarafından kontrol edilen veya onunla ortak kontrol altında bulunan herhangi bir tüzel kişi anlamına gelir. "Anlaşma", bu Satış Koşulları ve Satış Koşullarının ekleri ve ilgili Siparişler de dahil, Alıcı ile Honeywell arasında Teslimat Kalemleri için akdedilen yazılı anlaşma anlamına gelir. "Alıcı", bir Siparişi veren şirket anlamına gelir. "Teslimat Kalemleri", her biri bir Sipariş kapsamında Honeywell tarafından Alıcıya tedarik edilen veya lisanslanan, ekipman ve parçalar (birlikte "Ürünler"), hizmetler ("Hizmetler") ve Yazılımlar anlamına gelir. "Honeywell", Honeywell TEKNOLOJİ A.Ş. anlamına gelir. "Sipariş", bir Alıcının verdiği, Honeywell tarafından kabul edilen ve kabul edildikten sonra Honeywell'in rızası olmadan iptal edilemeyecek olan sipariş emri anlamına gelir.</p>
+
+<p><strong>2. Teslimat ve Kabul.</strong> Teslimatlar, Honeywell'in tesisinde EX-Works (INCOTERMS 2020) esasına göre yapılacaktır. Honeywell, Ürünleri Honeywell'in tesisinde Alıcıya teslim ettiği andan itibaren Ürünlerin mülkiyeti Alıcıya geçecektir. Alıcı, teslimatın yapıldığı tarihten itibaren 30 gün içinde makul ret gerekçelerini de belirttiği yazılı bir bildirimde bulunmadığı sürece Teslimat Kalemleri kabul edilmiş sayılacaktır.</p>
+
+<p><strong>3. Ödeme.</strong> Honeywell'in Alıcıya kredili satış yapmayı onayladığı durumlar haricinde, Alıcı tüm siparişlerin ödemesi sipariş verildiği sırada yapacaktır. Alıcıya kredili satış yapılması onaylanmışsa, faturada daha kısa bir sürenin belirtildiği veya Alıcıya yazılı olarak bildirildiği durumlar haricinde, ilgili siparişin ödemesi fatura tarihinden itibaren en geç 30 gün içerisinde yapılacaktır. Ödeme elektronik fon transferiyle, hemen kullanılabilir fonlar halinde yapılacaktır.</p>
+
+<p><strong>4. Vergiler.</strong> Anlaşmaya ilişkin vergi, resim ve ücretleri ödeme sorumluluğu Alıcıya aittir ve Alıcı bunlardan muaf olduğunu doğrulayan bir belge temin etmediği sürece Honeywell bu bedelleri ayrıca fatura edecektir.</p>
+
+<p><strong>5. Mücbir Sebepler ve Gecikme.</strong> Ödeme yükümlülükleri hariç olmak üzere, tarafların hiçbiri bir mücbir sebep olayından dolayı yükümlülüklerini ifa edemedikleri için diğer tarafa karşı sorumlu olmayacaktır.</p>
+
+<p><strong>6. Garantiler.</strong> Honeywell, Honeywell Ürünlerinin teslimat sırasında geçerli Honeywell spesifikasyonlarına uygun olduğunu ve teslim tarihinden itibaren 12 ay süreyle işçilik ve malzeme kaynaklı maddi kusurlardan ari olacağını garanti eder. BU BÖLÜMDE BELİRTİLEN GARANTİLER DIŞLAYICI NİTELİKTEDİR VE TİCARETE ELVERİŞLİLİK, İHLAL OLMAMASI VE BELİRLİ BİR AMACA UYGUNLUK DA DAHİL ANCAK BUNLARLA SINIRLI OLMAMAK ÜZERE, DİĞER TÜM GARANTİLERİN YERİNİ ALIR.</p>
+
+<p><strong>7. Sorumluluk Sınırlaması.</strong> AĞIR İHMAL VEYA KASITLI SUİİSTİMAL HARİÇ OLMAK ÜZERE, HONEYWELL, ARIZİ, NETİCE KABİLİNDEN, HUSUSİ, CEZAİ, YASAL VEYA DOLAYLI ZARARLARDAN, KÂR, GELİR VEYA KULLANIM KAYBI VEYA VERİ KAYBI VEYA BOZULMASINDAN SORUMLU OLMAYACAKTIR. HONEYWELL'İN TOPLAM SORUMLULUĞU, İLK SİPARİŞ FİYATI İLE 1.000.000 $ TUTARI ARASINDAN HANGİSİ DAHA DÜŞÜK İSE O TUTARI AŞMAYACAK DOĞRUDAN ZARARLARLA SINIRLIDIR.</p>
+
+<p><strong>8. Patent ve Telif Hakkı İhlalleri İçin Tazminat.</strong> Honeywell, sadece Honeywell tarafından teslim edilen Teslimat Kalemlerinden kaynaklandığı ölçüde, geçerli bir ABD patenti veya telif hakkının fiili veya iddia edilen bir ihlalinden kaynaklanan bir davaya karşı Alıcıyı savunacak ve tazmin edecektir.</p>
+
+<p><strong>9. Değişiklikler.</strong> Honeywell, Alıcıya bildirimde bulunmadan Ürünlerde biçimi, uygunluğu veya işlevi değiştirmeyen değişiklikler yapabilir.</p>
+
+<p><strong>10. Temerrüt ve Fesih.</strong> İhlal eden Taraf, ihlal etmeyen Taraftan yazılı bildirimi almasından sonra 10 gün içinde ihlali gidermezse, ihlal etmeyen Taraf Anlaşmayı feshedebilir veya askıya alabilir.</p>
+
+<p><strong>11. Buluşlar ve Fikri Mülkiyet.</strong> Anlaşmayla bağlantılı olarak Honeywell tarafından tasarlanmış veya geliştirilmiş tüm Fikri Mülkiyetler tamamen Honeywell'in mülkiyetindedir.</p>
+
+<p><strong>12. Bilgilerin İfşa Edilmemesi ve Kullanılmaması.</strong> Gizli Bilgiyi alan Taraf, ifşa edilen tüm Özel Bilgileri, Anlaşmanın süresinin sona ermesinin ardından 10 yıl boyunca gizli tutacaktır.</p>
+
+<p><strong>13. Veri Gizliliği.</strong> Taraflar, Kişisel Verileri, Geçerli Veri Gizliliği Kanunlarına uygun olarak bağımsız veri sorumluları sıfatıyla işleyeceklerdir.</p>
+
+<p><strong>14. Yaptırımlar ve İhracat Kontrolü.</strong> Her bir Taraf, tüm ithalat, ihracat ve yeniden ihracat kontrolü kanunları ve düzenlemelerine uyumdan sorumludur.</p>
+
+<p><strong>15. Askeri Son Kullanıcı Yasağı.</strong> Müşteri, Honeywell ürünlerini bir Askeri Son Kullanıcıya veya Askeri Son Kullanımlar için yönlendirmeyecek, kullanmayacak veya satmayacaktır.</p>
+
+<p><strong>16. Siber Güvenlik Ürünleri.</strong> Honeywell, siber güvenlik ürünlerinin bir siber saldırıyı önleyeceğine veya etkisini hafifleteceğine dair hiçbir garanti vermemektedir.</p>
+
+<p><strong>17. Muhtelif Hükümler.</strong> Bu Anlaşma ve ilgili tüm konular, kanunlar çatışması ilkeleri dikkate alınmaksızın Türkiye hukukuna tabi olacaktır. İstanbul Merkez (Çağlayan) mahkemeleri ve icra daireleri yargı yetkisine sahiptir. Anlaşma, her iki Tarafın yetkili temsilcileri tarafından imzalanmış yazılı bir değişiklikle yapılmadıkça tadil edilemez.</p>
+
+</div>
+
+<!-- Page footer -->
+<div class="page-footer">
+  <span>{{ customer_name }}{% if customer_company %} - {{ customer_company }}{% endif %}</span>
+  <span>Özel ve Gizli</span>
+  <span>Teklif No. {{ quote_number }}</span>
+  <span>{{ bilingual_date }}</span>
+</div>
+
 </body>
 </html>
