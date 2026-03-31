@@ -71,15 +71,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const t = useT();
 
   return (
-    <aside className="flex h-screen w-64 flex-col bg-gray-900">
+    <aside className="flex h-screen w-64 flex-col bg-gradient-to-b from-gray-900 to-slate-900">
       {/* Brand */}
-      <div className="flex h-16 items-center gap-2 px-5">
-        <span className="text-lg font-bold text-honeywell-red">Honeywell</span>
-        <span className="text-xs font-medium text-gray-500 mt-0.5">Sales Suit</span>
+      <div className="flex h-16 items-center gap-2.5 px-5 border-b border-white/5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-honeywell-red/10">
+          <span className="text-sm font-black text-honeywell-red">H</span>
+        </div>
+        <div>
+          <span className="text-sm font-bold text-white tracking-tight">Honeywell</span>
+          <span className="ml-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-widest">Sales</span>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
         {/* Dashboard */}
         <NavLink to="/" end className={navLinkClass} onClick={onNavigate}>
           <LayoutDashboard size={18} className="shrink-0" />

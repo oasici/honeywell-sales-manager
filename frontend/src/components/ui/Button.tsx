@@ -13,13 +13,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-honeywell-red hover:bg-honeywell-dark text-white focus:ring-honeywell-light',
+    'bg-honeywell-red hover:bg-honeywell-dark text-white shadow-sm hover:shadow-md active:scale-[0.97]',
   secondary:
-    'bg-gray-100 hover:bg-gray-200 text-gray-700 focus:ring-gray-300',
+    'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 shadow-sm',
   danger:
-    'bg-red-600 hover:bg-red-700 text-white focus:ring-red-300',
+    'bg-red-600 hover:bg-red-700 text-white shadow-sm active:scale-[0.97]',
   ghost:
-    'hover:bg-gray-100 text-gray-600 focus:ring-gray-300',
+    'hover:bg-gray-100 text-gray-600',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -49,9 +49,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         disabled={isDisabled}
-        className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium cursor-pointer transition-all duration-200
+        className={`btn-modern inline-flex items-center justify-center gap-2 font-semibold
           focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 focus-visible:outline-none
-          disabled:opacity-50 disabled:cursor-not-allowed
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
           ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
         {...rest}
       >

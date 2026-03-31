@@ -48,20 +48,20 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-red-50 px-4">
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
-        <div className="mb-8 flex flex-col items-center">
+        <div className="mb-10 flex flex-col items-center">
           <SalesSuitLogo size="lg" className="mb-4" />
-          <p className="text-sm text-gray-500">Hesabiniza giris yapiniz</p>
+          <p className="text-sm text-gray-400 tracking-wide">Hesabiniza giris yapiniz</p>
         </div>
 
         {/* Form Card */}
-        <div className="rounded-xl bg-white p-8 shadow-lg">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div className="card-modern p-8 sm:p-10">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-600">
                 E-posta
               </label>
               <input
@@ -69,19 +69,19 @@ export function LoginPage() {
                 type="email"
                 autoComplete="email"
                 placeholder="ornek@honeywell.com"
-                className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-colors focus:border-honeywell-red focus:ring-2 focus:ring-honeywell-light ${
-                  errors.email ? 'border-red-400' : 'border-gray-300'
+                className={`w-full rounded-xl border bg-gray-50/50 px-4 py-3 text-sm outline-none transition-all duration-200 focus:bg-white focus:border-honeywell-red focus:ring-2 focus:ring-honeywell-light focus:shadow-sm ${
+                  errors.email ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
                 }`}
                 {...register('email')}
               />
               {errors.email && (
-                <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+                <p className="mt-1.5 text-xs text-red-500">{errors.email.message}</p>
               )}
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-gray-600">
                 Sifre
               </label>
               <input
@@ -89,13 +89,13 @@ export function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 placeholder="********"
-                className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-colors focus:border-honeywell-red focus:ring-2 focus:ring-honeywell-light ${
-                  errors.password ? 'border-red-400' : 'border-gray-300'
+                className={`w-full rounded-xl border bg-gray-50/50 px-4 py-3 text-sm outline-none transition-all duration-200 focus:bg-white focus:border-honeywell-red focus:ring-2 focus:ring-honeywell-light focus:shadow-sm ${
+                  errors.password ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
                 }`}
                 {...register('password')}
               />
               {errors.password && (
-                <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+                <p className="mt-1.5 text-xs text-red-500">{errors.password.message}</p>
               )}
             </div>
 
@@ -103,14 +103,14 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-lg bg-honeywell-red px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-honeywell-dark disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-modern w-full bg-honeywell-red px-4 py-3 text-sm text-white shadow-lg shadow-red-200/50 hover:bg-honeywell-dark hover:shadow-xl hover:shadow-red-300/50 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97]"
             >
               {isSubmitting ? 'Giris yapiliyor...' : 'Giris Yap'}
             </button>
           </form>
         </div>
 
-        <p className="mt-6 text-center text-xs text-gray-400">
+        <p className="mt-8 text-center text-xs text-gray-400">
           &copy; 2026 Honeywell Sales Suit. Tum haklar saklidir.
         </p>
       </div>
