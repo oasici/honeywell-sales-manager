@@ -35,9 +35,14 @@ export function LoginPage() {
       toast.success('Giris basarili');
       navigate(from, { replace: true });
     } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Giris basarisiz. Lutfen bilgilerinizi kontrol ediniz.';
+      const raw =
+        (error as { response?: { data?: { detail?: unknown; error?: { message?: string } } } })?.response?.data;
+      let message = 'Giris basarisiz. Lutfen bilgilerinizi kontrol ediniz.';
+      if (raw?.error?.message) {
+        message = raw.error.message;
+      } else if (typeof raw?.detail === 'string') {
+        message = raw.detail;
+      }
       toast.error(message);
     }
   };
