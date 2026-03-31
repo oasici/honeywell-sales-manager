@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import { useT } from '../../hooks/useT';
 import { LayoutDashboard, Wrench, Mail, Cog, FileText, Users, Settings, LogOut, ChevronRight } from 'lucide-react';
 
 const COLLAPSE_KEY = 'sidebar-yedek-parca-collapsed';
@@ -13,10 +14,10 @@ interface NavItem {
 }
 
 const yedekParcaItems: NavItem[] = [
-  { label: 'Mailler', to: '/emails', icon: <Mail size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
-  { label: 'Parcalar', to: '/parts', icon: <Cog size={18} className="shrink-0" /> },
-  { label: 'Teklifler', to: '/quotes', icon: <FileText size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
-  { label: 'Musteriler', to: '/customers', icon: <Users size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
+  { label: 'nav.emails', to: '/emails', icon: <Mail size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
+  { label: 'nav.parts', to: '/parts', icon: <Cog size={18} className="shrink-0" /> },
+  { label: 'nav.quotes', to: '/quotes', icon: <FileText size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
+  { label: 'nav.customers', to: '/customers', icon: <Users size={18} className="shrink-0" />, roles: ['sales_rep', 'sales_manager'] },
 ];
 
 function filterByRole(items: NavItem[], role: string | undefined): NavItem[] {
@@ -66,6 +67,8 @@ export function Sidebar() {
     }
   }, [location.pathname]);
 
+  const t = useT();
+
   return (
     <aside className="flex h-screen w-64 flex-col bg-gray-900">
       {/* Brand */}
@@ -79,7 +82,7 @@ export function Sidebar() {
         {/* Dashboard */}
         <NavLink to="/" end className={navLinkClass}>
           <LayoutDashboard size={18} className="shrink-0" />
-          Ana Sayfa
+          {t('nav.home')}
         </NavLink>
 
         {/* Yedek Parca collapsible section */}
@@ -90,7 +93,7 @@ export function Sidebar() {
           >
             <span className="flex items-center gap-3">
               <Wrench size={18} className="shrink-0" />
-              Yedek Parca
+              {t('nav.spare_parts')}
             </span>
             <ChevronRight size={16} className={`shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`} />
           </button>
@@ -100,18 +103,18 @@ export function Sidebar() {
               {visibleYedekParcaItems.map((item) => (
                 <NavLink key={item.to} to={item.to} className={navLinkClass}>
                   {item.icon}
-                  {item.label}
+                  {t(item.label as any)}
                 </NavLink>
               ))}
             </div>
           )}
         </div>
 
-        {/* Ayarlar - only for sales_manager and operations */}
+        {/* Settings */}
         {canSeeSettings && (
           <NavLink to="/settings" className={navLinkClass}>
             <Settings size={18} className="shrink-0" />
-            Ayarlar
+            {t('nav.settings')}
           </NavLink>
         )}
       </nav>

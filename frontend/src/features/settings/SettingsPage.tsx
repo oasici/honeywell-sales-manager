@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Trash2, Sun, Moon, Minus, Plus, RotateCcw } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -10,6 +10,9 @@ import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { settingsApi } from '../../lib/api';
+import { usePreferencesStore } from '../../stores/preferencesStore';
+import { useT } from '../../hooks/useT';
+import { LANGUAGE_OPTIONS } from '../../lib/i18n';
 
 interface SettingsData {
   quote_prefix: string;
@@ -86,7 +89,10 @@ export default function SettingsPage() {
       </PageHeader>
 
       <div className="space-y-6">
-        {/* Email Settings - FIRST */}
+        {/* Display Settings */}
+        <DisplaySettingsSection />
+
+        {/* Email Settings */}
         <EmailSettingsSection />
 
         {/* Quote Settings */}
@@ -126,6 +132,116 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+/* ── Display Settings Section ── */
+function DisplaySettingsSection() {
+  const t = useT();
+  const { theme, setTheme, language, setLanguage, fontSizeOffset, setFontSizeOffset } =
+    usePreferencesStore();
+
+  return (
+    <Card title={t('settings.display')}>
+      <div className="space-y-6">
+        {/* Theme */}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">{t('settings.theme')}</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setTheme('light')}
+              className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                theme === 'light'
+                  ? 'border-honeywell-red bg-honeywell-light/30 text-honeywell-red'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              <Sun size={16} />
+              {t('settings.theme_light')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme('dark')}
+              className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
+                theme === 'dark'
+                  ? 'border-honeywell-red bg-honeywell-light/30 text-honeywell-red'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              <Moon size={16} />
+              {t('settings.theme_dark')}
+            </button>
+          </div>
+        </div>
+
+        {/* Language */}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">{t('settings.language')}</label>
+          <div className="flex flex-wrap gap-2">
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setLanguage(opt.value as 'tr' | 'en' | 'de' | 'fr' | 'es')}
+                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                  language === opt.value
+                    ? 'border-honeywell-red bg-honeywell-light/30 text-honeywell-red'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Font Size */}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            {t('settings.font_size')} ({fontSizeOffset >= 0 ? '+' : ''}{fontSizeOffset}px)
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setFontSizeOffset(fontSizeOffset - 1)}
+              disabled={fontSizeOffset <= -4}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={t('settings.font_decrease')}
+            >
+              <Minus size={16} />
+            </button>
+            <div className="flex h-2 w-40 items-center rounded-full bg-gray-200">
+              <div
+                className="h-2 rounded-full bg-honeywell-red transition-all"
+                style={{ width: `${((fontSizeOffset + 4) / 8) * 100}%` }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setFontSizeOffset(fontSizeOffset + 1)}
+              disabled={fontSizeOffset >= 4}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={t('settings.font_increase')}
+            >
+              <Plus size={16} />
+            </button>
+            {fontSizeOffset !== 0 && (
+              <button
+                type="button"
+                onClick={() => setFontSizeOffset(0)}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 transition-colors hover:border-gray-300"
+                title={t('settings.font_reset')}
+              >
+                <RotateCcw size={12} />
+                {t('settings.font_reset')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 
 /* ── Email Settings Section ── */
 function EmailSettingsSection() {
