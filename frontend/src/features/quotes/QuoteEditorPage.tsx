@@ -224,10 +224,6 @@ export default function QuoteEditorPage() {
     });
   }, []);
 
-  const removeLastItem = useCallback(() => {
-    setItems((prev) => (prev.length <= 1 ? prev : prev.slice(0, -1)));
-  }, []);
-
   const removeItem = useCallback((index: number) => {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
