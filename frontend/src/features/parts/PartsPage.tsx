@@ -221,7 +221,7 @@ export default function PartsPage() {
           loading={importMutation.isPending}
           onClick={() => fileRef.current?.click()}
         >
-          Excel / CSV Yukle
+          Ice Aktar (Excel/CSV/PDF)
         </Button>
       </PageHeader>
 
