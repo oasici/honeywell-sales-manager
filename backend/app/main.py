@@ -59,6 +59,8 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false",
                 "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false",
                 "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
+                # One-time cleanup: fix old auto-approved general inquiry emails
+                "UPDATE email_requests SET review_status = 'rejected' WHERE review_status = 'approved' AND category NOT IN ('spare_part_request', 'price_inquiry')",
             ]
             for sql in migrations:
                 await conn.execute(sqlalchemy.text(sql))

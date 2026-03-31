@@ -68,7 +68,10 @@ export default function EmailListPage() {
       toast.success(res.message || 'Email kontrolu tamamlandi');
       queryClient.invalidateQueries({ queryKey: ['emails'] });
     },
-    onError: () => toast.error('Email kontrolu basarisiz'),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error?.message || 'Email kontrolu basarisiz';
+      toast.error(msg);
+    },
   });
 
   const createMutation = useMutation({

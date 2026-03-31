@@ -118,13 +118,30 @@ async def poll_emails(
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Fetch new emails via IMAP using stored credentials."""
-    import imaplib
-    import email as email_lib
-    from email.header import decode_header
+    """Fetch last 14 days of emails via IMAP. Max 2 polls per day."""
+    import asyncio
+    import logging as _log
+    from datetime import datetime, timezone as tz
     from app.models.setting import Setting
 
-    # Load stored IMAP credentials
+    _logger = _log.getLogger(__name__)
+
+    # ── Daily poll limit: 2/day ──
+    today_str = datetime.now(tz.utc).strftime("%Y-%m-%d")
+    poll_counter_result = await db.execute(
+        select(Setting).where(Setting.key == "poll_daily_counter")
+    )
+    poll_counter_setting = poll_counter_result.scalar_one_or_none()
+    poll_count_today = 0
+    if poll_counter_setting and poll_counter_setting.value:
+        parts = poll_counter_setting.value.split(":")
+        if len(parts) == 2 and parts[0] == today_str:
+            poll_count_today = int(parts[1])
+
+    if poll_count_today >= 2:
+        raise BadRequestException("Gunluk email kontrol limiti doldu (max 2/gun). Yarin tekrar deneyin.")
+
+    # ── Load IMAP credentials ──
     result = await db.execute(
         select(Setting).where(
             Setting.key.in_(["email_address", "email_password", "imap_host", "imap_port"])
@@ -135,81 +152,66 @@ async def poll_emails(
     email_addr = stored.get("email_address", "")
     encrypted_pass = stored.get("email_password", "")
     imap_host = stored.get("imap_host", "")
-    imap_port = int(stored.get("imap_port", "993"))
+    imap_port = int(stored.get("imap_port") or "993")
 
     if not email_addr or not encrypted_pass:
         raise BadRequestException(
             "Email bilgileri ayarlanmamis. Ayarlar sayfasindan email baglantisi kurun."
         )
 
-    # Decrypt password
     from app.api.v1.settings import _decrypt_password, _detect_provider
     email_pass = _decrypt_password(encrypted_pass)
 
-    # Auto-detect provider if needed
     detected_h, detected_p, _, _ = _detect_provider(email_addr)
-    default_hosts = {"", "outlook.office365.com"}
-    if not imap_host or imap_host in default_hosts:
+    if not imap_host or imap_host in {"", "outlook.office365.com"}:
         imap_host = detected_h
         imap_port = detected_p
 
-    # Get last poll timestamp to only fetch new emails
-    ts_result = await db.execute(
-        select(Setting).where(Setting.key == "last_imap_poll_uid")
-    )
-    last_uid_setting = ts_result.scalar_one_or_none()
-    last_uid = int(last_uid_setting.value) if last_uid_setting and last_uid_setting.value else 0
-
-    # Run IMAP in a thread to avoid blocking the async event loop (Fix 2)
-    import asyncio
-    import logging as _log
-
-    _logger = _log.getLogger(__name__)
-
+    # ── Fetch emails in thread (non-blocking) ──
     try:
         raw_emails = await asyncio.to_thread(
-            _fetch_emails_via_imap, imap_host, imap_port, email_addr, email_pass, last_uid
+            _fetch_emails_via_imap, imap_host, imap_port, email_addr, email_pass, 0
         )
     except Exception as exc:
         _logger.error("IMAP fetch failed: %s", exc)
         raise BadRequestException("Email sunucusuna baglanilamadi. Ayarlarinizi kontrol edin.")
 
     if not raw_emails:
-        return {"message": "Yeni email bulunamadi", "fetched_count": 0}
+        # Update poll counter even if no emails
+        new_count = f"{today_str}:{poll_count_today + 1}"
+        if poll_counter_setting:
+            poll_counter_setting.value = new_count
+        else:
+            db.add(Setting(key="poll_daily_counter", value=new_count))
+        return {"message": "Yeni email bulunamadi (son 14 gun)", "fetched_count": 0}
 
-    # Process fetched emails in async context (DB + Claude parsing)
+    # ── Process fetched emails ──
     fetched_count = 0
-    max_uid = last_uid
     service = EmailProcessingService(db)
-
     from app.core.config import settings as cfg
-    from datetime import datetime, timezone as tz
 
     for item in raw_emails:
         try:
-            # Track UID
-            if item["uid"] and item["uid"] > max_uid:
-                max_uid = item["uid"]
-
             # Skip internal emails
             from_domain = item["from_addr"].rsplit("@", 1)[-1].lower() if "@" in item["from_addr"] else ""
             if from_domain in cfg.internal_domains_list:
                 continue
 
-            # Skip duplicates by message_id (Fix 4)
+            # Skip duplicates
             existing = await db.execute(
                 select(EmailRequest).where(EmailRequest.message_id == item["message_id"])
             )
             if existing.scalar_one_or_none():
                 continue
 
-            # Create email record with real message_id (Fix 4)
+            # Create with IMAP SEEN status as is_read
             email = EmailRequest(
                 message_id=item["message_id"],
                 from_address=item["from_addr"],
                 subject=item["subject"] or "(Konu yok)",
                 body_text=item["body"],
                 status="new",
+                is_read=item.get("is_read", False),
                 received_at=datetime.now(tz.utc),
                 assigned_to=current_user.id,
             )
@@ -217,7 +219,7 @@ async def poll_emails(
             await db.flush()
             await db.refresh(email)
 
-            # Trigger parsing
+            # Parse
             try:
                 await service.process_email(email.id)
             except Exception as parse_exc:
@@ -228,15 +230,15 @@ async def poll_emails(
             _logger.warning("Email processing error: %s", exc)
             continue
 
-    # Update last UID
-    if max_uid > last_uid:
-        if last_uid_setting:
-            last_uid_setting.value = str(max_uid)
-        else:
-            db.add(Setting(key="last_imap_poll_uid", value=str(max_uid)))
+    # ── Update daily poll counter ──
+    new_count = f"{today_str}:{poll_count_today + 1}"
+    if poll_counter_setting:
+        poll_counter_setting.value = new_count
+    else:
+        db.add(Setting(key="poll_daily_counter", value=new_count))
 
     return {
-        "message": f"{fetched_count} yeni email alindi",
+        "message": f"{fetched_count} yeni email alindi (son 14 gun)",
         "fetched_count": fetched_count,
     }
 
@@ -253,6 +255,7 @@ async def mark_email_read(
     if not email:
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
     email.is_read = True
+    await db.flush()
     return {"message": "OK"}
 
 
@@ -262,28 +265,40 @@ async def reparse_email(
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Re-parse an email with Claude. 15-minute cooldown between parses."""
-    from datetime import datetime, timedelta, timezone as tz
+    """Re-parse an email with Claude. Max 2 parses per day."""
+    from datetime import datetime, timezone as tz
+    from app.models.setting import Setting
 
     result = await db.execute(select(EmailRequest).where(EmailRequest.id == email_id))
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
 
-    # 15-minute cooldown (Fix 3: ensure tz-aware comparison)
-    if email.last_parsed_at:
-        last_parsed = email.last_parsed_at.replace(tzinfo=tz.utc) if email.last_parsed_at.tzinfo is None else email.last_parsed_at
-        elapsed = datetime.now(tz.utc) - last_parsed
-        remaining = timedelta(minutes=15) - elapsed
-        if remaining.total_seconds() > 0:
-            mins = int(remaining.total_seconds() // 60) + 1
-            raise BadRequestException(
-                f"Bu email {mins} dakika sonra tekrar ayristirilabilir (API maliyeti kontrolu)"
-            )
+    # Daily parse limit: 2/day (global, not per-email)
+    today_str = datetime.now(tz.utc).strftime("%Y-%m-%d")
+    parse_counter_result = await db.execute(
+        select(Setting).where(Setting.key == "reparse_daily_counter")
+    )
+    parse_counter_setting = parse_counter_result.scalar_one_or_none()
+    parse_count_today = 0
+    if parse_counter_setting and parse_counter_setting.value:
+        parts = parse_counter_setting.value.split(":")
+        if len(parts) == 2 and parts[0] == today_str:
+            parse_count_today = int(parts[1])
+
+    if parse_count_today >= 2:
+        raise BadRequestException("Gunluk yeniden ayristirma limiti doldu (max 2/gun)")
 
     service = EmailProcessingService(db)
     email = await service.process_email(email_id)
     email.last_parsed_at = datetime.now(tz.utc)
+
+    # Update daily parse counter
+    new_count = f"{today_str}:{parse_count_today + 1}"
+    if parse_counter_setting:
+        parse_counter_setting.value = new_count
+    else:
+        db.add(Setting(key="reparse_daily_counter", value=new_count))
 
     return {"message": f"Email {email_id} ayristirildi", "status": email.status}
 
@@ -362,7 +377,11 @@ async def review_email(
 def _fetch_emails_via_imap(
     imap_host: str, imap_port: int, email_addr: str, email_pass: str, last_uid: int
 ) -> list[dict]:
-    """Synchronous IMAP fetch — runs in a thread via asyncio.to_thread."""
+    """Synchronous IMAP fetch — runs in a thread via asyncio.to_thread.
+
+    Fetches last 14 days of emails (both read and unread).
+    Returns is_read status from IMAP SEEN flag.
+    """
     import imaplib
     import email as email_lib
     import re
@@ -373,33 +392,32 @@ def _fetch_emails_via_imap(
     imap.login(email_addr, email_pass)
     imap.select("INBOX", readonly=True)
 
-    since_date = (datetime.now() - timedelta(days=2)).strftime("%d-%b-%Y")
-    if last_uid > 0:
-        status, data = imap.uid("search", None, f"UID {last_uid + 1}:*")
-    else:
-        status, data = imap.search(None, f'(UNSEEN SINCE "{since_date}")')
+    # Always fetch last 14 days (both SEEN and UNSEEN)
+    since_date = (datetime.now() - timedelta(days=14)).strftime("%d-%b-%Y")
+    status, data = imap.search(None, f'(SINCE "{since_date}")')
 
     if status != "OK" or not data[0]:
         imap.logout()
         return []
 
-    msg_ids = data[0].split()[-5:]
+    # Limit to latest 30 emails to avoid timeout
+    msg_ids = data[0].split()[-30:]
     results: list[dict] = []
 
     for msg_id in msg_ids:
         try:
-            if last_uid > 0:
-                fetch_status, msg_data = imap.uid("fetch", msg_id, "(RFC822)")
-            else:
-                fetch_status, msg_data = imap.fetch(msg_id, "(RFC822)")
+            # Fetch RFC822 + FLAGS to get SEEN status
+            fetch_status, msg_data = imap.fetch(msg_id, "(RFC822 FLAGS)")
 
             if fetch_status != "OK" or not msg_data[0]:
                 continue
 
+            # Parse FLAGS to determine is_read
+            flags_raw = msg_data[0][0] if isinstance(msg_data[0][0], bytes) else b""
+            is_seen = b"\\Seen" in flags_raw
+
             raw_email = msg_data[0][1]
             msg = email_lib.message_from_bytes(raw_email)
-
-            uid_val = int(msg_id) if last_uid > 0 else 0
 
             # Decode subject
             subject = ""
@@ -449,11 +467,12 @@ def _fetch_emails_via_imap(
                 continue
 
             results.append({
-                "uid": uid_val,
+                "uid": 0,
                 "message_id": message_id,
                 "from_addr": from_addr,
                 "subject": subject,
                 "body": body,
+                "is_read": is_seen,
             })
         except Exception:
             continue
