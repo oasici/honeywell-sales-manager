@@ -61,6 +61,12 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
                 # One-time cleanup: fix old auto-approved general inquiry emails
                 "UPDATE email_requests SET review_status = 'rejected' WHERE review_status = 'approved' AND category NOT IN ('spare_part_request', 'price_inquiry')",
+                # One-time cleanup: remove auto-created junk customers with 0 quotes
+                """DELETE FROM customers WHERE id NOT IN (
+                    SELECT DISTINCT customer_id FROM quotes WHERE customer_id IS NOT NULL
+                ) AND id NOT IN (
+                    SELECT DISTINCT customer_id FROM email_requests WHERE customer_id IS NOT NULL
+                )""",
             ]
             for sql in migrations:
                 await conn.execute(sqlalchemy.text(sql))
