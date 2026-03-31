@@ -15,6 +15,9 @@ const QuoteEditorPage = lazy(() => import('../features/quotes/QuoteEditorPage'))
 const CustomerListPage = lazy(() => import('../features/customers/CustomerListPage'));
 const CustomerDetailPage = lazy(() => import('../features/customers/CustomerDetailPage'));
 const SettingsPage = lazy(() => import('../features/settings/SettingsPage'));
+const ReportsPage = lazy(() => import('../features/admin/ReportsPage'));
+const UserManagementPage = lazy(() => import('../features/admin/UserManagementPage'));
+const AuditLogPage = lazy(() => import('../features/admin/AuditLogPage'));
 
 export default function App() {
   return (
@@ -125,6 +128,36 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <SettingsPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="reports"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <ReportsPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="users"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <UserManagementPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="audit"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <AuditLogPage />
               </ErrorBoundary>
             </Suspense>
           }

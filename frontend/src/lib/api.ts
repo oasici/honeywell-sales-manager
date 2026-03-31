@@ -484,4 +484,46 @@ export const settingsApi = {
   },
 };
 
+// ── Notifications ───────────────────────────────────
+export const notificationsApi = {
+  getNotifications: async (unreadOnly = false, limit = 20) => {
+    const { data } = await api.get('/notifications/', { params: { unread_only: unreadOnly, limit } });
+    return data;
+  },
+  getUnreadCount: async (): Promise<{ unread_count: number }> => {
+    const { data } = await api.get<{ unread_count: number }>('/notifications/unread-count');
+    return data;
+  },
+  markRead: async (id: number) => {
+    await api.patch(`/notifications/${id}/read`);
+  },
+  markAllRead: async () => {
+    await api.patch('/notifications/read-all');
+  },
+};
+
+// ── Users ───────────────────────────────────────────
+export const usersApi = {
+  getUsers: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get('/users/', { params });
+    return data;
+  },
+  toggleActive: async (id: number) => {
+    const { data } = await api.patch(`/users/${id}/toggle-active`);
+    return data;
+  },
+  changeRole: async (id: number, role: string) => {
+    const { data } = await api.patch(`/users/${id}/role`, { role });
+    return data;
+  },
+};
+
+// ── Audit ───────────────────────────────────────────
+export const auditApi = {
+  getLogs: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get('/audit/', { params });
+    return data;
+  },
+};
+
 export default api;

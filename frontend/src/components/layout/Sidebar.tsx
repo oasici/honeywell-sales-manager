@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
-import { LayoutDashboard, Wrench, Mail, Cog, FileText, Users, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Wrench, Mail, Cog, FileText, Users, Settings, LogOut, ChevronRight, BarChart3 } from 'lucide-react';
 
 const COLLAPSE_KEY = 'sidebar-yedek-parca-collapsed';
 
@@ -33,7 +33,7 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
   }`;
 }
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -56,6 +56,7 @@ export function Sidebar() {
   const userRole = user?.role;
   const visibleYedekParcaItems = filterByRole(yedekParcaItems, userRole);
   const canSeeSettings = !userRole || ['sales_manager', 'operations'].includes(userRole);
+  const canSeeReports = userRole === 'sales_manager';
 
   // Auto-expand if user navigates to a yedek parca route
   useEffect(() => {
@@ -80,7 +81,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {/* Dashboard */}
-        <NavLink to="/" end className={navLinkClass}>
+        <NavLink to="/" end className={navLinkClass} onClick={onNavigate}>
           <LayoutDashboard size={18} className="shrink-0" />
           {t('nav.home')}
         </NavLink>
@@ -101,7 +102,7 @@ export function Sidebar() {
           {!collapsed && (
             <div className="ml-4 mt-1 space-y-1">
               {visibleYedekParcaItems.map((item) => (
-                <NavLink key={item.to} to={item.to} className={navLinkClass}>
+                <NavLink key={item.to} to={item.to} className={navLinkClass} onClick={onNavigate}>
                   {item.icon}
                   {t(item.label as any)}
                 </NavLink>
@@ -112,9 +113,17 @@ export function Sidebar() {
 
         {/* Settings */}
         {canSeeSettings && (
-          <NavLink to="/settings" className={navLinkClass}>
+          <NavLink to="/settings" className={navLinkClass} onClick={onNavigate}>
             <Settings size={18} className="shrink-0" />
             {t('nav.settings')}
+          </NavLink>
+        )}
+
+        {/* Reports - sales_manager only */}
+        {canSeeReports && (
+          <NavLink to="/reports" className={navLinkClass} onClick={onNavigate}>
+            <BarChart3 size={18} className="shrink-0" />
+            Raporlar
           </NavLink>
         )}
       </nav>

@@ -248,13 +248,69 @@ async def send_quote(
             f"Teklif gonderilmeden once onaylanmalidir (mevcut durum: {quote.status})"
         )
 
-    # TODO: Send email via service layer
-    # await email_service.send_quote(quote, recipient_email=data.get("email"))
+    # Determine recipient email
+    recipient = data.email if data and data.email else None
+    if not recipient and quote.customer:
+        recipient = quote.customer.email
+    if not recipient:
+        raise BadRequestException("Alici email adresi bulunamadi")
+
+    # Regenerate PDF if missing
+    from app.services.quote_generator import generate_quote_pdf
+    from pathlib import Path as _Path
+
+    pdf_path = quote.pdf_path
+    if not pdf_path or not _Path(pdf_path).exists():
+        service = QuoteService(db)
+        quote_data = await service._build_quote_data(quote, quote.approved_by or quote.created_by)
+        pdf_path = await generate_quote_pdf(quote_data, quote.language)
+        quote.pdf_path = pdf_path
+
+    # Render email body from template
+    from jinja2 import Environment, FileSystemLoader
+    from app.core.config import settings as cfg
+
+    templates_dir = _Path(cfg.TEMPLATES_DIR)
+    lang = quote.language or "tr"
+    tpl_file = f"quote_email_{lang}.html"
+    if not (templates_dir / tpl_file).exists():
+        tpl_file = "quote_email_tr.html"
+
+    customer_name = quote.customer.name if quote.customer else ""
+    email_body = f"<p>Sayin {customer_name},</p><p>Teklifiniz ekte yer almaktadir.</p><p>Teklif No: {quote.quote_number}</p>"
+    if (templates_dir / tpl_file).exists():
+        env = Environment(loader=FileSystemLoader(str(templates_dir)), autoescape=True)
+        template = env.get_template(tpl_file)
+        email_body = template.render(
+            company_name=cfg.COMPANY_NAME,
+            customer_name=customer_name,
+            quote_number=quote.quote_number,
+            grand_total=quote.grand_total,
+            currency=quote.currency,
+            valid_days=quote.valid_days,
+            company_phone=cfg.COMPANY_PHONE,
+        )
+
+    # Send email
+    from app.services.email_sender import send_quote_email
+
+    subject = f"Teklif: {quote.quote_number} - {cfg.COMPANY_NAME}"
+    success = await send_quote_email(
+        to_address=recipient,
+        subject=subject,
+        body_html=email_body,
+        pdf_path=pdf_path,
+    )
+
+    if not success:
+        raise BadRequestException(
+            "Email gonderilemedi. SMTP veya Graph API ayarlarinizi kontrol edin."
+        )
 
     quote.status = "sent"
     await db.flush()
 
-    return {"message": f"Quote {quote.quote_number} sent successfully"}
+    return {"message": f"Teklif {quote.quote_number} basariyla gonderildi: {recipient}"}
 
 
 @router.get("/{quote_id}/pdf")
