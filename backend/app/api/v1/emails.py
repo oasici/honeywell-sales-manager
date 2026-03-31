@@ -406,15 +406,18 @@ def _fetch_emails_via_imap(
 
     for msg_id in msg_ids:
         try:
-            # Fetch RFC822 + FLAGS to get SEEN status
-            fetch_status, msg_data = imap.fetch(msg_id, "(RFC822 FLAGS)")
+            # Fetch FLAGS first to get SEEN status
+            flag_status, flag_data = imap.fetch(msg_id, "(FLAGS)")
+            is_seen = False
+            if flag_status == "OK" and flag_data[0]:
+                flags_line = flag_data[0] if isinstance(flag_data[0], bytes) else b""
+                is_seen = b"\\Seen" in flags_line
+
+            # Then fetch email body
+            fetch_status, msg_data = imap.fetch(msg_id, "(BODY.PEEK[])")
 
             if fetch_status != "OK" or not msg_data[0]:
                 continue
-
-            # Parse FLAGS to determine is_read
-            flags_raw = msg_data[0][0] if isinstance(msg_data[0][0], bytes) else b""
-            is_seen = b"\\Seen" in flags_raw
 
             raw_email = msg_data[0][1]
             msg = email_lib.message_from_bytes(raw_email)
