@@ -48,7 +48,7 @@ class EmailProcessingService:
             if parsed:
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
-                self._set_review_status(email)
+                await self._set_review_status(email, parsed)
                 await self._auto_create_customer(email, parsed)
 
                 # Auto-create draft quote if parts found with sufficient confidence
@@ -97,7 +97,7 @@ class EmailProcessingService:
             if parsed:
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
-                self._set_review_status(email)
+                await self._set_review_status(email, parsed)
                 await self._auto_create_customer(email, parsed)
 
                 # Auto-create draft quote if parts found with sufficient confidence
@@ -247,14 +247,45 @@ class EmailProcessingService:
         email.language = parsed.get("language")
         email.status = EmailStatus.PARSED.value
 
-    @staticmethod
-    def _set_review_status(email: EmailRequest) -> None:
-        """Gate low-confidence classifications for manual review."""
-        confidence = email.category_confidence
-        if confidence and confidence < CONFIDENCE_THRESHOLD:
+    async def _set_review_status(self, email: EmailRequest, parsed: dict) -> None:
+        """Set review status based on whether parts were found in catalog.
+
+        Approved = spare part request with at least one part matched in DB.
+        Pending = spare part request but no parts matched, or low confidence.
+        Rejected = not a spare part request (general inquiry, etc).
+        """
+        is_spare_part = parsed.get("is_spare_part_request", False)
+        parts = parsed.get("parts", [])
+        confidence = email.category_confidence or 0.0
+
+        if not is_spare_part or not parts:
+            # Not a parts request → reject (general inquiry)
+            if email.category in ("spare_part_request", "price_inquiry"):
+                email.review_status = ReviewStatus.PENDING_REVIEW.value
+            else:
+                email.review_status = ReviewStatus.REJECTED.value
+            return
+
+        # Check if any parsed part codes exist in the catalog
+        from app.models.spare_part import SparePart
+        from sqlalchemy import select as sa_select, func as sa_func
+
+        part_codes = [p.get("part_code", "") for p in parts if p.get("part_code")]
+        matched_count = 0
+        if part_codes:
+            result = await self._db.execute(
+                sa_select(sa_func.count(SparePart.id)).where(
+                    SparePart.honeywell_code.in_(part_codes)
+                )
+            )
+            matched_count = result.scalar() or 0
+
+        if matched_count > 0 and confidence >= CONFIDENCE_THRESHOLD:
+            email.review_status = ReviewStatus.APPROVED.value
+        elif matched_count > 0:
             email.review_status = ReviewStatus.PENDING_REVIEW.value
         else:
-            email.review_status = ReviewStatus.APPROVED.value
+            email.review_status = ReviewStatus.PENDING_REVIEW.value
 
     async def _auto_create_customer(
         self,
