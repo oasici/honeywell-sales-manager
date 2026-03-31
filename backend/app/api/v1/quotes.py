@@ -1,7 +1,7 @@
 import math
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import func, select, and_
@@ -94,6 +94,75 @@ async def create_quote(
         tax_rate=data.tax_rate,
         notes=data.notes,
         created_by=current_user.id,
+    )
+
+    return _quote_to_dict(quote, include_items=True)
+
+
+@router.post("/from-pdf", status_code=201)
+async def create_quote_from_pdf(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a draft quote by extracting data from a Honeywell PDF."""
+    import tempfile
+    import os
+
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise BadRequestException("Sadece PDF dosyasi kabul edilir")
+
+    content = await file.read()
+    if content[:4] != b'%PDF':
+        raise BadRequestException("Gecerli bir PDF dosyasi degil")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        from app.services.pdf_import_service import extract_quote_data_from_pdf
+
+        pdf_data = extract_quote_data_from_pdf(tmp_path)
+    finally:
+        os.unlink(tmp_path)
+
+    if not pdf_data.get("items"):
+        raise BadRequestException("PDF'de malzeme listesi bulunamadi")
+
+    # Find or create customer
+    customer_id = None
+    if pdf_data.get("customer_email") or pdf_data.get("customer_name"):
+        from app.models.customer import Customer
+
+        if pdf_data.get("customer_email"):
+            result = await db.execute(
+                select(Customer).where(Customer.email == pdf_data["customer_email"])
+            )
+            customer = result.scalar_one_or_none()
+            if customer:
+                customer_id = customer.id
+
+        if not customer_id and pdf_data.get("customer_name"):
+            new_customer = Customer(
+                name=pdf_data["customer_name"],
+                company=pdf_data.get("customer_company", ""),
+                email=pdf_data.get("customer_email", ""),
+                phone=pdf_data.get("customer_phone", ""),
+                address=pdf_data.get("customer_address", ""),
+                created_by=current_user.id,
+            )
+            db.add(new_customer)
+            await db.flush()
+            customer_id = new_customer.id
+
+    # Create quote
+    service = QuoteService(db)
+    quote = await service.create_quote(
+        customer_id=customer_id or 0,
+        created_by=current_user.id,
+        currency=pdf_data.get("currency", "USD"),
+        items=pdf_data["items"],
     )
 
     return _quote_to_dict(quote, include_items=True)

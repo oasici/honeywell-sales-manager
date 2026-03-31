@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useRef } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { DataTable } from '../../components/ui/DataTable';
@@ -42,6 +43,35 @@ export default function QuoteListPage() {
       setSearchParams({ status: tab });
     } else {
       setSearchParams({});
+    }
+  };
+
+  const pdfRef = useRef<HTMLInputElement>(null);
+
+  const pdfMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data: result } = await (await import('../../lib/api')).default.post('/quotes/from-pdf', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return result;
+    },
+    onSuccess: (quote: Quote) => {
+      toast.success(`Taslak teklif olusturuldu: ${quote.quote_number}`);
+      navigate(`/quotes/${quote.id}`);
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error?.message || 'PDF\'den teklif olusturulamadi';
+      toast.error(msg);
+    },
+  });
+
+  const handlePdfImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      pdfMutation.mutate(file);
+      e.target.value = '';
     }
   };
 
@@ -114,6 +144,16 @@ export default function QuoteListPage() {
   return (
     <div>
       <PageHeader title="Teklifler" description="Teklif yonetimi">
+        <input
+          type="file"
+          ref={pdfRef}
+          accept=".pdf"
+          className="hidden"
+          onChange={handlePdfImport}
+        />
+        <Button variant="secondary" loading={pdfMutation.isPending} onClick={() => pdfRef.current?.click()}>
+          PDF'den Teklif
+        </Button>
         <Button onClick={() => navigate('/quotes/new')}>Yeni Teklif</Button>
       </PageHeader>
 

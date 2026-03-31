@@ -225,7 +225,7 @@ async def import_catalog(
     safe_name = sanitize_filename(file.filename)
     suffix = os.path.splitext(safe_name)[1].lower()
 
-    allowed = list(cfg.allowed_extensions) + [".json"]
+    allowed = list(cfg.allowed_extensions) + [".json", ".pdf"]
     if suffix not in allowed:
         raise BadRequestException(f"Only {', '.join(allowed)} files are supported")
 
@@ -241,16 +241,63 @@ async def import_catalog(
         if not (content_start[:2] == b'PK' or content_start[:2] == b'\xd0\xcf'):
             raise BadRequestException("File content does not match extension")
     elif suffix == '.json':
-        if content_start[:1] not in (b'{', b'[', b'\xef'):  # UTF-8 BOM or JSON start
+        if content_start[:1] not in (b'{', b'[', b'\xef'):
             raise BadRequestException("File content does not look like JSON")
+    elif suffix == '.pdf':
+        if content_start[:4] != b'%PDF':
+            raise BadRequestException("File content does not look like PDF")
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(content)
         tmp_path = tmp.name
 
     try:
-        from app.services.product_import_pipeline import import_products_from_file
-        result = await import_products_from_file(db, tmp_path)
+        if suffix == '.pdf':
+            # PDF import: extract parts table from PDF
+            from app.services.pdf_import_service import extract_parts_from_pdf
+            from app.models.spare_part import SparePart
+            from sqlalchemy import select as sa_select
+
+            pdf_parts = extract_parts_from_pdf(tmp_path)
+            created = 0
+            updated = 0
+            for p in pdf_parts:
+                code = p.get("honeywell_code", "").strip()
+                if not code:
+                    continue
+                existing = await db.execute(
+                    sa_select(SparePart).where(SparePart.honeywell_code == code)
+                )
+                part = existing.scalar_one_or_none()
+                if part:
+                    if p.get("description"):
+                        part.name_en = p["description"]
+                    if p.get("unit_price"):
+                        part.supplier_price = p["unit_price"]
+                    updated += 1
+                else:
+                    new_part = SparePart(
+                        honeywell_code=code,
+                        name_en=p.get("description", ""),
+                        name_tr=p.get("description", ""),
+                        description_en=p.get("description", ""),
+                        description_tr=p.get("description", ""),
+                        supplier_price=p.get("unit_price"),
+                        is_active=True,
+                    )
+                    db.add(new_part)
+                    created += 1
+
+            await db.flush()
+            result = {
+                "parts_created": created,
+                "parts_updated": updated,
+                "source": "pdf",
+                "total_extracted": len(pdf_parts),
+            }
+        else:
+            from app.services.product_import_pipeline import import_products_from_file
+            result = await import_products_from_file(db, tmp_path)
     finally:
         os.unlink(tmp_path)
 

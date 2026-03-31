@@ -214,7 +214,7 @@ export default function PartsPage() {
           type="file"
           ref={fileRef}
           onChange={handleImport}
-          accept=".xlsx,.xls,.csv,.json"
+          accept=".xlsx,.xls,.csv,.json,.pdf"
           className="hidden"
         />
         <Button
