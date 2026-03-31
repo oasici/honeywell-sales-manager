@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -153,10 +154,15 @@ async def approve_quote(
     return _quote_to_dict(quote, include_items=True)
 
 
+class SendQuoteRequest(BaseModel):
+    email: str | None = None
+    message: str | None = None
+
+
 @router.post("/{quote_id}/send")
 async def send_quote(
     quote_id: int,
-    data: dict | None = None,
+    data: SendQuoteRequest | None = None,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):

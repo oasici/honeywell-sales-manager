@@ -12,6 +12,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.customer import Customer
 from app.models.quote import Quote
 from app.models.user import User
+from app.schemas.customer import CustomerCreate, CustomerUpdate
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -126,32 +127,26 @@ async def get_customer(
 
 @router.post("/", status_code=201)
 async def create_customer(
-    data: dict,
+    data: CustomerCreate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new customer."""
-    name = data.get("name")
-    email = data.get("email")
-
-    if not name or not email:
-        raise BadRequestException("name ve email alanlari gereklidir")
-
     # Check for duplicate email
     existing = await db.execute(
-        select(Customer).where(Customer.email == email)
+        select(Customer).where(Customer.email == data.email)
     )
     if existing.scalar_one_or_none():
-        raise BadRequestException(f"'{email}' e-posta adresine sahip musteri zaten mevcut")
+        raise BadRequestException(f"'{data.email}' e-posta adresine sahip musteri zaten mevcut")
 
     customer = Customer(
-        name=name,
-        email=email,
-        company=data.get("company"),
-        phone=data.get("phone"),
-        address=data.get("address"),
-        tax_id=data.get("tax_id"),
-        preferred_lang=data.get("preferred_lang", "tr"),
+        name=data.name,
+        email=data.email,
+        company=data.company,
+        phone=data.phone,
+        address=data.address,
+        tax_id=data.tax_id,
+        preferred_lang=data.preferred_lang,
         created_by=current_user.id,
     )
     db.add(customer)
@@ -164,7 +159,7 @@ async def create_customer(
 @router.put("/{customer_id}")
 async def update_customer(
     customer_id: int,
-    data: dict,
+    data: CustomerUpdate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
@@ -176,12 +171,8 @@ async def update_customer(
     if not customer:
         raise NotFoundException(f"{customer_id} numarali musteri bulunamadi")
 
-    updatable_fields = [
-        "name", "company", "email", "phone", "address", "tax_id", "preferred_lang",
-    ]
-    for field in updatable_fields:
-        if field in data:
-            setattr(customer, field, data[field])
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(customer, field, value)
 
     await db.flush()
     await db.refresh(customer)

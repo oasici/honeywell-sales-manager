@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import time
+from collections import defaultdict
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,19 +13,60 @@ from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
+# Account lockout: track failed attempts per email
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_DURATION_SECONDS = 900  # 15 minutes
+_failed_attempts: dict[str, list[float]] = defaultdict(list)
+
+
+def _is_locked_out(email: str) -> tuple[bool, int]:
+    """Check if email is locked out. Returns (is_locked, remaining_seconds)."""
+    now = time.time()
+    attempts = _failed_attempts.get(email, [])
+    # Keep only attempts within lockout window
+    recent = [t for t in attempts if now - t < LOCKOUT_DURATION_SECONDS]
+    _failed_attempts[email] = recent
+
+    if len(recent) >= MAX_FAILED_ATTEMPTS:
+        oldest = min(recent)
+        remaining = int(LOCKOUT_DURATION_SECONDS - (now - oldest))
+        return True, max(remaining, 0)
+    return False, 0
+
+
+def _record_failed_attempt(email: str) -> None:
+    _failed_attempts[email].append(time.time())
+
+
+def _clear_failed_attempts(email: str) -> None:
+    _failed_attempts.pop(email, None)
+
 
 async def authenticate(db: AsyncSession, email: str, password: str) -> User | None:
-    """Authenticate a user by email and password. Returns the User or None."""
+    """Authenticate a user by email and password. Returns the User or None.
+
+    Implements account lockout after 5 failed attempts (15-minute window).
+    """
+    # Check lockout
+    locked, remaining = _is_locked_out(email)
+    if locked:
+        logger.warning("Locked out login attempt for %s (%ds remaining)", email, remaining)
+        return None
+
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
     if user is None:
+        _record_failed_attempt(email)
         return None
     if not user.is_active:
         return None
     if not verify_password(password, user.hashed_password):
+        _record_failed_attempt(email)
         return None
 
+    # Success: clear failed attempts
+    _clear_failed_attempts(email)
     return user
 
 
