@@ -30,7 +30,8 @@ async def list_customers(
 
     search_condition = None
     if search:
-        search_term = f"%{search}%"
+        safe_search = search.replace("%", "\\%").replace("_", "\\_")
+        search_term = f"%{safe_search}%"
         search_condition = or_(
             Customer.name.ilike(search_term),
             Customer.company.ilike(search_term),
@@ -171,7 +172,17 @@ async def update_customer(
     if not customer:
         raise NotFoundException(f"{customer_id} numarali musteri bulunamadi")
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    updates = data.model_dump(exclude_unset=True)
+
+    # Check email uniqueness if email is being changed
+    if "email" in updates and updates["email"] != customer.email:
+        dup = await db.execute(
+            select(Customer).where(Customer.email == updates["email"], Customer.id != customer_id)
+        )
+        if dup.scalar_one_or_none():
+            raise BadRequestException(f"'{updates['email']}' e-posta adresine sahip baska musteri mevcut")
+
+    for field, value in updates.items():
         setattr(customer, field, value)
 
     await db.flush()
@@ -227,6 +238,8 @@ async def import_customers(
         raise BadRequestException("Yalnizca .csv ve .xlsx dosyalari desteklenmektedir")
 
     content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise BadRequestException("Dosya boyutu 5MB'dan buyuk olamaz")
 
     imported_count = 0
     skipped_count = 0

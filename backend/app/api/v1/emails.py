@@ -48,7 +48,8 @@ async def list_emails(
     if category:
         conditions.append(EmailRequest.category == category)
     if search:
-        search_term = f"%{search}%"
+        safe_search = search.replace("%", "\\%").replace("_", "\\_")
+        search_term = f"%{safe_search}%"
         conditions.append(
             or_(
                 EmailRequest.subject.ilike(search_term),
@@ -126,10 +127,12 @@ async def poll_emails(
 
     _logger = _log.getLogger(__name__)
 
-    # ── Daily poll limit: 2/day ──
+    # ── Daily poll limit: 2/day (atomic update to prevent race condition) ──
+    from sqlalchemy import text as sa_text
+
     today_str = datetime.now(tz.utc).strftime("%Y-%m-%d")
     poll_counter_result = await db.execute(
-        select(Setting).where(Setting.key == "poll_daily_counter")
+        select(Setting).where(Setting.key == "poll_daily_counter").with_for_update()
     )
     poll_counter_setting = poll_counter_result.scalar_one_or_none()
     poll_count_today = 0
@@ -140,6 +143,14 @@ async def poll_emails(
 
     if poll_count_today >= 2:
         raise BadRequestException("Gunluk email kontrol limiti doldu (max 2/gun). Yarin tekrar deneyin.")
+
+    # Increment counter immediately (atomic)
+    new_count = f"{today_str}:{poll_count_today + 1}"
+    if poll_counter_setting:
+        poll_counter_setting.value = new_count
+    else:
+        db.add(Setting(key="poll_daily_counter", value=new_count))
+    await db.flush()
 
     # ── Load IMAP credentials ──
     result = await db.execute(
@@ -177,12 +188,6 @@ async def poll_emails(
         raise BadRequestException("Email sunucusuna baglanilamadi. Ayarlarinizi kontrol edin.")
 
     if not raw_emails:
-        # Update poll counter even if no emails
-        new_count = f"{today_str}:{poll_count_today + 1}"
-        if poll_counter_setting:
-            poll_counter_setting.value = new_count
-        else:
-            db.add(Setting(key="poll_daily_counter", value=new_count))
         return {"message": "Yeni email bulunamadi (son 14 gun)", "fetched_count": 0}
 
     # ── Process fetched emails ──
@@ -230,12 +235,6 @@ async def poll_emails(
             _logger.warning("Email processing error: %s", exc)
             continue
 
-    # ── Update daily poll counter ──
-    new_count = f"{today_str}:{poll_count_today + 1}"
-    if poll_counter_setting:
-        poll_counter_setting.value = new_count
-    else:
-        db.add(Setting(key="poll_daily_counter", value=new_count))
 
     return {
         "message": f"{fetched_count} yeni email alindi (son 14 gun)",
@@ -274,10 +273,10 @@ async def reparse_email(
     if not email:
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
 
-    # Daily parse limit: 2/day (global, not per-email)
+    # Daily parse limit: 2/day (atomic lock to prevent race condition)
     today_str = datetime.now(tz.utc).strftime("%Y-%m-%d")
     parse_counter_result = await db.execute(
-        select(Setting).where(Setting.key == "reparse_daily_counter")
+        select(Setting).where(Setting.key == "reparse_daily_counter").with_for_update()
     )
     parse_counter_setting = parse_counter_result.scalar_one_or_none()
     parse_count_today = 0
@@ -289,16 +288,17 @@ async def reparse_email(
     if parse_count_today >= 2:
         raise BadRequestException("Gunluk yeniden ayristirma limiti doldu (max 2/gun)")
 
-    service = EmailProcessingService(db)
-    email = await service.process_email(email_id)
-    email.last_parsed_at = datetime.now(tz.utc)
-
-    # Update daily parse counter
+    # Increment atomically before processing
     new_count = f"{today_str}:{parse_count_today + 1}"
     if parse_counter_setting:
         parse_counter_setting.value = new_count
     else:
         db.add(Setting(key="reparse_daily_counter", value=new_count))
+    await db.flush()
+
+    service = EmailProcessingService(db)
+    email = await service.process_email(email_id)
+    email.last_parsed_at = datetime.now(tz.utc)
 
     return {"message": f"Email {email_id} ayristirildi", "status": email.status}
 
@@ -388,7 +388,7 @@ def _fetch_emails_via_imap(
     from email.header import decode_header
     from datetime import datetime, timedelta
 
-    imap = imaplib.IMAP4_SSL(imap_host, imap_port)
+    imap = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=30)
     imap.login(email_addr, email_pass)
     imap.select("INBOX", readonly=True)
 
@@ -427,11 +427,12 @@ def _fetch_emails_via_imap(
             for part, charset in decode_header(msg.get("Subject", "")):
                 subject += part.decode(charset or "utf-8", errors="replace") if isinstance(part, bytes) else part
 
-            # Decode from
-            from_str = ""
-            for part, charset in decode_header(msg.get("From", "")):
-                from_str += part.decode(charset or "utf-8", errors="replace") if isinstance(part, bytes) else part
-            from_addr = from_str.split("<")[1].split(">")[0] if "<" in from_str else from_str
+            # Parse from address safely
+            from email.utils import parseaddr
+            from_raw = msg.get("From", "")
+            _, from_addr = parseaddr(from_raw)
+            if not from_addr:
+                from_addr = from_raw
 
             message_id = msg.get("Message-ID", f"imap-{msg_id.decode() if isinstance(msg_id, bytes) else msg_id}")
 
@@ -477,7 +478,9 @@ def _fetch_emails_via_imap(
                 "body": body,
                 "is_read": is_seen,
             })
-        except Exception:
+        except Exception as exc:
+            import logging as _imap_log
+            _imap_log.getLogger(__name__).warning("IMAP message parse error for %s: %s", msg_id, exc)
             continue
 
     imap.logout()

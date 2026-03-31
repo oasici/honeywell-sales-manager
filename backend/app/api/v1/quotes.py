@@ -29,10 +29,15 @@ async def list_quotes(
     db: AsyncSession = Depends(get_db),
 ):
     """List quotes with pagination and filtering."""
-    query = select(Quote)
+    from sqlalchemy.orm import selectinload
+
+    query = select(Quote).options(selectinload(Quote.customer), selectinload(Quote.items))
     count_query = select(func.count(Quote.id))
 
     conditions = []
+    # Ownership scoping: non-managers see only their own quotes
+    if current_user.role != UserRole.SALES_MANAGER.value:
+        conditions.append(Quote.created_by == current_user.id)
     if status:
         conditions.append(Quote.status == status)
     if customer_id is not None:
@@ -50,7 +55,7 @@ async def list_quotes(
     query = query.order_by(Quote.created_at.desc()).offset(offset).limit(page_size)
 
     result = await db.execute(query)
-    quotes = result.scalars().all()
+    quotes = result.scalars().unique().all()
 
     return {
         "items": [_quote_to_dict(q, include_items=True) for q in quotes],
@@ -121,9 +126,10 @@ async def create_quote_from_pdf(
         tmp_path = tmp.name
 
     try:
+        import asyncio
         from app.services.pdf_import_service import extract_quote_data_from_pdf
 
-        pdf_data = extract_quote_data_from_pdf(tmp_path)
+        pdf_data = await asyncio.to_thread(extract_quote_data_from_pdf, tmp_path)
     finally:
         os.unlink(tmp_path)
 
@@ -350,7 +356,9 @@ async def download_quote_pdf(
             await db.flush()
             pdf_file = Path(pdf_path)
         except Exception as exc:
-            raise BadRequestException(f"PDF olusturma basarisiz oldu: {exc}")
+            import logging
+            logging.getLogger(__name__).error("PDF generation failed for quote %s: %s", quote_id, exc)
+            raise BadRequestException("PDF olusturma basarisiz oldu. Lutfen tekrar deneyin.")
 
     # Path traversal protection
     if not is_safe_path(cfg.QUOTES_DIR, str(pdf_file)):

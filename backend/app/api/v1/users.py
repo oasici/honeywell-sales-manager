@@ -66,6 +66,18 @@ async def toggle_user_active(
     if user.id == current_user.id:
         raise BadRequestException("Kendi hesabinizi deaktif edemezsiniz")
 
+    # Prevent deactivating the last active manager
+    if user.is_active and user.role == UserRole.SALES_MANAGER.value:
+        manager_count = await db.execute(
+            select(func.count(User.id)).where(
+                User.role == UserRole.SALES_MANAGER.value,
+                User.is_active.is_(True),
+                User.id != user_id,
+            )
+        )
+        if (manager_count.scalar() or 0) == 0:
+            raise BadRequestException("Son aktif yonetici deaktif edilemez")
+
     user.is_active = not user.is_active
     await db.flush()
     await db.refresh(user)
@@ -93,6 +105,18 @@ async def change_user_role(
 
     if user.id == current_user.id:
         raise BadRequestException("Kendi rolunuzu degistiremezsiniz")
+
+    # Prevent demoting the last manager
+    if user.role == UserRole.SALES_MANAGER.value and data.role != UserRole.SALES_MANAGER.value:
+        manager_count = await db.execute(
+            select(func.count(User.id)).where(
+                User.role == UserRole.SALES_MANAGER.value,
+                User.is_active.is_(True),
+                User.id != user_id,
+            )
+        )
+        if (manager_count.scalar() or 0) == 0:
+            raise BadRequestException("Son yonetici rolu degistirilemez")
 
     user.role = data.role
     await db.flush()
