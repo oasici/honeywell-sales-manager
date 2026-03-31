@@ -513,14 +513,14 @@ export default function QuoteEditorPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={removeLastItem}
+                              onClick={() => removeItem(idx)}
                               disabled={items.length <= 1}
                               className={`flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
                                 items.length <= 1
                                   ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
                                   : 'bg-red-50 text-red-500 hover:bg-red-100'
                               }`}
-                              title="En alttaki kalemi sil"
+                              title="Bu kalemi sil"
                             >
                               -
                             </button>

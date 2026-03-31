@@ -256,7 +256,7 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
         "grand_total": quote.grand_total,
         "valid_days": quote.valid_days,
         "notes": quote.notes,
-        "pdf_path": quote.pdf_path,
+        "has_pdf": bool(quote.pdf_path),
         "version": quote.version,
         "parent_quote_id": quote.parent_quote_id,
         "created_at": quote.created_at.isoformat() if quote.created_at else None,

@@ -11,11 +11,18 @@ PART_CODE_PATTERNS = [
     re.compile(r"\b[A-Z]{1,3}\d{4}[A-Z]\d{4}\b"),          # CC1234X1234
     re.compile(r"\b\d{1,3}-\d{3}-\d{3}-\d{2}\b"),           # 0-000-134-01
     re.compile(r"\b\d{5,8}-\d{2,4}\b"),                      # 12345-12
-    re.compile(r"\b[A-Z]{2,4}-[A-Z0-9]{2,10}\b"),            # EBI-R500, HW-GASD
+    re.compile(r"\b[A-Z]{2,4}-[A-Z0-9]*\d[A-Z0-9]*\b"),     # EBI-R500 (must contain digit)
     re.compile(r"\b[A-Z]{2}\d{4,6}\b"),                      # XX1234
     re.compile(r"\b[A-Z]\d{4}[A-Z]\d{4}\b"),                 # X1234X1234
     re.compile(r"\b\d{5}-\d{3}\b"),                           # 01004-001
 ]
+
+# Common abbreviations that match patterns but aren't part codes
+_FALSE_POSITIVE_CODES = {
+    "ISO", "UTF", "HTTP", "HTML", "SMTP", "IMAP", "IBAN", "TCMB",
+    "PDF", "USB", "URL", "API", "SDK", "SQL", "CSS", "XML", "JSON",
+    "TEB", "USD", "EUR", "TRY", "ABD", "HPS", "OPC", "RFQ",
+}
 
 QUANTITY_PATTERNS = [
     re.compile(r"(\d+)\s*(?:adet|pcs|pieces|parca|parça|qty)", re.IGNORECASE),
@@ -120,11 +127,16 @@ def regex_fallback_parse(body: str, subject: str) -> dict:
 
 
 def _extract_part_codes(text: str) -> list[str]:
-    """Find all unique Honeywell part codes in text."""
+    """Find all unique Honeywell part codes in text, filtering false positives."""
     found: list[str] = []
     for pattern in PART_CODE_PATTERNS:
         found.extend(pattern.findall(text))
-    return list(dict.fromkeys(found))
+    # Remove false positives and deduplicate
+    return list(dict.fromkeys(
+        code for code in found
+        if code.upper() not in _FALSE_POSITIVE_CODES
+        and code.split("-")[0].upper() not in _FALSE_POSITIVE_CODES
+    ))
 
 
 def _extract_quantities(text: str, codes: list[str]) -> dict[str, int]:

@@ -370,20 +370,24 @@ export default function EmailListPage() {
               <div
                 className="max-h-64 overflow-y-auto text-sm text-gray-700 leading-relaxed"
               >
-                {activeEmail.body_text && activeEmail.body_text.includes('<') ? (
-                  <div
-                    className="prose prose-sm max-w-none [&_img]:hidden [&_style]:hidden [&_script]:hidden"
-                    dangerouslySetInnerHTML={{
-                      __html: activeEmail.body_text
-                        .replace(/<script[\s\S]*?<\/script>/gi, '')
-                        .replace(/<style[\s\S]*?<\/style>/gi, ''),
-                    }}
-                  />
-                ) : (
-                  <p className="whitespace-pre-wrap">
-                    {activeEmail.body_text || '(Icerik yok)'}
-                  </p>
-                )}
+                <p className="whitespace-pre-wrap">
+                  {activeEmail.body_text
+                    ? activeEmail.body_text.includes('<')
+                      ? activeEmail.body_text
+                          .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
+                          .replace(/<br\s*\/?>/gi, '\n')
+                          .replace(/<\/?(p|div|tr|li|h[1-6])[^>]*>/gi, '\n')
+                          .replace(/<[^>]+>/g, '')
+                          .replace(/&nbsp;/g, ' ')
+                          .replace(/&amp;/g, '&')
+                          .replace(/&lt;/g, '<')
+                          .replace(/&gt;/g, '>')
+                          .replace(/&quot;/g, '"')
+                          .replace(/\n\s*\n+/g, '\n\n')
+                          .trim()
+                      : activeEmail.body_text
+                    : '(Icerik yok)'}
+                </p>
               </div>
             </div>
 

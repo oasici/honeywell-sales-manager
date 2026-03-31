@@ -119,6 +119,8 @@ api.interceptors.response.use(
       }
     } else if (status === 401) {
       clearAuthAndRedirect();
+    } else if (originalRequest?._skipToast) {
+      // Skip toast for requests that handle errors themselves (e.g. PDF download)
     } else if (status === 403) {
       toast.error('Bu isleme yetkiniz yok');
     } else if (status === 422) {
@@ -378,7 +380,8 @@ export const quotesApi = {
     try {
       const { data, headers } = await api.get(`/quotes/${id}/pdf`, {
         responseType: 'blob',
-      });
+        _skipToast: true,
+      } as any);
       const blob = new Blob([data], { type: headers['content-type'] || 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
