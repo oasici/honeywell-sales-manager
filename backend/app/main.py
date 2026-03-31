@@ -61,11 +61,14 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
                 # One-time cleanup: fix old auto-approved general inquiry emails
                 "UPDATE email_requests SET review_status = 'rejected' WHERE review_status = 'approved' AND category NOT IN ('spare_part_request', 'price_inquiry')",
-                # One-time cleanup: remove auto-created junk customers with 0 quotes
+                # One-time cleanup: unlink email_requests from junk customers, then delete them
+                """UPDATE email_requests SET customer_id = NULL WHERE customer_id IN (
+                    SELECT c.id FROM customers c
+                    LEFT JOIN quotes q ON q.customer_id = c.id
+                    WHERE q.id IS NULL
+                )""",
                 """DELETE FROM customers WHERE id NOT IN (
                     SELECT DISTINCT customer_id FROM quotes WHERE customer_id IS NOT NULL
-                ) AND id NOT IN (
-                    SELECT DISTINCT customer_id FROM email_requests WHERE customer_id IS NOT NULL
                 )""",
             ]
             for sql in migrations:

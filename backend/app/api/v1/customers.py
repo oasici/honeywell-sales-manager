@@ -180,6 +180,38 @@ async def update_customer(
     return _customer_to_dict(customer)
 
 
+@router.delete("/{customer_id}", status_code=200)
+async def delete_customer(
+    customer_id: int,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a customer. Only allowed if customer has no quotes."""
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise NotFoundException(f"{customer_id} numarali musteri bulunamadi")
+
+    # Check for linked quotes
+    quote_count = await db.execute(
+        select(func.count(Quote.id)).where(Quote.customer_id == customer_id)
+    )
+    if (quote_count.scalar() or 0) > 0:
+        raise BadRequestException("Teklifi olan musteri silinemez")
+
+    # Unlink email_requests
+    from app.models.email_request import EmailRequest
+    await db.execute(
+        EmailRequest.__table__.update()
+        .where(EmailRequest.customer_id == customer_id)
+        .values(customer_id=None)
+    )
+
+    await db.delete(customer)
+    await db.flush()
+    return {"message": f"Musteri {customer_id} silindi"}
+
+
 @router.post("/import", status_code=201)
 async def import_customers(
     file: UploadFile = File(...),
