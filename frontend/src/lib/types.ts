@@ -61,6 +61,8 @@ export interface EmailRequest {
   review_status: string | null;
   assigned_to: number | null;
   reviewed_by: number | null;
+  is_read: boolean;
+  last_parsed_at: string | null;
   created_at: string;
 }
 

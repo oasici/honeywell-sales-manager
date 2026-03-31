@@ -21,11 +21,9 @@ import {
 } from '../../lib/constants';
 import type { EmailRequest, PaginatedResponse } from '../../lib/types';
 
-const REVIEW_TABS = [
-  { value: '', label: 'Tumu' },
-  { value: 'pending_review', label: 'Inceleme Bekleniyor' },
-  { value: 'approved', label: 'Onaylanan' },
-  { value: 'rejected', label: 'Reddedilen' },
+const READ_TABS = [
+  { value: '', label: 'Okunmamis' },
+  { value: 'read', label: 'Okunmus' },
 ];
 
 const CATEGORY_OPTIONS = [
@@ -40,7 +38,7 @@ export default function EmailListPage() {
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [reviewTab, setReviewTab] = useState(searchParams.get('review_status') || '');
+  const [readTab, setReadTab] = useState(searchParams.get('read') || '');
   const [category, setCategory] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [detailEmail, setDetailEmail] = useState<EmailRequest | null>(null);
@@ -50,14 +48,16 @@ export default function EmailListPage() {
     body_text: '',
   });
 
+  const isReadFilter = readTab === 'read' ? true : readTab === '' ? false : undefined;
+
   const { data, isLoading } = useQuery<PaginatedResponse<EmailRequest>>({
-    queryKey: ['emails', { page, search, review_status: reviewTab, category }],
+    queryKey: ['emails', { page, search, is_read: isReadFilter, category }],
     queryFn: () =>
       emailsApi.getEmails({
         page,
         page_size: 20,
+        ...(isReadFilter !== undefined && { is_read: isReadFilter }),
         ...(search && { search }),
-        ...(reviewTab && { review_status: reviewTab }),
         ...(category && { category }),
       }),
   });
@@ -102,12 +102,40 @@ export default function EmailListPage() {
     onError: () => toast.error('Teklif olusturulamadi'),
   });
 
+  const reparseMutation = useMutation({
+    mutationFn: (emailId: number) => emailsApi.reparseEmail(emailId),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Email yeniden ayristirildi');
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      if (detailEmail) {
+        queryClient.invalidateQueries({ queryKey: ['email-detail', detailEmail.id] });
+      }
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error?.message || 'Ayristirma basarisiz';
+      toast.error(msg);
+    },
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: ({ id, action }: { id: number; action: string }) => emailsApi.reviewEmail(id, action),
+    onSuccess: () => {
+      toast.success('Inceleme tamamlandi');
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      setDetailEmail(null);
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error?.message || 'Inceleme basarisiz';
+      toast.error(msg);
+    },
+  });
+
   const handleTabChange = useCallback(
     (tab: string) => {
-      setReviewTab(tab);
+      setReadTab(tab);
       setPage(1);
       if (tab) {
-        setSearchParams({ review_status: tab });
+        setSearchParams({ read: tab });
       } else {
         setSearchParams({});
       }
@@ -236,13 +264,13 @@ export default function EmailListPage() {
 
       {/* Tabs */}
       <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1">
-        {REVIEW_TABS.map((tab) => (
+        {READ_TABS.map((tab) => (
           <button
             key={tab.value}
             type="button"
             onClick={() => handleTabChange(tab.value)}
             className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              reviewTab === tab.value
+              readTab === tab.value
                 ? 'bg-white text-honeywell-red shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
@@ -285,7 +313,15 @@ export default function EmailListPage() {
         page={data?.page || page}
         totalPages={data?.pages || 1}
         onPageChange={setPage}
-        onRowClick={(row) => setDetailEmail(row as EmailRequest)}
+        onRowClick={(row) => {
+          const email = row as EmailRequest;
+          setDetailEmail(email);
+          if (!email.is_read) {
+            emailsApi.markRead(email.id).then(() => {
+              queryClient.invalidateQueries({ queryKey: ['emails'] });
+            });
+          }
+        }}
       />
 
       {/* ── Email Detail Popup ── */}
@@ -450,30 +486,67 @@ export default function EmailListPage() {
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={createCustomerMutation.isPending}
-                  onClick={() => handleCreateCustomer(activeEmail!)}
-                  disabled={!detailParsed}
-                >
-                  Musteri Olustur
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={createQuoteMutation.isPending}
-                  onClick={() => createQuoteMutation.mutate(activeEmail!.id)}
-                  disabled={!detailParsed?.parts?.length}
-                >
-                  Teklif Olustur
+            <div className="flex flex-col gap-3 border-t border-gray-200 pt-4">
+              {/* Row 1: Parse & Review */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={reparseMutation.isPending}
+                    onClick={() => reparseMutation.mutate(activeEmail!.id)}
+                  >
+                    Yeniden Ayristir
+                  </Button>
+                  {activeEmail.review_status === 'pending_review' && (
+                    <>
+                      <Button
+                        size="sm"
+                        loading={reviewMutation.isPending}
+                        onClick={() => reviewMutation.mutate({ id: activeEmail!.id, action: 'approve' })}
+                        className="!bg-green-600 !text-white hover:!bg-green-700"
+                      >
+                        Onayla
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        loading={reviewMutation.isPending}
+                        onClick={() => reviewMutation.mutate({ id: activeEmail!.id, action: 'reject' })}
+                        className="!bg-red-100 !text-red-700 hover:!bg-red-200"
+                      >
+                        Reddet
+                      </Button>
+                    </>
+                  )}
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => setDetailEmail(null)}>
+                  Kapat
                 </Button>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setDetailEmail(null)}>
-                Kapat
-              </Button>
+              {/* Row 2: Customer & Quote (only for approved) */}
+              {activeEmail.review_status === 'approved' && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={createCustomerMutation.isPending}
+                    onClick={() => handleCreateCustomer(activeEmail!)}
+                    disabled={!detailParsed}
+                  >
+                    Musteri Olustur
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={createQuoteMutation.isPending}
+                    onClick={() => createQuoteMutation.mutate(activeEmail!.id)}
+                    disabled={!detailParsed?.parts?.length}
+                  >
+                    Teklif Olustur
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}

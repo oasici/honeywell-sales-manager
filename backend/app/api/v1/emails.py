@@ -26,6 +26,7 @@ router = APIRouter(prefix="/emails", tags=["Emails"])
 async def list_emails(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
+    is_read: bool | None = Query(None, description="Filter by read status"),
     status: str | None = Query(None, description="Filter by processing status"),
     review_status: str | None = Query(None, description="Filter by review status"),
     category: str | None = Query(None, description="Filter by category"),
@@ -38,6 +39,8 @@ async def list_emails(
     count_query = select(func.count(EmailRequest.id))
 
     conditions = []
+    if is_read is not None:
+        conditions.append(EmailRequest.is_read == is_read)
     if status:
         conditions.append(EmailRequest.status == status)
     if review_status:
@@ -313,17 +316,50 @@ async def poll_emails(
         raise BadRequestException(f"Email cekme hatasi: {str(e)}")
 
 
+@router.patch("/{email_id}/read", status_code=200)
+async def mark_email_read(
+    email_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark an email as read."""
+    result = await db.execute(select(EmailRequest).where(EmailRequest.id == email_id))
+    email = result.scalar_one_or_none()
+    if not email:
+        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+    email.is_read = True
+    return {"message": "OK"}
+
+
 @router.post("/{email_id}/reparse", status_code=200)
 async def reparse_email(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Re-parse an email with Claude."""
+    """Re-parse an email with Claude. 15-minute cooldown between parses."""
+    from datetime import datetime, timedelta, timezone as tz
+
+    result = await db.execute(select(EmailRequest).where(EmailRequest.id == email_id))
+    email = result.scalar_one_or_none()
+    if not email:
+        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+
+    # 15-minute cooldown
+    if email.last_parsed_at:
+        elapsed = datetime.now(tz.utc) - email.last_parsed_at
+        remaining = timedelta(minutes=15) - elapsed
+        if remaining.total_seconds() > 0:
+            mins = int(remaining.total_seconds() // 60) + 1
+            raise BadRequestException(
+                f"Bu email {mins} dakika sonra tekrar ayristirilabilir (API maliyeti kontrolu)"
+            )
+
     service = EmailProcessingService(db)
     email = await service.process_email(email_id)
+    email.last_parsed_at = datetime.now(tz.utc)
 
-    return {"message": f"Email {email_id} parsed", "status": email.status}
+    return {"message": f"Email {email_id} ayristirildi", "status": email.status}
 
 
 @router.get("/{email_id}/matches")
@@ -379,6 +415,19 @@ async def review_email(
 
     email.review_status = ReviewStatus.APPROVED.value if action == "approve" else ReviewStatus.REJECTED.value
     email.reviewed_by = current_user.id
+
+    # On manual approval, auto-create customer + draft quote
+    if action == "approve" and email.parsed_data:
+        try:
+            parsed = json.loads(email.parsed_data)
+            service = EmailProcessingService(db)
+            await service._auto_create_customer(email, parsed)
+            if parsed.get("parts") and parsed.get("confidence", 0) >= 0.3:
+                await service._auto_create_draft_quote(email, parsed)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Auto-create on approval failed: %s", exc)
+
     await db.flush()
 
     return _email_to_dict(email)
@@ -402,6 +451,8 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
         "review_status": email.review_status,
         "assigned_to": email.assigned_to,
         "reviewed_by": email.reviewed_by,
+        "is_read": getattr(email, "is_read", False),
+        "last_parsed_at": email.last_parsed_at.isoformat() if getattr(email, "last_parsed_at", None) else None,
         "created_at": email.created_at.isoformat() if email.created_at else None,
     }
     if include_body:

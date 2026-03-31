@@ -201,9 +201,13 @@ export const emailsApi = {
     return data;
   },
 
-  reparseEmail: async (id: number): Promise<EmailRequest> => {
-    const { data } = await api.post<EmailRequest>(`/emails/${id}/reparse`);
+  reparseEmail: async (id: number): Promise<{ message: string; status: string }> => {
+    const { data } = await api.post<{ message: string; status: string }>(`/emails/${id}/reparse`);
     return data;
+  },
+
+  markRead: async (id: number): Promise<void> => {
+    await api.patch(`/emails/${id}/read`);
   },
 
   getEmailMatches: async (id: number): Promise<MatchResult[]> => {
@@ -212,7 +216,7 @@ export const emailsApi = {
   },
 
   reviewEmail: async (id: number, action: string): Promise<EmailRequest> => {
-    const { data } = await api.post<EmailRequest>(`/emails/${id}/review`, { action });
+    const { data } = await api.patch<EmailRequest>(`/emails/${id}/review`, { action });
     return data;
   },
 };

@@ -36,6 +36,10 @@ class EmailRequest(Base):
     is_duplicate: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     duplicate_of_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # Read tracking
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_parsed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Review workflow
     review_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # pending_review -> approved -> rejected

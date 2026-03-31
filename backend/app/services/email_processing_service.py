@@ -49,11 +49,12 @@ class EmailProcessingService:
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
                 await self._set_review_status(email, parsed)
-                await self._auto_create_customer(email, parsed)
 
-                # Auto-create draft quote if parts found with sufficient confidence
-                if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
-                    await self._auto_create_draft_quote(email, parsed)
+                # Auto-create customer + quote ONLY if auto-approved
+                if email.review_status == ReviewStatus.APPROVED.value:
+                    await self._auto_create_customer(email, parsed)
+                    if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
+                        await self._auto_create_draft_quote(email, parsed)
             else:
                 email.status = EmailStatus.ERROR.value
                 email.error_message = "Parse returned empty"
@@ -98,11 +99,12 @@ class EmailProcessingService:
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
                 await self._set_review_status(email, parsed)
-                await self._auto_create_customer(email, parsed)
 
-                # Auto-create draft quote if parts found with sufficient confidence
-                if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
-                    await self._auto_create_draft_quote(email, parsed)
+                # Auto-create customer + quote ONLY if auto-approved
+                if email.review_status == ReviewStatus.APPROVED.value:
+                    await self._auto_create_customer(email, parsed)
+                    if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
+                        await self._auto_create_draft_quote(email, parsed)
 
                 await self._db.flush()
                 await self._db.refresh(email)

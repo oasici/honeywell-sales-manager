@@ -57,6 +57,8 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS supplier_price FLOAT",
                 "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS price_currency VARCHAR(10)",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false",
+                "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false",
+                "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
             ]
             for sql in migrations:
                 await conn.execute(sqlalchemy.text(sql))
