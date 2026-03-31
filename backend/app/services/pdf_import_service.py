@@ -1,5 +1,7 @@
 """Extract parts and quote data from PDF files using pdfplumber."""
 
+from __future__ import annotations
+
 import logging
 import re
 
@@ -17,19 +19,26 @@ _HEADER_ALIASES = {
     "qty": "quantity",
     "miktar": "quantity",
     "pn": "honeywell_code",
-    "part": "honeywell_code",
-    "parca": "honeywell_code",
-    "parça": "honeywell_code",
-    "model": "honeywell_code",
+    "part number": "honeywell_code",
     "kod": "honeywell_code",
     "code": "honeywell_code",
+    "parca / model aciklamasi": "description",
+    "parça / model açıklaması": "description",
+    "parca / model": "description",
+    "parça / model": "description",
+    "model aciklamasi": "description",
+    "model açıklaması": "description",
     "aciklama": "description",
     "açıklama": "description",
     "description": "description",
     "birim": "unit_price",
+    "birim satis fiyati": "unit_price",
+    "birim satış fiyatı": "unit_price",
     "unit": "unit_price",
     "fiyat": "unit_price",
     "price": "unit_price",
+    "toplam satis fiyati": "total_price",
+    "toplam satış fiyatı": "total_price",
     "toplam": "total_price",
     "total": "total_price",
 }
@@ -56,17 +65,32 @@ def _parse_price(value: str | None) -> float | None:
         return None
 
 
+def _normalize_turkish(text: str) -> str:
+    """Normalize Turkish characters for comparison."""
+    replacements = {"ı": "i", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ç": "c",
+                    "İ": "i", "Ş": "s", "Ğ": "g", "Ü": "u", "Ö": "o", "Ç": "c"}
+    for tr_char, en_char in replacements.items():
+        text = text.replace(tr_char, en_char)
+    return text
+
+
 def _match_header(cell: str | None) -> str | None:
     """Match a table header cell to a known column type."""
     if not cell:
         return None
-    normalized = cell.strip().lower()
+    # Normalize: collapse newlines/whitespace, lowercase, strip Turkish chars
+    normalized = _normalize_turkish(" ".join(cell.strip().split()).lower())
+    # Sort by keyword length (longest first) to match most specific first
+    sorted_aliases = sorted(_HEADER_ALIASES.items(), key=lambda x: len(x[0]), reverse=True)
     # Direct match
-    if normalized in _HEADER_ALIASES:
-        return _HEADER_ALIASES[normalized]
-    # Partial match
-    for keyword, field in _HEADER_ALIASES.items():
-        if keyword in normalized:
+    for keyword, field in sorted_aliases:
+        norm_keyword = _normalize_turkish(keyword)
+        if norm_keyword == normalized:
+            return field
+    # Partial match (longest keyword first prevents "pn" matching before "parca / model")
+    for keyword, field in sorted_aliases:
+        norm_keyword = _normalize_turkish(keyword)
+        if norm_keyword in normalized:
             return field
     return None
 
