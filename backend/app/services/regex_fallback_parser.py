@@ -8,10 +8,13 @@ import re
 
 # Honeywell part number patterns
 PART_CODE_PATTERNS = [
-    re.compile(r"\b[A-Z]{1,3}\d{4}[A-Z]\d{4}\b"),
-    re.compile(r"\b\d{5,8}-\d{2,4}\b"),
-    re.compile(r"\b[A-Z]{2}\d{4,6}\b"),
-    re.compile(r"\b[A-Z]\d{4}[A-Z]\d{4}\b"),
+    re.compile(r"\b[A-Z]{1,3}\d{4}[A-Z]\d{4}\b"),          # CC1234X1234
+    re.compile(r"\b\d{1,3}-\d{3}-\d{3}-\d{2}\b"),           # 0-000-134-01
+    re.compile(r"\b\d{5,8}-\d{2,4}\b"),                      # 12345-12
+    re.compile(r"\b[A-Z]{2,4}-[A-Z0-9]{2,10}\b"),            # EBI-R500, HW-GASD
+    re.compile(r"\b[A-Z]{2}\d{4,6}\b"),                      # XX1234
+    re.compile(r"\b[A-Z]\d{4}[A-Z]\d{4}\b"),                 # X1234X1234
+    re.compile(r"\b\d{5}-\d{3}\b"),                           # 01004-001
 ]
 
 QUANTITY_PATTERNS = [
@@ -19,6 +22,12 @@ QUANTITY_PATTERNS = [
     re.compile(r"(?:qty|adet|miktar)[:\s]*(\d+)", re.IGNORECASE),
     re.compile(r"(\d+)\s*(?:x|X)\s+[A-Z]"),
 ]
+
+# Line-based part extraction: "1. CODE - Description - N adet"
+LINE_PART_PATTERN = re.compile(
+    r"^\s*\d+[\.\)]\s*([A-Z0-9][\w-]{2,20})\s*[-–]\s*(.+?)(?:\s*[-–]\s*(\d+)\s*(?:adet|pcs|qty))?\s*(?:\((\w+)\))?\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 CUSTOMER_NAME_PATTERN = re.compile(
     r"(?:sayg[ıi]lar[ıi]mla|regards|best regards|thanks|tesekkurler"
@@ -58,11 +67,35 @@ def regex_fallback_parse(body: str, subject: str) -> dict:
     """
     text = f"{subject}\n{body}"
     parts = []
+    seen_codes: set[str] = set()
 
+    # Try line-based extraction first (more accurate)
+    for match in LINE_PART_PATTERN.finditer(text):
+        code = match.group(1).strip()
+        desc = match.group(2).strip() if match.group(2) else ""
+        qty = int(match.group(3)) if match.group(3) else 1
+        urgency = match.group(4).lower() if match.group(4) else "normal"
+        if urgency in ("acil", "critical", "urgent"):
+            urgency = "critical"
+        elif urgency in ("yuksek", "high"):
+            urgency = "high"
+        else:
+            urgency = "normal"
+        parts.append({
+            "part_code": code,
+            "part_description": desc or f"Part {code}",
+            "quantity": qty,
+            "urgency": urgency,
+        })
+        seen_codes.add(code)
+
+    # Fall back to pattern-based extraction for codes not found by line parser
     found_codes = _extract_part_codes(text)
     quantities = _extract_quantities(text, found_codes)
 
     for code in found_codes:
+        if code in seen_codes:
+            continue
         parts.append({
             "part_code": code,
             "part_description": f"Part {code} (regex extraction)",
