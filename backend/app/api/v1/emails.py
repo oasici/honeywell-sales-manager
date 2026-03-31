@@ -267,11 +267,23 @@ async def poll_emails(
                 if not body_text and not body_html:
                     continue
 
+                # Prefer plain text; if only HTML, strip tags for clean text
+                email_body = body_text
+                if not email_body and body_html:
+                    import re
+                    # Remove style/script blocks, then strip all HTML tags
+                    cleaned = re.sub(r'<(style|script)[^>]*>[\s\S]*?</\1>', '', body_html, flags=re.IGNORECASE)
+                    cleaned = re.sub(r'<br\s*/?>', '\n', cleaned, flags=re.IGNORECASE)
+                    cleaned = re.sub(r'<[^>]+>', '', cleaned)
+                    # Collapse whitespace
+                    cleaned = re.sub(r'\n\s*\n+', '\n\n', cleaned).strip()
+                    email_body = cleaned
+
                 # Create email request and process
                 email_req = await service.create_manual_email(
                     from_address=from_addr,
                     subject=subject or "(Konu yok)",
-                    body_text=body_text or body_html,
+                    body_text=email_body,
                     assigned_to=current_user.id,
                 )
                 fetched_count += 1

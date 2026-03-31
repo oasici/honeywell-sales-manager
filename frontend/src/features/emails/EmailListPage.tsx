@@ -331,9 +331,24 @@ export default function EmailListPage() {
             {/* Body */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
               <span className="mb-2 block text-xs font-medium text-gray-500">Email Icerigi</span>
-              <p className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
-                {activeEmail.body_text || '(Icerik yok)'}
-              </p>
+              <div
+                className="max-h-64 overflow-y-auto text-sm text-gray-700 leading-relaxed"
+              >
+                {activeEmail.body_text && activeEmail.body_text.includes('<') ? (
+                  <div
+                    className="prose prose-sm max-w-none [&_img]:hidden [&_style]:hidden [&_script]:hidden"
+                    dangerouslySetInnerHTML={{
+                      __html: activeEmail.body_text
+                        .replace(/<script[\s\S]*?<\/script>/gi, '')
+                        .replace(/<style[\s\S]*?<\/style>/gi, ''),
+                    }}
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap">
+                    {activeEmail.body_text || '(Icerik yok)'}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Status badges */}
