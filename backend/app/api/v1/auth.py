@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,12 +28,6 @@ from app.services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Import limiter from main app (attached to app.state)
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
-_limiter = Limiter(key_func=get_remote_address)
-
 class RefreshRequest(BaseModel):
     refresh_token: str
 
@@ -43,9 +37,7 @@ class LogoutRequest(BaseModel):
 
 
 @router.post("/login", response_model=TokenResponse)
-@_limiter.limit(settings.RATE_LIMIT_LOGIN)
 async def login(
-    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -100,9 +92,7 @@ async def get_me(
 
 
 @router.post("/refresh", response_model=TokenResponse)
-@_limiter.limit("10/minute")
 async def refresh_token_endpoint(
-    request: Request,
     body: RefreshRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -152,9 +142,7 @@ class ChangePasswordRequest(BaseModel):
 
 
 @router.post("/change-password")
-@_limiter.limit("3/minute")
 async def change_password(
-    request: Request,
     body: ChangePasswordRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
