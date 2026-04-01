@@ -360,31 +360,55 @@ async def correct_parse(
 
 @router.get("/training-data", status_code=200)
 async def get_training_data(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    model_used: str | None = Query(None),
+    field: str | None = Query(None, description="Filter by corrected field"),
+    format: str = Query("json", description="json or jsonl"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Export all AI training data (corrections) for fine-tuning."""
+    """Export AI training data with pagination and filtering."""
     from app.models.ai_training_data import AITrainingData
+    from fastapi.responses import PlainTextResponse
 
-    result = await db.execute(
-        select(AITrainingData).order_by(AITrainingData.created_at.desc()).limit(500)
-    )
+    query = select(AITrainingData).order_by(AITrainingData.created_at.desc())
+    count_query = select(func.count(AITrainingData.id))
+
+    if model_used:
+        query = query.where(AITrainingData.model_used == model_used)
+        count_query = count_query.where(AITrainingData.model_used == model_used)
+    if field:
+        query = query.where(AITrainingData.correction_fields.contains(field))
+        count_query = count_query.where(AITrainingData.correction_fields.contains(field))
+
+    total = (await db.execute(count_query)).scalar() or 0
+    offset = (page - 1) * page_size
+    result = await db.execute(query.offset(offset).limit(page_size))
     entries = result.scalars().all()
 
+    items = [
+        {
+            "id": e.id,
+            "email_id": e.email_id,
+            "original_parse": json.loads(e.original_parse) if e.original_parse else None,
+            "corrected_parse": json.loads(e.corrected_parse) if e.corrected_parse else None,
+            "correction_fields": e.correction_fields.split(",") if e.correction_fields else [],
+            "model_used": e.model_used,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in entries
+    ]
+
+    if format == "jsonl":
+        lines = "\n".join(json.dumps(item, ensure_ascii=False) for item in items)
+        return PlainTextResponse(content=lines, media_type="application/jsonl")
+
     return {
-        "count": len(entries),
-        "data": [
-            {
-                "id": e.id,
-                "email_id": e.email_id,
-                "original_parse": json.loads(e.original_parse) if e.original_parse else None,
-                "corrected_parse": json.loads(e.corrected_parse) if e.corrected_parse else None,
-                "correction_fields": e.correction_fields.split(",") if e.correction_fields else [],
-                "model_used": e.model_used,
-                "created_at": e.created_at.isoformat() if e.created_at else None,
-            }
-            for e in entries
-        ],
+        "count": total,
+        "page": page,
+        "page_size": page_size,
+        "data": items,
     }
 
 

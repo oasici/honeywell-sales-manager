@@ -224,15 +224,20 @@ async def parse_email(body: str, subject: str = "") -> dict:
 
     logger.info("Claude parsing initiated")
 
-    client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+    client = AsyncAnthropic(
+        api_key=settings.ANTHROPIC_API_KEY,
+        timeout=30.0,
+    )
+    model = getattr(settings, 'AI_MODEL_NAME', 'claude-sonnet-4-20250514')
+    max_tokens = getattr(settings, 'AI_MAX_TOKENS', 1024)
     user_message = f"Subject: {subject}\n\n{body}" if subject else body
 
     last_error: Exception | None = None
     for attempt in range(MAX_RETRIES):
         try:
             response = await client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1024,
+                model=model,
+                max_tokens=max_tokens,
                 system=_SYSTEM_PROMPT,
                 tools=[_EXTRACTION_TOOL],
                 tool_choice={"type": "tool", "name": "extract_email_data"},

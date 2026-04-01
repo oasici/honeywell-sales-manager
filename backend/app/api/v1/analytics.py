@@ -211,3 +211,61 @@ async def get_parts_without_price(
         })
 
     return items
+
+
+@router.get("/ai-usage")
+async def get_ai_usage(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """AI usage statistics: parse counts, correction rates, model performance."""
+    from app.models.email_request import EmailRequest
+    from app.models.ai_training_data import AITrainingData
+
+    total_parsed = (await db.execute(
+        select(func.count(EmailRequest.id)).where(EmailRequest.status != "new")
+    )).scalar() or 0
+
+    approved = (await db.execute(
+        select(func.count(EmailRequest.id)).where(EmailRequest.review_status == "approved")
+    )).scalar() or 0
+    pending = (await db.execute(
+        select(func.count(EmailRequest.id)).where(EmailRequest.review_status == "pending_review")
+    )).scalar() or 0
+    rejected = (await db.execute(
+        select(func.count(EmailRequest.id)).where(EmailRequest.review_status == "rejected")
+    )).scalar() or 0
+
+    avg_confidence = (await db.execute(
+        select(func.avg(EmailRequest.category_confidence)).where(
+            EmailRequest.category_confidence.isnot(None)
+        )
+    )).scalar() or 0.0
+
+    total_corrections = (await db.execute(
+        select(func.count(AITrainingData.id))
+    )).scalar() or 0
+
+    correction_fields_raw = (await db.execute(
+        select(AITrainingData.correction_fields).limit(200)
+    )).scalars().all()
+
+    field_counts: dict[str, int] = {}
+    for fields_str in correction_fields_raw:
+        if fields_str:
+            for f in fields_str.split(","):
+                f = f.strip()
+                if f:
+                    field_counts[f] = field_counts.get(f, 0) + 1
+
+    correction_rate = round(total_corrections / total_parsed * 100, 1) if total_parsed > 0 else 0.0
+
+    return {
+        "total_parsed": total_parsed,
+        "review_breakdown": {"approved": approved, "pending_review": pending, "rejected": rejected},
+        "average_confidence": round(avg_confidence, 3),
+        "total_corrections": total_corrections,
+        "correction_rate_pct": correction_rate,
+        "most_corrected_fields": dict(sorted(field_counts.items(), key=lambda x: -x[1])[:5]),
+        "estimated_api_cost_usd": round(total_parsed * 0.003, 2),
+    }

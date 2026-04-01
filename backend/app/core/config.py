@@ -55,8 +55,14 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_ADDRESS: str = ""
 
-    # ── Anthropic ──
+    # ── AI / LLM ──
     ANTHROPIC_API_KEY: str = ""
+    AI_MODEL_NAME: str = "claude-sonnet-4-20250514"
+    AI_MAX_TOKENS: int = 1024
+    AI_TEMPERATURE: float = 1.0
+    AI_MAX_RETRIES: int = 3
+    AI_TIMEOUT_SECONDS: int = 30
+    AI_FALLBACK_STRATEGY: str = "claude-first"  # claude-first | regex-first
 
     # ── Company ──
     COMPANY_NAME: str = "Honeywell Turkey"
