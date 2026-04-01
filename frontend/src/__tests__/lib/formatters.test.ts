@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrency, formatDate, formatPercent, formatNumber } from '../../lib/formatters';
+import { formatCurrency, formatPercent, formatNumber } from '../../lib/formatters';
 
 describe('formatCurrency', () => {
   it('formats USD correctly', () => {
