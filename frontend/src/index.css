@@ -93,15 +93,29 @@ body {
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-/* ── Font size offset (text only, not layout) ── */
-/* Zoom only text content, keep component sizes fixed */
-.font-scaled p, .font-scaled span, .font-scaled a,
-.font-scaled li, .font-scaled td, .font-scaled th,
-.font-scaled label, .font-scaled button,
-.font-scaled input, .font-scaled textarea, .font-scaled select,
-.font-scaled h1, .font-scaled h2, .font-scaled h3,
-.font-scaled h4, .font-scaled h5, .font-scaled h6 {
-  font-size: calc(1em + var(--font-size-offset, 0px));
+/* ── Font size scaling (text only, not layout) ── */
+/* Uses zoom on text container - does NOT affect padding/margin/width */
+.font-scale-up-1 { --text-zoom: 1.07; }
+.font-scale-up-2 { --text-zoom: 1.14; }
+.font-scale-up-3 { --text-zoom: 1.21; }
+.font-scale-up-4 { --text-zoom: 1.28; }
+.font-scale-down-1 { --text-zoom: 0.93; }
+.font-scale-down-2 { --text-zoom: 0.86; }
+.font-scale-down-3 { --text-zoom: 0.79; }
+.font-scale-down-4 { --text-zoom: 0.72; }
+
+[class*="font-scale-"] p, [class*="font-scale-"] span:not(.recharts-legend-item-text),
+[class*="font-scale-"] a, [class*="font-scale-"] li,
+[class*="font-scale-"] td, [class*="font-scale-"] th,
+[class*="font-scale-"] label, [class*="font-scale-"] h1,
+[class*="font-scale-"] h2, [class*="font-scale-"] h3,
+[class*="font-scale-"] h4, [class*="font-scale-"] h5, [class*="font-scale-"] h6 {
+  font-size: calc(1em * var(--text-zoom, 1)) !important;
+}
+/* Inputs/buttons need separate rule to not cascade */
+[class*="font-scale-"] input, [class*="font-scale-"] textarea,
+[class*="font-scale-"] select, [class*="font-scale-"] button {
+  font-size: calc(1em * var(--text-zoom, 1)) !important;
 }
 
 /* ── Smooth transitions ── */

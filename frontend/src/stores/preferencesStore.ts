@@ -42,14 +42,15 @@ function applyTheme(theme: Theme) {
 }
 
 function applyFontSize(offset: number) {
-  document.documentElement.style.setProperty('--font-size-offset', `${offset}px`);
   const root = document.getElementById('root');
-  if (root) {
-    if (offset !== 0) {
-      root.classList.add('font-scaled');
-    } else {
-      root.classList.remove('font-scaled');
-    }
+  if (!root) return;
+  // Remove all previous scale classes
+  root.className = root.className.replace(/font-scale-\S+/g, '').trim();
+  // Add appropriate class
+  if (offset > 0) {
+    root.classList.add(`font-scale-up-${Math.min(offset, 4)}`);
+  } else if (offset < 0) {
+    root.classList.add(`font-scale-down-${Math.min(Math.abs(offset), 4)}`);
   }
 }
 
