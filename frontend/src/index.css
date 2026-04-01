@@ -204,35 +204,56 @@ body {
   border-color: #D32F2F !important;
 }
 
-/* Colored backgrounds */
-.dark .bg-blue-50 { background-color: #0c2d5e !important; }
+/* Hover states */
+.dark .hover\:bg-gray-50:hover { background-color: #1e3050 !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #1e3050 !important; }
+.dark .hover\:bg-gray-200:hover { background-color: #2a4060 !important; }
+.dark .hover\:bg-slate-50:hover { background-color: #1e3050 !important; }
+.dark tr:hover td { background-color: #1e3050 !important; }
+
+/* Colored backgrounds - richer darks */
+.dark .bg-blue-50 { background-color: #0c2040 !important; }
+.dark .bg-blue-50\/60 { background-color: rgba(12, 32, 64, 0.6) !important; }
 .dark .bg-green-50 { background-color: #052e16 !important; }
-.dark .bg-red-50 { background-color: #3b0712 !important; }
-.dark .bg-amber-50 { background-color: #3b1506 !important; }
-.dark .bg-indigo-50 { background-color: #1a1646 !important; }
-.dark .bg-indigo-100 { background-color: #251e5e !important; }
+.dark .bg-red-50 { background-color: #2a0a0e !important; }
+.dark .bg-amber-50 { background-color: #2a1506 !important; }
+.dark .bg-indigo-50 { background-color: #141040 !important; }
+.dark .bg-indigo-100 { background-color: #1c1850 !important; }
 .dark .bg-emerald-100 { background-color: #052e16 !important; }
-.dark .bg-rose-100 { background-color: #3b0712 !important; }
-.dark .bg-amber-100 { background-color: #3b1506 !important; }
+.dark .bg-rose-100 { background-color: #2a0a0e !important; }
+.dark .bg-amber-100 { background-color: #2a1506 !important; }
+.dark .bg-honeywell-light\/30 { background-color: rgba(211, 47, 47, 0.15) !important; }
 
 /* Colored borders */
 .dark .border-blue-200 { border-color: #1e40af !important; }
 .dark .border-green-200 { border-color: #166534 !important; }
 .dark .border-red-200 { border-color: #991b1b !important; }
+.dark .border-amber-200 { border-color: #92400e !important; }
 
-/* Colored text */
+/* Colored text - bright for readability */
 .dark .text-blue-700 { color: #93c5fd !important; }
+.dark .text-blue-600 { color: #60a5fa !important; }
+.dark .text-blue-500 { color: #60a5fa !important; }
 .dark .text-green-700 { color: #86efac !important; }
 .dark .text-red-700 { color: #fca5a5 !important; }
-.dark .text-blue-600 { color: #60a5fa !important; }
+.dark .text-red-600 { color: #f87171 !important; }
+.dark .text-red-500 { color: #f87171 !important; }
+.dark .text-amber-700 { color: #fbbf24 !important; }
+.dark .text-amber-900 { color: #fbbf24 !important; }
+.dark .text-amber-800 { color: #fcd34d !important; }
 .dark .text-indigo-700 { color: #a5b4fc !important; }
 .dark .text-emerald-700 { color: #6ee7b7 !important; }
 .dark .text-rose-700 { color: #fda4af !important; }
-.dark .text-amber-700 { color: #fbbf24 !important; }
 
-/* Honeywell red in dark mode - brighter */
+/* Honeywell red in dark - brighter */
 .dark .text-honeywell-red { color: #ef5350 !important; }
-.dark .bg-honeywell-red { background-color: #c62828 !important; }
+.dark .bg-honeywell-red { background-color: #d32f2f !important; }
+.dark .bg-honeywell-red:hover { background-color: #e53935 !important; }
+.dark .border-honeywell-red { border-color: #ef5350 !important; }
+.dark .border-honeywell-light { border-color: #ef5350 !important; }
+
+/* Dropdown / select fix */
+.dark option { background-color: #162032; color: #f1f5f9; }
 
 .dark .shadow-sm { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important; }
 .dark .shadow-md { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5) !important; }
@@ -243,13 +264,17 @@ body {
 
 /* Dark mode charts */
 .dark .recharts-default-tooltip {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
+  background-color: #162032 !important;
+  border-color: #2a4060 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
 }
+.dark .recharts-tooltip-item { color: #e2e8f0 !important; }
+.dark .recharts-tooltip-label { color: #94a3b8 !important; }
 .dark .recharts-cartesian-grid line { stroke: #1e293b; }
 .dark .recharts-legend-item-text { color: #94a3b8 !important; }
 .dark .recharts-text { fill: #94a3b8; }
+.dark .recharts-cartesian-axis-tick-value { fill: #64748b; }
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
