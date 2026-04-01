@@ -38,57 +38,116 @@ function PartDetailModal({
 }) {
   if (!part) return null;
 
+  const hasPriceInfo = part.transfer_price != null || part.supplier_price != null;
+  const descriptionTr = part.description_tr || part.name_tr;
+  const descriptionEn = part.description_en || part.name_en;
+  const createdDate = part.created_at?.split('T')[0];
+
   return (
     <Modal isOpen={!!part} onClose={onClose} title="Urun Detayi" size="lg">
-      <div className="space-y-4">
+      <div className="space-y-5">
+        {/* Header: Honeywell code + model number */}
+        <div>
+          <h3 className="text-2xl font-bold tracking-tight text-gray-900">
+            {part.honeywell_code}
+          </h3>
+          {part.model_number && (
+            <p className="mt-1 text-base text-gray-500">{part.model_number}</p>
+          )}
+        </div>
+
         {/* Info highlight box */}
         {part.info && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <span className="font-semibold">Bilgi: </span>
             {part.info}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <DetailField label="Honeywell Kodu" value={part.honeywell_code} />
-          <DetailField label="Model No" value={part.model_number} />
-          <DetailField label="Tanim (TR)" value={part.description_tr || part.name_tr} />
-          <DetailField label="Tanim (EN)" value={part.description_en || part.name_en} />
-          <DetailField label="Kategori" value={part.category} />
-          <DetailField label="Alt Kategori" value={part.subcategory} />
-          <DetailField
-            label="T.P. (Transfer Price)"
-            value={part.transfer_price != null ? `${formatPrice(part.transfer_price)} ${part.price_currency || ''}` : null}
-            isHighlight={part.transfer_price != null}
-          />
-          <DetailField
-            label="L.P. (List Price)"
-            value={part.supplier_price != null ? `${formatPrice(part.supplier_price)} ${part.price_currency || ''}` : null}
-            isHighlight={part.supplier_price != null}
-          />
-          <DetailField label="Olusturma Tarihi" value={part.created_at?.split('T')[0]} />
+        {/* Price section */}
+        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+          {hasPriceInfo ? (
+            <div className="flex flex-wrap items-start gap-6">
+              {part.transfer_price != null && (
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                    T.P. (Transfer Price)
+                  </span>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {formatPrice(part.transfer_price)}
+                  </p>
+                </div>
+              )}
+              {part.supplier_price != null && (
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                    L.P. (List Price)
+                  </span>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {formatPrice(part.supplier_price)}
+                  </p>
+                </div>
+              )}
+              {part.price_currency && (
+                <span className="mt-6 inline-flex items-center rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                  {part.price_currency}
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 italic">Fiyat bilgisi yok</p>
+          )}
         </div>
+
+        {/* Description card */}
+        {(descriptionTr || descriptionEn) && (
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+              Aciklama
+            </h4>
+            <div className="space-y-2 text-sm text-gray-700">
+              {descriptionTr && (
+                <div className="flex gap-2">
+                  <span className="inline-flex h-5 items-center rounded bg-blue-100 px-1.5 text-[10px] font-bold text-blue-700">
+                    TR
+                  </span>
+                  <span>{descriptionTr}</span>
+                </div>
+              )}
+              {descriptionEn && (
+                <div className="flex gap-2">
+                  <span className="inline-flex h-5 items-center rounded bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700">
+                    EN
+                  </span>
+                  <span>{descriptionEn}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Metadata: Category & Subcategory pills */}
+        <div className="flex flex-wrap gap-2">
+          {part.category && (
+            <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
+              {part.category}
+            </span>
+          )}
+          {part.subcategory && (
+            <span className="inline-flex items-center rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
+              {part.subcategory}
+            </span>
+          )}
+        </div>
+
+        {/* Created date footer */}
+        {createdDate && (
+          <p className="text-xs text-gray-400">
+            Olusturma: {createdDate}
+          </p>
+        )}
       </div>
     </Modal>
-  );
-}
-
-function DetailField({
-  label,
-  value,
-  isHighlight = false,
-}: {
-  label: string;
-  value: string | null | undefined;
-  isHighlight?: boolean;
-}) {
-  return (
-    <div>
-      <dt className="text-xs font-medium text-gray-500">{label}</dt>
-      <dd className={`mt-0.5 ${isHighlight ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
-        {value || '-'}
-      </dd>
-    </div>
   );
 }
 

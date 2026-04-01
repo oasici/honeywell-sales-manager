@@ -10,7 +10,7 @@ exports[`Modal > renders large size 1`] = `
     class="fixed inset-0 bg-black/50 transition-opacity"
   />
   <div
-    class="relative z-10 w-full max-w-2xl mx-4 rounded-xl bg-white shadow-xl transition-all"
+    class="relative z-10 w-full max-w-2xl mx-4 rounded-2xl bg-white shadow-2xl transition-all"
   >
     <div
       class="flex items-center justify-between border-b border-gray-200 px-6 py-4"
@@ -60,7 +60,7 @@ exports[`Modal > renders with title and content when open 1`] = `
     class="fixed inset-0 bg-black/50 transition-opacity"
   />
   <div
-    class="relative z-10 w-full max-w-lg mx-4 rounded-xl bg-white shadow-xl transition-all"
+    class="relative z-10 w-full max-w-lg mx-4 rounded-2xl bg-white shadow-2xl transition-all"
   >
     <div
       class="flex items-center justify-between border-b border-gray-200 px-6 py-4"

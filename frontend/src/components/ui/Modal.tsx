@@ -50,7 +50,7 @@ export function Modal({
 
       {/* Modal panel */}
       <div
-        className={`relative z-10 w-full ${sizeClasses[size]} mx-4 rounded-xl bg-white shadow-xl transition-all`}
+        className={`relative z-10 w-full ${sizeClasses[size]} mx-4 rounded-2xl bg-white shadow-2xl transition-all`}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">

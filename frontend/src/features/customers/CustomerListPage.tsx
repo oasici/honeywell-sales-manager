@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronDown, ExternalLink } from 'lucide-react';
+import { ChevronDown, ExternalLink, FileText, TrendingUp, Users } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -13,6 +13,39 @@ import { customersApi, quotesApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import { STATUS_LABELS, STATUS_COLORS } from '../../lib/constants';
 import type { Customer, Quote, PaginatedResponse } from '../../lib/types';
+
+/* ── Avatar color palette ── */
+const AVATAR_COLORS = [
+  'bg-rose-500',
+  'bg-amber-500',
+  'bg-emerald-500',
+  'bg-sky-500',
+  'bg-violet-500',
+  'bg-pink-500',
+  'bg-teal-500',
+  'bg-indigo-500',
+  'bg-orange-500',
+  'bg-cyan-500',
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
 
 /* ── Customer Card with Quote Dropdown ── */
 function CustomerCard({
@@ -25,6 +58,9 @@ function CustomerCard({
   const [expanded, setExpanded] = useState(false);
   const quoteCount = c.quote_count ?? 0;
 
+  const avatarColor = useMemo(() => getAvatarColor(c.name), [c.name]);
+  const initials = useMemo(() => getInitials(c.name), [c.name]);
+
   const { data: quotesData, isLoading: quotesLoading } = useQuery<PaginatedResponse<Quote>>({
     queryKey: ['customer-quotes-card', c.id],
     queryFn: () => quotesApi.getQuotes({ customer_id: c.id, page_size: 20 }),
@@ -34,21 +70,33 @@ function CustomerCard({
   const quotes = quotesData?.items ?? [];
 
   return (
-    <div className="flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <div className="card-modern flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200">
       {/* Top section - clickable to customer detail */}
       <button
         type="button"
         onClick={() => navigate(`/customers/${c.id}`)}
-        className="flex flex-col p-5 text-left hover:bg-gray-50/50 transition-colors rounded-t-xl"
+        className="flex items-start gap-4 p-5 text-left hover:bg-gray-50/60 transition-colors rounded-t-2xl"
       >
-        <h3 className="font-semibold text-gray-900 truncate">{c.name}</h3>
-        {c.company && (
-          <p className="mt-0.5 text-sm text-gray-500 truncate">{c.company}</p>
-        )}
-        <p className="mt-1 text-xs text-gray-400 truncate">{c.email}</p>
+        {/* Avatar */}
+        <div
+          className={`${avatarColor} flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm`}
+        >
+          {initials}
+        </div>
+
+        {/* Info */}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-semibold text-gray-900 truncate leading-tight">
+            {c.name}
+          </h3>
+          {c.company && (
+            <p className="mt-0.5 text-sm text-gray-500 truncate">{c.company}</p>
+          )}
+          <p className="mt-0.5 text-xs text-gray-400 truncate">{c.email}</p>
+        </div>
       </button>
 
-      {/* Quote summary - clickable dropdown toggle */}
+      {/* Stats row + dropdown toggle */}
       <div className="border-t border-gray-100">
         <button
           type="button"
@@ -56,19 +104,31 @@ function CustomerCard({
             e.stopPropagation();
             if (quoteCount > 0) setExpanded(!expanded);
           }}
-          className={`flex w-full items-center justify-between px-5 py-3 text-left transition-colors
-            ${quoteCount > 0 ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'}`}
+          className={`flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors
+            ${quoteCount > 0 ? 'hover:bg-gray-50/60 cursor-pointer' : 'cursor-default'}`}
         >
-          <div className="flex items-center gap-4">
-            <div>
-              <span className="text-xs text-gray-400">Teklif</span>
-              <p className="text-sm font-semibold text-gray-800">{quoteCount}</p>
+          <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2">
+              <FileText size={14} className="text-gray-400" />
+              <div>
+                <span className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">
+                  Teklif
+                </span>
+                <p className="text-sm font-semibold text-gray-800 leading-tight">
+                  {quoteCount}
+                </p>
+              </div>
             </div>
-            <div>
-              <span className="text-xs text-gray-400">Toplam Deger</span>
-              <p className="text-sm font-semibold text-gray-800">
-                {formatCurrency(c.total_quote_value ?? 0, 'TRY')}
-              </p>
+            <div className="flex items-center gap-2">
+              <TrendingUp size={14} className="text-gray-400" />
+              <div>
+                <span className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">
+                  Toplam Deger
+                </span>
+                <p className="text-sm font-semibold text-gray-800 leading-tight">
+                  {formatCurrency(c.total_quote_value ?? 0, 'TRY')}
+                </p>
+              </div>
             </div>
           </div>
           {quoteCount > 0 && (
@@ -83,36 +143,29 @@ function CustomerCard({
 
         {/* Expanded quote list */}
         {expanded && (
-          <div className="border-t border-gray-100 bg-gray-50/50">
+          <div className="border-t border-gray-100 bg-gray-50/40">
             {quotesLoading ? (
               <div className="px-5 py-3 space-y-2">
                 {[0, 1].map((i) => (
-                  <div key={i} className="h-10 animate-pulse rounded bg-gray-200" />
+                  <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-200/70" />
                 ))}
               </div>
             ) : quotes.length === 0 ? (
               <p className="px-5 py-3 text-xs text-gray-400">Teklif bulunamadi</p>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100/80">
                 {quotes.map((q) => (
                   <button
                     key={q.id}
                     type="button"
                     onClick={() => navigate(`/quotes/${q.id}`)}
-                    className="flex w-full items-center justify-between gap-2 px-5 py-2.5 text-left
-                      hover:bg-white transition-colors group"
+                    className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left
+                      hover:bg-white/80 transition-colors group"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono font-semibold text-gray-700 truncate">
                           {q.quote_number}
-                        </span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                            STATUS_COLORS[q.status] || 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          {STATUS_LABELS[q.status] || q.status}
                         </span>
                       </div>
                       {/* Items summary */}
@@ -132,8 +185,15 @@ function CustomerCard({
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-semibold text-gray-700">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          STATUS_COLORS[q.status] || 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        {STATUS_LABELS[q.status] || q.status}
+                      </span>
+                      <span className="text-xs font-semibold text-gray-700 tabular-nums">
                         {formatCurrency(q.grand_total, q.currency)}
                       </span>
                       <ExternalLink
@@ -249,22 +309,27 @@ export default function CustomerListPage() {
 
       {/* Customer Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="card" />
           ))}
         </div>
       ) : customers.length === 0 ? (
-        <EmptyState
-          title="Musteri bulunamadi"
-          description="Yeni musteri ekleyerek baslayabilirsiniz"
-          action={
-            <Button onClick={() => setModalOpen(true)}>Yeni Musteri</Button>
-          }
-        />
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 mb-5">
+            <Users size={36} className="text-gray-400" />
+          </div>
+          <EmptyState
+            title="Musteri bulunamadi"
+            description="Yeni musteri ekleyerek baslayabilirsiniz"
+            action={
+              <Button onClick={() => setModalOpen(true)}>Yeni Musteri</Button>
+            }
+          />
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {customers.map((c) => (
               <CustomerCard key={c.id} customer={c} navigate={navigate} />
             ))}
@@ -272,7 +337,7 @@ export default function CustomerListPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-between">
+            <div className="mt-8 flex items-center justify-between">
               <span className="text-sm text-gray-500">
                 Sayfa {page} / {totalPages}
               </span>
@@ -311,9 +376,9 @@ export default function CustomerListPage() {
             e.preventDefault();
             createMutation.mutate(form);
           }}
-          className="space-y-4"
+          className="space-y-5"
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Input
               label="Isim"
               value={form.name}
@@ -354,11 +419,15 @@ export default function CustomerListPage() {
             value={form.address}
             onChange={(e) => updateField('address', e.target.value)}
           />
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Iptal
             </Button>
-            <Button type="submit" loading={createMutation.isPending}>
+            <Button
+              type="submit"
+              loading={createMutation.isPending}
+              className="px-8 shadow-sm"
+            >
               Kaydet
             </Button>
           </div>

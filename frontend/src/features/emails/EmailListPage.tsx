@@ -2,14 +2,13 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Mail, User, Building2, Clock, Tag, FileText } from 'lucide-react';
+import { Mail, User, Building2, Clock, Tag, Pencil, X, Save, Package, Hash, BarChart3 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
-import { Badge } from '../../components/ui/Badge';
 import { emailsApi, customersApi, quotesApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import {
@@ -334,44 +333,74 @@ export default function EmailListPage() {
         size="lg"
       >
         {activeEmail && (
-          <div className="space-y-4">
-            {/* Header info */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="flex items-start gap-2">
-                <Mail size={16} className="mt-0.5 shrink-0 text-gray-400" />
+          <div className="space-y-5">
+            {/* Header: Sender + Date side by side */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                  <Mail size={16} className="text-slate-500" />
+                </div>
                 <div>
-                  <span className="text-xs text-gray-500">Gonderen</span>
-                  <p className="text-sm font-medium text-gray-900">{activeEmail.from_address}</p>
+                  <p className="text-sm font-semibold text-gray-900">{activeEmail.from_address}</p>
+                  <span className="text-xs text-gray-400">Gonderen</span>
                 </div>
               </div>
-              <div className="flex items-start gap-2">
-                <Clock size={16} className="mt-0.5 shrink-0 text-gray-400" />
+              <div className="flex items-center gap-2 text-right">
                 <div>
-                  <span className="text-xs text-gray-500">Tarih</span>
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-700">
                     {formatDateTime(activeEmail.received_at || activeEmail.created_at)}
                   </p>
+                  <span className="text-xs text-gray-400">Tarih</span>
+                </div>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                  <Clock size={16} className="text-slate-500" />
                 </div>
               </div>
             </div>
 
-            {/* Subject */}
-            <div className="flex items-start gap-2">
-              <FileText size={16} className="mt-0.5 shrink-0 text-gray-400" />
-              <div>
-                <span className="text-xs text-gray-500">Konu</span>
-                <p className="text-sm font-semibold text-gray-900">
-                  {activeEmail.subject || '(Konu yok)'}
-                </p>
-              </div>
+            {/* Subject bold below */}
+            <div>
+              <p className="text-base font-bold text-gray-900 leading-snug">
+                {activeEmail.subject || '(Konu yok)'}
+              </p>
             </div>
 
-            {/* Body */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <span className="mb-2 block text-xs font-medium text-gray-500">Email Icerigi</span>
-              <div
-                className="max-h-64 overflow-y-auto text-sm text-gray-700 leading-relaxed"
-              >
+            {/* Status badges - pill shaped, vibrant */}
+            <div className="flex flex-wrap items-center gap-2">
+              {activeEmail.category && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+                  <Tag size={12} />
+                  {CATEGORY_LABELS[activeEmail.category] || activeEmail.category}
+                </span>
+              )}
+              {activeEmail.status && (
+                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                  activeEmail.status === 'parsed'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {STATUS_LABELS[activeEmail.status] || activeEmail.status}
+                </span>
+              )}
+              {activeEmail.review_status && (
+                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                  activeEmail.review_status === 'approved'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : activeEmail.review_status === 'rejected'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {REVIEW_STATUS_LABELS[activeEmail.review_status] || activeEmail.review_status}
+                </span>
+              )}
+            </div>
+
+            {/* Email body */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+              <span className="mb-3 block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Email Icerigi
+              </span>
+              <div className="max-h-48 overflow-y-auto text-sm leading-relaxed text-gray-700">
                 <p className="whitespace-pre-wrap">
                   {(() => {
                     let text = activeEmail.body_text || '';
@@ -397,41 +426,16 @@ export default function EmailListPage() {
               </div>
             </div>
 
-            {/* Status badges */}
-            <div className="flex flex-wrap gap-2">
-              {activeEmail.category && (
-                <Badge variant="info">
-                  <Tag size={12} className="mr-1" />
-                  {CATEGORY_LABELS[activeEmail.category] || activeEmail.category}
-                </Badge>
-              )}
-              {activeEmail.status && (
-                <Badge variant={activeEmail.status === 'parsed' ? 'success' : 'default'}>
-                  {STATUS_LABELS[activeEmail.status] || activeEmail.status}
-                </Badge>
-              )}
-              {activeEmail.review_status && (
-                <Badge
-                  variant={
-                    activeEmail.review_status === 'approved'
-                      ? 'success'
-                      : activeEmail.review_status === 'rejected'
-                        ? 'danger'
-                        : 'warning'
-                  }
-                >
-                  {REVIEW_STATUS_LABELS[activeEmail.review_status] || activeEmail.review_status}
-                </Badge>
-              )}
-            </div>
-
-            {/* Parsed data - editable */}
+            {/* AI Parse Results - card-within-card */}
             {detailParsed && (
-              <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-5">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-blue-700">
-                    AI Ayristirma Sonucu
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 size={16} className="text-blue-600" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700">
+                      AI Ayristirma Sonucu
+                    </h4>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -440,36 +444,43 @@ export default function EmailListPage() {
                       }
                       setEditingParse(!editingParse);
                     }}
-                    className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-500 transition-colors hover:bg-blue-100 hover:text-blue-700"
+                    title={editingParse ? 'Iptal' : 'Duzenle'}
                   >
-                    {editingParse ? 'Iptal' : 'Duzenle'}
+                    {editingParse ? <X size={16} /> : <Pencil size={14} />}
                   </button>
                 </div>
 
                 {editingParse ? (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="mt-4 space-y-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
-                        <label className="text-xs text-blue-600">Musteri</label>
+                        <label className="mb-1.5 block text-xs font-semibold text-blue-700">
+                          Musteri
+                        </label>
                         <input
-                          className="mt-1 w-full rounded border border-blue-200 bg-white px-2 py-1 text-sm"
+                          className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                           value={editForm.customer_name || ''}
                           onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, customer_name: e.target.value }))}
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-blue-600">Sirket</label>
+                        <label className="mb-1.5 block text-xs font-semibold text-blue-700">
+                          Sirket
+                        </label>
                         <input
-                          className="mt-1 w-full rounded border border-blue-200 bg-white px-2 py-1 text-sm"
+                          className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                           value={editForm.customer_company || ''}
                           onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, customer_company: e.target.value }))}
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-blue-600">Kategori</label>
+                      <label className="mb-1.5 block text-xs font-semibold text-blue-700">
+                        Kategori
+                      </label>
                       <input
-                        className="mt-1 w-full rounded border border-blue-200 bg-white px-2 py-1 text-sm"
+                        className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                         value={editForm.category || ''}
                         onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, category: e.target.value }))}
                       />
@@ -478,57 +489,107 @@ export default function EmailListPage() {
                       type="button"
                       onClick={() => correctMutation.mutate({ id: activeEmail!.id, data: editForm })}
                       disabled={correctMutation.isPending}
-                      className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
                     >
+                      <Save size={14} />
                       {correctMutation.isPending ? 'Kaydediliyor...' : 'Duzeltmeyi Kaydet'}
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="mt-4 space-y-4">
+                    {/* Customer / Company 2-col grid with icons */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {detailParsed.customer_name && (
-                        <div className="flex items-center gap-2">
-                          <User size={14} className="text-blue-500" />
-                          <span className="text-sm"><strong>Musteri:</strong> {detailParsed.customer_name}</span>
+                        <div className="flex items-center gap-3 rounded-lg bg-white p-3 shadow-sm">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                            <User size={14} className="text-blue-600" />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">Musteri</span>
+                            <span className="text-sm font-medium text-gray-900">{detailParsed.customer_name}</span>
+                          </div>
                         </div>
                       )}
                       {detailParsed.customer_company && (
-                        <div className="flex items-center gap-2">
-                          <Building2 size={14} className="text-blue-500" />
-                          <span className="text-sm"><strong>Sirket:</strong> {detailParsed.customer_company}</span>
+                        <div className="flex items-center gap-3 rounded-lg bg-white p-3 shadow-sm">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                            <Building2 size={14} className="text-blue-600" />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">Sirket</span>
+                            <span className="text-sm font-medium text-gray-900">{detailParsed.customer_company}</span>
+                          </div>
                         </div>
                       )}
                     </div>
+
+                    {/* Parts list - mini cards */}
                     {detailParsed.parts && detailParsed.parts.length > 0 && (
                       <div>
-                        <span className="text-xs font-medium text-blue-600">
-                          Talep Edilen Parcalar ({detailParsed.parts.length})
-                        </span>
-                        <div className="mt-1 space-y-1">
+                        <div className="mb-2 flex items-center gap-2">
+                          <Package size={14} className="text-blue-600" />
+                          <span className="text-xs font-bold uppercase tracking-wider text-blue-700">
+                            Talep Edilen Parcalar
+                          </span>
+                          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-200 px-1.5 text-[10px] font-bold text-blue-800">
+                            {detailParsed.parts.length}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
                           {detailParsed.parts.map((p: any, i: number) => (
-                            <div key={i} className="flex items-center justify-between rounded bg-white px-3 py-1.5 text-sm">
-                              <span className="font-mono font-semibold text-gray-800">{p.part_code}</span>
-                              <span className="text-gray-600">{p.part_description}</span>
-                              <span className="font-medium">{p.quantity} adet</span>
+                            <div key={i} className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100">
+                                  <Hash size={12} className="text-slate-500" />
+                                </div>
+                                <div>
+                                  <span className="block font-mono text-sm font-bold text-gray-900">{p.part_code}</span>
+                                  {p.part_description && (
+                                    <span className="block text-xs text-gray-500">{p.part_description}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                                {p.quantity} adet
+                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
+
+                    {/* Confidence progress bar */}
                     {detailParsed.confidence != null && (
-                      <div className="text-xs text-blue-600">
-                        Guven Skoru: %{Math.round(detailParsed.confidence * 100)}
+                      <div>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-blue-700">Guven Skoru</span>
+                          <span className="text-xs font-bold text-blue-800">
+                            %{Math.round(detailParsed.confidence * 100)}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-blue-200">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              detailParsed.confidence >= 0.8
+                                ? 'bg-emerald-500'
+                                : detailParsed.confidence >= 0.5
+                                  ? 'bg-amber-500'
+                                  : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${Math.round(detailParsed.confidence * 100)}%` }}
+                          />
+                        </div>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex flex-col gap-3 border-t border-gray-200 pt-4">
-              {/* Row 1: Parse & Review */}
-              <div className="flex items-center justify-between">
+            {/* Action buttons */}
+            <div className="space-y-3 border-t border-gray-100 pt-5">
+              {/* Primary actions row */}
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="secondary"
@@ -544,7 +605,7 @@ export default function EmailListPage() {
                         size="sm"
                         loading={reviewMutation.isPending}
                         onClick={() => reviewMutation.mutate({ id: activeEmail!.id, action: 'approve' })}
-                        className="!bg-green-600 !text-white hover:!bg-green-700"
+                        className="rounded-lg! bg-emerald-600! px-5! text-white! shadow-sm! hover:bg-emerald-700!"
                       >
                         Onayla
                       </Button>
@@ -553,7 +614,7 @@ export default function EmailListPage() {
                         size="sm"
                         loading={reviewMutation.isPending}
                         onClick={() => reviewMutation.mutate({ id: activeEmail!.id, action: 'reject' })}
-                        className="!bg-red-100 !text-red-700 hover:!bg-red-200"
+                        className="rounded-lg! border-rose-200! bg-rose-50! text-rose-600! hover:bg-rose-100!"
                       >
                         Reddet
                       </Button>
@@ -564,7 +625,8 @@ export default function EmailListPage() {
                   Kapat
                 </Button>
               </div>
-              {/* Row 2: Customer & Quote (only for approved) */}
+
+              {/* Approved actions row */}
               {activeEmail.review_status === 'approved' && (
                 <div className="flex items-center gap-2">
                   <Button
