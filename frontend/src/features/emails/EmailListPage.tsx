@@ -40,13 +40,7 @@ export default function EmailListPage() {
   const [search, setSearch] = useState('');
   const [readTab, setReadTab] = useState(searchParams.get('read') || '');
   const [category, setCategory] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
   const [detailEmail, setDetailEmail] = useState<EmailRequest | null>(null);
-  const [manualForm, setManualForm] = useState({
-    from_address: '',
-    subject: '',
-    body_text: '',
-  });
 
   const isReadFilter = readTab === 'read' ? true : readTab === '' ? false : undefined;
 
@@ -72,17 +66,6 @@ export default function EmailListPage() {
       const msg = err?.response?.data?.error?.message || 'Email kontrolu basarisiz';
       toast.error(msg);
     },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (payload: typeof manualForm) => emailsApi.createManualEmail(payload),
-    onSuccess: () => {
-      toast.success('Email eklendi ve Claude ile ayristirildi');
-      setModalOpen(false);
-      setManualForm({ from_address: '', subject: '', body_text: '' });
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
-    },
-    onError: () => toast.error('Email eklenemedi'),
   });
 
   const createCustomerMutation = useMutation({
@@ -276,9 +259,6 @@ export default function EmailListPage() {
   return (
     <div>
       <PageHeader title="Emailler" description="Gelen email talepleri">
-        <Button variant="secondary" onClick={() => setModalOpen(true)}>
-          Manuel Email Ekle
-        </Button>
         <Button loading={pollMutation.isPending} onClick={() => pollMutation.mutate()}>
           Email Kontrol
         </Button>
@@ -608,57 +588,6 @@ export default function EmailListPage() {
         )}
       </Modal>
 
-      {/* Manual Email Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Manuel Email Ekle"
-        size="lg"
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            createMutation.mutate(manualForm);
-          }}
-          className="space-y-4"
-        >
-          <Input
-            label="Gonderen"
-            placeholder="ornek@sirket.com"
-            value={manualForm.from_address}
-            onChange={(e) => setManualForm((p) => ({ ...p, from_address: e.target.value }))}
-            required
-          />
-          <Input
-            label="Konu"
-            placeholder="Email konusu"
-            value={manualForm.subject}
-            onChange={(e) => setManualForm((p) => ({ ...p, subject: e.target.value }))}
-            required
-          />
-          <div className="w-full">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Icerik</label>
-            <textarea
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light
-                focus:border-honeywell-red"
-              rows={6}
-              placeholder="Email icerigi..."
-              value={manualForm.body_text}
-              onChange={(e) => setManualForm((p) => ({ ...p, body_text: e.target.value }))}
-              required
-            />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>
-              Iptal
-            </Button>
-            <Button type="submit" loading={createMutation.isPending}>
-              Kaydet
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }
