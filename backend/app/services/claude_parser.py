@@ -228,8 +228,8 @@ async def parse_email(body: str, subject: str = "") -> dict:
         api_key=settings.ANTHROPIC_API_KEY,
         timeout=30.0,
     )
-    model = getattr(settings, 'AI_MODEL_NAME', 'claude-sonnet-4-20250514')
-    max_tokens = getattr(settings, 'AI_MAX_TOKENS', 1024)
+    model = settings.AI_MODEL_NAME
+    max_tokens = settings.AI_MAX_TOKENS
     user_message = f"Subject: {subject}\n\n{body}" if subject else body
 
     last_error: Exception | None = None

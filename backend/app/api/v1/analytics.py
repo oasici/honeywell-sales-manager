@@ -247,7 +247,7 @@ async def get_ai_usage(
     )).scalar() or 0
 
     correction_fields_raw = (await db.execute(
-        select(AITrainingData.correction_fields).limit(200)
+        select(AITrainingData.correction_fields)
     )).scalars().all()
 
     field_counts: dict[str, int] = {}

@@ -303,10 +303,14 @@ async def reparse_email(
     return {"message": f"Email {email_id} ayristirildi", "status": email.status}
 
 
+class CorrectParseRequest(BaseModel):
+    parsed_data: dict
+
+
 @router.patch("/{email_id}/correct-parse", status_code=200)
 async def correct_parse(
     email_id: int,
-    body: dict,
+    body: CorrectParseRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
@@ -319,7 +323,7 @@ async def correct_parse(
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
 
     original_parse = email.parsed_data or "{}"
-    corrected_data = body.get("parsed_data", {})
+    corrected_data = body.parsed_data
     if not corrected_data:
         raise BadRequestException("parsed_data alani gereklidir")
 
@@ -387,12 +391,20 @@ async def get_training_data(
     result = await db.execute(query.offset(offset).limit(page_size))
     entries = result.scalars().all()
 
+    def _safe_json(s: str | None) -> dict | None:
+        if not s:
+            return None
+        try:
+            return json.loads(s)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
     items = [
         {
             "id": e.id,
             "email_id": e.email_id,
-            "original_parse": json.loads(e.original_parse) if e.original_parse else None,
-            "corrected_parse": json.loads(e.corrected_parse) if e.corrected_parse else None,
+            "original_parse": _safe_json(e.original_parse),
+            "corrected_parse": _safe_json(e.corrected_parse),
             "correction_fields": e.correction_fields.split(",") if e.correction_fields else [],
             "model_used": e.model_used,
             "created_at": e.created_at.isoformat() if e.created_at else None,
