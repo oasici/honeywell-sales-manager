@@ -87,8 +87,8 @@ export default function ReportsPage() {
     queryKey: ['reports-parts-without-price'],
     queryFn: async (): Promise<NoPricePart[]> => {
       const raw = await analyticsApi.getPartsWithoutPrice();
-      if (Array.isArray(raw)) return raw as NoPricePart[];
-      return ((raw as Record<string, unknown>).items as NoPricePart[]) ?? [];
+      if (Array.isArray(raw)) return raw as unknown as NoPricePart[];
+      return ((raw as unknown as { items: NoPricePart[] }).items) ?? [];
     },
   });
 
