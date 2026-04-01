@@ -27,7 +27,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  Cell,
 } from 'recharts';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { dashboardApi, analyticsApi } from '../../lib/api';
