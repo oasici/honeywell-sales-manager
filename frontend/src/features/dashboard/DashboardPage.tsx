@@ -19,14 +19,15 @@ import {
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Legend,
+  Cell,
 } from 'recharts';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { dashboardApi, analyticsApi } from '../../lib/api';
@@ -204,26 +205,32 @@ export default function DashboardPage() {
         </h3>
         {topParts && topParts.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={topParts} margin={{ top: 10, right: 10, left: 10, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <BarChart data={topParts} margin={{ top: 20, right: 10, left: 10, bottom: 60 }}>
+              <defs>
+                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#D32F2F" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#B71C1C" stopOpacity={0.8} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis
                 dataKey="honeywell_code"
-                tick={{ fontSize: 10, fill: '#666' }}
+                tick={{ fontSize: 10, fill: '#94a3b8' }}
                 angle={-45}
                 textAnchor="end"
                 height={70}
                 interval={0}
               />
               <YAxis
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
                 allowDecimals={false}
                 tickFormatter={(v: number) => String(Math.round(v))}
               />
               <Tooltip
                 formatter={(v: any) => [Math.round(v), 'Talep']}
-                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                contentStyle={{ fontSize: 12, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
               />
-              <Bar dataKey="request_count" fill="#D32F2F" radius={[4, 4, 0, 0]} barSize={32} />
+              <Bar dataKey="request_count" fill="url(#barGrad)" radius={[6, 6, 0, 0]} barSize={36} label={{ position: 'top', fontSize: 10, fill: '#94a3b8' }} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
@@ -239,16 +246,26 @@ export default function DashboardPage() {
         </h3>
         {trend && trend.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trend.map((t) => ({ ...t, label: `${t.year}-${String(t.month).padStart(2, '0')}` }))}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ fontSize: 12 }} />
+            <AreaChart data={trend.map((t) => ({ ...t, label: `${t.year}-${String(t.month).padStart(2, '0')}` }))}>
+              <defs>
+                <linearGradient id="gradRed" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#D32F2F" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#D32F2F" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradBlue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#1976D2" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#1976D2" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="quote_count" stroke="#D32F2F" name="Teklif" strokeWidth={2} />
-              <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#1976D2" name="Gelir" strokeWidth={2} />
-            </LineChart>
+              <Area yAxisId="left" type="monotone" dataKey="quote_count" stroke="#D32F2F" fill="url(#gradRed)" name="Teklif" strokeWidth={2.5} dot={{ r: 4, fill: '#D32F2F' }} />
+              <Area yAxisId="right" type="monotone" dataKey="revenue" stroke="#1976D2" fill="url(#gradBlue)" name="Gelir" strokeWidth={2.5} dot={{ r: 4, fill: '#1976D2' }} />
+            </AreaChart>
           </ResponsiveContainer>
         ) : (
           <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>

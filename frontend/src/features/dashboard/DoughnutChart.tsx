@@ -2,10 +2,10 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 export const PALETTE = [
-  ['#D32F2F', '#FFCDD2'],
-  ['#1976D2', '#BBDEFB'],
-  ['#388E3C', '#C8E6C9'],
-  ['#F57C00', '#FFE0B2'],
+  ['#D32F2F', '#fce4ec'],
+  ['#1976D2', '#e3f2fd'],
+  ['#388E3C', '#e8f5e9'],
+  ['#F57C00', '#fff3e0'],
 ];
 
 interface DoughnutChartProps {
@@ -42,12 +42,13 @@ export const DoughnutChart = React.memo(function DoughnutChart({
                 data={data}
                 cx="50%"
                 cy="50%"
-                innerRadius={40}
-                outerRadius={60}
+                innerRadius={45}
+                outerRadius={65}
                 dataKey="value"
                 startAngle={90}
                 endAngle={-270}
                 stroke="none"
+                cornerRadius={4}
               >
                 {data.map((_, i) => (
                   <Cell key={i} fill={colors[i]} />

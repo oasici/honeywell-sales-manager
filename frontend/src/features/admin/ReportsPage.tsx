@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   XAxis,
@@ -151,30 +151,26 @@ export default function ReportsPage() {
           </div>
         ) : trendChartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trendChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ fontSize: 12 }} />
+            <AreaChart data={trendChartData}>
+              <defs>
+                <linearGradient id="rptGradRed" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#D32F2F" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#D32F2F" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="rptGradBlue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#1976D2" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#1976D2" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               <Legend />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="quote_count"
-                stroke="#D32F2F"
-                name="Teklif Sayisi"
-                strokeWidth={2}
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="revenue"
-                stroke="#1976D2"
-                name="Gelir"
-                strokeWidth={2}
-              />
-            </LineChart>
+              <Area yAxisId="left" type="monotone" dataKey="quote_count" stroke="#D32F2F" fill="url(#rptGradRed)" name="Teklif Sayisi" strokeWidth={2.5} dot={{ r: 4, fill: '#D32F2F' }} />
+              <Area yAxisId="right" type="monotone" dataKey="revenue" stroke="#1976D2" fill="url(#rptGradBlue)" name="Gelir" strokeWidth={2.5} dot={{ r: 4, fill: '#1976D2' }} />
+            </AreaChart>
           </ResponsiveContainer>
         ) : (
           <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>
@@ -199,23 +195,23 @@ export default function ReportsPage() {
                 textAnchor="end"
                 height={60}
               />
-              <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={{ fontSize: 12 }} />
+              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               <Legend />
               <Bar
                 yAxisId="left"
                 dataKey="item_count"
                 fill="#D32F2F"
                 name="Kalem Sayisi"
-                radius={[4, 4, 0, 0]}
+                radius={[6, 6, 0, 0]}
               />
               <Bar
                 yAxisId="right"
                 dataKey="total_value"
                 fill="#1976D2"
                 name="Toplam Deger (USD)"
-                radius={[4, 4, 0, 0]}
+                radius={[6, 6, 0, 0]}
               />
             </BarChart>
           </ResponsiveContainer>

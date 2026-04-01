@@ -96,6 +96,21 @@ body {
   transition-duration: 0ms;
 }
 
+/* ── Chart styling ── */
+.recharts-default-tooltip {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 10px 14px !important;
+}
+.recharts-cartesian-grid line {
+  stroke: #f1f5f9;
+}
+.recharts-legend-item-text {
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+
 /* ── Focus ring ── */
 :focus-visible {
   outline: 2px solid #D32F2F;
