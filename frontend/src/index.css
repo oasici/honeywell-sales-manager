@@ -173,15 +173,22 @@ body {
 
 /* ── Print styles ── */
 @media print {
-  .no-print, nav, .sidebar, header { display: none !important; }
-  body { background: white !important; font-size: 11px !important; }
+  .no-print, nav, .sidebar, header, aside { display: none !important; }
+  body { background: white !important; font-size: 10px !important; }
+  #root { min-height: auto !important; }
+  main { overflow: visible !important; padding: 8px !important; height: auto !important; }
   .card-modern {
     break-inside: avoid;
     page-break-inside: avoid;
     box-shadow: none !important;
-    border: 1px solid #e2e8f0 !important;
-    margin-bottom: 12px !important;
+    border: 1px solid #d1d5db !important;
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
   }
-  .recharts-wrapper { max-height: 250px !important; }
-  main { overflow: visible !important; padding: 0 !important; }
+  /* Shrink charts aggressively for print */
+  .recharts-responsive-container { height: 150px !important; max-height: 150px !important; }
+  .recharts-wrapper { height: 150px !important; max-height: 150px !important; }
+  .recharts-surface { height: 140px !important; }
+  /* Force page breaks between major sections */
+  .print-page-break { page-break-before: always; }
 }

@@ -222,6 +222,7 @@ export default function ReportsPage() {
       </Card>
 
       {/* Section 3: Top Requested Parts */}
+      <div className="print-page-break" />
       <Card title="En Cok Talep Edilen Parcalar">
         {isTopPartsLoading ? (
           <p className="py-8 text-center text-sm text-gray-400">Yukleniyor...</p>
