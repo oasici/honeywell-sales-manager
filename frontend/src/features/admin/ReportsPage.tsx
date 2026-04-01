@@ -193,25 +193,28 @@ export default function ReportsPage() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="category"
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 10 }}
                 interval={0}
-                angle={-25}
+                angle={-15}
                 textAnchor="end"
                 height={60}
               />
-              <YAxis tick={{ fontSize: 11 }} />
+              <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={{ fontSize: 12 }} />
               <Legend />
               <Bar
+                yAxisId="left"
                 dataKey="item_count"
                 fill="#D32F2F"
                 name="Kalem Sayisi"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
+                yAxisId="right"
                 dataKey="total_value"
                 fill="#1976D2"
-                name="Toplam Deger"
+                name="Toplam Deger (USD)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>

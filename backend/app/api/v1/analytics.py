@@ -152,34 +152,34 @@ async def get_parts_without_price(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Parts that have been requested in quotes but have no price entry."""
+    """Parts requested in quotes that have no pricing (supplier_price AND transfer_price both null)."""
+    from sqlalchemy import or_
+
     # Get all honeywell codes from quote items
     quoted_codes_q = await db.execute(
         select(QuoteItem.honeywell_code)
         .where(QuoteItem.honeywell_code.isnot(None))
+        .where(QuoteItem.honeywell_code != "-")
+        .where(QuoteItem.honeywell_code != "")
         .distinct()
     )
     quoted_codes = {row[0] for row in quoted_codes_q.all()}
 
     if not quoted_codes:
-        return {"items": []}
+        return []
 
-    # Find parts that exist but have no price entries
-    # Use a subquery to find part IDs with prices
-    priced_part_ids_subq = (
-        select(PriceEntry.spare_part_id).distinct().subquery()
-    )
-
+    # Find parts that exist but have NO price (supplier_price AND transfer_price both null)
     result = await db.execute(
         select(SparePart)
         .where(SparePart.honeywell_code.in_(quoted_codes))
         .where(SparePart.is_active.is_(True))
-        .where(SparePart.id.notin_(select(priced_part_ids_subq)))
+        .where(SparePart.supplier_price.is_(None))
+        .where(SparePart.transfer_price.is_(None))
         .order_by(SparePart.honeywell_code)
     )
     parts = result.scalars().all()
 
-    # Also find codes that were quoted but don't even exist in spare_parts
+    # Also find codes that were quoted but don't exist in catalog at all
     existing_codes_q = await db.execute(
         select(SparePart.honeywell_code)
         .where(SparePart.honeywell_code.in_(quoted_codes))
@@ -199,7 +199,6 @@ async def get_parts_without_price(
         for p in parts
     ]
 
-    # Add unknown codes
     for code in unknown_codes:
         items.append({
             "id": None,
