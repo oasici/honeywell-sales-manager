@@ -42,7 +42,8 @@ function applyTheme(theme: Theme) {
 }
 
 function applyFontSize(offset: number) {
-  document.documentElement.style.fontSize = `${16 + offset}px`;
+  // Set CSS variable instead of root fontSize to avoid scaling components
+  document.documentElement.style.setProperty('--font-size-offset', `${offset}px`);
 }
 
 const initial = loadPreferences();
