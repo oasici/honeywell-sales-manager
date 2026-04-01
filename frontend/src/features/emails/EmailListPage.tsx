@@ -373,22 +373,26 @@ export default function EmailListPage() {
                 className="max-h-64 overflow-y-auto text-sm text-gray-700 leading-relaxed"
               >
                 <p className="whitespace-pre-wrap">
-                  {activeEmail.body_text
-                    ? activeEmail.body_text.includes('<')
-                      ? activeEmail.body_text
-                          .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
-                          .replace(/<br\s*\/?>/gi, '\n')
-                          .replace(/<\/?(p|div|tr|li|h[1-6])[^>]*>/gi, '\n')
-                          .replace(/<[^>]+>/g, '')
-                          .replace(/&nbsp;/g, ' ')
-                          .replace(/&amp;/g, '&')
-                          .replace(/&lt;/g, '<')
-                          .replace(/&gt;/g, '>')
-                          .replace(/&quot;/g, '"')
-                          .replace(/\n\s*\n+/g, '\n\n')
-                          .trim()
-                      : activeEmail.body_text
-                    : '(Icerik yok)'}
+                  {(() => {
+                    let text = activeEmail.body_text || '';
+                    if (!text) return '(Icerik yok)';
+                    if (text.includes('<')) {
+                      text = text
+                        .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
+                        .replace(/<br\s*\/?>/gi, '\n')
+                        .replace(/<\/?(p|div|tr|li|h[1-6])[^>]*>/gi, '\n')
+                        .replace(/<[^>]+>/g, '');
+                    }
+                    return text
+                      .replace(/&nbsp;/g, ' ')
+                      .replace(/&amp;/g, '&')
+                      .replace(/&lt;/g, '<')
+                      .replace(/&gt;/g, '>')
+                      .replace(/&quot;/g, '"')
+                      .replace(/&#\d+;/g, '')
+                      .replace(/\n\s*\n+/g, '\n\n')
+                      .trim();
+                  })()}
                 </p>
               </div>
             </div>
