@@ -174,5 +174,14 @@ body {
 /* ── Print styles ── */
 @media print {
   .no-print, nav, .sidebar, header { display: none !important; }
-  body { background: white !important; }
+  body { background: white !important; font-size: 11px !important; }
+  .card-modern {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    margin-bottom: 12px !important;
+  }
+  .recharts-wrapper { max-height: 250px !important; }
+  main { overflow: visible !important; padding: 0 !important; }
 }
