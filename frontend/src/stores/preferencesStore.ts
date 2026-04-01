@@ -42,8 +42,15 @@ function applyTheme(theme: Theme) {
 }
 
 function applyFontSize(offset: number) {
-  // Set CSS variable instead of root fontSize to avoid scaling components
   document.documentElement.style.setProperty('--font-size-offset', `${offset}px`);
+  const root = document.getElementById('root');
+  if (root) {
+    if (offset !== 0) {
+      root.classList.add('font-scaled');
+    } else {
+      root.classList.remove('font-scaled');
+    }
+  }
 }
 
 const initial = loadPreferences();
