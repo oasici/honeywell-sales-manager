@@ -1,0 +1,46 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Badge > renders danger variant 1`] = `
+<span
+  class="inline-flex items-center rounded-full font-medium transition-colors duration-150
+        bg-red-100 text-red-700 px-2.5 py-1 text-xs"
+>
+  Reddedildi
+</span>
+`;
+
+exports[`Badge > renders default variant 1`] = `
+<span
+  class="inline-flex items-center rounded-full font-medium transition-colors duration-150
+        bg-gray-100 text-gray-700 px-2.5 py-1 text-xs"
+>
+  Default
+</span>
+`;
+
+exports[`Badge > renders info variant 1`] = `
+<span
+  class="inline-flex items-center rounded-full font-medium transition-colors duration-150
+        bg-blue-100 text-blue-700 px-2.5 py-1 text-xs"
+>
+  Bilgi
+</span>
+`;
+
+exports[`Badge > renders success variant 1`] = `
+<span
+  class="inline-flex items-center rounded-full font-medium transition-colors duration-150
+        bg-green-100 text-green-700 px-2.5 py-1 text-xs"
+>
+  Onaylandi
+</span>
+`;
+
+exports[`Badge > renders warning variant 1`] = `
+<span
+  class="inline-flex items-center rounded-full font-medium transition-colors duration-150
+        bg-yellow-100 text-yellow-700 px-2.5 py-1 text-xs"
+>
+  Beklemede
+</span>
+`;

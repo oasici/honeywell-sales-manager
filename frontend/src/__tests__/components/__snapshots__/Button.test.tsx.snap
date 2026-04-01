@@ -1,0 +1,108 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Button > renders danger variant 1`] = `
+<button
+  class="btn-modern inline-flex items-center justify-center gap-2 font-semibold
+          focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 focus-visible:outline-none
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+          bg-red-600 hover:bg-red-700 text-white shadow-sm active:scale-[0.97] px-4 py-2 text-sm "
+  type="button"
+>
+  Sil
+</button>
+`;
+
+exports[`Button > renders disabled state 1`] = `
+<button
+  class="btn-modern inline-flex items-center justify-center gap-2 font-semibold
+          focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 focus-visible:outline-none
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+          bg-honeywell-red hover:bg-honeywell-dark text-white shadow-sm hover:shadow-md active:scale-[0.97] px-4 py-2 text-sm "
+  disabled=""
+  type="button"
+>
+  Disabled
+</button>
+`;
+
+exports[`Button > renders large size 1`] = `
+<button
+  class="btn-modern inline-flex items-center justify-center gap-2 font-semibold
+          focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 focus-visible:outline-none
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+          bg-honeywell-red hover:bg-honeywell-dark text-white shadow-sm hover:shadow-md active:scale-[0.97] px-6 py-3 text-base "
+  type="button"
+>
+  Large
+</button>
+`;
+
+exports[`Button > renders loading state with spinner 1`] = `
+<button
+  class="btn-modern inline-flex items-center justify-center gap-2 font-semibold
+          focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 focus-visible:outline-none
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+          bg-honeywell-red hover:bg-honeywell-dark text-white shadow-sm hover:shadow-md active:scale-[0.97] px-4 py-2 text-sm "
+  disabled=""
+  type="button"
+>
+  <svg
+    aria-label="Yukleniyor"
+    class="animate-spin h-4 w-4 text-current"
+    fill="none"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      class="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      stroke-width="4"
+    />
+    <path
+      class="opacity-75"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      fill="currentColor"
+    />
+  </svg>
+  Yukleniyor
+</button>
+`;
+
+exports[`Button > renders primary variant by default 1`] = `
+<button
+  class="btn-modern inline-flex items-center justify-center gap-2 font-semibold
+          focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 focus-visible:outline-none
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+          bg-honeywell-red hover:bg-honeywell-dark text-white shadow-sm hover:shadow-md active:scale-[0.97] px-4 py-2 text-sm "
+  type="button"
+>
+  Kaydet
+</button>
+`;
+
+exports[`Button > renders secondary variant 1`] = `
+<button
+  class="btn-modern inline-flex items-center justify-center gap-2 font-semibold
+          focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 focus-visible:outline-none
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+          bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 shadow-sm px-4 py-2 text-sm "
+  type="button"
+>
+  Iptal
+</button>
+`;
+
+exports[`Button > renders small size 1`] = `
+<button
+  class="btn-modern inline-flex items-center justify-center gap-2 font-semibold
+          focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 focus-visible:outline-none
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+          bg-honeywell-red hover:bg-honeywell-dark text-white shadow-sm hover:shadow-md active:scale-[0.97] px-3 py-1.5 text-sm "
+  type="button"
+>
+  Small
+</button>
+`;

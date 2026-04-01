@@ -1,0 +1,95 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Input > renders with error state 1`] = `
+<div
+  class="w-full"
+>
+  <label
+    class="mb-1 block text-sm font-medium text-gray-700"
+    for="email"
+  >
+    Email
+  </label>
+  <input
+    class="block w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-200
+            placeholder:text-gray-400
+            focus:outline-none focus:ring-2 focus:ring-offset-0
+            border-red-500 focus:border-red-500 focus:ring-red-200
+            disabled:bg-gray-50 disabled:text-gray-500
+            "
+    id="email"
+  />
+  <p
+    class="mt-1 text-xs text-red-600"
+  >
+    Gecersiz email adresi
+  </p>
+</div>
+`;
+
+exports[`Input > renders with helper text 1`] = `
+<div
+  class="w-full"
+>
+  <label
+    class="mb-1 block text-sm font-medium text-gray-700"
+    for="sifre"
+  >
+    Sifre
+  </label>
+  <input
+    class="block w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-200
+            placeholder:text-gray-400
+            focus:outline-none focus:ring-2 focus:ring-offset-0
+            border-gray-300 focus:border-honeywell-red focus:ring-honeywell-light
+            disabled:bg-gray-50 disabled:text-gray-500
+            "
+    id="sifre"
+    type="password"
+  />
+  <p
+    class="mt-1 text-xs text-gray-500"
+  >
+    En az 8 karakter
+  </p>
+</div>
+`;
+
+exports[`Input > renders with label 1`] = `
+<div
+  class="w-full"
+>
+  <label
+    class="mb-1 block text-sm font-medium text-gray-700"
+    for="email"
+  >
+    Email
+  </label>
+  <input
+    class="block w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-200
+            placeholder:text-gray-400
+            focus:outline-none focus:ring-2 focus:ring-offset-0
+            border-gray-300 focus:border-honeywell-red focus:ring-honeywell-light
+            disabled:bg-gray-50 disabled:text-gray-500
+            "
+    id="email"
+    placeholder="ornek@test.com"
+  />
+</div>
+`;
+
+exports[`Input > renders without label 1`] = `
+<div
+  class="w-full"
+>
+  <input
+    class="block w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-200
+            placeholder:text-gray-400
+            focus:outline-none focus:ring-2 focus:ring-offset-0
+            border-gray-300 focus:border-honeywell-red focus:ring-honeywell-light
+            disabled:bg-gray-50 disabled:text-gray-500
+            "
+    placeholder="Ara..."
+  />
+</div>
+`;

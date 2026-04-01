@@ -1,0 +1,66 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Card > renders with title 1`] = `
+<div
+  class="card-modern overflow-hidden "
+>
+  <div
+    class="flex items-center justify-between border-b border-gray-100 px-6 py-4"
+  >
+    <h3
+      class="text-[15px] font-semibold tracking-tight text-gray-900"
+    >
+      Test Basligi
+    </h3>
+  </div>
+  <div
+    class="px-6 py-5"
+  >
+    <p>
+      Icerik
+    </p>
+  </div>
+</div>
+`;
+
+exports[`Card > renders with title and action 1`] = `
+<div
+  class="card-modern overflow-hidden "
+>
+  <div
+    class="flex items-center justify-between border-b border-gray-100 px-6 py-4"
+  >
+    <h3
+      class="text-[15px] font-semibold tracking-tight text-gray-900"
+    >
+      Ayarlar
+    </h3>
+    <div>
+      <button>
+        Kaydet
+      </button>
+    </div>
+  </div>
+  <div
+    class="px-6 py-5"
+  >
+    <p>
+      Form alanlari
+    </p>
+  </div>
+</div>
+`;
+
+exports[`Card > renders without title 1`] = `
+<div
+  class="card-modern overflow-hidden "
+>
+  <div
+    class="px-6 py-5"
+  >
+    <p>
+      Sadece icerik
+    </p>
+  </div>
+</div>
+`;

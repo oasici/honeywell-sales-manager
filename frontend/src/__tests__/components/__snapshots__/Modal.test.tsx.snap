@@ -1,0 +1,101 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Modal > renders large size 1`] = `
+<div
+  aria-modal="true"
+  class="fixed inset-0 z-50 flex items-center justify-center"
+  role="dialog"
+>
+  <div
+    class="fixed inset-0 bg-black/50 transition-opacity"
+  />
+  <div
+    class="relative z-10 w-full max-w-2xl mx-4 rounded-xl bg-white shadow-xl transition-all"
+  >
+    <div
+      class="flex items-center justify-between border-b border-gray-200 px-6 py-4"
+    >
+      <h2
+        class="text-lg font-semibold text-gray-900"
+      >
+        Buyuk Modal
+      </h2>
+      <button
+        aria-label="Kapat"
+        class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+      >
+        <svg
+          class="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M6 18L18 6M6 6l12 12"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+          />
+        </svg>
+      </button>
+    </div>
+    <div
+      class="px-6 py-4"
+    >
+      <p>
+        Genis icerik
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Modal > renders with title and content when open 1`] = `
+<div
+  aria-modal="true"
+  class="fixed inset-0 z-50 flex items-center justify-center"
+  role="dialog"
+>
+  <div
+    class="fixed inset-0 bg-black/50 transition-opacity"
+  />
+  <div
+    class="relative z-10 w-full max-w-lg mx-4 rounded-xl bg-white shadow-xl transition-all"
+  >
+    <div
+      class="flex items-center justify-between border-b border-gray-200 px-6 py-4"
+    >
+      <h2
+        class="text-lg font-semibold text-gray-900"
+      >
+        Email Detayi
+      </h2>
+      <button
+        aria-label="Kapat"
+        class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+      >
+        <svg
+          class="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M6 18L18 6M6 6l12 12"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+          />
+        </svg>
+      </button>
+    </div>
+    <div
+      class="px-6 py-4"
+    >
+      <p>
+        Email icerigi burada
+      </p>
+    </div>
+  </div>
+</div>
+`;
