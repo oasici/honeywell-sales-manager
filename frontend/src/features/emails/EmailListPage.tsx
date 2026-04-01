@@ -120,6 +120,25 @@ export default function EmailListPage() {
     },
   });
 
+  const [editingParse, setEditingParse] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, any>>({});
+
+  const correctMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      emailsApi.correctParse(id, data),
+    onSuccess: (res) => {
+      toast.success(res.message);
+      setEditingParse(false);
+      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      if (detailEmail) {
+        queryClient.invalidateQueries({ queryKey: ['email-detail', detailEmail.id] });
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error?.message || 'Duzeltme kaydedilemedi');
+    },
+  });
+
   const reviewMutation = useMutation({
     mutationFn: ({ id, action }: { id: number; action: string }) => emailsApi.reviewEmail(id, action),
     onSuccess: () => {
@@ -422,72 +441,102 @@ export default function EmailListPage() {
               )}
             </div>
 
-            {/* Parsed data - customer & parts */}
+            {/* Parsed data - editable */}
             {detailParsed && (
               <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-blue-700">
-                  Claude AI Ayristirma Sonucu
-                </h4>
-
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {detailParsed.customer_name && (
-                    <div className="flex items-center gap-2">
-                      <User size={14} className="text-blue-500" />
-                      <span className="text-sm">
-                        <strong>Musteri:</strong> {detailParsed.customer_name}
-                      </span>
-                    </div>
-                  )}
-                  {detailParsed.customer_company && (
-                    <div className="flex items-center gap-2">
-                      <Building2 size={14} className="text-blue-500" />
-                      <span className="text-sm">
-                        <strong>Sirket:</strong> {detailParsed.customer_company}
-                      </span>
-                    </div>
-                  )}
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-blue-700">
+                    AI Ayristirma Sonucu
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!editingParse) {
+                        setEditForm({ ...detailParsed });
+                      }
+                      setEditingParse(!editingParse);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    {editingParse ? 'Iptal' : 'Duzenle'}
+                  </button>
                 </div>
 
-                {/* Parts list */}
-                {detailParsed.parts && detailParsed.parts.length > 0 && (
-                  <div>
-                    <span className="text-xs font-medium text-blue-600">
-                      Talep Edilen Parcalar ({detailParsed.parts.length})
-                    </span>
-                    <div className="mt-1 space-y-1">
-                      {detailParsed.parts.map((p: any, i: number) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between rounded bg-white px-3 py-1.5 text-sm"
-                        >
-                          <span className="font-mono font-semibold text-gray-800">
-                            {p.part_code}
-                          </span>
-                          <span className="text-gray-600">{p.part_description}</span>
-                          <span className="font-medium">{p.quantity} adet</span>
-                          <Badge
-                            variant={
-                              p.urgency === 'critical'
-                                ? 'danger'
-                                : p.urgency === 'high'
-                                  ? 'warning'
-                                  : 'default'
-                            }
-                            size="sm"
-                          >
-                            {p.urgency}
-                          </Badge>
-                        </div>
-                      ))}
+                {editingParse ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div>
+                        <label className="text-xs text-blue-600">Musteri</label>
+                        <input
+                          className="mt-1 w-full rounded border border-blue-200 bg-white px-2 py-1 text-sm"
+                          value={editForm.customer_name || ''}
+                          onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, customer_name: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-blue-600">Sirket</label>
+                        <input
+                          className="mt-1 w-full rounded border border-blue-200 bg-white px-2 py-1 text-sm"
+                          value={editForm.customer_company || ''}
+                          onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, customer_company: e.target.value }))}
+                        />
+                      </div>
                     </div>
+                    <div>
+                      <label className="text-xs text-blue-600">Kategori</label>
+                      <input
+                        className="mt-1 w-full rounded border border-blue-200 bg-white px-2 py-1 text-sm"
+                        value={editForm.category || ''}
+                        onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, category: e.target.value }))}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => correctMutation.mutate({ id: activeEmail!.id, data: editForm })}
+                      disabled={correctMutation.isPending}
+                      className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {correctMutation.isPending ? 'Kaydediliyor...' : 'Duzeltmeyi Kaydet'}
+                    </button>
                   </div>
-                )}
-
-                {/* Confidence */}
-                {detailParsed.confidence != null && (
-                  <div className="text-xs text-blue-600">
-                    Guven Skoru: %{Math.round(detailParsed.confidence * 100)}
-                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {detailParsed.customer_name && (
+                        <div className="flex items-center gap-2">
+                          <User size={14} className="text-blue-500" />
+                          <span className="text-sm"><strong>Musteri:</strong> {detailParsed.customer_name}</span>
+                        </div>
+                      )}
+                      {detailParsed.customer_company && (
+                        <div className="flex items-center gap-2">
+                          <Building2 size={14} className="text-blue-500" />
+                          <span className="text-sm"><strong>Sirket:</strong> {detailParsed.customer_company}</span>
+                        </div>
+                      )}
+                    </div>
+                    {detailParsed.parts && detailParsed.parts.length > 0 && (
+                      <div>
+                        <span className="text-xs font-medium text-blue-600">
+                          Talep Edilen Parcalar ({detailParsed.parts.length})
+                        </span>
+                        <div className="mt-1 space-y-1">
+                          {detailParsed.parts.map((p: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between rounded bg-white px-3 py-1.5 text-sm">
+                              <span className="font-mono font-semibold text-gray-800">{p.part_code}</span>
+                              <span className="text-gray-600">{p.part_description}</span>
+                              <span className="font-medium">{p.quantity} adet</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {detailParsed.confidence != null && (
+                      <div className="text-xs text-blue-600">
+                        Guven Skoru: %{Math.round(detailParsed.confidence * 100)}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

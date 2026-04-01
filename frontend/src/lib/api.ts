@@ -203,6 +203,11 @@ export const emailsApi = {
     return data;
   },
 
+  correctParse: async (id: number, parsedData: Record<string, unknown>): Promise<{ message: string; changed_fields: string[] }> => {
+    const { data } = await api.patch<{ message: string; changed_fields: string[] }>(`/emails/${id}/correct-parse`, { parsed_data: parsedData });
+    return data;
+  },
+
   reparseEmail: async (id: number): Promise<{ message: string; status: string }> => {
     const { data } = await api.post<{ message: string; status: string }>(`/emails/${id}/reparse`);
     return data;

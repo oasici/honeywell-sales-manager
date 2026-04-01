@@ -303,6 +303,91 @@ async def reparse_email(
     return {"message": f"Email {email_id} ayristirildi", "status": email.status}
 
 
+@router.patch("/{email_id}/correct-parse", status_code=200)
+async def correct_parse(
+    email_id: int,
+    body: dict,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save a user correction to email parse data. Stores both original and corrected for training."""
+    from app.models.ai_training_data import AITrainingData
+
+    result = await db.execute(select(EmailRequest).where(EmailRequest.id == email_id))
+    email = result.scalar_one_or_none()
+    if not email:
+        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+
+    original_parse = email.parsed_data or "{}"
+    corrected_data = body.get("parsed_data", {})
+    if not corrected_data:
+        raise BadRequestException("parsed_data alani gereklidir")
+
+    # Detect which fields changed
+    try:
+        original = json.loads(original_parse)
+    except (json.JSONDecodeError, TypeError):
+        original = {}
+
+    changed_fields = []
+    for key in ["customer_name", "customer_company", "parts", "category", "is_spare_part_request"]:
+        if key in corrected_data and corrected_data.get(key) != original.get(key):
+            changed_fields.append(key)
+
+    if not changed_fields:
+        return {"message": "Degisiklik bulunamadi", "changed_fields": []}
+
+    # Save training data
+    training_entry = AITrainingData(
+        email_id=email_id,
+        original_parse=original_parse,
+        corrected_parse=json.dumps(corrected_data, ensure_ascii=False),
+        correction_fields=",".join(changed_fields),
+        model_used="claude" if email.status == "parsed" else "regex",
+        created_by=current_user.id,
+    )
+    db.add(training_entry)
+
+    # Update email's parsed_data
+    email.parsed_data = json.dumps(corrected_data, ensure_ascii=False)
+    await db.flush()
+
+    return {
+        "message": f"Duzeltme kaydedildi ({len(changed_fields)} alan)",
+        "changed_fields": changed_fields,
+    }
+
+
+@router.get("/training-data", status_code=200)
+async def get_training_data(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export all AI training data (corrections) for fine-tuning."""
+    from app.models.ai_training_data import AITrainingData
+
+    result = await db.execute(
+        select(AITrainingData).order_by(AITrainingData.created_at.desc()).limit(500)
+    )
+    entries = result.scalars().all()
+
+    return {
+        "count": len(entries),
+        "data": [
+            {
+                "id": e.id,
+                "email_id": e.email_id,
+                "original_parse": json.loads(e.original_parse) if e.original_parse else None,
+                "corrected_parse": json.loads(e.corrected_parse) if e.corrected_parse else None,
+                "correction_fields": e.correction_fields.split(",") if e.correction_fields else [],
+                "model_used": e.model_used,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in entries
+        ],
+    }
+
+
 @router.get("/{email_id}/matches")
 async def get_email_matches(
     email_id: int,

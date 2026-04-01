@@ -9,6 +9,7 @@ from app.models.quote_item import QuoteItem
 from app.models.audit_log import AuditLog
 from app.models.notification import Notification
 from app.models.setting import Setting
+from app.models.ai_training_data import AITrainingData
 
 __all__ = [
     "EmailStatus",
@@ -25,4 +26,5 @@ __all__ = [
     "AuditLog",
     "Notification",
     "Setting",
+    "AITrainingData",
 ]
