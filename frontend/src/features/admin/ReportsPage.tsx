@@ -17,7 +17,7 @@ import { Printer } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { analyticsApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
-import type { TopPart, TrendData, SparePart } from '../../lib/types';
+import type { TopPart, TrendData } from '../../lib/types';
 
 /* ── Period options ───────────────────────────────────── */
 interface PeriodOption {
@@ -85,11 +85,10 @@ export default function ReportsPage() {
 
   const { data: noPriceParts, isLoading: isNoPriceLoading } = useQuery<NoPricePart[]>({
     queryKey: ['reports-parts-without-price'],
-    queryFn: async () => {
+    queryFn: async (): Promise<NoPricePart[]> => {
       const raw = await analyticsApi.getPartsWithoutPrice();
-      // Backend returns { items: [...] } or a flat array
-      if (Array.isArray(raw)) return raw;
-      return (raw as unknown as { items: NoPricePart[] }).items ?? [];
+      if (Array.isArray(raw)) return raw as NoPricePart[];
+      return ((raw as Record<string, unknown>).items as NoPricePart[]) ?? [];
     },
   });
 
