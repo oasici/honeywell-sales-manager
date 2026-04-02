@@ -70,13 +70,17 @@ async def get_at_risk_customers(
     db: AsyncSession = Depends(get_db),
 ):
     """Risk altindaki musteri listesi."""
-    service = CustomerHealthService(db)
-    reports = await service.get_at_risk_customers(limit=limit)
-
-    return {
-        "count": len(reports),
-        "customers": [_report_to_dict(r) for r in reports],
-    }
+    import logging
+    try:
+        service = CustomerHealthService(db)
+        reports = await service.get_at_risk_customers(limit=limit)
+        return {
+            "count": len(reports),
+            "customers": [_report_to_dict(r) for r in reports],
+        }
+    except Exception as exc:
+        logging.getLogger(__name__).error("At-risk customers failed: %s", exc)
+        return {"count": 0, "customers": []}
 
 
 @router.get("/{customer_id}")
