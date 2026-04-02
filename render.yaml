@@ -62,6 +62,9 @@ services:
       - type: rewrite
         source: /api/*
         destination: https://honeywell-backend.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         value: https://honeywell-backend.onrender.com/api/v1
