@@ -23,8 +23,8 @@ def _indicator_to_dict(indicator) -> dict:
     }
 
 
-def _report_to_dict(report) -> dict:
-    return {
+def _report_to_dict(report, include_explanations: bool = False) -> dict:
+    data = {
         "customer_id": report.customer_id,
         "customer_name": report.customer_name,
         "company": report.company,
@@ -33,6 +33,23 @@ def _report_to_dict(report) -> dict:
         "indicators": [_indicator_to_dict(i) for i in report.indicators],
         "recommendations": report.recommendations,
     }
+    if include_explanations:
+        total_weight = sum(i.weight for i in report.indicators) or 1
+        data["explanations"] = [
+            {
+                "indicator": i.name,
+                "label": i.label,
+                "value": i.raw_value,
+                "weight": i.weight,
+                "contribution": round(i.score * i.weight / total_weight, 1),
+                "recommendation": next(
+                    (r for r in report.recommendations if i.label.lower() in r.lower()),
+                    None,
+                ),
+            }
+            for i in report.indicators
+        ]
+    return data
 
 
 @router.get("/overview")
@@ -86,14 +103,15 @@ async def get_at_risk_customers(
 @router.get("/{customer_id}")
 async def get_customer_health(
     customer_id: int,
+    explain: bool = Query(False, description="Include score explanations"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Tek bir musterinin saglik raporu."""
+    """Tek bir musterinin saglik raporu. ?explain=true ile skor aciklamalari eklenir."""
     service = CustomerHealthService(db)
     report = await service.calculate_health_score(customer_id)
 
     if not report:
         raise NotFoundException(f"Musteri bulunamadi: {customer_id}")
 
-    return _report_to_dict(report)
+    return _report_to_dict(report, include_explanations=explain)

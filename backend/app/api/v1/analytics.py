@@ -218,6 +218,80 @@ async def get_ai_usage(
     db: AsyncSession = Depends(get_db),
 ):
     """AI usage statistics: parse counts, correction rates, model performance."""
+    return await _compute_ai_metrics(db)
+
+
+@router.get("/ai-quality")
+async def get_ai_quality(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """AI quality analytics: success/failure ratio, fallback rate, correction trends.
+
+    Reports only — does not change parser behavior.
+    """
+    base_metrics = await _compute_ai_metrics(db)
+
+    from app.models.email_request import EmailRequest
+
+    # Parse success vs failure
+    total_emails = (await db.execute(
+        select(func.count(EmailRequest.id))
+    )).scalar() or 0
+    parse_errors = (await db.execute(
+        select(func.count(EmailRequest.id)).where(EmailRequest.status == "error")
+    )).scalar() or 0
+    parse_success = base_metrics["total_parsed"] - parse_errors
+    success_rate = round(parse_success / total_emails * 100, 1) if total_emails > 0 else 0.0
+
+    # Fallback rate (emails without Claude confidence — regex fallback assumed)
+    no_confidence = (await db.execute(
+        select(func.count(EmailRequest.id)).where(
+            and_(
+                EmailRequest.status != "new",
+                EmailRequest.category_confidence.is_(None),
+            )
+        )
+    )).scalar() or 0
+    fallback_rate = round(no_confidence / base_metrics["total_parsed"] * 100, 1) if base_metrics["total_parsed"] > 0 else 0.0
+
+    # Monthly correction trend (last 6 months)
+    from app.models.ai_training_data import AITrainingData
+    six_months_ago = datetime.now(timezone.utc) - timedelta(days=180)
+    correction_trend_q = await db.execute(
+        select(
+            extract("year", AITrainingData.created_at).label("year"),
+            extract("month", AITrainingData.created_at).label("month"),
+            func.count(AITrainingData.id).label("correction_count"),
+        )
+        .where(AITrainingData.created_at >= six_months_ago)
+        .group_by(
+            extract("year", AITrainingData.created_at),
+            extract("month", AITrainingData.created_at),
+        )
+        .order_by(
+            extract("year", AITrainingData.created_at),
+            extract("month", AITrainingData.created_at),
+        )
+    )
+    correction_trend = [
+        {"year": int(r.year), "month": int(r.month), "corrections": r.correction_count}
+        for r in correction_trend_q.all()
+    ]
+
+    return {
+        **base_metrics,
+        "total_emails": total_emails,
+        "parse_success": parse_success,
+        "parse_errors": parse_errors,
+        "success_rate_pct": success_rate,
+        "fallback_rate_pct": fallback_rate,
+        "correction_trend": correction_trend,
+    }
+
+
+async def _compute_ai_metrics(db: AsyncSession) -> dict:
+    """Shared AI metrics computation for ai-usage and ai-quality endpoints."""
     from app.models.email_request import EmailRequest
     from app.models.ai_training_data import AITrainingData
 

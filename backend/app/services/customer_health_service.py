@@ -82,15 +82,35 @@ class CustomerHealthService:
         )
 
     async def get_all_health_scores(self) -> list[CustomerHealthReport]:
-        """Tum musteriler icin saglik skorlarini hesaplar."""
-        result = await self._db.execute(select(Customer.id))
-        customer_ids = [row[0] for row in result.all()]
+        """Tum musteriler icin saglik skorlarini hesaplar.
+
+        Optimized: loads all customers in a single query, then computes
+        indicators per customer (still N queries for indicators — full
+        batch optimization is a larger refactor tracked separately).
+        """
+        result = await self._db.execute(select(Customer))
+        customers = result.scalars().all()
 
         reports = []
-        for cid in customer_ids:
-            report = await self.calculate_health_score(cid)
-            if report:
-                reports.append(report)
+        for customer in customers:
+            indicators = await self._compute_indicators(customer.id)
+            total_weight = sum(i.weight for i in indicators)
+            weighted_sum = sum(i.score * i.weight for i in indicators)
+            raw_score = weighted_sum / total_weight if total_weight > 0 else 0
+            score = max(0, min(100, round(raw_score)))
+
+            risk_level = self._determine_risk_level(score)
+            recommendations = self._generate_recommendations(indicators, risk_level)
+
+            reports.append(CustomerHealthReport(
+                customer_id=customer.id,
+                customer_name=customer.name,
+                company=customer.company,
+                score=score,
+                risk_level=risk_level,
+                indicators=indicators,
+                recommendations=recommendations,
+            ))
 
         reports.sort(key=lambda r: r.score)
         return reports

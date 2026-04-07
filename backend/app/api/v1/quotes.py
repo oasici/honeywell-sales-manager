@@ -9,11 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.enums import UserRole
 from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.quote import QuoteCreate, QuoteUpdate
+from app.services.notification_service import create_notification
 from app.services.quote_service import QuoteService
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
@@ -72,13 +73,17 @@ async def get_quote(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get quote detail with items."""
+    """Get quote detail with items. Non-managers can only see their own quotes."""
     result = await db.execute(
         select(Quote).where(Quote.id == quote_id)
     )
     quote = result.scalar_one_or_none()
     if not quote:
         raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
+
+    # Ownership check: non-managers can only access their own quotes
+    if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
+        raise ForbiddenException("Bu teklife erisim yetkiniz yok")
 
     return _quote_to_dict(quote, include_items=True)
 
@@ -226,6 +231,18 @@ async def approve_quote(
         approved_by=current_user.id,
     )
 
+    # Best-effort notification to quote creator
+    if quote.created_by and quote.created_by != current_user.id:
+        try:
+            await create_notification(
+                db, user_id=quote.created_by, type="quote_approved",
+                title="Teklif onaylandi",
+                message=f"{quote.quote_number} onaylandi ve PDF olusturuldu.",
+                entity_type="quote", entity_id=quote.id,
+            )
+        except Exception:
+            pass
+
     return _quote_to_dict(quote, include_items=True)
 
 
@@ -316,6 +333,18 @@ async def send_quote(
     quote.status = "sent"
     await db.flush()
 
+    # Best-effort notification
+    if quote.created_by:
+        try:
+            await create_notification(
+                db, user_id=quote.created_by, type="quote_sent",
+                title="Teklif gonderildi",
+                message=f"{quote.quote_number} → {recipient}",
+                entity_type="quote", entity_id=quote.id,
+            )
+        except Exception:
+            pass
+
     return {"message": f"Teklif {quote.quote_number} basariyla gonderildi: {recipient}"}
 
 
@@ -338,7 +367,6 @@ async def download_quote_pdf(
 
     # Authorization: only creator or manager can download
     if quote.created_by != current_user.id and current_user.role != UserRole.SALES_MANAGER.value:
-        from app.core.exceptions import ForbiddenException
         raise ForbiddenException("Bu teklifi indirme yetkiniz yok")
 
     # Regenerate PDF if file is missing (ephemeral filesystem on Render)

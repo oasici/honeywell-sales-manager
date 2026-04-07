@@ -236,19 +236,23 @@ _PRICE_SENSITIVITY_KEYWORDS: list[str] = [
 
 
 def _classify_keyword(text: str) -> tuple[str, float]:
-    """Keyword-based classification (fallback)."""
+    """Keyword-based classification (fallback).
+
+    Confidence formula: base 0.4 per first hit, +0.15 per additional hit,
+    scaled by category weight. Capped at 0.95.
+    """
     text_lower = re.sub(r"\s+", " ", text.lower())
 
     scores: dict[str, float] = {}
     for category, keywords, weight in _CATEGORY_KEYWORDS:
         match_count = sum(1 for kw in keywords if kw in text_lower)
         if match_count > 0:
-            raw_score = (match_count / len(keywords)) * weight
-            scores[category] = min(raw_score + (0.1 * match_count), 1.0)
+            confidence = (0.4 + 0.15 * (match_count - 1)) * weight
+            scores[category] = min(round(confidence, 2), 0.95)
 
     if scores:
         best = max(scores, key=scores.get)  # type: ignore[arg-type]
-        return best, round(min(scores[best], 1.0), 2)
+        return best, scores[best]
 
     return "general_inquiry", 0.3
 

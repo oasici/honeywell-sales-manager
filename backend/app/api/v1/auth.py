@@ -41,7 +41,7 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """OAuth2-compatible login with rate limiting."""
+    """OAuth2-compatible login with rate limiting (enforced via global middleware)."""
     user = await auth_service.authenticate(db, form_data.username, form_data.password)
     if user is None:
         raise UnauthorizedException("Invalid email or password")

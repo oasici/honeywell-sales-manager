@@ -106,11 +106,25 @@ async def check_expired_quotes_task():
                 )
             )
             expired_quotes = result.scalars().all()
+            expired_count = 0
             for quote in expired_quotes:
                 if quote.valid_days:
                     expiry = quote.created_at + timedelta(days=quote.valid_days)
                     if datetime.now(timezone.utc) > expiry:
                         quote.status = "expired"
+                        expired_count += 1
+                        # Best-effort notification
+                        if quote.created_by:
+                            try:
+                                from app.services.notification_service import create_notification
+                                await create_notification(
+                                    db, user_id=quote.created_by, type="quote_expired",
+                                    title="Teklif suresi doldu",
+                                    message=f"{quote.quote_number} gecerlilik suresi doldu.",
+                                    entity_type="quote", entity_id=quote.id,
+                                )
+                            except Exception:
+                                pass
 
             await db.commit()
             if expired_quotes:
@@ -121,7 +135,7 @@ async def check_expired_quotes_task():
 
 
 def start_scheduler():
-    """Start background scheduler with all tasks."""
+    """Start background scheduler with all tasks. Safe to call multiple times."""
     scheduler.add_job(
         poll_emails_task,
         "interval",
@@ -143,12 +157,13 @@ def start_scheduler():
         id="batch_email_process",
         replace_existing=True,
     )
-    scheduler.start()
+    if not scheduler.running:
+        scheduler.start()
     logger.info("Background scheduler started")
 
 
 def stop_scheduler():
     """Stop background scheduler."""
     if scheduler.running:
-        scheduler.shutdown(wait=False)
+        scheduler.shutdown()
         logger.info("Background scheduler stopped")

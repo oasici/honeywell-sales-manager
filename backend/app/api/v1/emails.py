@@ -8,12 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.email_request import EmailRequest
 from app.models.enums import ReviewStatus, UserRole
 from app.models.user import User
 from app.schemas.email_request import ManualEmailCreate
 from app.services.email_processing_service import EmailProcessingService
+from app.services.notification_service import create_notification
 
 
 class EmailReviewRequest(BaseModel):
@@ -39,6 +40,9 @@ async def list_emails(
     count_query = select(func.count(EmailRequest.id))
 
     conditions = []
+    # Ownership scoping: non-managers see only emails assigned to them
+    if current_user.role != UserRole.SALES_MANAGER.value:
+        conditions.append(EmailRequest.assigned_to == current_user.id)
     if is_read is not None:
         conditions.append(EmailRequest.is_read == is_read)
     if status:
@@ -85,13 +89,17 @@ async def get_email(
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get email detail by ID."""
+    """Get email detail by ID. Non-managers can only see emails assigned to them."""
     result = await db.execute(
         select(EmailRequest).where(EmailRequest.id == email_id)
     )
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+
+    # Ownership check: non-managers can only access emails assigned to them
+    if current_user.role != UserRole.SALES_MANAGER.value and email.assigned_to != current_user.id:
+        raise ForbiddenException("Bu e-postaya erisim yetkiniz yok")
 
     return _email_to_dict(email, include_body=True)
 
@@ -110,6 +118,17 @@ async def create_manual_email(
         body_text=data.body_text,
         assigned_to=current_user.id,
     )
+
+    # Best-effort notification
+    try:
+        await create_notification(
+            db, user_id=current_user.id, type="new_email",
+            title="Yeni email eklendi",
+            message=f"{data.from_address}: {data.subject[:80]}",
+            entity_type="email", entity_id=email.id,
+        )
+    except Exception:
+        pass
 
     return _email_to_dict(email, include_body=True)
 
@@ -235,6 +254,18 @@ async def poll_emails(
             _logger.warning("Email processing error: %s", exc)
             continue
 
+
+    # Best-effort notification for fetched emails
+    if fetched_count > 0:
+        try:
+            await create_notification(
+                db, user_id=current_user.id, type="new_email",
+                title=f"{fetched_count} yeni email alindi",
+                message="IMAP uzerinden yeni emailler yuklendi.",
+                entity_type="email", entity_id=None,
+            )
+        except Exception:
+            pass
 
     return {
         "message": f"{fetched_count} yeni email alindi (son 14 gun)",
@@ -491,6 +522,19 @@ async def review_email(
             logging.getLogger(__name__).warning("Auto-create on approval failed: %s", exc)
 
     await db.flush()
+
+    # Best-effort notification to assignee
+    if email.assigned_to and email.assigned_to != current_user.id:
+        try:
+            status_label = "onaylandi" if action == "approve" else "reddedildi"
+            await create_notification(
+                db, user_id=email.assigned_to, type="email_reviewed",
+                title=f"Email {status_label}",
+                message=f'"{email.subject[:60]}" incelendi.',
+                entity_type="email", entity_id=email.id,
+            )
+        except Exception:
+            pass
 
     return _email_to_dict(email)
 

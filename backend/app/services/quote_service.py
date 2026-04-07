@@ -184,17 +184,26 @@ class QuoteService:
     # ---- Private helpers ----
 
     async def _recalculate_totals(self, quote: Quote) -> None:
-        """Recalculate quote subtotal, tax, and grand total in-place."""
+        """Recalculate quote subtotal, discount_total, tax, and grand total in-place."""
         items_result = await self._db.execute(
             select(QuoteItem).where(QuoteItem.quote_id == quote.id)
         )
         items = items_result.scalars().all()
 
+        # subtotal = sum of discounted line totals
         subtotal = sum(item.line_total for item in items)
+
+        # discount_total = sum of (gross - net) per line
+        discount_total = sum(
+            (item.unit_price * item.quantity) - item.line_total
+            for item in items
+        )
+
         tax_amount = subtotal * (quote.tax_rate / 100)
-        grand_total = subtotal + tax_amount - quote.discount_total
+        grand_total = subtotal + tax_amount
 
         quote.subtotal = round(subtotal, 2)
+        quote.discount_total = round(discount_total, 2)
         quote.tax_amount = round(tax_amount, 2)
         quote.grand_total = round(grand_total, 2)
 

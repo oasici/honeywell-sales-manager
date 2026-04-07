@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { ROLE_LABELS } from '../../lib/constants';
@@ -6,22 +7,32 @@ import { notificationsApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { Bell, Check, CheckCheck } from 'lucide-react';
+import { Bell, Check, CheckCheck, ExternalLink } from 'lucide-react';
 
 interface Notification {
   id: number;
   title: string;
   message: string;
   is_read: boolean;
+  entity_type?: string | null;
+  entity_id?: number | null;
   created_at: string;
 }
 
 const POLL_INTERVAL_MS = 30_000;
 const RECENT_NOTIFICATIONS_LIMIT = 10;
 
+function getEntityRoute(entityType?: string | null, entityId?: number | null): string | null {
+  if (!entityType || !entityId) return null;
+  if (entityType === 'email') return `/emails/${entityId}`;
+  if (entityType === 'quote') return `/quotes/${entityId}`;
+  return null;
+}
+
 export function Header() {
   const user = useAuthStore((state) => state.user);
   const roleLabel = user?.role ? ROLE_LABELS[user.role] || user.role : '';
+  const navigate = useNavigate();
 
   const queryClient = useQueryClient();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -153,6 +164,11 @@ export function Header() {
                             if (!notification.is_read) {
                               handleMarkRead(notification.id);
                             }
+                            const route = getEntityRoute(notification.entity_type, notification.entity_id);
+                            if (route) {
+                              setIsDropdownOpen(false);
+                              navigate(route);
+                            }
                           }}
                           role="menuitem"
                         >
@@ -167,11 +183,16 @@ export function Header() {
                               {formatDateTime(notification.created_at)}
                             </p>
                           </div>
-                          {!notification.is_read && (
-                            <span className="mt-1 shrink-0" title="Okundu olarak isaretle">
-                              <Check size={14} className="text-blue-500" />
-                            </span>
-                          )}
+                          <div className="mt-1 flex shrink-0 items-center gap-1">
+                            {getEntityRoute(notification.entity_type, notification.entity_id) && (
+                              <ExternalLink size={12} className="text-gray-300" />
+                            )}
+                            {!notification.is_read && (
+                              <span title="Okundu olarak isaretle">
+                                <Check size={14} className="text-blue-500" />
+                              </span>
+                            )}
+                          </div>
                         </button>
                       </li>
                     ))}

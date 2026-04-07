@@ -9,6 +9,7 @@ from app.services.parts_matcher import (
     FUZZY_NAME_CUTOFF,
     PREFIX_MIN_CHARS,
     TOP_N,
+    _catalog_cache,
     _normalize_code,
     match_parts,
 )
@@ -21,11 +22,13 @@ def _make_spare_part(
     name_tr="Test Parca",
     category="Sensors",
     is_active=True,
+    model_number=None,
 ):
     """Create a mock SparePart object."""
     part = MagicMock()
     part.id = part_id
     part.honeywell_code = honeywell_code
+    part.model_number = model_number
     part.name_en = name_en
     part.name_tr = name_tr
     part.category = category
@@ -53,6 +56,26 @@ def _mock_semantic_matcher():
     sys.modules.pop("app.services.semantic_matcher", None)
 
 
+@pytest.fixture(autouse=True)
+def _clear_catalog_cache():
+    """Reset catalog cache so mock DB is always called."""
+    _catalog_cache["parts"] = None
+    _catalog_cache["ts"] = 0
+    yield
+    _catalog_cache["parts"] = None
+    _catalog_cache["ts"] = 0
+
+
+def _make_mock_db_with_catalog(catalog):
+    """Create mock DB that returns catalog on first execute (for _get_cached_catalog)
+    and empty on subsequent calls (for semantic matcher etc.)."""
+    db = AsyncMock()
+    result_mock = MagicMock()
+    result_mock.scalars.return_value.all.return_value = catalog
+    db.execute = AsyncMock(return_value=result_mock)
+    return db
+
+
 class TestNormalizeCode:
     """Test cycle 2: normalize codes removing dashes and spaces."""
 
@@ -73,6 +96,9 @@ class TestExactCodeMatch:
 
     @pytest.mark.asyncio
     async def test_should_return_100_score_for_exact_code_match(self):
+        _catalog_cache["parts"] = None
+        _catalog_cache["ts"] = 0
+
         part = _make_spare_part(part_id=1, honeywell_code="ABC123")
         db = _make_mock_db([part])
 
@@ -87,6 +113,9 @@ class TestExactCodeMatch:
 
     @pytest.mark.asyncio
     async def test_should_match_exact_despite_formatting(self):
+        _catalog_cache["parts"] = None
+        _catalog_cache["ts"] = 0
+
         part = _make_spare_part(part_id=1, honeywell_code="ABC-123")
         db = _make_mock_db([part])
 
@@ -104,6 +133,9 @@ class TestPrefixMatch:
 
     @pytest.mark.asyncio
     async def test_should_return_85_score_for_prefix_match(self):
+        _catalog_cache["parts"] = None
+        _catalog_cache["ts"] = 0
+
         part = _make_spare_part(part_id=1, honeywell_code="ABCD1234XYZ")
         db = _make_mock_db([part])
 
@@ -155,6 +187,9 @@ class TestFuzzyNameMatch:
 
     @pytest.mark.asyncio
     async def test_should_return_fuzzy_match_above_threshold(self):
+        _catalog_cache["parts"] = None
+        _catalog_cache["ts"] = 0
+
         part = _make_spare_part(
             part_id=1,
             honeywell_code="ZZZZZ999",

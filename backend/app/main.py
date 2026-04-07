@@ -4,12 +4,10 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 import sqlalchemy
@@ -17,6 +15,7 @@ import sqlalchemy
 from app.api.v1.router import v1_router
 from app.core.config import settings
 from app.core.database import async_session, engine
+from app.tasks.scheduler import start_scheduler, stop_scheduler
 from app.core.exceptions import AppException, app_exception_handler, unhandled_exception_handler
 from app.core.middleware import (
     AuditLogMiddleware,
@@ -32,10 +31,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
-
-# ── Rate limiter ──
-limiter = Limiter(key_func=get_remote_address, default_limits=[settings.RATE_LIMIT_API])
+# ── Rate limiter (shared instance) ──
+from app.core.rate_limit import limiter
 
 
 @asynccontextmanager
@@ -77,6 +74,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Auto-migration failed (may already be applied): %s", e)
 
+    # Fail-fast: production requires ENCRYPTION_KEY
+    if settings.is_production and not os.environ.get("ENCRYPTION_KEY"):
+        raise RuntimeError(
+            "ENCRYPTION_KEY environment variable is required in production. "
+            "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+        )
+
     for dir_path in [settings.QUOTES_DIR, settings.UPLOADS_DIR]:
         os.makedirs(dir_path, exist_ok=True)
 
@@ -84,12 +88,12 @@ async def lifespan(app: FastAPI):
     async with async_session() as db:
         await create_default_admin(db)
 
-    scheduler.start()
+    start_scheduler()
     logger.info("Application started (env=%s)", settings.ENV)
 
     yield
 
-    scheduler.shutdown(wait=False)
+    stop_scheduler()
     await engine.dispose()
     logger.info("Application stopped")
 

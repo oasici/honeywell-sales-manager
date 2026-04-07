@@ -20,8 +20,16 @@ router = APIRouter(prefix="/settings", tags=["Settings"])
 # ── Password encryption helpers ──
 
 def _get_fernet():
+    from app.core.config import settings as cfg
+
     key = os.environ.get("ENCRYPTION_KEY", "")
     if not key:
+        if cfg.is_production:
+            raise RuntimeError(
+                "ENCRYPTION_KEY must be set in production. "
+                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+        # Development/test: auto-generate and persist for the process lifetime
         key = Fernet.generate_key().decode()
         os.environ["ENCRYPTION_KEY"] = key
     return Fernet(key.encode() if isinstance(key, str) else key)

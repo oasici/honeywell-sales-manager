@@ -1,6 +1,18 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+from app.services.parts_matcher import _catalog_cache
+
+
+@pytest.fixture(autouse=True)
+def _clear_catalog_cache():
+    """Clear the parts matcher catalog cache before each test."""
+    _catalog_cache["parts"] = None
+    _catalog_cache["ts"] = 0
+    yield
+    _catalog_cache["parts"] = None
+    _catalog_cache["ts"] = 0
+
 
 @pytest.mark.asyncio
 async def test_exact_code_match():
@@ -32,12 +44,17 @@ async def test_match_parts_with_code():
     from app.services.parts_matcher import match_parts
     from app.models.spare_part import SparePart
 
-    mock_part = MagicMock(spec=SparePart)
+    _catalog_cache["parts"] = None
+    _catalog_cache["ts"] = 0
+
+    mock_part = MagicMock()
     mock_part.id = 1
     mock_part.honeywell_code = "ABC123"
+    mock_part.model_number = None
     mock_part.name_tr = "Test Parca"
     mock_part.name_en = "Test Part"
     mock_part.category = "Sensor"
+    mock_part.is_active = True
     mock_part.keywords_json = None
     mock_part.aliases_json = None
 

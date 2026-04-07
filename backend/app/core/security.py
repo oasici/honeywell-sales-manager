@@ -12,7 +12,17 @@ from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ── In-memory revoked token set (production: use Redis) ──
+# ── In-memory revoked token set ──
+# TODO(P1-1): Replace with Redis or DB-backed revocation in production.
+# Risk: In-memory set is lost on restart, meaning revoked tokens become
+#        valid again until they naturally expire. Multi-process deployments
+#        (e.g. multiple Uvicorn workers) do NOT share this set.
+# Mitigation plan:
+#   1. Add a `revoked_tokens` table (jti VARCHAR PK, revoked_at TIMESTAMP)
+#   2. On revoke: INSERT jti
+#   3. On decode: SELECT EXISTS(jti)
+#   4. Periodic cleanup: DELETE WHERE revoked_at < now() - max_token_lifetime
+# Short-term: keep access token TTL short (30 min) to limit exposure window.
 _revoked_jti: set[str] = set()
 
 

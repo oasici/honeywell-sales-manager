@@ -117,41 +117,51 @@ class TestQuoteTotals:
 
         item_1 = MagicMock()
         item_1.line_total = 500.0
+        item_1.unit_price = 500.0
+        item_1.quantity = 1
         item_2 = MagicMock()
         item_2.line_total = 300.0
+        item_2.unit_price = 300.0
+        item_2.quantity = 1
 
         items_result = MagicMock()
         items_result.scalars.return_value.all.return_value = [item_1, item_2]
         db.execute = AsyncMock(return_value=items_result)
 
-        quote = _make_mock_quote(tax_rate=20.0, discount_total=0.0)
+        quote = _make_mock_quote(tax_rate=20.0)
         service = QuoteService(db)
 
         await service._recalculate_totals(quote)
 
         assert quote.subtotal == 800.0
+        assert quote.discount_total == 0.0  # no discounts
         assert quote.tax_amount == 160.0
         assert quote.grand_total == 960.0
 
     @pytest.mark.asyncio
-    async def test_should_subtract_discount_total_from_grand_total(self):
+    async def test_should_compute_discount_total_from_line_items(self):
+        """discount_total = sum of (gross - net) per line."""
         db = _make_mock_db()
 
+        # Item: qty=10, unit_price=100, 15% discount -> line_total=850
         item = MagicMock()
-        item.line_total = 1000.0
+        item.unit_price = 100.0
+        item.quantity = 10
+        item.line_total = 850.0  # 10 * 100 * 0.85
 
         items_result = MagicMock()
         items_result.scalars.return_value.all.return_value = [item]
         db.execute = AsyncMock(return_value=items_result)
 
-        quote = _make_mock_quote(tax_rate=10.0, discount_total=50.0)
+        quote = _make_mock_quote(tax_rate=10.0)
         service = QuoteService(db)
 
         await service._recalculate_totals(quote)
 
-        assert quote.subtotal == 1000.0
-        assert quote.tax_amount == 100.0
-        assert quote.grand_total == 1050.0
+        assert quote.subtotal == 850.0
+        assert quote.discount_total == 150.0  # 1000 - 850
+        assert quote.tax_amount == 85.0
+        assert quote.grand_total == 935.0  # 850 + 85
 
 
 class TestRejectEmptyItems:
