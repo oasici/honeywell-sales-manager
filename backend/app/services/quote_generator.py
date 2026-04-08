@@ -248,12 +248,13 @@ async def generate_quote_pdf(quote_data: dict, language: str = "tr") -> str:
     quote_number = quote_data.get("quote_number", "DRAFT")
     safe_name = quote_number.replace("/", "-").replace("\\", "-")
 
-    # Try WeasyPrint for PDF
+    # Try WeasyPrint for PDF — offloaded to thread (CPU-bound, blocks event loop)
     try:
+        import asyncio
         from weasyprint import HTML as WeasyHTML
 
         pdf_path = str(quotes_dir / f"{safe_name}.pdf")
-        WeasyHTML(string=html_content).write_pdf(pdf_path)
+        await asyncio.to_thread(WeasyHTML(string=html_content).write_pdf, pdf_path)
         logger.info("Generated PDF quote: %s", pdf_path)
         return pdf_path
     except ImportError:

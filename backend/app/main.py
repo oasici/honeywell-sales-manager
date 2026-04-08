@@ -44,8 +44,10 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables created / verified")
 
-    # Auto-migrate: add missing columns safely (each in its own transaction)
-    migrations = [
+    # Auto-migrate: additive-only DDL (no destructive UPDATE/DELETE)
+    # NOTE: Destructive one-time cleanups have been removed.
+    # For new schema changes, use Alembic: alembic revision --autogenerate
+    _additive_migrations = [
         "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS info TEXT",
         "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS model_number VARCHAR(200)",
         "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS transfer_price FLOAT",
@@ -54,29 +56,19 @@ async def lifespan(app: FastAPI):
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false",
         "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false",
         "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
-        "UPDATE email_requests SET review_status = 'rejected' WHERE review_status = 'approved' AND category NOT IN ('spare_part_request', 'price_inquiry')",
-        """UPDATE email_requests SET customer_id = NULL WHERE customer_id IN (
-            SELECT c.id FROM customers c
-            LEFT JOIN quotes q ON q.customer_id = c.id
-            WHERE q.id IS NULL
-        )""",
-        """DELETE FROM customers WHERE id NOT IN (
-            SELECT DISTINCT customer_id FROM quotes WHERE customer_id IS NOT NULL
-        )""",
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_quote_email_request ON quotes (email_request_id) WHERE email_request_id IS NOT NULL",
         "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS close_reason VARCHAR(50)",
         "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP WITH TIME ZONE",
-        # v2: Opportunity linkage
         "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS opportunity_id INTEGER REFERENCES opportunities(id)",
         "CREATE INDEX IF NOT EXISTS ix_quotes_opportunity_id ON quotes (opportunity_id)",
     ]
-    for sql in migrations:
+    for sql in _additive_migrations:
         try:
             async with engine.begin() as conn:
                 await conn.execute(sqlalchemy.text(sql))
         except Exception as e:
             logger.debug("Migration skipped (already applied or N/A): %s", str(e)[:100])
-    logger.info("Auto-migration completed")
+    logger.info("Auto-migration completed (additive only)")
 
     # Fail-fast: production requires ENCRYPTION_KEY
     if settings.is_production and not os.environ.get("ENCRYPTION_KEY"):
@@ -100,12 +92,18 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("Scheduler disabled (using separate scheduler process)")
 
+    # Start audit buffer flush task
+    from app.core.audit_buffer import start_audit_buffer, stop_audit_buffer
+    start_audit_buffer()
+
     logger.info("Application started (env=%s, workers=gunicorn)", settings.ENV)
 
     yield
 
     if scheduler_enabled:
         stop_scheduler()
+    # Flush remaining audit entries
+    await stop_audit_buffer()
     # Close Redis connection pool
     from app.core.redis_client import close_redis
     await close_redis()

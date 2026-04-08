@@ -71,14 +71,23 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
             if payload:
                 user_id = payload.get("sub", "unknown")
 
+        ip = request.client.host if request.client else "unknown"
+
+        # Buffer audit entry (no DB write per request)
+        from app.core.audit_buffer import enqueue_audit
+        enqueue_audit(
+            user_id=str(user_id),
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=duration,
+            ip_address=ip,
+        )
+
         logger.info(
             "AUDIT: user=%s method=%s path=%s status=%d duration=%sms ip=%s",
-            user_id,
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration,
-            request.client.host if request.client else "unknown",
+            user_id, request.method, request.url.path,
+            response.status_code, duration, ip,
         )
 
         return response
