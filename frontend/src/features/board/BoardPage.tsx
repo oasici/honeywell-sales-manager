@@ -36,7 +36,7 @@ function KanbanCard({ opp }: { opp: Opportunity }) {
     >
       <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{opp.title}</p>
       {opp.customer && (
-        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate">{opp.customer.name}</p>
+        <p className="mt-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 truncate">{opp.customer.name}</p>
       )}
       <div className="mt-2 flex items-center justify-between">
         {opp.amount != null ? (
@@ -89,7 +89,7 @@ export default function BoardPage() {
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Card>
             <div className="p-4 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Acik Pipeline</p>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Acik Pipeline</p>
               <p className="text-xl font-bold text-gray-900 dark:text-white">
                 {formatCurrency(summary.open_pipeline_total, 'TRY')}
               </p>
@@ -97,19 +97,19 @@ export default function BoardPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Kazanma Orani</p>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Kazanma Orani</p>
               <p className="text-xl font-bold text-green-600">%{summary.win_rate}</p>
             </div>
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Kazanilan</p>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Kazanilan</p>
               <p className="text-xl font-bold text-gray-900 dark:text-white">{summary.won_count}</p>
             </div>
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Cururyen (Rotting)</p>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Cururyen (Rotting)</p>
               <p className={`text-xl font-bold ${summary.rotting_count > 0 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
                 {summary.rotting_count}
               </p>

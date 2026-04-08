@@ -51,7 +51,7 @@ export default function SalesAnalyticsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-6">
         <Card>
           <div className="p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Acik Pipeline</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Acik Pipeline</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {formatCurrency(forecast?.open_quotes_total || 0, 'TRY')}
             </p>
@@ -59,7 +59,7 @@ export default function SalesAnalyticsPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Forecast (30 gun)</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Forecast (30 gun)</p>
             <p className="text-2xl font-bold text-green-600">
               {formatCurrency(forecast?.forecast_total || 0, 'TRY')}
             </p>
@@ -70,7 +70,7 @@ export default function SalesAnalyticsPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">SLA Medyan Yanit</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">SLA Medyan Yanit</p>
             <p className={`text-2xl font-bold ${(sla?.median_first_action_minutes || 0) > 480 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
               {sla?.median_first_action_minutes || 0} dk
             </p>
@@ -79,7 +79,7 @@ export default function SalesAnalyticsPage() {
         </Card>
         <Card>
           <div className="p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Indirim p50 / p90</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Indirim p50 / p90</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               %{discounts?.p50_discount_rate || 0} / %{discounts?.p90_discount_rate || 0}
             </p>
