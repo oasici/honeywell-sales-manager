@@ -198,6 +198,37 @@ async def check_anomaly_alerts_task():
         logger.error("Anomaly alert check failed: %s", e)
 
 
+async def process_sequence_steps_task():
+    """Process due sequence enrollment steps via arq job queue."""
+    from datetime import datetime, timezone
+    from sqlalchemy import select, and_
+    from app.core.database import async_session
+    from app.models.engagement import SequenceEnrollment
+
+    try:
+        async with async_session() as db:
+            now = datetime.now(timezone.utc)
+            due = (await db.execute(
+                select(SequenceEnrollment).where(
+                    and_(
+                        SequenceEnrollment.status == "active",
+                        SequenceEnrollment.next_action_at <= now,
+                    )
+                ).limit(50)
+            )).scalars().all()
+
+            if not due:
+                return
+
+            from app.services.job_queue import enqueue_job
+            for enrollment in due:
+                await enqueue_job("execute_sequence_step", enrollment.id)
+
+            logger.info("Enqueued %d sequence steps", len(due))
+    except Exception as e:
+        logger.error("Sequence step processing failed: %s", e)
+
+
 def start_scheduler():
     """Start background scheduler with all tasks. Safe to call multiple times."""
     scheduler.add_job(
@@ -226,6 +257,13 @@ def start_scheduler():
         "interval",
         hours=168,  # weekly
         id="anomaly_alerts",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        process_sequence_steps_task,
+        "interval",
+        minutes=15,  # check every 15 min for due sequence steps
+        id="sequence_steps",
         replace_existing=True,
     )
     if not scheduler.running:

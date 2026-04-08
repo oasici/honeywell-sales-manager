@@ -65,6 +65,10 @@ async def lifespan(app: FastAPI):
         "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS opportunity_id INTEGER REFERENCES opportunities(id)",
         "CREATE INDEX IF NOT EXISTS ix_email_requests_opportunity_id ON email_requests (opportunity_id)",
         "ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS forecast_category VARCHAR(20)",
+        # pg_trgm for typo-tolerant search (PostgreSQL only, silent fail on SQLite)
+        "CREATE EXTENSION IF NOT EXISTS pg_trgm",
+        "CREATE INDEX IF NOT EXISTS ix_transcripts_content_trgm ON transcripts USING gin (content gin_trgm_ops)",
+        "CREATE INDEX IF NOT EXISTS ix_transcripts_title_trgm ON transcripts USING gin (title gin_trgm_ops)",
     ]
     for sql in _additive_migrations:
         try:

@@ -130,7 +130,7 @@ async def _vector_search(db, query, vec, table, content_column, limit, filters):
 
 
 async def _ilike_search(db, query, table, content_column, limit, filters):
-    """Fallback: ILIKE search — compatible with both PostgreSQL and SQLite."""
+    """Fallback: pg_trgm similarity (typo tolerant) → plain LIKE (universal)."""
     from sqlalchemy import text
 
     safe_q = query.replace("%", "\\%").replace("_", "\\_")
@@ -145,7 +145,25 @@ async def _ilike_search(db, query, table, content_column, limit, filters):
 
     where_clause = " AND ".join(where_parts)
 
-    # Simple LIKE search — works on both PostgreSQL and SQLite
+    # Try pg_trgm similarity scoring (PostgreSQL only — typo tolerant)
+    try:
+        params["raw_q"] = query
+        trgm_sql = f"""
+            SELECT id, title, SUBSTR({content_column}, 1, 300) as snippet,
+                   GREATEST(similarity({content_column}, :raw_q), similarity(title, :raw_q)) as score
+            FROM {table}
+            WHERE {where_clause}
+            ORDER BY score DESC
+            LIMIT :limit
+        """
+        result = await db.execute(text(trgm_sql), params)
+        rows = result.fetchall()
+        if rows:
+            return [{"id": r.id, "title": r.title, "snippet": r.snippet, "score": round(float(r.score), 3)} for r in rows]
+    except Exception:
+        pass
+
+    # Pure LIKE fallback (SQLite + PG without pg_trgm)
     sql = f"""
         SELECT id, title, SUBSTR({content_column}, 1, 300) as snippet, 0.5 as score
         FROM {table}

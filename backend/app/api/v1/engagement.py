@@ -505,26 +505,45 @@ async def _filter_customers_by_rules(db: AsyncSession, rules: list[dict]) -> lis
     """Filter customers by segment rules — extended rule engine.
 
     Supported operators:
-    - contains: ILIKE substring match
-    - equals: exact match
-    - not_empty: field is not null and not empty string
-    - gte: greater than or equal (numeric/date)
-    - lte: less than or equal (numeric/date)
-    - in: value in comma-separated list
-    - not_equals: not equal
-    - starts_with: ILIKE prefix match
+    - contains, equals, not_equals, not_empty, gte, lte, in, starts_with
+
+    Advanced:
+    - or_group: array of sub-rules, ANY must match (OR logic)
+    - weight: optional numeric weight per rule for scoring (0-100)
 
     Aggregate operators (cross-table):
-    - quote_count_gte: customers with >= N quotes
-    - quote_value_gte: customers with total quote value >= N
-    - last_quote_within_days: customers with a quote in last N days
+    - quote_count_gte, quote_value_gte, last_quote_within_days
     """
     from datetime import timedelta
 
     query = select(Customer)
     aggregate_filters = []
+    weighted_rules = []  # (rule, weight) pairs for scoring
 
     for rule in rules:
+        weight = rule.get("weight")
+        if weight is not None:
+            weighted_rules.append((rule, float(weight)))
+
+        # OR group: any sub-rule matches
+        if rule.get("op") == "or_group" and isinstance(rule.get("rules"), list):
+            or_conditions = []
+            for sub_rule in rule["rules"]:
+                sub_field = sub_rule.get("field", "")
+                sub_op = sub_rule.get("op", "")
+                sub_val = sub_rule.get("value", "")
+                if hasattr(Customer, sub_field):
+                    col = getattr(Customer, sub_field)
+                    if sub_op == "contains":
+                        safe = str(sub_val).replace("%", "\\%").replace("_", "\\_")
+                        or_conditions.append(col.ilike(f"%{safe}%"))
+                    elif sub_op == "equals":
+                        or_conditions.append(col == sub_val)
+                    elif sub_op == "not_empty":
+                        or_conditions.append(and_(col.isnot(None), col != ""))
+            if or_conditions:
+                query = query.where(or_(*or_conditions))
+            continue
         field = rule.get("field", "")
         op = rule.get("op", "")
         value = rule.get("value", "")

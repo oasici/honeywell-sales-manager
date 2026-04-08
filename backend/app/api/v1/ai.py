@@ -93,11 +93,25 @@ async def summarize(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_ai_summaries),
 ):
-    """One-click summary with LRU cache (5min TTL) and 8K context window."""
+    """One-click summary with Redis cache (multi-worker shared, 5min TTL)."""
     import time
 
-    # Check cache
-    cache_key = hashlib.md5(f"{body.entity_type}:{body.entity_id}:{body.focus or ''}".encode()).hexdigest()
+    raw_key = f"{body.entity_type}:{body.entity_id}:{body.focus or ''}"
+    cache_key = f"ai:summary:{hashlib.md5(raw_key.encode()).hexdigest()}"
+
+    # Try Redis cache first (shared across workers)
+    try:
+        from app.core.redis_client import get_redis
+        r = get_redis()
+        if r:
+            cached_json = await r.get(cache_key)
+            if cached_json:
+                cached = json.loads(cached_json)
+                return {"summary": cached["summary"], "sources": cached["sources"], "cached": True}
+    except Exception:
+        pass
+
+    # In-memory fallback
     cached = _summary_cache.get(cache_key)
     if cached and (time.time() - cached["ts"]) < SUMMARY_CACHE_TTL:
         return {"summary": cached["summary"], "sources": cached["sources"], "cached": True}
@@ -161,9 +175,16 @@ async def summarize(
 
     await log_action(db, user_id=current_user.id, action="ai_summarize", entity_type=body.entity_type, entity_id=body.entity_id)
 
-    # Write to cache
-    _summary_cache[cache_key] = {"summary": summary, "sources": sources, "ts": time.time()}
-    # Evict old entries (max 500)
+    # Write to Redis cache (shared) + in-memory fallback
+    cache_data = {"summary": summary, "sources": sources}
+    try:
+        from app.core.redis_client import get_redis
+        r = get_redis()
+        if r:
+            await r.setex(cache_key, SUMMARY_CACHE_TTL, json.dumps(cache_data))
+    except Exception:
+        pass
+    _summary_cache[cache_key] = {**cache_data, "ts": time.time()}
     if len(_summary_cache) > 500:
         oldest = sorted(_summary_cache, key=lambda k: _summary_cache[k]["ts"])[:100]
         for k in oldest:

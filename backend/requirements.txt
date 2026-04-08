@@ -52,6 +52,7 @@ pgvector==0.3.6
 
 # Background jobs
 apscheduler==3.10.4
+arq==0.26.1
 
 # Data processing
 pandas==2.2.3
