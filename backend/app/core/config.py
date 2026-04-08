@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     # ── Database ──
     DATABASE_URL: str = ""
 
+    # ── Redis ──
+    REDIS_URL: str = "redis://redis:6379/0"
+
     # ── Auth / JWT ──
     JWT_SECRET_KEY: str = secrets.token_hex(32)  # Random per-start in dev; MUST set in .env for prod
     JWT_ALGORITHM: str = "HS256"
@@ -96,6 +99,11 @@ class Settings(BaseSettings):
     # ── Security ──
     ALLOWED_UPLOAD_EXTENSIONS: str = ".csv,.xlsx,.xls"
     MAX_UPLOAD_SIZE_MB: int = 10
+
+    # ── Feature Flags (v2) ──
+    FEATURE_V2_BOARD: bool = False
+    FEATURE_AI_SUMMARIES: bool = False
+    FEATURE_AI_PIPELINE_SUGGESTIONS: bool = False
 
     @property
     def cors_origin_list(self) -> list[str]:

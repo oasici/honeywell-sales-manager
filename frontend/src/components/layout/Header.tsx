@@ -19,7 +19,8 @@ interface Notification {
   created_at: string;
 }
 
-const POLL_INTERVAL_MS = 30_000;
+// Reduced from 30s to 90s for scale (1500+ users → 50 req/s → ~17 req/s)
+const POLL_INTERVAL_MS = 90_000;
 const RECENT_NOTIFICATIONS_LIMIT = 10;
 
 function getEntityRoute(entityType?: string | null, entityId?: number | null): string | null {

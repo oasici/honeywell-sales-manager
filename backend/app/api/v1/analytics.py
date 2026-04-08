@@ -26,7 +26,7 @@ async def get_top_parts(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Top requested parts by quote item count within the lookback period."""
+    """Top requested parts by quote item count — single JOIN query (no N+1)."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     result = await db.execute(
@@ -35,37 +35,32 @@ async def get_top_parts(
             func.count(QuoteItem.id).label("request_count"),
             func.sum(QuoteItem.quantity).label("total_quantity"),
             func.sum(QuoteItem.line_total).label("total_value"),
+            SparePart.name_en,
+            SparePart.name_tr,
+            SparePart.category,
         )
         .join(Quote, QuoteItem.quote_id == Quote.id)
+        .outerjoin(SparePart, SparePart.honeywell_code == QuoteItem.honeywell_code)
         .where(Quote.created_at >= cutoff)
         .where(QuoteItem.honeywell_code.isnot(None))
-        .group_by(QuoteItem.honeywell_code)
+        .group_by(QuoteItem.honeywell_code, SparePart.name_en, SparePart.name_tr, SparePart.category)
         .order_by(func.count(QuoteItem.id).desc())
         .limit(limit)
     )
     rows = result.all()
 
-    items = []
-    for row in rows:
-        # Look up part name
-        part_result = await db.execute(
-            select(SparePart.name_en, SparePart.name_tr, SparePart.category).where(
-                SparePart.honeywell_code == row.honeywell_code
-            )
-        )
-        part_info = part_result.first()
-
-        items.append({
+    return [
+        {
             "honeywell_code": row.honeywell_code,
             "request_count": row.request_count,
             "total_quantity": row.total_quantity or 0,
             "total_value": round(row.total_value or 0, 2),
-            "name_en": part_info.name_en if part_info else None,
-            "name_tr": part_info.name_tr if part_info else None,
-            "category": part_info.category if part_info else None,
-        })
-
-    return items
+            "name_en": row.name_en,
+            "name_tr": row.name_tr,
+            "category": row.category,
+        }
+        for row in rows
+    ]
 
 
 @router.get("/monthly-trend")
@@ -522,43 +517,49 @@ async def get_rep_scorecards(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Feature-5: Rep performance scorecards."""
+    """Feature-5: Rep performance scorecards — single aggregate query (no N+1)."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=window)
 
-    reps_q = await db.execute(
-        select(User).where(User.role.in_(["sales_rep", "sales_manager"]), User.is_active.is_(True))
+    # Single query: GROUP BY created_by with conditional counts
+    result = await db.execute(
+        select(
+            Quote.created_by,
+            User.full_name,
+            User.role,
+            func.count(Quote.id).label("quote_count"),
+            func.count(case((Quote.status == "sent", Quote.id))).label("sent_count"),
+            func.count(case((Quote.status == "approved", Quote.id))).label("approved_count"),
+            func.count(case((Quote.status == "accepted", Quote.id))).label("won_count"),
+            func.coalesce(func.sum(Quote.grand_total), 0.0).label("revenue"),
+            func.coalesce(func.avg(case((Quote.discount_total > 0, Quote.discount_total))), 0.0).label("avg_discount"),
+        )
+        .join(User, Quote.created_by == User.id)
+        .where(Quote.created_at >= cutoff)
+        .where(User.is_active.is_(True))
+        .where(User.role.in_(["sales_rep", "sales_manager"]))
+        .group_by(Quote.created_by, User.full_name, User.role)
+        .order_by(func.sum(Quote.grand_total).desc())
     )
-    reps = reps_q.scalars().all()
+    rows = result.all()
 
     scorecards = []
-    for rep in reps:
-        base = and_(Quote.created_by == rep.id, Quote.created_at >= cutoff)
-        total = (await db.execute(select(func.count(Quote.id)).where(base))).scalar() or 0
-        sent = (await db.execute(select(func.count(Quote.id)).where(base, Quote.status == "sent"))).scalar() or 0
-        approved = (await db.execute(select(func.count(Quote.id)).where(base, Quote.status == "approved"))).scalar() or 0
-        won = (await db.execute(select(func.count(Quote.id)).where(base, Quote.status == "accepted"))).scalar() or 0
-        revenue = (await db.execute(select(func.coalesce(func.sum(Quote.grand_total), 0.0)).where(base))).scalar() or 0
-
-        avg_discount = (await db.execute(
-            select(func.avg(Quote.discount_total)).where(base, Quote.discount_total > 0)
-        )).scalar() or 0
-
+    for r in rows:
+        total = r.quote_count
+        won = r.won_count
         win_rate = round(won / total * 100, 1) if total > 0 else 0
-
         scorecards.append({
-            "user_id": rep.id,
-            "full_name": rep.full_name,
-            "role": rep.role,
+            "user_id": r.created_by,
+            "full_name": r.full_name,
+            "role": r.role,
             "quote_count": total,
-            "sent_count": sent,
-            "approved_count": approved,
+            "sent_count": r.sent_count,
+            "approved_count": r.approved_count,
             "won_count": won,
             "win_rate": win_rate,
-            "revenue": round(float(revenue), 2),
-            "avg_discount": round(float(avg_discount), 2),
+            "revenue": round(float(r.revenue), 2),
+            "avg_discount": round(float(r.avg_discount), 2),
         })
 
-    scorecards.sort(key=lambda x: x["revenue"], reverse=True)
     return {"window_days": window, "scorecards": scorecards}
 
 

@@ -44,6 +44,11 @@ class Quote(Base):
     close_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # v2: Opportunity linkage (nullable — backward compatible)
+    opportunity_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("opportunities.id"), nullable=True, index=True
+    )
+
     # Versioning
     version: Mapped[int] = mapped_column(Integer, default=1)
     parent_quote_id: Mapped[int | None] = mapped_column(
@@ -62,4 +67,8 @@ class Quote(Base):
     customer = relationship("Customer", back_populates="quotes", lazy="selectin")
     items = relationship(
         "QuoteItem", back_populates="quote", lazy="selectin", cascade="all, delete-orphan"
+    )
+    opportunity = relationship(
+        "Opportunity", back_populates="quotes", lazy="noload",
+        foreign_keys=[opportunity_id],
     )

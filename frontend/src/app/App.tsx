@@ -19,6 +19,10 @@ const ReportsPage = lazy(() => import('../features/admin/ReportsPage'));
 const UserManagementPage = lazy(() => import('../features/admin/UserManagementPage'));
 const AuditLogPage = lazy(() => import('../features/admin/AuditLogPage'));
 
+// v2 pages (behind FEATURE_V2_BOARD flag)
+const BoardPage = lazy(() => import('../features/board/BoardPage'));
+const OpportunityDetailPage = lazy(() => import('../features/board/OpportunityDetailPage'));
+
 export default function App() {
   return (
     <Routes>
@@ -158,6 +162,28 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <AuditLogPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+
+        {/* v2: Sales Board (feature-flag controlled at API level) */}
+        <Route
+          path="board"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <BoardPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="opportunities/:id"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <OpportunityDetailPage />
               </ErrorBoundary>
             </Suspense>
           }

@@ -1,6 +1,7 @@
 # Web framework
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
+gunicorn==23.0.0
 python-multipart==0.0.18
 
 # Database
@@ -42,6 +43,7 @@ aiosmtplib==3.0.2
 
 # Security
 slowapi==0.1.9
+redis[hiredis]==5.2.1
 cryptography==44.0.0
 python-multipart==0.0.18
 

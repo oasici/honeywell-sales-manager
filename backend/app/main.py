@@ -66,6 +66,9 @@ async def lifespan(app: FastAPI):
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_quote_email_request ON quotes (email_request_id) WHERE email_request_id IS NOT NULL",
         "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS close_reason VARCHAR(50)",
         "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP WITH TIME ZONE",
+        # v2: Opportunity linkage
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS opportunity_id INTEGER REFERENCES opportunities(id)",
+        "CREATE INDEX IF NOT EXISTS ix_quotes_opportunity_id ON quotes (opportunity_id)",
     ]
     for sql in migrations:
         try:
@@ -89,12 +92,23 @@ async def lifespan(app: FastAPI):
     async with async_session() as db:
         await create_default_admin(db)
 
-    start_scheduler()
-    logger.info("Application started (env=%s)", settings.ENV)
+    # Scheduler: only start if SCHEDULER_ENABLED=true (separate process in production)
+    scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "true").lower() == "true"
+    if scheduler_enabled:
+        start_scheduler()
+        logger.info("Scheduler started (in-process mode)")
+    else:
+        logger.info("Scheduler disabled (using separate scheduler process)")
+
+    logger.info("Application started (env=%s, workers=gunicorn)", settings.ENV)
 
     yield
 
-    stop_scheduler()
+    if scheduler_enabled:
+        stop_scheduler()
+    # Close Redis connection pool
+    from app.core.redis_client import close_redis
+    await close_redis()
     await engine.dispose()
     logger.info("Application stopped")
 

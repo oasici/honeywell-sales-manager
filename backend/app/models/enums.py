@@ -29,3 +29,12 @@ class UserRole(str, Enum):
     SALES_REP = "sales_rep"
     SALES_MANAGER = "sales_manager"
     OPERATIONS = "operations"
+
+
+class OpportunityStage(str, Enum):
+    PROSPECTING = "prospecting"
+    QUALIFIED = "qualified"
+    PROPOSAL = "proposal"
+    NEGOTIATION = "negotiation"
+    CLOSED_WON = "closed_won"
+    CLOSED_LOST = "closed_lost"

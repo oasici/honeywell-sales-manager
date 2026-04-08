@@ -27,4 +27,6 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Multi-worker via gunicorn + uvicorn workers
+# WEB_CONCURRENCY controls worker count (default 4)
+CMD ["sh", "-c", "gunicorn app.main:app -w ${WEB_CONCURRENCY:-4} -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --timeout 120 --graceful-timeout 30 --access-logfile -"]

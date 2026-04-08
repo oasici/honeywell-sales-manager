@@ -531,4 +531,39 @@ export const auditApi = {
   },
 };
 
+// ── v2: Opportunities + Board ──────────────────────
+export const opportunitiesApi = {
+  list: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get('/opportunities/', { params });
+    return data;
+  },
+  get: async (id: number) => {
+    const { data } = await api.get(`/opportunities/${id}`);
+    return data;
+  },
+  create: async (payload: Record<string, unknown>) => {
+    const { data } = await api.post('/opportunities/', payload);
+    return data;
+  },
+  update: async (id: number, payload: Record<string, unknown>) => {
+    const { data } = await api.patch(`/opportunities/${id}`, payload);
+    return data;
+  },
+  getTimeline: async (id: number, limit = 50) => {
+    const { data } = await api.get(`/opportunities/${id}/timeline`, { params: { limit } });
+    return data;
+  },
+};
+
+export const boardApi = {
+  getKanban: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get('/board/kanban', { params });
+    return data;
+  },
+  getSummary: async (window = 30) => {
+    const { data } = await api.get('/board/summary', { params: { window } });
+    return data;
+  },
+};
+
 export default api;

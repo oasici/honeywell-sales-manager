@@ -1,6 +1,11 @@
-"""Security utilities: JWT, password hashing, token management."""
+"""Security utilities: JWT, password hashing, token management.
+
+JWT revocation uses Redis when available (multi-worker safe).
+Falls back to in-memory OrderedDict for single-worker/dev.
+"""
 
 import hashlib
+import logging
 import secrets
 import re
 import threading
@@ -12,17 +17,11 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ── In-memory revoked token store (bounded, thread-safe) ──
-# NOTE: This is a single-process solution. Multiple Uvicorn workers or
-#       multiple instances (e.g. Render auto-scale) do NOT share this store.
-#       For multi-instance deployments, replace with Redis or a DB table:
-#         1. Add `revoked_tokens` table (jti VARCHAR PK, revoked_at TIMESTAMP)
-#         2. On revoke: INSERT jti
-#         3. On decode: SELECT EXISTS(jti)
-#         4. Periodic cleanup: DELETE WHERE revoked_at < now() - max_token_lifetime
-# Short-term mitigation: access token TTL is 30 min, limiting exposure window.
+# ── In-memory fallback (used when Redis unavailable) ──
 MAX_REVOKED_TOKENS = 10_000
 _revoked_lock = threading.Lock()
 _revoked_jti: OrderedDict[str, None] = OrderedDict()
@@ -78,34 +77,127 @@ def create_refresh_token(data: dict) -> str:
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+def _is_revoked_memory(jti: str) -> bool:
+    """Check in-memory fallback store."""
+    with _revoked_lock:
+        return jti in _revoked_jti
+
+
+def _revoke_memory(jti: str, ttl_seconds: int) -> None:
+    """Add to in-memory fallback store."""
+    with _revoked_lock:
+        _revoked_jti[jti] = None
+        _revoked_jti.move_to_end(jti)
+        while len(_revoked_jti) > MAX_REVOKED_TOKENS:
+            _revoked_jti.popitem(last=False)
+
+
+def _try_redis_revoke(jti: str, ttl_seconds: int) -> bool:
+    """Try to revoke via Redis. Returns True if Redis handled it."""
+    try:
+        from app.core.redis_client import get_redis
+        r = get_redis()
+        if r is None:
+            return False
+        # Sync wrapper for non-async context — use pipeline
+        import asyncio
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # We're in async context but this function is sync
+            # Fall back to memory, async caller should use revoke_token_async
+            return False
+        return False  # Always fall back to memory in sync context
+    except Exception:
+        return False
+
+
 def decode_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")
-        if jti:
-            with _revoked_lock:
-                if jti in _revoked_jti:
+        if jti and _is_revoked_memory(jti):
+            return None
+        return payload
+    except JWTError:
+        return None
+
+
+async def decode_token_async(token: str) -> dict | None:
+    """Async version that checks Redis first, then memory fallback."""
+    try:
+        payload = jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
+        jti = payload.get("jti")
+        if not jti:
+            return payload
+
+        # Try Redis first
+        try:
+            from app.core.redis_client import get_redis
+            r = get_redis()
+            if r:
+                is_revoked = await r.exists(f"revoked:{jti}")
+                if is_revoked:
                     return None
+                return payload
+        except Exception:
+            pass
+
+        # Fallback to memory
+        if _is_revoked_memory(jti):
+            return None
         return payload
     except JWTError:
         return None
 
 
 def revoke_token(token: str) -> None:
-    """Add token's jti to the bounded revocation store (FIFO eviction)."""
+    """Sync revocation — uses in-memory store. For multi-worker, use revoke_token_async."""
     try:
         payload = jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")
         if jti:
-            with _revoked_lock:
-                _revoked_jti[jti] = None
-                _revoked_jti.move_to_end(jti)
-                while len(_revoked_jti) > MAX_REVOKED_TOKENS:
-                    _revoked_jti.popitem(last=False)
+            ttl = int(payload.get("exp", 0) - datetime.now(timezone.utc).timestamp())
+            ttl = max(ttl, 60)
+            _revoke_memory(jti, ttl)
+    except JWTError:
+        pass
+
+
+async def revoke_token_async(token: str) -> None:
+    """Async revocation — uses Redis (multi-worker safe) + memory fallback."""
+    try:
+        payload = jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
+        jti = payload.get("jti")
+        if not jti:
+            return
+
+        ttl = int(payload.get("exp", 0) - datetime.now(timezone.utc).timestamp())
+        ttl = max(ttl, 60)
+
+        # Try Redis
+        try:
+            from app.core.redis_client import get_redis
+            r = get_redis()
+            if r:
+                await r.setex(f"revoked:{jti}", ttl, "1")
+                return
+        except Exception as e:
+            logger.debug("Redis revoke failed, using memory fallback: %s", e)
+
+        # Fallback
+        _revoke_memory(jti, ttl)
     except JWTError:
         pass
 
@@ -126,11 +218,8 @@ def verify_csrf_token(token: str, expected: str) -> bool:
 
 def sanitize_filename(filename: str) -> str:
     """Sanitize a filename to prevent path traversal."""
-    # Remove path separators and null bytes
     name = filename.replace("/", "").replace("\\", "").replace("\x00", "")
-    # Remove leading dots (hidden files / traversal)
     name = name.lstrip(".")
-    # If empty after sanitization, use a default
     return name or "uploaded_file"
 
 

@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
-import { LayoutDashboard, Wrench, Mail, Cog, FileText, Users, Settings, LogOut, ChevronRight, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Wrench, Mail, Cog, FileText, Users, Settings, LogOut, ChevronRight, BarChart3, Kanban } from 'lucide-react';
 
 const COLLAPSE_KEY = 'sidebar-yedek-parca-collapsed';
 
@@ -90,6 +90,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           <LayoutDashboard size={18} className="shrink-0" />
           {t('nav.home')}
         </NavLink>
+
+        {/* v2: Sales Board — visible for sales roles, API guards the flag */}
+        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
+          <NavLink to="/board" className={navLinkClass} onClick={onNavigate}>
+            <Kanban size={18} className="shrink-0" />
+            Sales Board
+          </NavLink>
+        )}
 
         {/* Yedek Parca collapsible section */}
         <div>

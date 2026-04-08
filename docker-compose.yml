@@ -8,12 +8,22 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    # DB port NOT exposed externally (internal network only)
-    # Use docker-compose.override.yml for dev access
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-honeywell}"]
       interval: 5s
       timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 5
 
   backend:
@@ -22,13 +32,35 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-honeywell}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-honeywell_sales}
+      REDIS_URL: redis://redis:6379/0
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      SCHEDULER_ENABLED: "false"
     volumes:
       - backend_data:/app/data
     ports:
       - "8000:8000"
+
+  scheduler:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-honeywell}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-honeywell_sales}
+      REDIS_URL: redis://redis:6379/0
+      SCHEDULER_ENABLED: "true"
+    command: ["python", "-m", "app.tasks.run_scheduler"]
+    volumes:
+      - backend_data:/app/data
 
   frontend:
     build: ./frontend
@@ -40,4 +72,5 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
   backend_data:

@@ -10,11 +10,16 @@ if _db_url.startswith("postgresql://"):
 elif not _db_url.startswith("postgresql+asyncpg://"):
     _db_url = f"postgresql+asyncpg://{_db_url}"
 
+# Pool size per worker — conservative for multi-worker (gunicorn -w 4)
+# Total connections: 4 workers x (5+10) = 60 max
+# With PgBouncer: multiplexed, safe for PostgreSQL default max_connections=100
 engine = create_async_engine(
     _db_url,
     echo=False,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=5,
+    max_overflow=10,
+    pool_pre_ping=True,
+    pool_recycle=300,
 )
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

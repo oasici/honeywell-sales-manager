@@ -240,3 +240,47 @@ export interface TokenResponse {
   token_type: string;
   user: User;
 }
+
+// ── v2: Opportunity ─────────────────────────────────
+export interface Opportunity {
+  id: number;
+  title: string;
+  stage: string;
+  amount: number | null;
+  currency: string;
+  close_date: string | null;
+  owner_id: number;
+  customer_id: number | null;
+  status: string;
+  rotting_days: number;
+  customer: { id: number; name: string; company: string } | null;
+  owner: { id: number; full_name: string } | null;
+  quotes: { id: number; quote_number: string; status: string; grand_total: number }[];
+  open_quotes_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OpportunityEvent {
+  id: number;
+  event_type: string;
+  entity_type: string | null;
+  entity_id: number | null;
+  description: string | null;
+  occurred_at: string;
+}
+
+export interface KanbanColumn {
+  stage: string;
+  count: number;
+  total_amount: number;
+  items: Opportunity[];
+}
+
+export interface BoardSummary {
+  window_days: number;
+  open_pipeline_total: number;
+  won_count: number;
+  win_rate: number;
+  rotting_count: number;
+}
