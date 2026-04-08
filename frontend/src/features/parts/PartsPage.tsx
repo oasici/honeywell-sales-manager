@@ -44,52 +44,52 @@ function PartDetailModal({
   const createdDate = part.created_at?.split('T')[0];
 
   return (
-    <Modal isOpen={!!part} onClose={onClose} title="Urun Detayi" size="lg">
+    <Modal isOpen={!!part} onClose={onClose} title="" size="lg">
       <div className="space-y-5">
-        {/* Header: Honeywell code + model number */}
-        <div>
-          <h3 className="text-2xl font-bold tracking-tight text-gray-900">
+        {/* Gradient header banner */}
+        <div className="-mx-6 -mt-6 rounded-t-2xl bg-gradient-to-r from-red-700 to-red-500 px-6 py-6">
+          <h3 className="text-2xl font-bold tracking-tight text-white">
             {part.honeywell_code}
           </h3>
           {part.model_number && (
-            <p className="mt-1 text-base text-gray-500">{part.model_number}</p>
+            <p className="mt-1 text-sm text-red-100">{part.model_number}</p>
           )}
         </div>
 
         {/* Info highlight box */}
         {part.info && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
             <span className="font-semibold">Bilgi: </span>
             {part.info}
           </div>
         )}
 
         {/* Price section */}
-        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-800">
           {hasPriceInfo ? (
-            <div className="flex flex-wrap items-start gap-6">
+            <div className="flex flex-wrap items-end gap-8">
               {part.transfer_price != null && (
                 <div>
-                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     T.P. (Transfer Price)
                   </span>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                  <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
                     {formatPrice(part.transfer_price)}
                   </p>
                 </div>
               )}
               {part.supplier_price != null && (
                 <div>
-                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     L.P. (List Price)
                   </span>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                  <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
                     {formatPrice(part.supplier_price)}
                   </p>
                 </div>
               )}
               {part.price_currency && (
-                <span className="mt-6 inline-flex items-center rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                <span className="mb-1 inline-flex items-center rounded-full bg-gradient-to-r from-gray-200 to-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 dark:from-gray-600 dark:to-gray-700 dark:text-gray-200">
                   {part.price_currency}
                 </span>
               )}
@@ -99,16 +99,19 @@ function PartDetailModal({
           )}
         </div>
 
+        {/* Gradient divider */}
+        <div className="h-px bg-gradient-to-r from-transparent via-red-200 to-transparent dark:via-red-800" />
+
         {/* Description card */}
         {(descriptionTr || descriptionEn) && (
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
               Aciklama
             </h4>
-            <div className="space-y-2 text-sm text-gray-700">
+            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
               {descriptionTr && (
                 <div className="flex gap-2">
-                  <span className="inline-flex h-5 items-center rounded bg-blue-100 px-1.5 text-[10px] font-bold text-blue-700">
+                  <span className="inline-flex h-5 items-center rounded bg-blue-100 px-1.5 text-[10px] font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                     TR
                   </span>
                   <span>{descriptionTr}</span>
@@ -116,7 +119,7 @@ function PartDetailModal({
               )}
               {descriptionEn && (
                 <div className="flex gap-2">
-                  <span className="inline-flex h-5 items-center rounded bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700">
+                  <span className="inline-flex h-5 items-center rounded bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                     EN
                   </span>
                   <span>{descriptionEn}</span>
@@ -129,12 +132,12 @@ function PartDetailModal({
         {/* Metadata: Category & Subcategory pills */}
         <div className="flex flex-wrap gap-2">
           {part.category && (
-            <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
+            <span className="inline-flex items-center rounded-full bg-gradient-to-r from-indigo-50 to-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 dark:text-indigo-300 dark:ring-indigo-700">
               {part.category}
             </span>
           )}
           {part.subcategory && (
-            <span className="inline-flex items-center rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
+            <span className="inline-flex items-center rounded-full bg-gradient-to-r from-violet-50 to-violet-100 px-3 py-1 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200 dark:from-violet-900/30 dark:to-violet-800/30 dark:text-violet-300 dark:ring-violet-700">
               {part.subcategory}
             </span>
           )}

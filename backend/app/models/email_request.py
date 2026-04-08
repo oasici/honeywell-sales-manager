@@ -11,7 +11,7 @@ class EmailRequest(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     customer_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("customers.id"), nullable=True
+        Integer, ForeignKey("customers.id"), nullable=True, index=True
     )
     message_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     from_address: Mapped[str] = mapped_column(String(255), nullable=False)

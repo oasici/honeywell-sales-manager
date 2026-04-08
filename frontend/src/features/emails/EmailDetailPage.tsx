@@ -18,9 +18,9 @@ import type { EmailRequest, MatchResult } from '../../lib/types';
 
 function ScoreBadge({ score }: { score: number }) {
   const pct = Math.round(score * 100);
-  let colorClass = 'bg-red-100 text-red-700';
-  if (pct >= 80) colorClass = 'bg-green-100 text-green-700';
-  else if (pct >= 50) colorClass = 'bg-yellow-100 text-yellow-700';
+  let colorClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+  if (pct >= 80) colorClass = 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+  else if (pct >= 50) colorClass = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${colorClass}`}
@@ -29,6 +29,48 @@ function ScoreBadge({ score }: { score: number }) {
     </span>
   );
 }
+
+function ConfidenceBar({ score }: { score: number }) {
+  const pct = Math.round(score * 100);
+  let barColor = 'bg-red-500';
+  if (pct >= 80) barColor = 'bg-green-500';
+  else if (pct >= 50) barColor = 'bg-yellow-500';
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-2.5 flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
+        <div
+          className={`h-2.5 rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">%{pct}</span>
+    </div>
+  );
+}
+
+const STRATEGY_STYLES: Record<string, { label: string; color: string }> = {
+  exact_code: { label: 'Tam Eslesme', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+  exact_model: { label: 'Model Eslesme', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+  prefix_code: { label: 'Prefix', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  fuzzy_code: { label: 'Fuzzy Kod', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  fuzzy_name: { label: 'Fuzzy Isim', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  semantic: { label: 'Semantik', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+};
+
+function StrategyBadge({ strategy }: { strategy: string }) {
+  const s = STRATEGY_STYLES[strategy] || { label: strategy, color: 'bg-gray-100 text-gray-600' };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.color}`}>
+      {s.label}
+    </span>
+  );
+}
+
+const URGENCY_COLORS: Record<string, string> = {
+  critical: 'bg-red-600 text-white',
+  urgent: 'bg-orange-500 text-white',
+  normal: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+};
 
 export default function EmailDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -95,14 +137,17 @@ export default function EmailDetailPage() {
 
   return (
     <div>
-      {/* Review Status Banner */}
+      {/* Review Status Banner with gradient accent */}
       {rs && (
         <div
-          className={`mb-4 flex items-center justify-between rounded-lg px-4 py-3 ${
+          className={`mb-4 flex items-center gap-3 overflow-hidden rounded-lg ${
             REVIEW_STATUS_COLORS[rs] || 'bg-gray-100 text-gray-700'
           }`}
         >
-          <span className="text-sm font-medium">
+          <div className={`w-1.5 self-stretch ${
+            rs === 'approved' ? 'bg-green-500' : rs === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'
+          }`} />
+          <span className="py-3 text-sm font-medium">
             Inceleme Durumu: {REVIEW_STATUS_LABELS[rs] || rs}
           </span>
         </div>
@@ -190,7 +235,7 @@ export default function EmailDetailPage() {
                 <span className="font-medium text-gray-500">Guven Skoru:</span>
                 <span>
                   {email.category_confidence != null ? (
-                    <ScoreBadge score={email.category_confidence} />
+                    <ConfidenceBar score={email.category_confidence} />
                   ) : (
                     '-'
                   )}
@@ -211,43 +256,40 @@ export default function EmailDetailPage() {
                 </span>
               </div>
 
-              {/* Extracted Parts */}
+              {/* Extracted Parts — card layout */}
               {parsed.parts && parsed.parts.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold text-gray-700">
+                  <h4 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Cikarilan Parcalar ({parsed.parts.length})
                   </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-200 bg-gray-50">
-                          <th className="px-3 py-2 text-xs font-semibold text-gray-500">
-                            Kod
-                          </th>
-                          <th className="px-3 py-2 text-xs font-semibold text-gray-500">
-                            Aciklama
-                          </th>
-                          <th className="px-3 py-2 text-xs font-semibold text-gray-500">
-                            Adet
-                          </th>
-                          <th className="px-3 py-2 text-xs font-semibold text-gray-500">
-                            Aciliyet
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {parsed.parts.map((part, idx) => (
-                          <tr key={idx} className="border-b border-gray-100">
-                            <td className="px-3 py-2 font-mono text-xs">
+                  <div className="space-y-2">
+                    {parsed.parts.map((part, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
+                      >
+                        <div className="min-w-0 flex-1">
+                          {part.part_code && (
+                            <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
                               {part.part_code}
-                            </td>
-                            <td className="px-3 py-2">{part.part_description}</td>
-                            <td className="px-3 py-2">{part.quantity}</td>
-                            <td className="px-3 py-2">{part.urgency || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </span>
+                          )}
+                          <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {part.part_description}
+                          </p>
+                        </div>
+                        <div className="ml-4 flex shrink-0 items-center gap-2">
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            x{part.quantity}
+                          </span>
+                          {part.urgency && (
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${URGENCY_COLORS[part.urgency] || URGENCY_COLORS.normal}`}>
+                              {part.urgency}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -290,7 +332,7 @@ export default function EmailDetailPage() {
                   {matches.map((m, idx) => (
                     <tr
                       key={idx}
-                      className="border-b border-gray-100 hover:bg-gray-50"
+                      className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                     >
                       <td className="px-4 py-3 font-mono text-xs font-semibold">
                         {m.honeywell_code}
@@ -299,8 +341,8 @@ export default function EmailDetailPage() {
                       <td className="px-4 py-3">
                         <ScoreBadge score={m.score} />
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
-                        {m.strategy}
+                      <td className="px-4 py-3">
+                        <StrategyBadge strategy={m.strategy} />
                       </td>
                     </tr>
                   ))}

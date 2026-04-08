@@ -19,7 +19,7 @@ router = APIRouter(prefix="/prices", tags=["Prices"])
 
 @router.get("/")
 async def list_prices(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     spare_part_id: int | None = Query(None, description="Filter by spare part"),
     currency: str | None = Query(None, description="Filter by currency"),
@@ -109,11 +109,11 @@ async def import_prices(
 ):
     """Import price entries from Excel (.xlsx) or CSV file."""
     if not file.filename:
-        raise BadRequestException("No file provided")
+        raise BadRequestException("Dosya saglanmadi")
 
     filename_lower = file.filename.lower()
     if not (filename_lower.endswith(".csv") or filename_lower.endswith(".xlsx")):
-        raise BadRequestException("Only .csv and .xlsx files are supported")
+        raise BadRequestException("Yalnizca .csv ve .xlsx dosyalari desteklenmektedir")
 
     content = await file.read()
 
@@ -187,7 +187,7 @@ async def import_prices(
         raise BadRequestException(f"Error processing file: {str(e)}")
 
     return {
-        "message": "Import completed",
+        "message": "Icerik aktarimi tamamlandi",
         "imported": imported_count,
         "skipped": skipped_count,
         "errors": errors,

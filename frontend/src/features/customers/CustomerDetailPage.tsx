@@ -11,6 +11,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { customersApi, quotesApi, customerHealthApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 import { STATUS_LABELS, STATUS_COLORS } from '../../lib/constants';
+import { Mail, Phone, MapPin, FileText, TrendingUp } from 'lucide-react';
 import { HealthScoreCard } from './HealthScoreCard';
 import type { Customer, Quote, PaginatedResponse, CustomerHealthReport } from '../../lib/types';
 
@@ -231,81 +232,84 @@ export default function CustomerDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
+              {/* Customer hero */}
               <div>
-                <span className="text-xs font-medium text-gray-500">Isim</span>
-                <p className="text-sm text-gray-900">{customer.name || '-'}</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {customer.company || customer.name}
+                </h3>
+                {customer.company && (
+                  <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{customer.name}</p>
+                )}
               </div>
-              <div>
-                <span className="text-xs font-medium text-gray-500">Sirket</span>
-                <p className="text-sm text-gray-900">
-                  {customer.company || '-'}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-gray-500">Email</span>
-                <p className="text-sm text-gray-900">{customer.email || '-'}</p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-gray-500">
-                  Telefon
-                </span>
-                <p className="text-sm text-gray-900">{customer.phone || '-'}</p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-gray-500">
-                  Vergi No
-                </span>
-                <p className="text-sm text-gray-900">{customer.tax_id || '-'}</p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-gray-500">
-                  Tercih Edilen Dil
-                </span>
-                <p className="text-sm text-gray-900">
-                  {customer.preferred_lang === 'tr'
-                    ? 'Turkce'
-                    : customer.preferred_lang === 'en'
-                      ? 'Ingilizce'
-                      : customer.preferred_lang || '-'}
-                </p>
-              </div>
-              <div className="sm:col-span-2">
-                <span className="text-xs font-medium text-gray-500">Adres</span>
-                <p className="text-sm text-gray-900">
-                  {customer.address || '-'}
-                </p>
+
+              {/* Contact info with icons */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="flex items-center gap-2.5">
+                  <Mail size={14} className="shrink-0 text-gray-400" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{customer.email || '-'}</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Phone size={14} className="shrink-0 text-gray-400" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{customer.phone || '-'}</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <FileText size={14} className="shrink-0 text-gray-400" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    VKN: {customer.tax_id || '-'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="shrink-0 text-xs font-bold text-gray-400">
+                    {customer.preferred_lang === 'tr' ? 'TR' : customer.preferred_lang === 'en' ? 'EN' : customer.preferred_lang || '-'}
+                  </span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {customer.preferred_lang === 'tr' ? 'Turkce' : customer.preferred_lang === 'en' ? 'Ingilizce' : 'Dil'}
+                  </span>
+                </div>
+                {customer.address && (
+                  <div className="flex items-start gap-2.5 sm:col-span-2">
+                    <MapPin size={14} className="mt-0.5 shrink-0 text-gray-400" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{customer.address}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </Card>
 
-        {/* Quote Summary */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Toplam Teklif
-            </span>
-            <p className="mt-2 text-2xl font-bold text-gray-900">
-              {quotes.length}
-            </p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Toplam Deger
-            </span>
-            <p className="mt-2 text-2xl font-bold text-honeywell-red">
-              {formatCurrency(totalValue, 'USD')}
-            </p>
-          </div>
-        </div>
-
-        {/* Health Score */}
+        {/* Health Score — hero position */}
         {healthLoading ? (
           <Skeleton variant="card" />
         ) : healthData ? (
           <HealthScoreCard health={healthData} />
         ) : null}
+
+        {/* Quote Summary */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border-l-4 border-l-blue-500 border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Toplam Teklif
+              </span>
+              <TrendingUp size={16} className="text-blue-400" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              {quotes.length}
+            </p>
+          </div>
+          <div className="rounded-xl border-l-4 border-l-red-500 border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Toplam Deger
+              </span>
+              <TrendingUp size={16} className="text-red-400" />
+            </div>
+            <p className="mt-2 text-2xl font-bold text-honeywell-red">
+              {formatCurrency(totalValue, 'USD')}
+            </p>
+          </div>
+        </div>
 
         {/* Quote History */}
         <Card title="Teklif Gecmisi">

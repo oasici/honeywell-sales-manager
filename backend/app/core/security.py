@@ -3,6 +3,8 @@
 import hashlib
 import secrets
 import re
+import threading
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -12,18 +14,18 @@ from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ── In-memory revoked token set ──
-# TODO(P1-1): Replace with Redis or DB-backed revocation in production.
-# Risk: In-memory set is lost on restart, meaning revoked tokens become
-#        valid again until they naturally expire. Multi-process deployments
-#        (e.g. multiple Uvicorn workers) do NOT share this set.
-# Mitigation plan:
-#   1. Add a `revoked_tokens` table (jti VARCHAR PK, revoked_at TIMESTAMP)
-#   2. On revoke: INSERT jti
-#   3. On decode: SELECT EXISTS(jti)
-#   4. Periodic cleanup: DELETE WHERE revoked_at < now() - max_token_lifetime
-# Short-term: keep access token TTL short (30 min) to limit exposure window.
-_revoked_jti: set[str] = set()
+# ── In-memory revoked token store (bounded, thread-safe) ──
+# NOTE: This is a single-process solution. Multiple Uvicorn workers or
+#       multiple instances (e.g. Render auto-scale) do NOT share this store.
+#       For multi-instance deployments, replace with Redis or a DB table:
+#         1. Add `revoked_tokens` table (jti VARCHAR PK, revoked_at TIMESTAMP)
+#         2. On revoke: INSERT jti
+#         3. On decode: SELECT EXISTS(jti)
+#         4. Periodic cleanup: DELETE WHERE revoked_at < now() - max_token_lifetime
+# Short-term mitigation: access token TTL is 30 min, limiting exposure window.
+MAX_REVOKED_TOKENS = 10_000
+_revoked_lock = threading.Lock()
+_revoked_jti: OrderedDict[str, None] = OrderedDict()
 
 
 # ── Password ──
@@ -81,24 +83,29 @@ def decode_token(token: str) -> dict | None:
         payload = jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
-        # Check if token has been revoked
         jti = payload.get("jti")
-        if jti and jti in _revoked_jti:
-            return None
+        if jti:
+            with _revoked_lock:
+                if jti in _revoked_jti:
+                    return None
         return payload
     except JWTError:
         return None
 
 
 def revoke_token(token: str) -> None:
-    """Add token's jti to revocation list."""
+    """Add token's jti to the bounded revocation store (FIFO eviction)."""
     try:
         payload = jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")
         if jti:
-            _revoked_jti.add(jti)
+            with _revoked_lock:
+                _revoked_jti[jti] = None
+                _revoked_jti.move_to_end(jti)
+                while len(_revoked_jti) > MAX_REVOKED_TOKENS:
+                    _revoked_jti.popitem(last=False)
     except JWTError:
         pass
 

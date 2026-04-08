@@ -44,7 +44,7 @@ async def login(
     """OAuth2-compatible login with rate limiting (enforced via global middleware)."""
     user = await auth_service.authenticate(db, form_data.username, form_data.password)
     if user is None:
-        raise UnauthorizedException("Invalid email or password")
+        raise UnauthorizedException("Gecersiz e-posta veya sifre")
 
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
@@ -99,11 +99,11 @@ async def refresh_token_endpoint(
     """Exchange a refresh token for new tokens. Old refresh token is revoked."""
     payload = decode_token(body.refresh_token)
     if payload is None or payload.get("type") != "refresh":
-        raise UnauthorizedException("Invalid or expired refresh token")
+        raise UnauthorizedException("Gecersiz veya suresi dolmus yenileme tokeni")
 
     user_id = payload.get("sub")
     if user_id is None:
-        raise UnauthorizedException("Invalid refresh token payload")
+        raise UnauthorizedException("Gecersiz yenileme tokeni icerigi")
 
     from sqlalchemy import select
     result = await db.execute(select(User).where(User.id == int(user_id)))
@@ -133,7 +133,7 @@ async def logout(
     """Revoke refresh token on logout."""
     if body.refresh_token:
         revoke_token(body.refresh_token)
-    return {"message": "Logged out successfully"}
+    return {"message": "Basariyla cikis yapildi"}
 
 
 class ChangePasswordRequest(BaseModel):
@@ -149,7 +149,7 @@ async def change_password(
 ):
     """Change the current user's password."""
     if not verify_password(body.current_password, current_user.hashed_password):
-        raise BadRequestException("Current password is incorrect")
+        raise BadRequestException("Mevcut sifre yanlis")
 
     pw_error = validate_password_strength(body.new_password)
     if pw_error:
@@ -159,4 +159,4 @@ async def change_password(
     current_user.password_change_required = False
     await db.flush()
 
-    return {"message": "Password changed successfully"}
+    return {"message": "Sifre basariyla degistirildi"}

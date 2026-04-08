@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 export const PALETTE = [
@@ -23,6 +23,7 @@ export const DoughnutChart = React.memo(function DoughnutChart({
   unit,
   colorIndex = 0,
 }: DoughnutChartProps) {
+  const uid = useId().replace(/:/g, '');
   const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
   const remaining = Math.max(total - filled, 0);
   const data = [
@@ -30,39 +31,51 @@ export const DoughnutChart = React.memo(function DoughnutChart({
     { name: 'Kalan', value: remaining || 0.001 },
   ];
   const colors = PALETTE[colorIndex % PALETTE.length];
+  const gradId = `doughnutGrad-${uid}`;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm h-full">
-      <p className="mb-3 text-sm font-medium text-gray-500 text-center">{title}</p>
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm h-full dark:border-gray-700 dark:bg-gray-800">
+      <p className="mb-3 text-sm font-medium text-gray-500 text-center dark:text-gray-400">{title}</p>
       <div className="flex items-center justify-center">
-        <div className="relative" style={{ width: 140, height: 140 }}>
+        <div className="relative" style={{ width: 150, height: 150 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor={colors[0]} stopOpacity={1} />
+                  <stop offset="100%" stopColor={colors[0]} stopOpacity={0.7} />
+                </linearGradient>
+                <filter id={`shadow-${uid}`}>
+                  <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor={colors[0]} floodOpacity="0.25" />
+                </filter>
+              </defs>
               <Pie
                 data={data}
                 cx="50%"
                 cy="50%"
-                innerRadius={45}
-                outerRadius={65}
+                innerRadius={40}
+                outerRadius={68}
                 dataKey="value"
                 startAngle={90}
                 endAngle={-270}
                 stroke="none"
-                cornerRadius={4}
+                cornerRadius={6}
+                animationBegin={0}
+                animationDuration={1200}
+                animationEasing="ease-out"
               >
-                {data.map((_, i) => (
-                  <Cell key={i} fill={colors[i]} />
-                ))}
+                <Cell fill={`url(#${gradId})`} style={{ filter: `url(#shadow-${uid})` }} />
+                <Cell fill={colors[1]} />
               </Pie>
             </PieChart>
           </ResponsiveContainer>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xl font-bold text-gray-900">%{pct}</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">%{pct}</span>
           </div>
         </div>
       </div>
-      <div className="mt-2 text-center text-xs text-gray-500">
-        <span className="font-semibold text-gray-700">
+      <div className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+        <span className="font-semibold text-gray-700 dark:text-gray-200">
           {typeof filled === 'number' && filled > 1000
             ? filled.toLocaleString('tr-TR', { maximumFractionDigits: 0 })
             : filled}

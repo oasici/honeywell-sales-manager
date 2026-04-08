@@ -33,6 +33,11 @@ class Settings(BaseSettings):
                 _log.getLogger(__name__).warning(
                     "JWT_SECRET_KEY should be at least 32 characters in production"
                 )
+            origins = [o.strip().lower() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+            if any("localhost" in o or "127.0.0.1" in o for o in origins):
+                raise ValueError(
+                    "CORS_ORIGINS uretim ortaminda 'localhost' veya '127.0.0.1' icermemeli"
+                )
         return self
 
     # ── CORS ──

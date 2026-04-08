@@ -302,7 +302,7 @@ async def import_customers(
         raise BadRequestException(f"Dosya isleme hatasi: {str(e)}")
 
     return {
-        "message": "Import completed",
+        "message": "Icerik aktarimi tamamlandi",
         "imported": imported_count,
         "skipped": skipped_count,
         "errors": errors,

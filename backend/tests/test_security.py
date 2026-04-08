@@ -6,7 +6,9 @@ from unittest.mock import patch
 import pytest
 
 from app.core.security import (
+    MAX_REVOKED_TOKENS,
     _revoked_jti,
+    _revoked_lock,
     create_access_token,
     decode_token,
     hash_password,
@@ -151,6 +153,55 @@ class TestJwtTokens:
 
     def test_should_return_none_for_invalid_token(self):
         assert decode_token("not-a-valid-token") is None
+
+    def test_bounded_eviction_removes_oldest(self):
+        """Revoking more than MAX_REVOKED_TOKENS evicts the oldest entries."""
+        tokens = []
+        for i in range(MAX_REVOKED_TOKENS + 1):
+            t = create_access_token({"sub": f"user{i}@test.com"})
+            tokens.append(t)
+            revoke_token(t)
+
+        # Oldest token (index 0) should be evicted
+        assert decode_token(tokens[0]) is not None, "Oldest should be evicted (no longer revoked)"
+        # Latest token should still be revoked
+        assert decode_token(tokens[-1]) is None, "Latest should still be revoked"
+        # Store size should be bounded
+        with _revoked_lock:
+            assert len(_revoked_jti) == MAX_REVOKED_TOKENS
+
+    def test_concurrent_revoke_and_decode_no_crash(self):
+        """Multiple threads revoking/decoding concurrently should not raise."""
+        import threading
+
+        errors = []
+        tokens = [create_access_token({"sub": f"u{i}@t.com"}) for i in range(50)]
+
+        def revoke_batch(batch):
+            try:
+                for t in batch:
+                    revoke_token(t)
+            except Exception as e:
+                errors.append(e)
+
+        def decode_batch(batch):
+            try:
+                for t in batch:
+                    decode_token(t)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [
+            threading.Thread(target=revoke_batch, args=(tokens[:25],)),
+            threading.Thread(target=revoke_batch, args=(tokens[25:],)),
+            threading.Thread(target=decode_batch, args=(tokens,)),
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=5)
+
+        assert errors == [], f"Concurrent access raised errors: {errors}"
 
 
 # ── Filename Sanitization ──

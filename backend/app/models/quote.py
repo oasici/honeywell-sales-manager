@@ -12,10 +12,10 @@ class Quote(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     quote_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     customer_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("customers.id"), nullable=True
+        Integer, ForeignKey("customers.id"), nullable=True, index=True
     )
     email_request_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("email_requests.id"), nullable=True
+        Integer, ForeignKey("email_requests.id"), nullable=True, index=True
     )
     created_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True

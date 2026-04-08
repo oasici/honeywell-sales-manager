@@ -336,13 +336,22 @@ class EmailProcessingService:
         email: EmailRequest,
         parsed: dict,
     ) -> None:
-        """Auto-create a draft quote from parsed email parts."""
+        """Auto-create a draft quote from parsed email parts (idempotent).
+
+        Uses SELECT ... FOR UPDATE to prevent TOCTOU race conditions.
+        If a concurrent worker already created the quote, IntegrityError
+        is caught and the existing quote is used instead.
+        """
+        from sqlalchemy.exc import IntegrityError
         from app.models.quote import Quote
         from app.services.quote_service import QuoteService
 
-        # Guard against duplicate quote creation for the same email
+        # Lock-based guard: prevents concurrent creation for the same email
         existing = await self._db.execute(
-            select(Quote).where(Quote.email_request_id == email.id).limit(1)
+            select(Quote)
+            .where(Quote.email_request_id == email.id)
+            .limit(1)
+            .with_for_update(skip_locked=True)
         )
         if existing.scalar_one_or_none():
             logger.info("Quote already exists for email %d", email.id)
@@ -365,6 +374,12 @@ class EmailProcessingService:
             logger.info(
                 "Auto-created draft quote %s from email %d",
                 quote.quote_number,
+                email.id,
+            )
+        except IntegrityError:
+            await self._db.rollback()
+            logger.info(
+                "Duplicate quote prevented by DB constraint for email %d",
                 email.id,
             )
         except Exception as exc:

@@ -186,6 +186,16 @@ export default function ReportsPage() {
         ) : categoryData && categoryData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={categoryData}>
+              <defs>
+                <linearGradient id="catBarGradRed" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#D32F2F" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#B71C1C" stopOpacity={0.8} />
+                </linearGradient>
+                <linearGradient id="catBarGradBlue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1976D2" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#0D47A1" stopOpacity={0.8} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="category"
@@ -202,16 +212,18 @@ export default function ReportsPage() {
               <Bar
                 yAxisId="left"
                 dataKey="item_count"
-                fill="#D32F2F"
+                fill="url(#catBarGradRed)"
                 name="Kalem Sayisi"
                 radius={[6, 6, 0, 0]}
+                label={{ position: 'top', fontSize: 10, fill: '#94a3b8' }}
               />
               <Bar
                 yAxisId="right"
                 dataKey="total_value"
-                fill="#1976D2"
+                fill="url(#catBarGradBlue)"
                 name="Toplam Deger (USD)"
                 radius={[6, 6, 0, 0]}
+                label={{ position: 'top', fontSize: 10, fill: '#94a3b8' }}
               />
             </BarChart>
           </ResponsiveContainer>
