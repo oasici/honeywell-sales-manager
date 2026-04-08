@@ -149,7 +149,7 @@ async def update_settings(
 @router.post("/email-credentials")
 async def save_email_credentials(
     body: EmailCredentials,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Save email credentials and mark user's email setup as completed."""
@@ -238,7 +238,7 @@ class EmailTestRequest(BaseModel):
 @router.post("/email-credentials/test")
 async def test_email_connection(
     body: EmailTestRequest | None = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Test email IMAP connection. Accepts credentials directly or uses stored ones."""

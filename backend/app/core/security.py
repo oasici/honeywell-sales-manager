@@ -12,7 +12,8 @@ import threading
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+import jwt as pyjwt
+from jwt.exceptions import PyJWTError as JWTError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -66,7 +67,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode.update({"exp": expire, "type": "access", "jti": jti})
-    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return pyjwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 def create_refresh_token(data: dict) -> str:
@@ -74,7 +75,7 @@ def create_refresh_token(data: dict) -> str:
     jti = _generate_jti()
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh", "jti": jti})
-    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return pyjwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 def _is_revoked_memory(jti: str) -> bool:
@@ -117,7 +118,7 @@ def _try_redis_revoke(jti: str, ttl_seconds: int) -> bool:
 
 def decode_token(token: str) -> dict | None:
     try:
-        payload = jwt.decode(
+        payload = pyjwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")
@@ -131,7 +132,7 @@ def decode_token(token: str) -> dict | None:
 async def decode_token_async(token: str) -> dict | None:
     """Async version that checks Redis first, then memory fallback."""
     try:
-        payload = jwt.decode(
+        payload = pyjwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")
@@ -161,7 +162,7 @@ async def decode_token_async(token: str) -> dict | None:
 def revoke_token(token: str) -> None:
     """Sync revocation — uses in-memory store. For multi-worker, use revoke_token_async."""
     try:
-        payload = jwt.decode(
+        payload = pyjwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")
@@ -176,7 +177,7 @@ def revoke_token(token: str) -> None:
 async def revoke_token_async(token: str) -> None:
     """Async revocation — uses Redis (multi-worker safe) + memory fallback."""
     try:
-        payload = jwt.decode(
+        payload = pyjwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")

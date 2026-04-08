@@ -23,6 +23,12 @@ class EmailReviewRequest(BaseModel):
 router = APIRouter(prefix="/emails", tags=["Emails"])
 
 
+def _check_email_ownership(email: EmailRequest, user: User) -> None:
+    """Raise 403 if non-manager user doesn't own the email."""
+    if user.role != UserRole.SALES_MANAGER.value and email.assigned_to != user.id:
+        raise ForbiddenException("Bu e-postaya erisim yetkiniz yok")
+
+
 @router.get("/")
 async def list_emails(
     page: int = Query(1, ge=1, le=10000),
@@ -284,6 +290,7 @@ async def mark_email_read(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+    _check_email_ownership(email, current_user)
     email.is_read = True
     await db.flush()
     return {"message": "OK"}
@@ -303,6 +310,7 @@ async def reparse_email(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+    _check_email_ownership(email, current_user)
 
     # Daily parse limit: 2/day (atomic lock to prevent race condition)
     today_str = datetime.now(tz.utc).strftime("%Y-%m-%d")
@@ -352,6 +360,7 @@ async def correct_parse(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+    _check_email_ownership(email, current_user)
 
     original_parse = email.parsed_data or "{}"
     corrected_data = body.parsed_data
@@ -468,6 +477,7 @@ async def get_email_matches(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+    _check_email_ownership(email, current_user)
 
     parsed_data = None
     if email.parsed_data:

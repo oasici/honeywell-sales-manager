@@ -31,7 +31,8 @@ async def list_parts(
 
     conditions = []
     if search:
-        search_term = f"%{search}%"
+        safe_search = search.replace("%", "\\%").replace("_", "\\_")
+        search_term = f"%{safe_search}%"
         conditions.append(
             or_(
                 SparePart.honeywell_code.ilike(search_term),

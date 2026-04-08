@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import ForbiddenException, UnauthorizedException
-from app.core.security import decode_token
+from app.core.security import decode_token_async
 from app.models.enums import UserRole
 from app.models.user import User
 
@@ -21,7 +21,7 @@ async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
-    payload = decode_token(token)
+    payload = await decode_token_async(token)
     if payload is None or payload.get("type") != "access":
         raise UnauthorizedException()
 

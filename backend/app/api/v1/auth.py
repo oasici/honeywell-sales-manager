@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +19,7 @@ from app.core.security import (
     decode_token,
     hash_password,
     revoke_token,
+    revoke_token_async,
     validate_password_strength,
     verify_password,
 )
@@ -127,12 +128,18 @@ async def refresh_token_endpoint(
 
 @router.post("/logout")
 async def logout(
+    request: Request,
     body: LogoutRequest,
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-    """Revoke refresh token on logout."""
+    """Revoke both access and refresh tokens on logout."""
+    # Revoke access token from Authorization header
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        await revoke_token_async(auth_header[7:])
+    # Revoke refresh token if provided
     if body.refresh_token:
-        revoke_token(body.refresh_token)
+        await revoke_token_async(body.refresh_token)
     return {"message": "Basariyla cikis yapildi"}
 
 

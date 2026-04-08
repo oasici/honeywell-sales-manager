@@ -123,6 +123,8 @@ async def create_quote_from_pdf(
         raise BadRequestException("Sadece PDF dosyasi kabul edilir")
 
     content = await file.read()
+    if len(content) > 10 * 1024 * 1024:  # 10MB limit
+        raise BadRequestException("PDF dosya boyutu 10MB'i asamaz")
     if content[:4] != b'%PDF':
         raise BadRequestException("Gecerli bir PDF dosyasi degil")
 
@@ -203,6 +205,13 @@ async def update_quote(
     db: AsyncSession = Depends(get_db),
 ):
     """Update quote header and items."""
+    # Ownership check
+    existing = (await db.execute(select(Quote).where(Quote.id == quote_id))).scalar_one_or_none()
+    if not existing:
+        raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
+    if current_user.role != UserRole.SALES_MANAGER.value and existing.created_by != current_user.id:
+        raise ForbiddenException("Bu teklifi guncelleme yetkiniz yok")
+
     payload = data.model_dump(exclude_unset=True)
     items = None
     if "items" in payload and payload["items"] is not None:
@@ -265,6 +274,10 @@ async def send_quote(
     quote = result.scalar_one_or_none()
     if not quote:
         raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
+
+    # Ownership check
+    if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
+        raise ForbiddenException("Bu teklifi gonderme yetkiniz yok")
 
     if quote.status not in ("approved", "sent"):
         raise BadRequestException(

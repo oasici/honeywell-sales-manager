@@ -125,7 +125,8 @@ async def list_opportunities(
     if status:
         conditions.append(Opportunity.status == status)
     if q:
-        conditions.append(Opportunity.title.ilike(f"%{q}%"))
+        safe_q = q.replace("%", "\\%").replace("_", "\\_")
+        conditions.append(Opportunity.title.ilike(f"%{safe_q}%"))
 
     if conditions:
         combined = and_(*conditions)
@@ -332,7 +333,8 @@ async def get_board_kanban(
         conditions.append(Opportunity.owner_id == owner_id)
 
     if q:
-        conditions.append(Opportunity.title.ilike(f"%{q}%"))
+        safe_q = q.replace("%", "\\%").replace("_", "\\_")
+        conditions.append(Opportunity.title.ilike(f"%{safe_q}%"))
 
     columns = []
     for stage in requested_stages:
