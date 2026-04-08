@@ -18,16 +18,22 @@ class SparePartCreate(BaseModel):
 
 
 class SparePartUpdate(BaseModel):
+    """All fields optional — only provided fields are updated."""
     honeywell_code: str | None = Field(default=None, min_length=1, max_length=100)
+    model_number: str | None = Field(default=None, max_length=200)
+    info: str | None = None
     name_en: str | None = Field(default=None, max_length=500)
     name_tr: str | None = Field(default=None, max_length=500)
     description_en: str | None = None
     description_tr: str | None = None
     category: str | None = Field(default=None, max_length=200)
     subcategory: str | None = Field(default=None, max_length=200)
+    transfer_price: float | None = None
+    supplier_price: float | None = None
     keywords_json: str | None = None
     aliases_json: str | None = None
-    is_active: bool | None = None
+
+    model_config = {"extra": "ignore"}
 
 
 class SparePartResponse(BaseModel):

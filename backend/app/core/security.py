@@ -204,14 +204,17 @@ async def revoke_token_async(token: str) -> None:
 
 
 # ── CSRF ──
+# NOTE: CSRF protection is not actively used because the API uses Bearer token
+# authentication (not cookies). If cookie-based auth is ever added, these
+# functions should be integrated into a CSRF middleware.
 
 def generate_csrf_token() -> str:
-    """Generate a CSRF token."""
+    """Generate a CSRF token. Currently unused — see module note above."""
     return secrets.token_hex(32)
 
 
 def verify_csrf_token(token: str, expected: str) -> bool:
-    """Constant-time comparison of CSRF tokens."""
+    """Constant-time CSRF token comparison. Currently unused — see module note above."""
     return secrets.compare_digest(token, expected)
 
 

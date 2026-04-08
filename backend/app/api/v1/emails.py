@@ -101,7 +101,7 @@ async def get_email(
     )
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+        raise NotFoundException("E-posta bulunamadi")
 
     # Ownership check: non-managers can only access emails assigned to them
     if current_user.role != UserRole.SALES_MANAGER.value and email.assigned_to != current_user.id:
@@ -289,7 +289,7 @@ async def mark_email_read(
     result = await db.execute(select(EmailRequest).where(EmailRequest.id == email_id))
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+        raise NotFoundException("E-posta bulunamadi")
     _check_email_ownership(email, current_user)
     email.is_read = True
     await db.flush()
@@ -309,7 +309,7 @@ async def reparse_email(
     result = await db.execute(select(EmailRequest).where(EmailRequest.id == email_id))
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+        raise NotFoundException("E-posta bulunamadi")
     _check_email_ownership(email, current_user)
 
     # Daily parse limit: 2/day (atomic lock to prevent race condition)
@@ -359,7 +359,7 @@ async def correct_parse(
     result = await db.execute(select(EmailRequest).where(EmailRequest.id == email_id))
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+        raise NotFoundException("E-posta bulunamadi")
     _check_email_ownership(email, current_user)
 
     original_parse = email.parsed_data or "{}"
@@ -476,7 +476,7 @@ async def get_email_matches(
     )
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+        raise NotFoundException("E-posta bulunamadi")
     _check_email_ownership(email, current_user)
 
     parsed_data = None
@@ -509,7 +509,7 @@ async def review_email(
     )
     email = result.scalar_one_or_none()
     if not email:
-        raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
+        raise NotFoundException("E-posta bulunamadi")
 
     if email.review_status != ReviewStatus.PENDING_REVIEW.value:
         raise BadRequestException(

@@ -164,7 +164,7 @@ async def get_opportunity(
     )
     opp = result.scalar_one_or_none()
     if not opp:
-        raise NotFoundException(f"Firsat bulunamadi: {opp_id}")
+        raise NotFoundException("Firsat bulunamadi")
 
     # RBAC
     if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
@@ -230,7 +230,7 @@ async def update_opportunity(
     result = await db.execute(select(Opportunity).where(Opportunity.id == opp_id))
     opp = result.scalar_one_or_none()
     if not opp:
-        raise NotFoundException(f"Firsat bulunamadi: {opp_id}")
+        raise NotFoundException("Firsat bulunamadi")
 
     # RBAC: rep can only update own
     if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
@@ -277,7 +277,7 @@ async def get_opportunity_timeline(
     # Verify exists + RBAC
     opp = (await db.execute(select(Opportunity).where(Opportunity.id == opp_id))).scalar_one_or_none()
     if not opp:
-        raise NotFoundException(f"Firsat bulunamadi: {opp_id}")
+        raise NotFoundException("Firsat bulunamadi")
     if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
         raise ForbiddenException("Bu firsata erisim yetkiniz yok")
 

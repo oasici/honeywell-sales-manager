@@ -47,21 +47,26 @@ async def authenticate(db: AsyncSession, email: str, password: str) -> User | No
 
     Implements account lockout after 5 failed attempts (15-minute window).
     """
-    # Check lockout
+    # Check lockout — but still do password verification to prevent timing side-channel
     locked, remaining = _is_locked_out(email)
-    if locked:
-        logger.warning("Locked out login attempt for %s (%ds remaining)", email, remaining)
-        return None
 
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
-    if user is None:
-        _record_failed_attempt(email)
+    # Always verify password (constant-time) to prevent timing-based user enumeration
+    if user is not None:
+        pw_valid = verify_password(password, user.hashed_password)
+    else:
+        # Hash a dummy password to keep timing consistent
+        verify_password(password, hash_password("dummy-timing-pad"))
+        pw_valid = False
+
+    if locked:
+        remaining_min = max(1, remaining // 60)
+        logger.warning("Locked out login attempt for %s (%dmin remaining)", email, remaining_min)
         return None
-    if not user.is_active:
-        return None
-    if not verify_password(password, user.hashed_password):
+
+    if user is None or not user.is_active or not pw_valid:
         _record_failed_attempt(email)
         return None
 
@@ -108,13 +113,9 @@ async def create_default_admin(db: AsyncSession) -> None:
     existing = result.scalar_one_or_none()
 
     if existing is not None:
-        # Sync password with env variable on every startup
-        if not verify_password(settings.DEFAULT_ADMIN_PASSWORD, existing.hashed_password):
-            existing.hashed_password = hash_password(settings.DEFAULT_ADMIN_PASSWORD)
-            await db.commit()
-            logger.info("Default admin password updated from env: %s", settings.DEFAULT_ADMIN_EMAIL)
-        else:
-            logger.info("Default admin user already exists: %s", settings.DEFAULT_ADMIN_EMAIL)
+        # Do NOT overwrite password on restart — admin may have changed it via UI.
+        # To force-reset: delete the admin from DB and restart, or use change-password API.
+        logger.info("Default admin user already exists: %s", settings.DEFAULT_ADMIN_EMAIL)
         return
 
     admin = User(

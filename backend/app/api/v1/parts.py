@@ -12,6 +12,7 @@ from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.spare_part import SparePart
 from app.models.user import User
+from app.schemas.spare_part import SparePartCreate, SparePartUpdate
 
 router = APIRouter(prefix="/parts", tags=["Spare Parts"])
 
@@ -96,7 +97,7 @@ async def get_part(
     )
     part = result.scalar_one_or_none()
     if not part:
-        raise NotFoundException(f"{part_id} numarali parca bulunamadi")
+        raise NotFoundException("Parca bulunamadi")
 
     data = _part_to_dict(part)
     data["prices"] = [
@@ -117,33 +118,19 @@ async def get_part(
 
 @router.post("/", status_code=201)
 async def create_part(
-    data: dict,
+    data: SparePartCreate,
     current_user: User = Depends(require_role(UserRole.OPERATIONS)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new spare part (operations only)."""
-    honeywell_code = data.get("honeywell_code")
-    if not honeywell_code:
-        raise BadRequestException("honeywell_code alani gereklidir")
-
+    """Create a new spare part (operations only). Validated via Pydantic schema."""
     # Check for duplicate
     existing = await db.execute(
-        select(SparePart).where(SparePart.honeywell_code == honeywell_code)
+        select(SparePart).where(SparePart.honeywell_code == data.honeywell_code)
     )
     if existing.scalar_one_or_none():
-        raise BadRequestException(f"'{honeywell_code}' kodlu parca zaten mevcut")
+        raise BadRequestException(f"'{data.honeywell_code}' kodlu parca zaten mevcut")
 
-    part = SparePart(
-        honeywell_code=honeywell_code,
-        name_en=data.get("name_en"),
-        name_tr=data.get("name_tr"),
-        description_en=data.get("description_en"),
-        description_tr=data.get("description_tr"),
-        category=data.get("category"),
-        subcategory=data.get("subcategory"),
-        keywords_json=data.get("keywords_json"),
-        aliases_json=data.get("aliases_json"),
-    )
+    part = SparePart(**data.model_dump())
     db.add(part)
     await db.flush()
     await db.refresh(part)
@@ -154,26 +141,20 @@ async def create_part(
 @router.put("/{part_id}")
 async def update_part(
     part_id: int,
-    data: dict,
+    data: SparePartUpdate,
     current_user: User = Depends(require_role(UserRole.OPERATIONS)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a spare part (operations only)."""
+    """Update a spare part (operations only). Validated via Pydantic schema."""
     result = await db.execute(
         select(SparePart).where(SparePart.id == part_id)
     )
     part = result.scalar_one_or_none()
     if not part:
-        raise NotFoundException(f"{part_id} numarali parca bulunamadi")
+        raise NotFoundException("Parca bulunamadi")
 
-    updatable_fields = [
-        "honeywell_code", "model_number", "info", "name_en", "name_tr",
-        "description_en", "description_tr", "category", "subcategory",
-        "transfer_price", "supplier_price", "keywords_json", "aliases_json",
-    ]
-    for field in updatable_fields:
-        if field in data:
-            setattr(part, field, data[field])
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(part, field, value)
 
     await db.flush()
     await db.refresh(part)
@@ -193,7 +174,7 @@ async def delete_part(
     )
     part = result.scalar_one_or_none()
     if not part:
-        raise NotFoundException(f"{part_id} numarali parca bulunamadi")
+        raise NotFoundException("Parca bulunamadi")
 
     part.is_active = False
     await db.flush()

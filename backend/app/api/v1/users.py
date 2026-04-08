@@ -61,7 +61,7 @@ async def toggle_user_active(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise NotFoundException(f"{user_id} numarali kullanici bulunamadi")
+        raise NotFoundException("Kullanici bulunamadi")
 
     if user.id == current_user.id:
         raise BadRequestException("Kendi hesabinizi deaktif edemezsiniz")
@@ -101,7 +101,7 @@ async def change_user_role(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise NotFoundException(f"{user_id} numarali kullanici bulunamadi")
+        raise NotFoundException("Kullanici bulunamadi")
 
     if user.id == current_user.id:
         raise BadRequestException("Kendi rolunuzu degistiremezsiniz")

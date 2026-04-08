@@ -1,6 +1,6 @@
 """Notification API endpoints."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,17 +19,16 @@ MAX_NOTIFICATION_LIMIT = 100
 @router.get("/")
 async def list_notifications(
     unread_only: bool = False,
-    limit: int = DEFAULT_NOTIFICATION_LIMIT,
+    limit: int = Query(DEFAULT_NOTIFICATION_LIMIT, ge=1, le=MAX_NOTIFICATION_LIMIT),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List notifications for the current user."""
-    clamped_limit = max(1, min(limit, MAX_NOTIFICATION_LIMIT))
     notifications = await get_notifications(
         db,
         user_id=current_user.id,
         unread_only=unread_only,
-        limit=clamped_limit,
+        limit=limit,
     )
     return {"notifications": notifications}
 

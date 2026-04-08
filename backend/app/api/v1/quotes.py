@@ -79,7 +79,7 @@ async def get_quote(
     )
     quote = result.scalar_one_or_none()
     if not quote:
-        raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
+        raise NotFoundException("Teklif bulunamadi")
 
     # Ownership check: non-managers can only access their own quotes
     if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
@@ -208,7 +208,7 @@ async def update_quote(
     # Ownership check
     existing = (await db.execute(select(Quote).where(Quote.id == quote_id))).scalar_one_or_none()
     if not existing:
-        raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
+        raise NotFoundException("Teklif bulunamadi")
     if current_user.role != UserRole.SALES_MANAGER.value and existing.created_by != current_user.id:
         raise ForbiddenException("Bu teklifi guncelleme yetkiniz yok")
 
@@ -273,7 +273,7 @@ async def send_quote(
     )
     quote = result.scalar_one_or_none()
     if not quote:
-        raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
+        raise NotFoundException("Teklif bulunamadi")
 
     # Ownership check
     if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
@@ -376,7 +376,7 @@ async def download_quote_pdf(
     )
     quote = result.scalar_one_or_none()
     if not quote:
-        raise NotFoundException(f"{quote_id} numarali teklif bulunamadi")
+        raise NotFoundException("Teklif bulunamadi")
 
     # Authorization: only creator or manager can download
     if quote.created_by != current_user.id and current_user.role != UserRole.SALES_MANAGER.value:

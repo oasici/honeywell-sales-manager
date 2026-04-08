@@ -19,6 +19,9 @@ router = APIRouter(prefix="/settings", tags=["Settings"])
 
 # ── Password encryption helpers ──
 
+_KEY_FILE = os.path.join("data", ".encryption_key")
+
+
 def _get_fernet():
     from app.core.config import settings as cfg
 
@@ -29,8 +32,15 @@ def _get_fernet():
                 "ENCRYPTION_KEY must be set in production. "
                 "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
             )
-        # Development/test: auto-generate and persist for the process lifetime
-        key = Fernet.generate_key().decode()
+        # Development/test: persist to file so all workers + restarts share the same key
+        if os.path.exists(_KEY_FILE):
+            with open(_KEY_FILE) as f:
+                key = f.read().strip()
+        if not key:
+            key = Fernet.generate_key().decode()
+            os.makedirs(os.path.dirname(_KEY_FILE), exist_ok=True)
+            with open(_KEY_FILE, "w") as f:
+                f.write(key)
         os.environ["ENCRYPTION_KEY"] = key
     return Fernet(key.encode() if isinstance(key, str) else key)
 
@@ -271,12 +281,23 @@ async def test_email_connection(
     if not email_addr or not email_pass:
         raise BadRequestException("Email bilgileri gereklidir")
 
-    # Always auto-detect if host doesn't match email domain
+    # Auto-detect provider or validate custom host against whitelist (SSRF prevention)
     detected_h, detected_p, _, _ = _detect_provider(email_addr)
+    _allowed_imap_hosts = {v[0] for v in _PROVIDER_MAP.values()}  # known provider hosts
     default_hosts = {"", "outlook.office365.com"}
     if not imap_host or imap_host in default_hosts:
         imap_host = detected_h
         imap_port = detected_p
+    elif imap_host not in _allowed_imap_hosts:
+        import logging as _ssrf_log
+        _ssrf_log.getLogger(__name__).warning(
+            "SSRF guard: custom IMAP host '%s' attempted by user %s",
+            imap_host, current_user.id,
+        )
+        raise BadRequestException(
+            f"Desteklenmeyen IMAP sunucusu: {imap_host}. "
+            "Desteklenen: Gmail, Yahoo, Outlook, Yandex, iCloud."
+        )
 
     try:
         import imaplib

@@ -95,7 +95,7 @@ async def get_customer(
     )
     customer = result.scalar_one_or_none()
     if not customer:
-        raise NotFoundException(f"{customer_id} numarali musteri bulunamadi")
+        raise NotFoundException("Musteri bulunamadi")
 
     # Quote statistics
     quote_count_q = await db.execute(
@@ -170,7 +170,7 @@ async def update_customer(
     )
     customer = result.scalar_one_or_none()
     if not customer:
-        raise NotFoundException(f"{customer_id} numarali musteri bulunamadi")
+        raise NotFoundException("Musteri bulunamadi")
 
     updates = data.model_dump(exclude_unset=True)
 
@@ -201,7 +201,7 @@ async def delete_customer(
     result = await db.execute(select(Customer).where(Customer.id == customer_id))
     customer = result.scalar_one_or_none()
     if not customer:
-        raise NotFoundException(f"{customer_id} numarali musteri bulunamadi")
+        raise NotFoundException("Musteri bulunamadi")
 
     # Check for linked quotes
     quote_count = await db.execute(
