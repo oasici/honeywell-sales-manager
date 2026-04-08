@@ -23,9 +23,17 @@ const AuditLogPage = lazy(() => import('../features/admin/AuditLogPage'));
 const BoardPage = lazy(() => import('../features/board/BoardPage'));
 const OpportunityDetailPage = lazy(() => import('../features/board/OpportunityDetailPage'));
 
+// Marketing landing page (public, no auth)
+const LandingPage = lazy(() => import('../features/landing/LandingPage'));
+
 export default function App() {
   return (
     <Routes>
+      <Route path="/landing" element={
+        <Suspense fallback={<LoadingSpinner />}>
+          <LandingPage />
+        </Suspense>
+      } />
       <Route path="/login" element={<LoginPage />} />
 
       <Route
