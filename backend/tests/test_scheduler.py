@@ -17,7 +17,7 @@ def test_start_scheduler_registers_all_jobs():
         assert "email_poll" in job_ids, "email_poll job not registered"
         assert "quote_expiry" in job_ids, "quote_expiry job not registered"
         assert "batch_email_process" in job_ids, "batch_email_process job not registered"
-        assert len(job_ids) == 3, f"Expected 3 jobs, got {len(job_ids)}: {job_ids}"
+        assert len(job_ids) == 4, f"Expected 4 jobs, got {len(job_ids)}: {job_ids}"
     finally:
         if scheduler.running:
             scheduler.shutdown(wait=False)
@@ -48,7 +48,7 @@ def test_start_scheduler_idempotent():
 
     try:
         job_ids = [job.id for job in scheduler.get_jobs()]
-        assert len(job_ids) == 3, f"Duplicate jobs detected: {job_ids}"
+        assert len(job_ids) == 4, f"Duplicate jobs detected: {job_ids}"
     finally:
         if scheduler.running:
             scheduler.shutdown(wait=False)

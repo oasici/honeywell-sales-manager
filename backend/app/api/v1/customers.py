@@ -309,6 +309,64 @@ async def import_customers(
     }
 
 
+@router.get("/{customer_id}/timeline")
+async def get_customer_timeline(
+    customer_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Feature-10: Customer 360 timeline — chronological emails + quotes."""
+    from app.models.email_request import EmailRequest
+
+    # Verify customer exists
+    cust = await db.execute(select(Customer).where(Customer.id == customer_id))
+    if not cust.scalar_one_or_none():
+        raise NotFoundException(f"Musteri bulunamadi: {customer_id}")
+
+    events = []
+
+    # Emails
+    emails_q = await db.execute(
+        select(EmailRequest.id, EmailRequest.subject, EmailRequest.from_address,
+               EmailRequest.status, EmailRequest.created_at)
+        .where(EmailRequest.customer_id == customer_id)
+        .order_by(EmailRequest.created_at.desc())
+        .limit(limit)
+    )
+    for e in emails_q.all():
+        events.append({
+            "type": "email",
+            "id": e.id,
+            "title": e.subject or "(Konu yok)",
+            "detail": e.from_address,
+            "status": e.status,
+            "timestamp": e.created_at.isoformat() if e.created_at else None,
+        })
+
+    # Quotes
+    quotes_q = await db.execute(
+        select(Quote.id, Quote.quote_number, Quote.status, Quote.grand_total,
+               Quote.currency, Quote.created_at)
+        .where(Quote.customer_id == customer_id)
+        .order_by(Quote.created_at.desc())
+        .limit(limit)
+    )
+    for q in quotes_q.all():
+        events.append({
+            "type": "quote",
+            "id": q.id,
+            "title": q.quote_number,
+            "detail": f"{q.grand_total:,.2f} {q.currency}",
+            "status": q.status,
+            "timestamp": q.created_at.isoformat() if q.created_at else None,
+        })
+
+    # Sort chronologically descending
+    events.sort(key=lambda e: e["timestamp"] or "", reverse=True)
+    return {"customer_id": customer_id, "events": events[:limit]}
+
+
 def _customer_to_dict(customer: Customer) -> dict:
     """Convert Customer to a dictionary response."""
     return {

@@ -2,6 +2,8 @@ from fastapi import APIRouter
 
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.audit import router as audit_router
+from app.api.v1.ops import router as ops_router
+from app.api.v1.saved_views import router as saved_views_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.customer_health import router as customer_health_router
 from app.api.v1.customers import router as customers_router
@@ -29,3 +31,5 @@ v1_router.include_router(notifications_router)
 v1_router.include_router(settings_router)
 v1_router.include_router(users_router)
 v1_router.include_router(audit_router)
+v1_router.include_router(ops_router)
+v1_router.include_router(saved_views_router)

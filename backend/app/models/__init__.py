@@ -10,6 +10,7 @@ from app.models.audit_log import AuditLog
 from app.models.notification import Notification
 from app.models.setting import Setting
 from app.models.ai_training_data import AITrainingData
+from app.models.saved_view import SavedView
 
 __all__ = [
     "EmailStatus",
@@ -27,4 +28,5 @@ __all__ = [
     "Notification",
     "Setting",
     "AITrainingData",
+    "SavedView",
 ]

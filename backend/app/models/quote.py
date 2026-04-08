@@ -40,6 +40,10 @@ class Quote(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
+    # Win/Loss tracking (Feature 3)
+    close_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Versioning
     version: Mapped[int] = mapped_column(Integer, default=1)
     parent_quote_id: Mapped[int | None] = mapped_column(

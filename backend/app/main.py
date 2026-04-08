@@ -69,6 +69,9 @@ async def lifespan(app: FastAPI):
                 )""",
                 # Unique partial index: one quote per email_request (race condition prevention)
                 "CREATE UNIQUE INDEX IF NOT EXISTS uq_quote_email_request ON quotes (email_request_id) WHERE email_request_id IS NOT NULL",
+                # Faz-3: Win/Loss tracking
+                "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS close_reason VARCHAR(50)",
+                "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP WITH TIME ZONE",
             ]
             for sql in migrations:
                 await conn.execute(sqlalchemy.text(sql))
