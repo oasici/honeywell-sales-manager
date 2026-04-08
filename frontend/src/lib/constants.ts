@@ -42,6 +42,7 @@ export const ROLE_LABELS: Record<string, string> = {
   admin: 'Yönetici',
   sales_rep: 'Satış Temsilcisi',
   sales_manager: 'Satış Müdürü',
+  operations: 'Operasyon',
   viewer: 'Görüntüleyici',
 };
 
