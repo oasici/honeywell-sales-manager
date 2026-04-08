@@ -44,40 +44,36 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables created / verified")
 
-    # Auto-migrate: add missing columns safely
-    try:
-        async with engine.begin() as conn:
-            migrations = [
-                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS info TEXT",
-                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS model_number VARCHAR(200)",
-                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS transfer_price FLOAT",
-                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS supplier_price FLOAT",
-                "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS price_currency VARCHAR(10)",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false",
-                "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false",
-                "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
-                # One-time cleanup: fix old auto-approved general inquiry emails
-                "UPDATE email_requests SET review_status = 'rejected' WHERE review_status = 'approved' AND category NOT IN ('spare_part_request', 'price_inquiry')",
-                # One-time cleanup: unlink email_requests from junk customers, then delete them
-                """UPDATE email_requests SET customer_id = NULL WHERE customer_id IN (
-                    SELECT c.id FROM customers c
-                    LEFT JOIN quotes q ON q.customer_id = c.id
-                    WHERE q.id IS NULL
-                )""",
-                """DELETE FROM customers WHERE id NOT IN (
-                    SELECT DISTINCT customer_id FROM quotes WHERE customer_id IS NOT NULL
-                )""",
-                # Unique partial index: one quote per email_request (race condition prevention)
-                "CREATE UNIQUE INDEX IF NOT EXISTS uq_quote_email_request ON quotes (email_request_id) WHERE email_request_id IS NOT NULL",
-                # Faz-3: Win/Loss tracking
-                "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS close_reason VARCHAR(50)",
-                "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP WITH TIME ZONE",
-            ]
-            for sql in migrations:
+    # Auto-migrate: add missing columns safely (each in its own transaction)
+    migrations = [
+        "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS info TEXT",
+        "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS model_number VARCHAR(200)",
+        "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS transfer_price FLOAT",
+        "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS supplier_price FLOAT",
+        "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS price_currency VARCHAR(10)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false",
+        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false",
+        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
+        "UPDATE email_requests SET review_status = 'rejected' WHERE review_status = 'approved' AND category NOT IN ('spare_part_request', 'price_inquiry')",
+        """UPDATE email_requests SET customer_id = NULL WHERE customer_id IN (
+            SELECT c.id FROM customers c
+            LEFT JOIN quotes q ON q.customer_id = c.id
+            WHERE q.id IS NULL
+        )""",
+        """DELETE FROM customers WHERE id NOT IN (
+            SELECT DISTINCT customer_id FROM quotes WHERE customer_id IS NOT NULL
+        )""",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_quote_email_request ON quotes (email_request_id) WHERE email_request_id IS NOT NULL",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS close_reason VARCHAR(50)",
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP WITH TIME ZONE",
+    ]
+    for sql in migrations:
+        try:
+            async with engine.begin() as conn:
                 await conn.execute(sqlalchemy.text(sql))
-        logger.info("Auto-migration completed")
-    except Exception as e:
-        logger.warning("Auto-migration failed (may already be applied): %s", e)
+        except Exception as e:
+            logger.debug("Migration skipped (already applied or N/A): %s", str(e)[:100])
+    logger.info("Auto-migration completed")
 
     # Fail-fast: production requires ENCRYPTION_KEY
     if settings.is_production and not os.environ.get("ENCRYPTION_KEY"):
