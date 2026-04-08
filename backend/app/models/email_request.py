@@ -40,6 +40,11 @@ class EmailRequest(Base):
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     last_parsed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # v2: Opportunity linkage (nullable — backward compatible)
+    opportunity_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("opportunities.id"), nullable=True, index=True
+    )
+
     # Review workflow
     review_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # pending_review -> approved -> rejected

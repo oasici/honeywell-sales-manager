@@ -11,7 +11,7 @@ from app.models.notification import Notification
 from app.models.setting import Setting
 from app.models.ai_training_data import AITrainingData
 from app.models.saved_view import SavedView
-from app.models.opportunity import Opportunity, OpportunityEvent
+from app.models.opportunity import Opportunity, OpportunityEvent, OpportunitySignal, Task
 
 __all__ = [
     "EmailStatus",
@@ -32,4 +32,6 @@ __all__ = [
     "SavedView",
     "Opportunity",
     "OpportunityEvent",
+    "OpportunitySignal",
+    "Task",
 ]

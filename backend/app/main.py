@@ -61,6 +61,9 @@ async def lifespan(app: FastAPI):
         "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP WITH TIME ZONE",
         "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS opportunity_id INTEGER REFERENCES opportunities(id)",
         "CREATE INDEX IF NOT EXISTS ix_quotes_opportunity_id ON quotes (opportunity_id)",
+        # v2 Faz 3.1+: email→opportunity linkage
+        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS opportunity_id INTEGER REFERENCES opportunities(id)",
+        "CREATE INDEX IF NOT EXISTS ix_email_requests_opportunity_id ON email_requests (opportunity_id)",
     ]
     for sql in _additive_migrations:
         try:

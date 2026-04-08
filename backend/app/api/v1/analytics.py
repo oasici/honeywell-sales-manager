@@ -746,3 +746,90 @@ async def get_data_quality(
             "completeness_pct": round((1 - (no_customer + no_items) / (total_quotes * 2)) * 100, 1) if total_quotes > 0 else 100,
         },
     }
+
+
+@router.get("/pipeline-weekly-diff")
+async def get_pipeline_weekly_diff(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """What changed in pipeline since last week."""
+    from app.models.opportunity import Opportunity
+
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+
+    # New opportunities this week
+    new_opps = (await db.execute(
+        select(func.count(Opportunity.id)).where(Opportunity.created_at >= week_ago)
+    )).scalar() or 0
+
+    # Stage changes this week (from events)
+    from app.models.opportunity import OpportunityEvent
+    stage_changes = (await db.execute(
+        select(func.count(OpportunityEvent.id)).where(
+            OpportunityEvent.event_type == "stage_change",
+            OpportunityEvent.occurred_at >= week_ago,
+        )
+    )).scalar() or 0
+
+    # Quotes created this week
+    new_quotes = (await db.execute(
+        select(func.count(Quote.id)).where(Quote.created_at >= week_ago)
+    )).scalar() or 0
+
+    # Pipeline value change
+    current_pipeline = (await db.execute(
+        select(func.coalesce(func.sum(Opportunity.amount), 0.0)).where(
+            Opportunity.status == "active"
+        )
+    )).scalar() or 0
+
+    return {
+        "period": "son 7 gun",
+        "new_opportunities": new_opps,
+        "stage_changes": stage_changes,
+        "new_quotes": new_quotes,
+        "current_pipeline_total": round(float(current_pipeline), 2),
+    }
+
+
+@router.get("/discount-guardrails")
+async def get_discount_guardrails(
+    window: int = Query(30, ge=1, le=365),
+    threshold_pct: float = Query(20.0),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Discount guardrails: quotes exceeding threshold → needs approval routing."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=window)
+
+    # Quotes with high discount
+    q = await db.execute(
+        select(
+            Quote.id, Quote.quote_number, Quote.subtotal, Quote.discount_total,
+            Quote.grand_total, Quote.status, Quote.created_by,
+        )
+        .where(Quote.created_at >= cutoff, Quote.subtotal > 0)
+    )
+    rows = q.all()
+
+    flagged = []
+    for r in rows:
+        rate = round((r.discount_total / r.subtotal) * 100, 1) if r.subtotal > 0 else 0
+        if rate >= threshold_pct:
+            flagged.append({
+                "id": r.id,
+                "quote_number": r.quote_number,
+                "discount_rate": rate,
+                "discount_total": round(r.discount_total, 2),
+                "grand_total": round(r.grand_total, 2),
+                "status": r.status,
+                "needs_approval": r.status == "draft",
+            })
+
+    return {
+        "threshold_pct": threshold_pct,
+        "flagged_count": len(flagged),
+        "flagged_quotes": flagged,
+    }

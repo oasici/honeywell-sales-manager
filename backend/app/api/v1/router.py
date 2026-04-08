@@ -5,6 +5,7 @@ from app.api.v1.audit import router as audit_router
 from app.api.v1.ops import router as ops_router
 from app.api.v1.saved_views import router as saved_views_router
 from app.api.v1.opportunities import router as opportunities_router
+from app.api.v1.ai import router as ai_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.customer_health import router as customer_health_router
 from app.api.v1.customers import router as customers_router
@@ -35,3 +36,4 @@ v1_router.include_router(audit_router)
 v1_router.include_router(ops_router)
 v1_router.include_router(saved_views_router)
 v1_router.include_router(opportunities_router)
+v1_router.include_router(ai_router)
