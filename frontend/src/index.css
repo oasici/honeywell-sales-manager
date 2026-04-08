@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode for Tailwind 4 (matches preferencesStore .dark toggle) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-honeywell-red: #D32F2F;
   --color-honeywell-dark: #B71C1C;
