@@ -50,6 +50,12 @@ export default function CustomerDetailPage() {
     enabled: !!customerId,
   });
 
+  const { data: timelineData } = useQuery<{ events: { type: string; id: number; title: string; detail: string; status: string; timestamp: string }[] }>({
+    queryKey: ['customer-timeline', customerId],
+    queryFn: () => customersApi.getTimeline(customerId),
+    enabled: !!customerId,
+  });
+
   useEffect(() => {
     if (customer) {
       setForm({
@@ -320,6 +326,40 @@ export default function CustomerDetailPage() {
             emptyMessage="Bu musteriye ait teklif bulunamadi"
             onRowClick={(row) => navigate(`/quotes/${(row as Quote).id}`)}
           />
+        </Card>
+
+        {/* Customer 360 Timeline */}
+        <Card title="Musteri Zaman Cizelgesi">
+          {timelineData?.events && timelineData.events.length > 0 ? (
+            <div className="space-y-0 p-2">
+              {timelineData.events.map((event, idx) => (
+                <div key={`${event.type}-${event.id}`} className="relative flex gap-3 pb-4">
+                  {idx < timelineData.events.length - 1 && (
+                    <div className="absolute left-[11px] top-6 h-full w-0.5 bg-gray-200 dark:bg-gray-700" />
+                  )}
+                  <div className="relative z-10 mt-1 h-6 w-6 shrink-0 rounded-full flex items-center justify-center" style={{
+                    backgroundColor: event.type === 'email' ? '#dbeafe' : '#fce7f3',
+                  }}>
+                    <div className={`h-2.5 w-2.5 rounded-full ${event.type === 'email' ? 'bg-blue-500' : 'bg-pink-500'}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        event.type === 'email' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300'
+                      }`}>
+                        {event.type === 'email' ? 'Email' : 'Teklif'}
+                      </span>
+                      <span className="text-[10px] text-gray-400">{formatDate(event.timestamp)}</span>
+                    </div>
+                    <p className="mt-0.5 text-sm text-gray-900 dark:text-white truncate">{event.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{event.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-gray-400">Henuz etkinlik yok</p>
+          )}
         </Card>
       </div>
     </div>

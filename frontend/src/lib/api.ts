@@ -322,6 +322,11 @@ export const customersApi = {
     });
     return data;
   },
+
+  getTimeline: async (id: number, limit = 50) => {
+    const { data } = await api.get(`/customers/${id}/timeline`, { params: { limit } });
+    return data;
+  },
 };
 
 // ── Customer Health ─────────────────────────────────
@@ -437,6 +442,47 @@ export const analyticsApi = {
     const { data } = await api.get<SparePart[]>('/analytics/parts-without-price', {
       params: { days },
     });
+    return data;
+  },
+
+  // Faz-3 endpoints
+  getForecast: async (window = 30) => {
+    const { data } = await api.get('/analytics/forecast', { params: { window } });
+    return data;
+  },
+  getSlippage: async (noTouchDays = 7, limit = 50) => {
+    const { data } = await api.get('/analytics/slippage', { params: { no_touch_days: noTouchDays, limit } });
+    return data;
+  },
+  getFunnel: async (window = 30) => {
+    const { data } = await api.get('/analytics/funnel', { params: { window } });
+    return data;
+  },
+  getRepScorecards: async (window = 30) => {
+    const { data } = await api.get('/analytics/rep-scorecards', { params: { window } });
+    return data;
+  },
+  getDiscounts: async (window = 90) => {
+    const { data } = await api.get('/analytics/discounts', { params: { window } });
+    return data;
+  },
+  getSla: async (window = 30) => {
+    const { data } = await api.get('/analytics/sla', { params: { window } });
+    return data;
+  },
+  getWinLossReasons: async (window = 90) => {
+    const { data } = await api.get('/analytics/win-loss-reasons', { params: { window } });
+    return data;
+  },
+  getDataQuality: async () => {
+    const { data } = await api.get('/analytics/data-quality');
+    return data;
+  },
+};
+
+export const opsApi = {
+  getQueues: async () => {
+    const { data } = await api.get('/ops/queues');
     return data;
   },
 };

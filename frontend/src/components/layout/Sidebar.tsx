@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
-import { LayoutDashboard, Wrench, Mail, Cog, FileText, Users, Settings, LogOut, ChevronRight, BarChart3, Kanban } from 'lucide-react';
+import { LayoutDashboard, Wrench, Mail, Cog, FileText, Users, Settings, LogOut, ChevronRight, BarChart3, Kanban, TrendingUp } from 'lucide-react';
 
 const COLLAPSE_KEY = 'sidebar-yedek-parca-collapsed';
 
@@ -96,6 +96,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           <NavLink to="/board" className={navLinkClass} onClick={onNavigate}>
             <Kanban size={18} className="shrink-0" />
             Sales Board
+          </NavLink>
+        )}
+
+        {/* v2: Sales Analytics — managers only */}
+        {userRole === 'sales_manager' && (
+          <NavLink to="/sales-analytics" className={navLinkClass} onClick={onNavigate}>
+            <TrendingUp size={18} className="shrink-0" />
+            Satis Analitigi
           </NavLink>
         )}
 

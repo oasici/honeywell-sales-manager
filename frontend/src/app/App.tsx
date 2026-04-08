@@ -22,6 +22,7 @@ const AuditLogPage = lazy(() => import('../features/admin/AuditLogPage'));
 // v2 pages (behind FEATURE_V2_BOARD flag)
 const BoardPage = lazy(() => import('../features/board/BoardPage'));
 const OpportunityDetailPage = lazy(() => import('../features/board/OpportunityDetailPage'));
+const SalesAnalyticsPage = lazy(() => import('../features/board/SalesAnalyticsPage'));
 
 // Marketing landing page (public, no auth)
 const LandingPage = lazy(() => import('../features/landing/LandingPage'));
@@ -192,6 +193,16 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <OpportunityDetailPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="sales-analytics"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <SalesAnalyticsPage />
               </ErrorBoundary>
             </Suspense>
           }
