@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthGuard } from '../features/auth/AuthGuard';
+import { RoleGuard } from '../features/auth/RoleGuard';
 import { LoginPage } from '../features/auth/LoginPage';
 import { Layout } from '../components/layout/Layout';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -135,11 +136,13 @@ export default function App() {
         <Route
           path="reports"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ReportsPage />
-              </ErrorBoundary>
-            </Suspense>
+            <RoleGuard allow={['sales_manager', 'admin']}>
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ReportsPage />
+                </ErrorBoundary>
+              </Suspense>
+            </RoleGuard>
           }
         />
         <Route

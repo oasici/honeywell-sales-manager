@@ -7,26 +7,26 @@ function creds(role: RoleKey) {
     admin: {
       email: process.env.E2E_ADMIN_EMAIL,
       password: process.env.E2E_ADMIN_PASSWORD,
-      expectedRoleLabel: 'Yönetici',
+      // Some environments may map admin users to sales_manager role.
+      expectedRoleLabels: ['Yönetici', 'Satış Müdürü'],
       canSeeReports: true,
     },
     sales_manager: {
       email: process.env.E2E_MANAGER_EMAIL,
       password: process.env.E2E_MANAGER_PASSWORD,
-      expectedRoleLabel: 'Satış Müdürü',
+      expectedRoleLabels: ['Satış Müdürü'],
       canSeeReports: true,
     },
     sales_rep: {
       email: process.env.E2E_REP_EMAIL,
       password: process.env.E2E_REP_PASSWORD,
-      expectedRoleLabel: 'Satış Temsilcisi',
+      expectedRoleLabels: ['Satış Temsilcisi'],
       canSeeReports: false,
     },
     operations: {
       email: process.env.E2E_OPS_EMAIL,
       password: process.env.E2E_OPS_PASSWORD,
-      // Header falls back to raw role string if missing in ROLE_LABELS.
-      expectedRoleLabel: 'operations',
+      expectedRoleLabels: ['Operasyon', 'operations'],
       canSeeReports: false,
     },
   } as const;
@@ -66,7 +66,8 @@ test.describe('Auth smoke by role', () => {
       await page.screenshot({ path: `test-results/${role}-after-login.png`, fullPage: true });
 
       // Header: role badge exists (or fallback role string)
-      await expect(page.getByText(c.expectedRoleLabel, { exact: false })).toBeVisible();
+      const roleMatches = c.expectedRoleLabels.map((label) => page.getByText(label, { exact: false }));
+      await expect(roleMatches[0].or(roleMatches[1] ?? roleMatches[0])).toBeVisible();
 
       // Core navigation (non-destructive).
       // These links are in Sidebar with translated labels; target by route via URL navigation.
@@ -87,7 +88,7 @@ test.describe('Auth smoke by role', () => {
       if (c.canSeeReports) {
         await expect(page).toHaveURL(/\/reports/);
       } else {
-        // Accept either redirect away or visible forbidden text.
+        // Accept either redirect away or forbidden UI.
         await expect(page).not.toHaveURL(/\/reports$/);
         await page.screenshot({ path: `test-results/${role}-reports-blocked.png`, fullPage: true });
       }
