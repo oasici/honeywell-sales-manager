@@ -138,15 +138,39 @@ async def search_transcripts(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """NL search across transcripts (PostgreSQL ILIKE — free, no vector DB needed)."""
+    """Semantic search across transcripts.
+
+    Uses pgvector + sentence-transformers when available (semantic similarity).
+    Falls back to PostgreSQL ILIKE + pg_trgm (keyword + fuzzy match).
+    All free, no external paid APIs.
+    """
+    from app.services.vector_search import semantic_search
+
+    filters = {}
+    if opportunity_id:
+        filters["opportunity_id"] = opportunity_id
+
+    semantic_results = await semantic_search(
+        db, query=q, table="transcripts", content_column="content",
+        limit=page_size, filters=filters if filters else None,
+    )
+
+    if semantic_results:
+        return {
+            "query": q,
+            "total": len(semantic_results),
+            "search_method": "semantic" if any(r["score"] != 0.5 for r in semantic_results) else "ilike",
+            "items": semantic_results,
+        }
+
+    # Fallback: basic ILIKE if semantic_search returned nothing
     safe_q = q.replace("%", "\\%").replace("_", "\\_")
     search_term = f"%{safe_q}%"
-
-    query = select(Transcript).where(
+    query_stmt = select(Transcript).where(
         or_(Transcript.content.ilike(search_term), Transcript.title.ilike(search_term))
     )
     if opportunity_id:
-        query = query.where(Transcript.opportunity_id == opportunity_id)
+        query_stmt = query_stmt.where(Transcript.opportunity_id == opportunity_id)
 
     total = (await db.execute(
         select(func.count(Transcript.id)).where(
@@ -154,12 +178,13 @@ async def search_transcripts(
         )
     )).scalar() or 0
 
-    result = await db.execute(query.order_by(Transcript.created_at.desc()).offset((page-1)*page_size).limit(page_size))
+    result = await db.execute(query_stmt.order_by(Transcript.created_at.desc()).offset((page-1)*page_size).limit(page_size))
     items = result.scalars().all()
 
     return {
         "query": q,
         "total": total,
+        "search_method": "ilike_fallback",
         "items": [
             {
                 "id": t.id, "title": t.title,
@@ -477,13 +502,45 @@ async def _count_segment_customers(db: AsyncSession, rules: list[dict]) -> int:
 
 
 async def _filter_customers_by_rules(db: AsyncSession, rules: list[dict]) -> list:
-    """Filter customers by segment rules (simple rule engine)."""
+    """Filter customers by segment rules — extended rule engine.
+
+    Supported operators:
+    - contains: ILIKE substring match
+    - equals: exact match
+    - not_empty: field is not null and not empty string
+    - gte: greater than or equal (numeric/date)
+    - lte: less than or equal (numeric/date)
+    - in: value in comma-separated list
+    - not_equals: not equal
+    - starts_with: ILIKE prefix match
+
+    Aggregate operators (cross-table):
+    - quote_count_gte: customers with >= N quotes
+    - quote_value_gte: customers with total quote value >= N
+    - last_quote_within_days: customers with a quote in last N days
+    """
+    from datetime import timedelta
+
     query = select(Customer)
+    aggregate_filters = []
+
     for rule in rules:
         field = rule.get("field", "")
         op = rule.get("op", "")
         value = rule.get("value", "")
 
+        # Aggregate rules (cross-table)
+        if field == "quote_count" and op == "gte":
+            aggregate_filters.append(("quote_count_gte", float(value)))
+            continue
+        if field == "quote_value" and op == "gte":
+            aggregate_filters.append(("quote_value_gte", float(value)))
+            continue
+        if field == "last_quote_within_days":
+            aggregate_filters.append(("last_quote_days", int(value)))
+            continue
+
+        # Standard field rules
         if not hasattr(Customer, field):
             continue
 
@@ -493,11 +550,60 @@ async def _filter_customers_by_rules(db: AsyncSession, rules: list[dict]) -> lis
             query = query.where(col.ilike(f"%{safe_val}%"))
         elif op == "equals":
             query = query.where(col == value)
+        elif op == "not_equals":
+            query = query.where(col != value)
         elif op == "not_empty":
             query = query.where(col.isnot(None), col != "")
+        elif op == "gte":
+            query = query.where(col >= float(value))
+        elif op == "lte":
+            query = query.where(col <= float(value))
+        elif op == "in":
+            vals = [v.strip() for v in str(value).split(",")]
+            query = query.where(col.in_(vals))
+        elif op == "starts_with":
+            safe_val = str(value).replace("%", "\\%").replace("_", "\\_")
+            query = query.where(col.ilike(f"{safe_val}%"))
 
-    result = await db.execute(query.limit(500))
-    return list(result.scalars().all())
+    result = await db.execute(query.limit(1000))
+    customers = list(result.scalars().all())
+
+    # Apply aggregate filters (post-query)
+    if aggregate_filters:
+        filtered = []
+        for c in customers:
+            include = True
+            for agg_type, agg_val in aggregate_filters:
+                if agg_type == "quote_count_gte":
+                    count = (await db.execute(
+                        select(func.count(Quote.id)).where(Quote.customer_id == c.id)
+                    )).scalar() or 0
+                    if count < agg_val:
+                        include = False
+                elif agg_type == "quote_value_gte":
+                    total = (await db.execute(
+                        select(func.coalesce(func.sum(Quote.grand_total), 0.0)).where(Quote.customer_id == c.id)
+                    )).scalar() or 0
+                    if float(total) < agg_val:
+                        include = False
+                elif agg_type == "last_quote_days":
+                    cutoff = datetime.now(timezone.utc) - timedelta(days=int(agg_val))
+                    latest = (await db.execute(
+                        select(func.max(Quote.created_at)).where(Quote.customer_id == c.id)
+                    )).scalar()
+                    if not latest:
+                        include = False
+                    else:
+                        if latest.tzinfo is None:
+                            from datetime import timezone as tz
+                            latest = latest.replace(tzinfo=tz.utc)
+                        if latest < cutoff:
+                            include = False
+            if include:
+                filtered.append(c)
+        return filtered[:500]
+
+    return customers[:500]
 
 
 def _generate_coaching_notes(total_quotes: int, sent_quotes: int, process_rate: float) -> list[str]:

@@ -11,7 +11,14 @@ from app.core.database import Base
 from app.models import *  # noqa: F401, F403 - import all models for autogenerate
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+# Normalize URL: Railway gives postgresql://, alembic needs postgresql+asyncpg://
+_db_url = settings.DATABASE_URL
+if _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif not _db_url.startswith("postgresql+asyncpg://") and _db_url:
+    _db_url = f"postgresql+asyncpg://{_db_url}"
+config.set_main_option("sqlalchemy.url", _db_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

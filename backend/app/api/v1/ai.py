@@ -4,9 +4,11 @@ All guarded by feature flags. AI calls use Claude with fallback.
 Every AI action is logged to audit trail.
 """
 
+import hashlib
 import json
 import logging
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -27,6 +29,11 @@ from app.services.audit_service import log_action
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["AI (v2)"])
+
+# Summary cache: hash(entity_type+entity_id) → {"summary":..., "ts":...}
+_summary_cache: dict[str, dict] = {}
+SUMMARY_CACHE_TTL = 300  # 5 minutes
+CONTEXT_MAX_CHARS = 8000  # expanded from 3000
 
 
 def _require_ai_summaries():
@@ -86,7 +93,15 @@ async def summarize(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_ai_summaries),
 ):
-    """One-click summary for opportunity, quote, customer, or email."""
+    """One-click summary with LRU cache (5min TTL) and 8K context window."""
+    import time
+
+    # Check cache
+    cache_key = hashlib.md5(f"{body.entity_type}:{body.entity_id}:{body.focus or ''}".encode()).hexdigest()
+    cached = _summary_cache.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < SUMMARY_CACHE_TTL:
+        return {"summary": cached["summary"], "sources": cached["sources"], "cached": True}
+
     context_text = ""
     sources = []
 
@@ -137,7 +152,7 @@ async def summarize(
     focus_instruction = f"\nOdak noktasi: {body.focus}" if body.focus else ""
     summary = await _call_claude(
         system_prompt="Sen bir satis asistanisin. Turkce, kisa ve aksiyona yonelik ozetler uretirsin. Teknik detay verme, is sonuclarina odaklan.",
-        user_prompt=f"Asagidaki satis verisini 3-5 cumleyle ozetle:{focus_instruction}\n\n{context_text[:3000]}",
+        user_prompt=f"Asagidaki satis verisini 3-5 cumleyle ozetle:{focus_instruction}\n\n{context_text[:CONTEXT_MAX_CHARS]}",
     )
 
     if not summary:
@@ -146,7 +161,15 @@ async def summarize(
 
     await log_action(db, user_id=current_user.id, action="ai_summarize", entity_type=body.entity_type, entity_id=body.entity_id)
 
-    return {"summary": summary, "sources": sources}
+    # Write to cache
+    _summary_cache[cache_key] = {"summary": summary, "sources": sources, "ts": time.time()}
+    # Evict old entries (max 500)
+    if len(_summary_cache) > 500:
+        oldest = sorted(_summary_cache, key=lambda k: _summary_cache[k]["ts"])[:100]
+        for k in oldest:
+            _summary_cache.pop(k, None)
+
+    return {"summary": summary, "sources": sources, "cached": False}
 
 
 # ══════════════════════════════════════════
@@ -270,32 +293,70 @@ async def extract_signals(
     if not texts or not opp_id:
         return {"signals": [], "message": "Sinyal cikarilacak veri bulunamadi"}
 
-    # Keyword-based signal extraction
-    combined_text = " ".join(texts).lower()
+    combined_text = " ".join(texts)
     extracted_signals = []
+    method = "keyword"
 
-    for signal_type, keywords in SIGNAL_KEYWORDS.items():
-        matched = [kw for kw in keywords if kw in combined_text]
-        if matched:
-            severity = "high" if len(matched) >= 3 else "med" if len(matched) >= 2 else "low"
-            signal = OpportunitySignal(
-                opportunity_id=opp_id,
-                signal_type=signal_type,
-                severity=severity,
-                evidence=f"Eslesen anahtar kelimeler: {', '.join(matched)}",
-                source_type="email",
-            )
-            db.add(signal)
-            extracted_signals.append({
-                "signal_type": signal_type,
-                "severity": severity,
-                "evidence": signal.evidence,
-            })
+    # Strategy 1: Claude AI extraction (if API key available)
+    if settings.ANTHROPIC_API_KEY:
+        ai_signals = await _call_claude(
+            system_prompt=(
+                "Sen bir satis sinyali tespit asistanisin. Verilen email/gorusme metninden "
+                "su sinyal turlerini cikar: pricing_concern, competitor, objection, positive. "
+                "Her sinyal icin JSON array formatinda cevap ver: "
+                '[{"type":"pricing_concern","severity":"high","evidence":"ilgili cumle"}]. '
+                "Hicbir sinyal yoksa bos array don: []"
+            ),
+            user_prompt=combined_text[:4000],
+        )
+        if ai_signals:
+            try:
+                parsed = json.loads(ai_signals.strip())
+                if isinstance(parsed, list):
+                    for s in parsed:
+                        signal = OpportunitySignal(
+                            opportunity_id=opp_id,
+                            signal_type=s.get("type", "objection"),
+                            severity=s.get("severity", "med"),
+                            evidence=s.get("evidence", "AI tespit"),
+                            source_type="ai",
+                        )
+                        db.add(signal)
+                        extracted_signals.append({
+                            "signal_type": signal.signal_type,
+                            "severity": signal.severity,
+                            "evidence": signal.evidence,
+                        })
+                    method = "ai"
+            except (json.JSONDecodeError, TypeError):
+                pass  # Fall through to keyword
+
+    # Strategy 2: Keyword fallback (always runs if AI found nothing)
+    if not extracted_signals:
+        combined_lower = combined_text.lower()
+        for signal_type, keywords in SIGNAL_KEYWORDS.items():
+            matched = [kw for kw in keywords if kw in combined_lower]
+            if matched:
+                severity = "high" if len(matched) >= 3 else "med" if len(matched) >= 2 else "low"
+                signal = OpportunitySignal(
+                    opportunity_id=opp_id,
+                    signal_type=signal_type,
+                    severity=severity,
+                    evidence=f"Eslesen anahtar kelimeler: {', '.join(matched)}",
+                    source_type="keyword",
+                )
+                db.add(signal)
+                extracted_signals.append({
+                    "signal_type": signal_type,
+                    "severity": severity,
+                    "evidence": signal.evidence,
+                })
+        method = "keyword"
 
     await db.flush()
     await log_action(db, user_id=current_user.id, action="ai_extract_signals", entity_type="opportunity", entity_id=opp_id)
 
-    return {"opportunity_id": opp_id, "signals": extracted_signals}
+    return {"opportunity_id": opp_id, "signals": extracted_signals, "method": method}
 
 
 # ══════════════════════════════════════════

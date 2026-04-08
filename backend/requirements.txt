@@ -47,6 +47,9 @@ redis[hiredis]==5.2.1
 cryptography==44.0.0
 python-multipart==0.0.18
 
+# Vector search
+pgvector==0.3.6
+
 # Background jobs
 apscheduler==3.10.4
 
