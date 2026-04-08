@@ -64,6 +64,7 @@ async def lifespan(app: FastAPI):
         # v2 Faz 3.1+: email→opportunity linkage
         "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS opportunity_id INTEGER REFERENCES opportunities(id)",
         "CREATE INDEX IF NOT EXISTS ix_email_requests_opportunity_id ON email_requests (opportunity_id)",
+        "ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS forecast_category VARCHAR(20)",
     ]
     for sql in _additive_migrations:
         try:

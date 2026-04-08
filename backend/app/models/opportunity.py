@@ -27,6 +27,8 @@ class Opportunity(Base):
         Integer, ForeignKey("customers.id"), nullable=True
     )
     status: Mapped[str] = mapped_column(String(20), default="active")  # active | closed
+    forecast_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # commit | best_case | pipeline | omitted
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
