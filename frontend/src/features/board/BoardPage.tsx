@@ -89,28 +89,28 @@ export default function BoardPage() {
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Card>
             <div className="p-4 text-center">
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Acik Pipeline</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Acik Pipeline</p>
+              <p className="mt-1 text-2xl font-extrabold text-blue-700 dark:text-blue-400">
                 {formatCurrency(summary.open_pipeline_total, 'TRY')}
               </p>
             </div>
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Kazanma Orani</p>
-              <p className="text-xl font-bold text-green-600">%{summary.win_rate}</p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Kazanma Orani</p>
+              <p className="mt-1 text-2xl font-extrabold text-green-700 dark:text-green-400">%{summary.win_rate}</p>
             </div>
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Kazanilan</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{summary.won_count}</p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Kazanilan</p>
+              <p className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">{summary.won_count}</p>
             </div>
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Cururyen (Rotting)</p>
-              <p className={`text-xl font-bold ${summary.rotting_count > 0 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Curume (Rotting)</p>
+              <p className={`mt-1 text-2xl font-extrabold ${summary.rotting_count > 0 ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                 {summary.rotting_count}
               </p>
             </div>
@@ -124,12 +124,12 @@ export default function BoardPage() {
           <div key={col.stage} className="min-w-[280px] shrink-0">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STAGE_COLORS[col.stage] || 'bg-gray-100 text-gray-700'}`}>
+                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STAGE_COLORS[col.stage] || 'bg-gray-200 text-gray-800'}`}>
                   {STAGE_LABELS[col.stage] || col.stage}
                 </span>
-                <span className="text-xs font-medium text-gray-500">{col.count}</span>
+                <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-800 dark:bg-gray-700 dark:text-gray-200">{col.count}</span>
               </div>
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
                 {formatCurrency(col.total_amount, 'TRY')}
               </span>
             </div>
