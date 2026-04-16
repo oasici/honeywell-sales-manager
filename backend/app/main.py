@@ -365,6 +365,38 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 app.include_router(v1_router, prefix="/api/v1")
 
 
+@app.get("/api/debug/login-test")
+async def debug_login_test():
+    """Debug endpoint to test login flow."""
+    import traceback
+    results: dict[str, str] = {}
+    try:
+        from app.services.auth_service import authenticate
+        results["auth_import"] = "ok"
+    except Exception as e:
+        results["auth_import"] = f"FAIL: {e}"
+    try:
+        async with async_session() as db:
+            from sqlalchemy import select
+            from app.models.user import User
+            r = await db.execute(select(User).limit(5))
+            users = r.scalars().all()
+            results["users"] = str([{"id": u.id, "email": u.email, "role": u.role} for u in users])
+    except Exception as e:
+        results["users_query"] = f"FAIL: {traceback.format_exc()[-500:]}"
+    try:
+        from app.core.security import verify_password, hash_password
+        results["security_import"] = "ok"
+    except Exception as e:
+        results["security_import"] = f"FAIL: {e}"
+    try:
+        from app.services import session_service
+        results["session_import"] = "ok"
+    except Exception as e:
+        results["session_import"] = f"FAIL: {e}"
+    return results
+
+
 @app.get("/api/health", tags=["health"])
 async def health_check():
     """Enhanced health check with dependency status."""
