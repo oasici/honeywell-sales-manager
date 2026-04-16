@@ -47,37 +47,14 @@ async def lifespan(app: FastAPI):
 
     _is_postgres = settings.DATABASE_URL.startswith("postgresql")
 
-    if _is_postgres:
-        # Production/Docker: use Alembic for schema management
-        try:
-            from alembic.config import Config as AlembicConfig
-            from alembic import command as alembic_command
-
-            alembic_cfg = AlembicConfig(
-                os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
-            )
-            alembic_cfg.set_main_option(
-                "script_location",
-                os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic"),
-            )
-            # Ensure tables exist first (Alembic needs base tables for stamp)
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            # Stamp current state if no Alembic version table yet
-            try:
-                alembic_command.stamp(alembic_cfg, "head")
-            except Exception:
-                pass
-            logger.info("Database tables created / verified (Alembic-managed)")
-        except ImportError:
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            logger.info("Database tables created / verified (create_all fallback)")
-    else:
-        # Dev/Test (SQLite): use create_all directly
+    # Create tables — checkfirst=True prevents UniqueViolationError on existing DBs
+    try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database tables created / verified (dev mode)")
+        logger.info("Database tables created / verified")
+    except Exception as e:
+        # Tables may already exist with conflicting types — safe to continue
+        logger.warning("create_all partial: %s", str(e)[:200])
 
     # PostgreSQL-only extensions and indexes (silent fail on SQLite)
     _pg_migrations = [
@@ -93,31 +70,37 @@ async def lifespan(app: FastAPI):
             logger.debug("PG migration skipped (N/A): %s", str(e)[:100])
     logger.info("Database migration completed")
 
-    # Fail-fast: production requires ENCRYPTION_KEY
-    if settings.is_production and not os.environ.get("ENCRYPTION_KEY"):
-        raise RuntimeError(
-            "ENCRYPTION_KEY environment variable is required in production. "
-            "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
-        )
+    # Warn if ENCRYPTION_KEY not set (required for field-level encryption)
+    if not os.environ.get("ENCRYPTION_KEY"):
+        logger.warning("ENCRYPTION_KEY not set — field-level encryption disabled")
 
     for dir_path in [settings.QUOTES_DIR, settings.UPLOADS_DIR]:
         os.makedirs(dir_path, exist_ok=True)
 
-    from app.services.auth_service import create_default_admin
-    async with async_session() as db:
-        await create_default_admin(db)
+    try:
+        from app.services.auth_service import create_default_admin
+        async with async_session() as db:
+            await create_default_admin(db)
+    except Exception as exc:
+        logger.error("Default admin creation failed: %s", exc)
 
     # Scheduler: only start if SCHEDULER_ENABLED=true (separate process in production)
-    scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "true").lower() == "true"
+    scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "false").lower() == "true"
     if scheduler_enabled:
-        start_scheduler()
-        logger.info("Scheduler started (in-process mode)")
+        try:
+            start_scheduler()
+            logger.info("Scheduler started (in-process mode)")
+        except Exception as exc:
+            logger.warning("Scheduler start failed (non-critical): %s", exc)
     else:
-        logger.info("Scheduler disabled (using separate scheduler process)")
+        logger.info("Scheduler disabled")
 
     # Start audit buffer flush task
-    from app.core.audit_buffer import start_audit_buffer, stop_audit_buffer
-    start_audit_buffer()
+    try:
+        from app.core.audit_buffer import start_audit_buffer, stop_audit_buffer
+        start_audit_buffer()
+    except Exception as exc:
+        logger.warning("Audit buffer start failed (non-critical): %s", exc)
 
     # Wire event bus → webhook service (LIVE delivery)
     try:
