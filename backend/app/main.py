@@ -57,6 +57,28 @@ async def lifespan(app: FastAPI):
         logger.warning("create_all partial: %s", str(e)[:200])
 
     # PostgreSQL-only extensions and indexes (silent fail on SQLite)
+    # Auto-add missing columns to existing tables (safe for Render where tables pre-exist)
+    _column_migrations = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_id INTEGER REFERENCES users(id)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_setup_completed BOOLEAN DEFAULT false",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false",
+        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES customers(id)",
+        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS territory_id INTEGER",
+        "ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS pipeline_id INTEGER",
+        "ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS territory_id INTEGER",
+        "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS min_margin_pct FLOAT DEFAULT 0",
+        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS category_confidence FLOAT",
+        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
+        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS customer_id INTEGER",
+        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS review_status VARCHAR(20)",
+    ]
+    for sql in _column_migrations:
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(sqlalchemy.text(sql))
+        except Exception as e:
+            logger.debug("Column migration skipped: %s", str(e)[:100])
+
     _pg_migrations = [
         "CREATE EXTENSION IF NOT EXISTS pg_trgm",
         "CREATE INDEX IF NOT EXISTS ix_transcripts_content_trgm ON transcripts USING gin (content gin_trgm_ops)",
