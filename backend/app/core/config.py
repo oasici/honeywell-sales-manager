@@ -291,6 +291,17 @@ class Settings(BaseSettings):
 
     MAX_CONCURRENT_SESSIONS: int = 3
 
+    # Convenience flag: set ENABLE_ALL_FEATURES=true to activate everything at once
+    ENABLE_ALL_FEATURES: bool = False
+
+    @model_validator(mode="after")
+    def _apply_enable_all(self):
+        if self.ENABLE_ALL_FEATURES:
+            for field_name in self.model_fields:
+                if field_name.startswith("FEATURE_") and isinstance(getattr(self, field_name), bool):
+                    object.__setattr__(self, field_name, True)
+        return self
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

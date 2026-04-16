@@ -57,27 +57,35 @@ async def lifespan(app: FastAPI):
         logger.warning("create_all partial: %s", str(e)[:200])
 
     # PostgreSQL-only extensions and indexes (silent fail on SQLite)
-    # Auto-add missing columns to existing tables (safe for Render where tables pre-exist)
-    _column_migrations = [
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_id INTEGER REFERENCES users(id)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_setup_completed BOOLEAN DEFAULT false",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN DEFAULT false",
-        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES customers(id)",
-        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS territory_id INTEGER",
-        "ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS pipeline_id INTEGER",
-        "ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS territory_id INTEGER",
-        "ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS min_margin_pct FLOAT DEFAULT 0",
-        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS category_confidence FLOAT",
-        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS last_parsed_at TIMESTAMP WITH TIME ZONE",
-        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS customer_id INTEGER",
-        "ALTER TABLE email_requests ADD COLUMN IF NOT EXISTS review_status VARCHAR(20)",
-    ]
-    for sql in _column_migrations:
+    # Auto-sync schema: add missing columns to existing tables
+    # This handles Render where tables were created by an older version
+    if _is_postgres:
         try:
             async with engine.begin() as conn:
-                await conn.execute(sqlalchemy.text(sql))
+                # Get all model tables and their columns from SQLAlchemy metadata
+                for table in Base.metadata.sorted_tables:
+                    for column in table.columns:
+                        col_name = column.name
+                        # Determine SQL type
+                        col_type = column.type.compile(engine.dialect)
+                        nullable = "NULL" if column.nullable else "NOT NULL"
+                        default = ""
+                        if column.default is not None and column.default.arg is not None:
+                            dval = column.default.arg
+                            if isinstance(dval, bool):
+                                default = f" DEFAULT {'true' if dval else 'false'}"
+                            elif isinstance(dval, (int, float)):
+                                default = f" DEFAULT {dval}"
+                            elif isinstance(dval, str):
+                                default = f" DEFAULT '{dval}'"
+                        sql = f"ALTER TABLE {table.name} ADD COLUMN IF NOT EXISTS {col_name} {col_type}{default}"
+                        try:
+                            await conn.execute(sqlalchemy.text(sql))
+                        except Exception:
+                            pass  # Column exists or type conflict — safe to skip
+            logger.info("Schema auto-sync completed")
         except Exception as e:
-            logger.debug("Column migration skipped: %s", str(e)[:100])
+            logger.warning("Schema auto-sync failed: %s", str(e)[:200])
 
     _pg_migrations = [
         "CREATE EXTENSION IF NOT EXISTS pg_trgm",
