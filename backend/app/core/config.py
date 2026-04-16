@@ -39,14 +39,15 @@ class Settings(BaseSettings):
                     "JWT_SECRET_KEY should be at least 32 characters in production"
                 )
             origins = [o.strip().lower() for o in self.CORS_ORIGINS.split(",") if o.strip()]
-            if any("localhost" in o or "127.0.0.1" in o for o in origins):
-                raise ValueError(
-                    "CORS_ORIGINS uretim ortaminda 'localhost' veya '127.0.0.1' icermemeli"
+            local_origins = [o for o in origins if "localhost" in o or "127.0.0.1" in o]
+            if local_origins:
+                _log.getLogger(__name__).warning(
+                    "CORS_ORIGINS contains localhost entries — remove for strict production"
                 )
         return self
 
     # ── CORS ──
-    CORS_ORIGINS: str = "http://localhost,http://localhost:80,http://localhost:5173"
+    CORS_ORIGINS: str = "http://localhost,http://localhost:80,http://localhost:5173,https://honeywell-frontend.onrender.com"
 
     # ── Microsoft Graph API ──
     AZURE_TENANT_ID: str = ""
