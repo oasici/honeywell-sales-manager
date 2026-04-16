@@ -1,15 +1,19 @@
 """Feature-8: Operational queues for RevOps."""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
-from app.core.dependencies import require_role
+from app.core.dependencies import get_current_user, require_role
 from app.models.email_request import EmailRequest
 from app.models.enums import UserRole
+from app.models.feature_usage import FeatureUsage
 from app.models.quote import Quote
 from app.models.user import User
 
@@ -79,4 +83,81 @@ async def get_queues(
         "approval_pending_count": len(approval_pending),
         "expiring_quotes": expiring,
         "expiring_count": len(expiring),
+    }
+
+
+@router.get("/feature-usage")
+async def get_feature_usage(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+    feature_name: str | None = None,
+    days: int = 30,
+):
+    """Ozellik kullanim istatistikleri (toplam ve aksiyona gore)."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # Total usage per feature
+    stmt = (
+        select(
+            FeatureUsage.feature_name,
+            FeatureUsage.action,
+            func.count().label("count"),
+        )
+        .where(FeatureUsage.created_at >= cutoff)
+        .group_by(FeatureUsage.feature_name, FeatureUsage.action)
+        .order_by(func.count().desc())
+    )
+    if feature_name:
+        stmt = stmt.where(FeatureUsage.feature_name == feature_name)
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    usage_stats = {}
+    for row in rows:
+        name = row.feature_name
+        if name not in usage_stats:
+            usage_stats[name] = {"total": 0, "actions": {}}
+        usage_stats[name]["total"] += row.count
+        usage_stats[name]["actions"][row.action] = row.count
+
+    return {
+        "period_days": days,
+        "features": usage_stats,
+    }
+
+
+@router.get("/feature-flags")
+async def get_feature_flags(
+    current_user: User = Depends(get_current_user),
+):
+    """Return all feature flag states."""
+    flags = {
+        k: v
+        for k, v in settings.__dict__.items()
+        if k.startswith("FEATURE_")
+    }
+    return {"data": flags}
+
+
+@router.get("/dashboard")
+async def get_ops_dashboard(
+    current_user: User = Depends(get_current_user),
+):
+    """Return operational metrics."""
+    from app.core.event_bus import event_bus
+    from app.tasks.scheduler import get_task_stats
+
+    enabled_count = sum(
+        1
+        for k, v in settings.__dict__.items()
+        if k.startswith("FEATURE_") and v is True
+    )
+
+    return {
+        "data": {
+            "event_bus": event_bus.get_stats(),
+            "scheduler": get_task_stats(),
+            "feature_flags_enabled": enabled_count,
+        },
     }

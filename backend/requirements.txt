@@ -29,7 +29,7 @@ numpy>=1.24.0
 
 # Microsoft Graph API
 msal==1.31.0
-httpx==0.28.1
+httpx>=0.27.0
 
 # Fuzzy matching
 rapidfuzz==3.10.1
@@ -49,10 +49,14 @@ python-multipart==0.0.18
 
 # Vector search
 pgvector==0.3.6
+qdrant-client==1.13.3
 
 # Background jobs
 apscheduler==3.10.4
 arq==0.26.1
+
+# Web crawling
+crawl4ai==0.4.248
 
 # Data processing
 pandas==2.2.3
@@ -62,4 +66,3 @@ pdfplumber==0.11.4
 # Testing
 pytest==8.3.4
 pytest-asyncio==0.24.0
-httpx==0.28.1

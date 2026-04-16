@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import os
 from datetime import datetime, timezone
 
 from cryptography.fernet import Fernet
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.exceptions import BadRequestException
+from app.core.exceptions import BadRequestException, NotFoundException
+from app.models.api_key import ApiKey
 from app.models.enums import UserRole
 from app.models.setting import Setting
+from app.models.stage_config import StageConfig
 from app.models.user import User
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
@@ -323,3 +327,348 @@ async def test_email_connection(
             "success": False,
             "message": f"Baglanti hatasi ({imap_host}:{imap_port}): {str(e)}",
         }
+
+
+# ── API Key Management ──
+
+
+class ApiKeyCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    scopes_json: str | None = None
+    rate_limit: int = Field(default=1000, ge=1, le=100000)
+
+
+@router.get("/api-keys")
+async def list_api_keys(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """List user's API keys (manager only). Key hashes are never returned."""
+    from app.core.config import settings as cfg
+
+    if not cfg.FEATURE_PUBLIC_API:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    result = await db.execute(
+        select(ApiKey)
+        .where(ApiKey.user_id == current_user.id)
+        .order_by(ApiKey.created_at.desc())
+    )
+    keys = result.scalars().all()
+
+    return {
+        "items": [
+            {
+                "id": k.id,
+                "name": k.name,
+                "scopes_json": k.scopes_json,
+                "rate_limit": k.rate_limit,
+                "is_active": k.is_active,
+                "last_used_at": k.last_used_at.isoformat() if k.last_used_at else None,
+                "created_at": k.created_at.isoformat() if k.created_at else None,
+            }
+            for k in keys
+        ],
+        "total": len(keys),
+    }
+
+
+@router.post("/api-keys", status_code=201)
+async def create_api_key(
+    body: ApiKeyCreateRequest,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a new API key. Returns the plain key ONCE — store it securely."""
+    from app.core.api_key_auth import generate_api_key
+    from app.core.config import settings as cfg
+
+    if not cfg.FEATURE_PUBLIC_API:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    plain_key, key_hash = generate_api_key()
+
+    api_key = ApiKey(
+        key_hash=key_hash,
+        name=body.name,
+        user_id=current_user.id,
+        scopes_json=body.scopes_json,
+        rate_limit=body.rate_limit,
+    )
+    db.add(api_key)
+    await db.flush()
+
+    return {
+        "message": "API anahtari olusturuldu. Bu anahtari guvenli bir yerde saklayin.",
+        "id": api_key.id,
+        "name": api_key.name,
+        "api_key": plain_key,
+    }
+
+
+@router.delete("/api-keys/{key_id}")
+async def revoke_api_key(
+    key_id: int,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke (deactivate) an API key."""
+    from app.core.config import settings as cfg
+
+    if not cfg.FEATURE_PUBLIC_API:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    result = await db.execute(
+        select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == current_user.id)
+    )
+    api_key = result.scalar_one_or_none()
+    if not api_key:
+        raise NotFoundException("API anahtari bulunamadi")
+
+    api_key.is_active = False
+    await db.flush()
+
+    return {"message": "API anahtari iptal edildi", "id": key_id}
+
+
+# ── System Config ──
+
+
+@router.get("/system-config")
+async def get_system_config(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Expose non-secret config settings (manager only)."""
+    from app.core.config import settings as cfg
+
+    feature_flags = {
+        "FEATURE_V2_BOARD": cfg.FEATURE_V2_BOARD,
+        "FEATURE_AI_SUMMARIES": cfg.FEATURE_AI_SUMMARIES,
+        "FEATURE_AI_PIPELINE_SUGGESTIONS": cfg.FEATURE_AI_PIPELINE_SUGGESTIONS,
+        "FEATURE_LEAD_LIFECYCLE": cfg.FEATURE_LEAD_LIFECYCLE,
+        "FEATURE_APPROVAL_ROUTING": cfg.FEATURE_APPROVAL_ROUTING,
+        "FEATURE_DEAL_HEALTH": cfg.FEATURE_DEAL_HEALTH,
+        "FEATURE_WEBHOOKS": cfg.FEATURE_WEBHOOKS,
+        "FEATURE_TEAM_ACCESS": cfg.FEATURE_TEAM_ACCESS,
+        "FEATURE_REPORT_BUILDER": cfg.FEATURE_REPORT_BUILDER,
+        "FEATURE_REVENUE_COCKPIT": cfg.FEATURE_REVENUE_COCKPIT,
+        "FEATURE_FIELD_PERMISSIONS": cfg.FEATURE_FIELD_PERMISSIONS,
+        "FEATURE_PRODUCT_RULES": cfg.FEATURE_PRODUCT_RULES,
+        "FEATURE_SESSION_MANAGEMENT": cfg.FEATURE_SESSION_MANAGEMENT,
+        "FEATURE_GUIDED_SELLING": cfg.FEATURE_GUIDED_SELLING,
+        "FEATURE_DASHBOARD_BUILDER": cfg.FEATURE_DASHBOARD_BUILDER,
+        "FEATURE_PUBLIC_API": cfg.FEATURE_PUBLIC_API,
+        "FEATURE_PWA": cfg.FEATURE_PWA,
+        "FEATURE_CUSTOM_FIELDS": cfg.FEATURE_CUSTOM_FIELDS,
+        "FEATURE_WORKFLOW_RULES": cfg.FEATURE_WORKFLOW_RULES,
+    }
+
+    return {
+        "feature_flags": feature_flags,
+        "rate_limits": {
+            "login": cfg.RATE_LIMIT_LOGIN,
+            "api": cfg.RATE_LIMIT_API,
+        },
+        "company": {
+            "name": cfg.COMPANY_NAME,
+            "address": cfg.COMPANY_ADDRESS,
+            "phone": cfg.COMPANY_PHONE,
+        },
+        "quote_defaults": {
+            "prefix": cfg.QUOTE_PREFIX,
+            "default_tax_rate": cfg.DEFAULT_TAX_RATE,
+            "default_currency": cfg.DEFAULT_CURRENCY,
+            "validity_days": cfg.QUOTE_VALIDITY_DAYS,
+        },
+    }
+
+
+class SystemConfigUpdate(BaseModel):
+    value: str
+
+
+@router.put("/system-config/{key}")
+async def update_system_config(
+    key: str,
+    body: SystemConfigUpdate,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a system setting via Setting table (manager only)."""
+    # Whitelist of updatable keys to prevent arbitrary writes
+    updatable_keys = {
+        "company_name",
+        "company_address",
+        "company_phone",
+        "quote_prefix",
+        "default_tax_rate",
+        "default_currency",
+        "quote_validity_days",
+    }
+
+    if key not in updatable_keys:
+        raise BadRequestException(
+            f"Bu ayar guncellenemez: '{key}'. "
+            f"Guncellenebilir ayarlar: {', '.join(sorted(updatable_keys))}"
+        )
+
+    result = await db.execute(select(Setting).where(Setting.key == key))
+    setting = result.scalar_one_or_none()
+
+    if setting:
+        setting.value = body.value
+    else:
+        setting = Setting(key=key, value=body.value)
+        db.add(setting)
+
+    await db.flush()
+
+    return {"message": f"Ayar guncellendi: {key}", "key": key, "value": body.value}
+
+
+# ── Stage Configuration ──
+
+_DEFAULT_STAGES = [
+    {"stage_name": "prospecting", "label": "Kesfetme", "probability_pct": 10, "rotting_threshold_days": 7, "sort_order": 0},
+    {"stage_name": "qualified", "label": "Nitelendirme", "probability_pct": 30, "rotting_threshold_days": 10, "sort_order": 1},
+    {"stage_name": "proposal", "label": "Teklif", "probability_pct": 50, "rotting_threshold_days": 14, "sort_order": 2},
+    {"stage_name": "negotiation", "label": "Muzakere", "probability_pct": 70, "rotting_threshold_days": 21, "sort_order": 3},
+    {"stage_name": "closed_won", "label": "Kazanildi", "probability_pct": 100, "rotting_threshold_days": 0, "sort_order": 4},
+    {"stage_name": "closed_lost", "label": "Kaybedildi", "probability_pct": 0, "rotting_threshold_days": 0, "sort_order": 5},
+]
+
+
+class StageConfigItem(BaseModel):
+    stage_name: str
+    label: str | None = None
+    probability_pct: float
+    rotting_threshold_days: int
+
+
+class StageConfigBulkUpdate(BaseModel):
+    stages: list[StageConfigItem]
+
+
+@router.get("/stage-config")
+async def get_stage_config(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return all stage configs. Creates defaults if table is empty."""
+    result = await db.execute(
+        select(StageConfig).order_by(StageConfig.sort_order)
+    )
+    configs = list(result.scalars().all())
+
+    # Seed defaults if empty
+    if not configs:
+        for default in _DEFAULT_STAGES:
+            cfg = StageConfig(**default)
+            db.add(cfg)
+        await db.flush()
+
+        result = await db.execute(
+            select(StageConfig).order_by(StageConfig.sort_order)
+        )
+        configs = list(result.scalars().all())
+
+    return {
+        "items": [
+            {
+                "id": c.id,
+                "stage_name": c.stage_name,
+                "label": c.label,
+                "probability_pct": c.probability_pct,
+                "rotting_threshold_days": c.rotting_threshold_days,
+                "sort_order": c.sort_order,
+                "is_active": c.is_active,
+            }
+            for c in configs
+        ],
+        "total": len(configs),
+    }
+
+
+# ── Notification Channels (Slack/Teams) ──
+
+@router.get("/notification-channels")
+async def get_notification_channels(
+    current_user: User = Depends(get_current_user),
+):
+    """Return notification channel configuration status."""
+    from app.core.config import settings as cfg
+
+    return {
+        "data": {
+            "slack_configured": bool(cfg.SLACK_WEBHOOK_URL),
+            "teams_configured": bool(cfg.TEAMS_WEBHOOK_URL),
+        }
+    }
+
+
+@router.post("/notification-channels/test")
+async def test_notification_channel(
+    body: dict,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+):
+    """Test Slack/Teams webhook with a sample message."""
+    from app.services.notification_channel_service import NotificationChannelService
+
+    ncs = NotificationChannelService()
+    test_msg = ncs.format_opportunity_card({
+        "title": "Test Bildirimi",
+        "stage": "proposal",
+        "amount": "50000",
+        "currency": "TRY",
+        "owner": current_user.full_name,
+        "customer": "Test Sirket",
+    })
+
+    results: dict[str, bool] = {}
+    if body.get("slack_url"):
+        results["slack"] = await ncs.send_slack(body["slack_url"], test_msg)
+    if body.get("teams_url"):
+        results["teams"] = await ncs.send_teams(body["teams_url"], test_msg)
+
+    return {"data": results}
+
+
+@router.put("/stage-config")
+async def update_stage_config(
+    body: StageConfigBulkUpdate,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bulk update all stage configs (sales_manager only)."""
+    updated_count = 0
+
+    for item in body.stages:
+        result = await db.execute(
+            select(StageConfig).where(StageConfig.stage_name == item.stage_name)
+        )
+        config = result.scalar_one_or_none()
+
+        if config:
+            config.probability_pct = item.probability_pct
+            config.rotting_threshold_days = item.rotting_threshold_days
+            if item.label is not None:
+                config.label = item.label
+            updated_count += 1
+        else:
+            config = StageConfig(
+                stage_name=item.stage_name,
+                label=item.label or item.stage_name,
+                probability_pct=item.probability_pct,
+                rotting_threshold_days=item.rotting_threshold_days,
+            )
+            db.add(config)
+            updated_count += 1
+
+    await db.flush()
+
+    # Invalidate cached probabilities in forecast service
+    from app.services.forecast_service import _stage_probability_cache
+    _stage_probability_cache.clear()
+
+    return {"message": f"{updated_count} asama guncellendi", "updated": updated_count}

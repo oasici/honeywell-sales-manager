@@ -29,6 +29,6 @@ describe('i18n translation', () => {
   });
 
   it('returns key for unknown translation key', () => {
-    expect(t('unknown.key' as any)).toBe('unknown.key');
+    expect(t('unknown.key' as Parameters<typeof t>[0])).toBe('unknown.key');
   });
 });

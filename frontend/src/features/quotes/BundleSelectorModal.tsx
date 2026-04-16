@@ -1,0 +1,106 @@
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+import { Modal } from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { bundlesApi } from '../../lib/api';
+import type { ProductBundle } from '../../lib/types';
+
+interface BundleQuoteItem {
+  spare_part_id: number;
+  honeywell_code: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  discount_pct: number;
+}
+
+interface BundleSelectorModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAddItems: (items: BundleQuoteItem[]) => void;
+}
+
+export default function BundleSelectorModal({
+  isOpen,
+  onClose,
+  onAddItems,
+}: BundleSelectorModalProps) {
+  const { data, isLoading } = useQuery<{ bundles: ProductBundle[] }>({
+    queryKey: ['bundles'],
+    queryFn: () => bundlesApi.list(),
+    enabled: isOpen,
+  });
+
+  const expandMutation = useMutation({
+    mutationFn: (bundleId: number) => bundlesApi.toQuoteItems(bundleId),
+    onSuccess: (result: { items: BundleQuoteItem[]; bundle_name: string }) => {
+      if (result.items.length === 0) {
+        toast.error('Bu pakette gecerli urun bulunamadi');
+        return;
+      }
+      onAddItems(result.items);
+      toast.success(`${result.bundle_name} paketi eklendi`);
+      onClose();
+    },
+    onError: () => toast.error('Paket genisletilemedi'),
+  });
+
+  const bundles = data?.bundles ?? [];
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Paket Sec">
+      <div className="space-y-4">
+        {isLoading ? (
+          <Skeleton variant="card" count={3} />
+        ) : bundles.length === 0 ? (
+          <p className="py-8 text-center text-sm text-gray-500">
+            Henuz tanimlanmis paket bulunmuyor.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {bundles.map((bundle) => (
+              <Card key={bundle.id}>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    {bundle.name}
+                  </h4>
+                  {bundle.description && (
+                    <p className="text-xs text-gray-500">{bundle.description}</p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="info" size="sm">
+                      {bundle.items.length} urun
+                    </Badge>
+                    {bundle.bundle_price != null && (
+                      <Badge variant="success" size="sm">
+                        Paket Fiyat: {bundle.bundle_price.toLocaleString('tr-TR')}
+                      </Badge>
+                    )}
+                    {bundle.discount_pct > 0 && (
+                      <Badge variant="warning" size="sm">
+                        Indirim: %{bundle.discount_pct}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="pt-1">
+                    <Button
+                      size="sm"
+                      loading={expandMutation.isPending}
+                      onClick={() => expandMutation.mutate(bundle.id)}
+                    >
+                      Ekle
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}

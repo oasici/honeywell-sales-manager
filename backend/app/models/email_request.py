@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
@@ -36,6 +38,15 @@ class EmailRequest(Base):
     is_duplicate: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     duplicate_of_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # AI Triage
+    priority: Mapped[str | None] = mapped_column(String(20), nullable=True)  # urgent|high|normal|low
+    triage_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Data classification
+    data_classification: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )  # public|internal|confidential|restricted
+
     # Read tracking
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     last_parsed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -44,6 +55,10 @@ class EmailRequest(Base):
     opportunity_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=True, index=True
     )
+
+    # Threading
+    thread_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    in_reply_to: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Review workflow
     review_status: Mapped[str | None] = mapped_column(String(20), nullable=True)

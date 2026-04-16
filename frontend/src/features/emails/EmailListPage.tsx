@@ -2,7 +2,19 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Mail, User, Building2, Clock, Tag, Pencil, X, Save, Package, Hash, BarChart3 } from 'lucide-react';
+import {
+  Mail,
+  User,
+  Building2,
+  Clock,
+  Tag,
+  Pencil,
+  X,
+  Save,
+  Package,
+  Hash,
+  BarChart3,
+} from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -10,6 +22,7 @@ import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { emailsApi, customersApi, quotesApi } from '../../lib/api';
+import { getErrorMessage } from '../../lib/utils';
 import { formatDateTime } from '../../lib/formatters';
 import {
   CATEGORY_LABELS,
@@ -19,6 +32,12 @@ import {
   STATUS_COLORS,
 } from '../../lib/constants';
 import type { EmailRequest, PaginatedResponse } from '../../lib/types';
+
+interface ParsedPart {
+  part_code?: string;
+  part_description?: string;
+  quantity?: number;
+}
 
 const READ_TABS = [
   { value: '', label: 'Okunmamis' },
@@ -61,9 +80,8 @@ export default function EmailListPage() {
       toast.success(res.message || 'Email kontrolu tamamlandi');
       queryClient.invalidateQueries({ queryKey: ['emails'] });
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Email kontrolu basarisiz';
-      toast.error(msg);
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, 'Email kontrolu basarisiz'));
     },
   });
 
@@ -96,17 +114,16 @@ export default function EmailListPage() {
         queryClient.invalidateQueries({ queryKey: ['email-detail', detailEmail.id] });
       }
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Ayristirma basarisiz';
-      toast.error(msg);
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, 'Ayristirma basarisiz'));
     },
   });
 
   const [editingParse, setEditingParse] = useState(false);
-  const [editForm, setEditForm] = useState<Record<string, any>>({});
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
 
   const correctMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+    mutationFn: ({ id, data }: { id: number; data: Record<string, string> }) =>
       emailsApi.correctParse(id, data),
     onSuccess: (res) => {
       toast.success(res.message);
@@ -116,21 +133,21 @@ export default function EmailListPage() {
         queryClient.invalidateQueries({ queryKey: ['email-detail', detailEmail.id] });
       }
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.error?.message || 'Duzeltme kaydedilemedi');
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, 'Duzeltme kaydedilemedi'));
     },
   });
 
   const reviewMutation = useMutation({
-    mutationFn: ({ id, action }: { id: number; action: string }) => emailsApi.reviewEmail(id, action),
+    mutationFn: ({ id, action }: { id: number; action: string }) =>
+      emailsApi.reviewEmail(id, action),
     onSuccess: () => {
       toast.success('Inceleme tamamlandi');
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       setDetailEmail(null);
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Inceleme basarisiz';
-      toast.error(msg);
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, 'Inceleme basarisiz'));
     },
   });
 
@@ -374,22 +391,26 @@ export default function EmailListPage() {
                 </span>
               )}
               {activeEmail.status && (
-                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                  activeEmail.status === 'parsed'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                    activeEmail.status === 'parsed'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
                   {STATUS_LABELS[activeEmail.status] || activeEmail.status}
                 </span>
               )}
               {activeEmail.review_status && (
-                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                  activeEmail.review_status === 'approved'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : activeEmail.review_status === 'rejected'
-                      ? 'bg-rose-100 text-rose-700'
-                      : 'bg-amber-100 text-amber-700'
-                }`}>
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                    activeEmail.review_status === 'approved'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : activeEmail.review_status === 'rejected'
+                        ? 'bg-rose-100 text-rose-700'
+                        : 'bg-amber-100 text-amber-700'
+                  }`}
+                >
                   {REVIEW_STATUS_LABELS[activeEmail.review_status] || activeEmail.review_status}
                 </span>
               )}
@@ -461,7 +482,12 @@ export default function EmailListPage() {
                         <input
                           className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                           value={editForm.customer_name || ''}
-                          onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, customer_name: e.target.value }))}
+                          onChange={(e) =>
+                            setEditForm((f: Record<string, string>) => ({
+                              ...f,
+                              customer_name: e.target.value,
+                            }))
+                          }
                         />
                       </div>
                       <div>
@@ -471,7 +497,12 @@ export default function EmailListPage() {
                         <input
                           className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                           value={editForm.customer_company || ''}
-                          onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, customer_company: e.target.value }))}
+                          onChange={(e) =>
+                            setEditForm((f: Record<string, string>) => ({
+                              ...f,
+                              customer_company: e.target.value,
+                            }))
+                          }
                         />
                       </div>
                     </div>
@@ -482,12 +513,19 @@ export default function EmailListPage() {
                       <input
                         className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                         value={editForm.category || ''}
-                        onChange={(e) => setEditForm((f: Record<string, any>) => ({ ...f, category: e.target.value }))}
+                        onChange={(e) =>
+                          setEditForm((f: Record<string, string>) => ({
+                            ...f,
+                            category: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <button
                       type="button"
-                      onClick={() => correctMutation.mutate({ id: activeEmail!.id, data: editForm })}
+                      onClick={() =>
+                        correctMutation.mutate({ id: activeEmail!.id, data: editForm })
+                      }
                       disabled={correctMutation.isPending}
                       className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
                     >
@@ -505,8 +543,12 @@ export default function EmailListPage() {
                             <User size={14} className="text-blue-600" />
                           </div>
                           <div>
-                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">Musteri</span>
-                            <span className="text-sm font-medium text-gray-900">{detailParsed.customer_name}</span>
+                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                              Musteri
+                            </span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {detailParsed.customer_name}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -516,8 +558,12 @@ export default function EmailListPage() {
                             <Building2 size={14} className="text-blue-600" />
                           </div>
                           <div>
-                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">Sirket</span>
-                            <span className="text-sm font-medium text-gray-900">{detailParsed.customer_company}</span>
+                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                              Sirket
+                            </span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {detailParsed.customer_company}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -536,16 +582,23 @@ export default function EmailListPage() {
                           </span>
                         </div>
                         <div className="space-y-2">
-                          {detailParsed.parts.map((p: any, i: number) => (
-                            <div key={i} className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
+                          {detailParsed.parts.map((p: ParsedPart, i: number) => (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm"
+                            >
                               <div className="flex items-center gap-3">
                                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100">
                                   <Hash size={12} className="text-slate-500" />
                                 </div>
                                 <div>
-                                  <span className="block font-mono text-sm font-bold text-gray-900">{p.part_code}</span>
+                                  <span className="block font-mono text-sm font-bold text-gray-900">
+                                    {p.part_code}
+                                  </span>
                                   {p.part_description && (
-                                    <span className="block text-xs text-gray-500">{p.part_description}</span>
+                                    <span className="block text-xs text-gray-500">
+                                      {p.part_description}
+                                    </span>
                                   )}
                                 </div>
                               </div>
@@ -604,7 +657,9 @@ export default function EmailListPage() {
                       <Button
                         size="sm"
                         loading={reviewMutation.isPending}
-                        onClick={() => reviewMutation.mutate({ id: activeEmail!.id, action: 'approve' })}
+                        onClick={() =>
+                          reviewMutation.mutate({ id: activeEmail!.id, action: 'approve' })
+                        }
                         className="rounded-lg! bg-emerald-600! px-5! text-white! shadow-sm! hover:bg-emerald-700!"
                       >
                         Onayla
@@ -613,7 +668,9 @@ export default function EmailListPage() {
                         variant="secondary"
                         size="sm"
                         loading={reviewMutation.isPending}
-                        onClick={() => reviewMutation.mutate({ id: activeEmail!.id, action: 'reject' })}
+                        onClick={() =>
+                          reviewMutation.mutate({ id: activeEmail!.id, action: 'reject' })
+                        }
                         className="rounded-lg! border-rose-200! bg-rose-50! text-rose-600! hover:bg-rose-100!"
                       >
                         Reddet
@@ -653,7 +710,6 @@ export default function EmailListPage() {
           </div>
         )}
       </Modal>
-
     </div>
   );
 }

@@ -1,0 +1,403 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import {
+  Plus,
+  Trash2,
+  Webhook,
+  ChevronDown,
+  ChevronUp,
+  PlayCircle,
+  ExternalLink,
+} from 'lucide-react';
+
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { webhooksApi } from '../../lib/api';
+import { formatDateTime } from '../../lib/formatters';
+import type { WebhookSubscription, WebhookDelivery } from '../../lib/types';
+
+const AVAILABLE_EVENTS = [
+  { value: 'opportunity.created', label: 'Firsat Olusturuldu' },
+  { value: 'opportunity.stage_changed', label: 'Firsat Asama Degisti' },
+  { value: 'quote.approved', label: 'Teklif Onaylandi' },
+  { value: 'quote.sent', label: 'Teklif Gonderildi' },
+  { value: 'lead.converted', label: 'Lead Donusturuldu' },
+  { value: 'customer.created', label: 'Musteri Olusturuldu' },
+  { value: 'email.parsed', label: 'Email Ayristi' },
+];
+
+const MAX_URL_DISPLAY_LENGTH = 40;
+
+interface WebhookForm {
+  name: string;
+  url: string;
+  event_types: string[];
+  secret: string;
+}
+
+const INITIAL_FORM: WebhookForm = {
+  name: '',
+  url: '',
+  event_types: [],
+  secret: '',
+};
+
+function truncateUrl(url: string): string {
+  if (url.length <= MAX_URL_DISPLAY_LENGTH) return url;
+  return url.slice(0, MAX_URL_DISPLAY_LENGTH) + '...';
+}
+
+function StatusCodeBadge({ code }: { code: number }) {
+  if (code >= 200 && code < 300) {
+    return <Badge variant="success">{code}</Badge>;
+  }
+  if (code >= 400) {
+    return <Badge variant="danger">{code}</Badge>;
+  }
+  return <Badge variant="warning">{code}</Badge>;
+}
+
+function DeliveryHistory({ webhookId }: { webhookId: number }) {
+  const { data, isLoading } = useQuery<{ data: WebhookDelivery[] }>({
+    queryKey: ['webhook-deliveries', webhookId],
+    queryFn: () => webhooksApi.getDeliveries(webhookId),
+  });
+
+  const deliveries: WebhookDelivery[] = data?.data ?? (Array.isArray(data) ? data as WebhookDelivery[] : []);
+
+  if (isLoading) {
+    return (
+      <div className="px-4 py-3">
+        <Skeleton variant="line" count={3} />
+      </div>
+    );
+  }
+
+  if (deliveries.length === 0) {
+    return (
+      <p className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
+        Henuz teslimat yok
+      </p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="border-b border-gray-100 dark:border-gray-700">
+            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">Olay</th>
+            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">Durum</th>
+            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">Tarih</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deliveries.map((d) => (
+            <tr key={d.id} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
+              <td className="px-4 py-2 text-gray-700 dark:text-gray-300">{d.event_type}</td>
+              <td className="px-4 py-2">
+                <StatusCodeBadge code={d.status_code} />
+              </td>
+              <td className="px-4 py-2 text-gray-500 dark:text-gray-400">
+                {d.delivered_at ? formatDateTime(d.delivered_at) : '-'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function WebhookCard({
+  webhook,
+  onDelete,
+}: {
+  webhook: WebhookSubscription;
+  onDelete: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const toggleMutation = useMutation({
+    mutationFn: () =>
+      webhooksApi.update(webhook.id, { is_active: !webhook.is_active }),
+    onSuccess: () => {
+      toast.success(
+        webhook.is_active ? 'Webhook devre disi birakildi' : 'Webhook aktif edildi',
+      );
+      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+    },
+    onError: () => toast.error('Islem basarisiz'),
+  });
+
+  const testMutation = useMutation({
+    mutationFn: () => webhooksApi.test(webhook.id),
+    onSuccess: () => {
+      toast.success('Test istegi gonderildi');
+      queryClient.invalidateQueries({
+        queryKey: ['webhook-deliveries', webhook.id],
+      });
+    },
+    onError: () => toast.error('Test istegi basarisiz'),
+  });
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex items-start justify-between p-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              {webhook.name}
+            </h4>
+            {webhook.is_active ? (
+              <Badge variant="success" size="sm">Aktif</Badge>
+            ) : (
+              <Badge variant="default" size="sm">Pasif</Badge>
+            )}
+          </div>
+          <p
+            className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
+            title={webhook.url}
+          >
+            <ExternalLink size={10} className="mr-1 inline" />
+            {truncateUrl(webhook.url)}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {webhook.event_types.map((event) => (
+              <Badge key={event} variant="info" size="sm">
+                {event}
+              </Badge>
+            ))}
+          </div>
+          {webhook.failure_count > 0 && (
+            <p className="mt-1.5 text-xs text-red-500">
+              {webhook.failure_count} basarisiz teslimat
+            </p>
+          )}
+        </div>
+        <div className="ml-3 flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => toggleMutation.mutate()}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              webhook.is_active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
+            title={webhook.is_active ? 'Devre Disi Birak' : 'Aktif Et'}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                webhook.is_active ? 'translate-x-4' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => testMutation.mutate()}
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors dark:hover:bg-blue-900/20"
+            title="Test Et"
+          >
+            <PlayCircle size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
+            title="Sil"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      <div className="border-t border-gray-100 dark:border-gray-700">
+        <button
+          type="button"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          className="flex w-full items-center justify-between px-4 py-2 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          Teslimatlar
+          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+        {isExpanded && <DeliveryHistory webhookId={webhook.id} />}
+      </div>
+    </div>
+  );
+}
+
+export default function WebhookSettings() {
+  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<WebhookSubscription | null>(null);
+  const [form, setForm] = useState<WebhookForm>(INITIAL_FORM);
+
+  const { data, isLoading } = useQuery<{ webhooks: WebhookSubscription[] }>({
+    queryKey: ['webhooks'],
+    queryFn: webhooksApi.list,
+  });
+
+  const webhooks: WebhookSubscription[] =
+    data?.webhooks ?? (Array.isArray(data) ? data as WebhookSubscription[] : []);
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      webhooksApi.create({
+        name: form.name,
+        url: form.url,
+        event_types: form.event_types,
+        secret: form.secret || undefined,
+      }),
+    onSuccess: () => {
+      toast.success('Webhook olusturuldu');
+      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+      setIsModalOpen(false);
+      setForm(INITIAL_FORM);
+    },
+    onError: () => toast.error('Webhook olusturulamadi'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => webhooksApi.remove(id),
+    onSuccess: () => {
+      toast.success('Webhook silindi');
+      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+      setDeleteTarget(null);
+    },
+    onError: () => toast.error('Webhook silinemedi'),
+  });
+
+  const toggleEvent = (eventValue: string) => {
+    setForm((prev) => {
+      const isSelected = prev.event_types.includes(eventValue);
+      return {
+        ...prev,
+        event_types: isSelected
+          ? prev.event_types.filter((e) => e !== eventValue)
+          : [...prev.event_types, eventValue],
+      };
+    });
+  };
+
+  if (isLoading) {
+    return <Skeleton variant="card" />;
+  }
+
+  return (
+    <>
+      <Card
+        title="Webhook Yonetimi"
+        action={
+          <Button size="sm" onClick={() => setIsModalOpen(true)}>
+            <Plus size={14} className="mr-1.5" />
+            Yeni Webhook
+          </Button>
+        }
+      >
+        {webhooks.length === 0 ? (
+          <div className="flex flex-col items-center py-8 text-center">
+            <Webhook size={32} className="mb-2 text-gray-300 dark:text-gray-600" />
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Henuz webhook tanimlanmamis
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {webhooks.map((wh) => (
+              <WebhookCard
+                key={wh.id}
+                webhook={wh}
+                onDelete={() => setDeleteTarget(wh)}
+              />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Yeni Webhook"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Webhook Adi"
+            value={form.name}
+            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+            placeholder="ornek: Slack Bildirimi"
+          />
+          <Input
+            label="URL"
+            type="url"
+            value={form.url}
+            onChange={(e) => setForm((prev) => ({ ...prev, url: e.target.value }))}
+            placeholder="https://example.com/webhook"
+          />
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Olay Turleri
+            </label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {AVAILABLE_EVENTS.map((event) => (
+                <label
+                  key={event.value}
+                  className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.event_types.includes(event.value)}
+                    onChange={() => toggleEvent(event.value)}
+                    className="h-4 w-4 rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">{event.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <Input
+            label="Secret (Opsiyonel)"
+            value={form.secret}
+            onChange={(e) => setForm((prev) => ({ ...prev, secret: e.target.value }))}
+            placeholder="Webhook imzalama anahtari"
+          />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+              Iptal
+            </Button>
+            <Button
+              onClick={() => createMutation.mutate()}
+              loading={createMutation.isPending}
+              disabled={!form.name || !form.url || form.event_types.length === 0}
+            >
+              Olustur
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id);
+          }
+        }}
+        title="Webhook Sil"
+        message={`"${deleteTarget?.name}" webhook'u silinecek. Devam etmek istiyor musunuz?`}
+        confirmLabel="Sil"
+        confirmVariant="danger"
+        isLoading={deleteMutation.isPending}
+      />
+    </>
+  );
+}

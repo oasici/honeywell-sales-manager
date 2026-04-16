@@ -31,7 +31,10 @@ function DashboardMock() {
               { icon: FileText, label: 'Teklifler', active: false },
               { icon: Shield, label: 'Denetim', active: false },
             ].map((item, i) => (
-              <div key={i} className={`mb-1 flex items-center gap-2 rounded-lg px-2 py-1.5 ${item.active ? 'bg-red-600/10 text-red-400' : 'text-slate-500'}`}>
+              <div
+                key={i}
+                className={`mb-1 flex items-center gap-2 rounded-lg px-2 py-1.5 ${item.active ? 'bg-red-600/10 text-red-400' : 'text-slate-500'}`}
+              >
                 <item.icon size={12} />
                 <span className="text-[10px]">{item.label}</span>
               </div>
@@ -60,7 +63,11 @@ function DashboardMock() {
               <p className="mb-2 text-[9px] font-semibold text-slate-700">Aylik Teklif Trendi</p>
               <div className="flex h-16 items-end gap-1">
                 {[40, 55, 35, 65, 50, 80, 70, 90, 75, 95, 85, 100].map((h, i) => (
-                  <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-red-600 to-red-400 opacity-80" style={{ height: `${h}%` }} />
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t bg-gradient-to-t from-red-600 to-red-400 opacity-80"
+                    style={{ height: `${h}%` }}
+                  />
                 ))}
               </div>
             </div>
@@ -68,8 +75,15 @@ function DashboardMock() {
             {/* Recent items */}
             <div className="rounded-lg border border-slate-100 bg-white p-3">
               <p className="mb-2 text-[9px] font-semibold text-slate-700">Son E-postalar</p>
-              {['KORDSA A.S. — Turbinmetre talebi', 'DEMIOREN — Sensor fiyat istegi', 'ARCELIK — Kalibrasyon parcasi'].map((item, i) => (
-                <div key={i} className="flex items-center justify-between border-b border-slate-50 py-1.5 last:border-0">
+              {[
+                'KORDSA A.S. — Turbinmetre talebi',
+                'DEMIOREN — Sensor fiyat istegi',
+                'ARCELIK — Kalibrasyon parcasi',
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between border-b border-slate-50 py-1.5 last:border-0"
+                >
                   <span className="text-[9px] text-slate-600">{item}</span>
                   <CheckCircle size={10} className="text-green-500" />
                 </div>
@@ -80,7 +94,7 @@ function DashboardMock() {
       </div>
 
       {/* Glow effect */}
-      <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-r from-red-600/5 via-blue-600/5 to-violet-600/5 blur-2xl" />
+      <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-r from-honeywell-red/5 to-slate-400/5 blur-2xl" />
     </div>
   );
 }
@@ -121,9 +135,9 @@ export default function Hero() {
             </span>
           </h1>
           <p className="mt-5 text-base leading-relaxed text-slate-600 md:text-lg">
-            Honeywell yedek parca satis ekipleri icin: gelen talep e-postalarini
-            AI ile ayristirin, parcalari otomatik eslestirin, teklifi hazirlayin,
-            onaylayin ve gonderin. Tek platformda.
+            Honeywell yedek parca satis ekipleri icin: gelen talep e-postalarini AI ile ayristirin,
+            parcalari otomatik eslestirin, teklifi hazirlayin, onaylayin ve gonderin. Tek
+            platformda.
           </p>
         </motion.div>
 
@@ -139,7 +153,10 @@ export default function Hero() {
             className="group flex items-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all duration-200 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/25"
           >
             Demo Planla
-            <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+            <ArrowRight
+              size={16}
+              className="transition-transform duration-200 group-hover:translate-x-0.5"
+            />
           </a>
           <a
             href="#solution"
@@ -157,7 +174,9 @@ export default function Hero() {
           transition={{ delay: 0.6, duration: 0.5 }}
           className="mt-6 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-400"
         >
-          <span className="flex items-center gap-1"><Shield size={12} /> RBAC + denetim izi</span>
+          <span className="flex items-center gap-1">
+            <Shield size={12} /> RBAC + denetim izi
+          </span>
           <span className="h-3 w-px bg-slate-200" />
           <span>Sifrelenmis veriler</span>
           <span className="h-3 w-px bg-slate-200" />

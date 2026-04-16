@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import io
 import math
 
-from fastapi import APIRouter, Depends, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,7 @@ from app.models.customer import Customer
 from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.customer import CustomerCreate, CustomerUpdate
+from app.services.enrichment_service import EnrichmentService
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -191,6 +194,21 @@ async def update_customer(
     return _customer_to_dict(customer)
 
 
+@router.post("/{customer_id}/enrich")
+async def enrich_customer(
+    customer_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Enrich customer data using Claude AI."""
+    service = EnrichmentService(db)
+    try:
+        result = await service.enrich_customer(customer_id)
+    except ValueError as exc:
+        raise NotFoundException(str(exc))
+    return {"data": result}
+
+
 @router.delete("/{customer_id}", status_code=200)
 async def delete_customer(
     customer_id: int,
@@ -367,6 +385,239 @@ async def get_customer_timeline(
     return {"customer_id": customer_id, "events": events[:limit]}
 
 
+@router.get("/{customer_id}/activity-timeline")
+async def get_customer_activity_timeline(
+    customer_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unified activity timeline — auto-captured events from all entity types."""
+    from app.models.activity_log import ActivityLog
+
+    # Verify customer exists
+    cust = await db.execute(select(Customer).where(Customer.id == customer_id))
+    if not cust.scalar_one_or_none():
+        raise NotFoundException("Musteri bulunamadi")
+
+    result = await db.execute(
+        select(ActivityLog)
+        .where(ActivityLog.customer_id == customer_id)
+        .order_by(ActivityLog.created_at.desc())
+        .limit(limit)
+    )
+    activities = result.scalars().all()
+
+    return {
+        "customer_id": customer_id,
+        "activities": [
+            {
+                "id": a.id,
+                "activity_type": a.activity_type,
+                "entity_type": a.entity_type,
+                "entity_id": a.entity_id,
+                "summary": a.summary,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in activities
+        ],
+    }
+
+
+@router.post("/bulk-action")
+async def bulk_action_customers(
+    body: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bulk actions on customers: delete, assign, export."""
+    ids = body.get("ids", [])
+    action = body.get("action", "")
+    params = body.get("params", {})
+
+    if not ids or not isinstance(ids, list):
+        raise BadRequestException("Gecerli bir ID listesi saglanmalidir")
+    if not action:
+        raise BadRequestException("Islem tipi belirtilmelidir")
+
+    # Validate that all IDs exist
+    result = await db.execute(
+        select(Customer).where(Customer.id.in_(ids))
+    )
+    customers = result.scalars().all()
+    found_ids = {c.id for c in customers}
+    missing_ids = [i for i in ids if i not in found_ids]
+    if missing_ids:
+        raise NotFoundException(f"Bulunamayan musteri ID'leri: {missing_ids}")
+
+    if action == "delete":
+        # Manager only
+        if current_user.role != UserRole.SALES_MANAGER.value:
+            raise BadRequestException("Silme islemi yalnizca yonetici tarafindan yapilabilir")
+        affected_count = 0
+        for customer in customers:
+            quote_count = await db.execute(
+                select(func.count(Quote.id)).where(Quote.customer_id == customer.id)
+            )
+            if (quote_count.scalar() or 0) > 0:
+                continue
+            from app.models.email_request import EmailRequest
+            await db.execute(
+                EmailRequest.__table__.update()
+                .where(EmailRequest.customer_id == customer.id)
+                .values(customer_id=None)
+            )
+            await db.delete(customer)
+            affected_count += 1
+        await db.flush()
+        return {"message": f"{affected_count} musteri silindi", "affected_count": affected_count}
+
+    if action == "assign":
+        new_owner_id = params.get("created_by")
+        if not new_owner_id:
+            raise BadRequestException("Atanacak kullanici ID'si (created_by) belirtilmelidir")
+        for customer in customers:
+            customer.created_by = new_owner_id
+        await db.flush()
+        return {"message": f"{len(customers)} musteri atandi", "affected_count": len(customers)}
+
+    if action == "export":
+        rows = []
+        for customer in customers:
+            rows.append(_customer_to_dict(customer))
+        return {"message": f"{len(rows)} musteri disa aktarildi", "affected_count": len(rows), "data": rows}
+
+    raise BadRequestException(f"Bilinmeyen islem: {action}")
+
+
+@router.get("/{customer_id}/hierarchy")
+async def get_customer_hierarchy(
+    customer_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return the customer's parent chain and subsidiaries tree."""
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # Get parent chain
+    parents = []
+    current = customer
+    depth = 0
+    while current.parent_id and depth < 5:
+        p_result = await db.execute(select(Customer).where(Customer.id == current.parent_id))
+        parent = p_result.scalar_one_or_none()
+        if not parent:
+            break
+        parents.append({"id": parent.id, "name": parent.name, "company": parent.company})
+        current = parent
+        depth += 1
+
+    # Get direct subsidiaries
+    subs_result = await db.execute(
+        select(Customer).where(Customer.parent_id == customer_id)
+    )
+    subsidiaries = subs_result.scalars().all()
+
+    return {
+        "customer_id": customer_id,
+        "parents": list(reversed(parents)),
+        "subsidiaries": [
+            {"id": s.id, "name": s.name, "company": s.company}
+            for s in subsidiaries
+        ],
+    }
+
+
+@router.patch("/{customer_id}/parent")
+async def set_customer_parent(
+    customer_id: int,
+    parent_id: int | None = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Set or unset parent customer. Validates no circular references."""
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    if parent_id is not None:
+        if parent_id == customer_id:
+            raise HTTPException(status_code=400, detail="Cannot be parent of self")
+
+        # Check parent exists
+        p_result = await db.execute(select(Customer).where(Customer.id == parent_id))
+        if not p_result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Parent customer not found")
+
+        # Check for circular reference
+        current_id = parent_id
+        depth = 0
+        while current_id and depth < 10:
+            if current_id == customer_id:
+                raise HTTPException(status_code=400, detail="Circular reference detected")
+            r = await db.execute(select(Customer.parent_id).where(Customer.id == current_id))
+            row = r.scalar_one_or_none()
+            current_id = row
+            depth += 1
+
+    customer.parent_id = parent_id
+    await db.commit()
+    return {"status": "ok", "parent_id": parent_id}
+
+
+@router.get("/{customer_id}/rollup")
+async def get_customer_rollup(
+    customer_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Aggregate metrics across all subsidiary customers."""
+    from app.models.opportunity import Opportunity
+    from app.models.quote import Quote
+
+    # Collect all descendant IDs (BFS, depth limit 5)
+    all_ids = [customer_id]
+    queue = [customer_id]
+    depth = 0
+    while queue and depth < 5:
+        r = await db.execute(
+            select(Customer.id).where(Customer.parent_id.in_(queue))
+        )
+        children = [row for row in r.scalars().all()]
+        if not children:
+            break
+        all_ids.extend(children)
+        queue = children
+        depth += 1
+
+    # Count opportunities
+    opp_result = await db.execute(
+        select(func.count(), func.coalesce(func.sum(Opportunity.amount), 0))
+        .where(Opportunity.customer_id.in_(all_ids))
+    )
+    opp_count, opp_total = opp_result.one()
+
+    # Count quotes
+    quote_result = await db.execute(
+        select(func.count(), func.coalesce(func.sum(Quote.grand_total), 0))
+        .where(Quote.customer_id.in_(all_ids))
+    )
+    quote_count, quote_total = quote_result.one()
+
+    return {
+        "customer_id": customer_id,
+        "subsidiary_count": len(all_ids) - 1,
+        "total_opportunities": opp_count,
+        "total_opportunity_value": float(opp_total),
+        "total_quotes": quote_count,
+        "total_quote_value": float(quote_total),
+    }
+
+
 def _customer_to_dict(customer: Customer) -> dict:
     """Convert Customer to a dictionary response."""
     return {
@@ -381,4 +632,10 @@ def _customer_to_dict(customer: Customer) -> dict:
         "created_by": customer.created_by,
         "created_at": customer.created_at.isoformat() if customer.created_at else None,
         "updated_at": customer.updated_at.isoformat() if customer.updated_at else None,
+        "industry": customer.industry,
+        "employee_count": customer.employee_count,
+        "annual_revenue": customer.annual_revenue,
+        "website": customer.website,
+        "linkedin_url": customer.linkedin_url,
+        "enriched_at": customer.enriched_at.isoformat() if customer.enriched_at else None,
     }

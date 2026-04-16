@@ -1,0 +1,96 @@
+# Sandbox environment — isolated test instance
+# Usage: docker compose -f docker-compose.sandbox.yml up -d
+# Or:    ./scripts/sandbox.sh up
+
+services:
+  db-sandbox:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sandbox_honeywell
+      POSTGRES_USER: sandbox
+      POSTGRES_PASSWORD: sandbox_dev_2026!
+    volumes:
+      - pgdata-sandbox:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sandbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-sandbox:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --requirepass sandbox_redis
+    volumes:
+      - redisdata-sandbox:/data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "sandbox_redis", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  qdrant-sandbox:
+    image: qdrant/qdrant:v1.13.2
+    restart: unless-stopped
+    volumes:
+      - qdrant_data_sandbox:/qdrant/storage
+    ports:
+      - "6334:6333"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo -e \"GET /healthz HTTP/1.0\\r\\n\" > /dev/tcp/localhost/6333'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend-sandbox:
+    build: ./backend
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - backend
+    depends_on:
+      db-sandbox:
+        condition: service_healthy
+      redis-sandbox:
+        condition: service_healthy
+      qdrant-sandbox:
+        condition: service_healthy
+    env_file: .env.sandbox
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sandbox:sandbox_dev_2026!@db-sandbox:5432/sandbox_honeywell
+      REDIS_URL: redis://:sandbox_redis@redis-sandbox:6379/0
+      QDRANT_URL: http://qdrant-sandbox:6333
+      SCHEDULER_ENABLED: "false"
+      ENV: sandbox
+    volumes:
+      - backend_data_sandbox:/app/data
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  frontend-sandbox:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend-sandbox
+    ports:
+      - "8081:8080"
+
+volumes:
+  pgdata-sandbox:
+  redisdata-sandbox:
+  qdrant_data_sandbox:
+  backend_data_sandbox:

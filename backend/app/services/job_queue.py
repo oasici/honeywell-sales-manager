@@ -58,10 +58,16 @@ async def execute_sequence_step(ctx: dict, enrollment_id: int) -> str:
     """Execute the next step in a sequence enrollment.
 
     Called by arq worker with retry support.
+    When FEATURE_SEQUENCES_V2 is on, delegates to the v2 engine which adds:
+    - Idempotency (StepRun unique constraint prevents double execution)
+    - Global exit conditions (lead converted, opp closed, etc.)
+    - Telemetry (SequenceStepRun record per execution)
+    - Domain events (sequence.step_completed, sequence.completed, sequence.exited)
     """
     import json
     from sqlalchemy import select
     from app.core.database import async_session
+    from app.core.config import settings as app_settings
     from app.models.engagement import SequenceEnrollment, Sequence
     from app.models.opportunity import Task
 
@@ -72,6 +78,15 @@ async def execute_sequence_step(ctx: dict, enrollment_id: int) -> str:
         if not enrollment or enrollment.status != "active":
             return f"Enrollment {enrollment_id} not active"
 
+        # ── V2 engine (feature-flagged) ──
+        if app_settings.FEATURE_SEQUENCES_V2:
+            from app.services.sequence_engine import execute_step_v2
+
+            result = await execute_step_v2(db, enrollment)
+            await db.commit()
+            return result
+
+        # ── V1 fallback (original logic, untouched) ──
         seq = (await db.execute(
             select(Sequence).where(Sequence.id == enrollment.sequence_id)
         )).scalar_one_or_none()
@@ -88,7 +103,6 @@ async def execute_sequence_step(ctx: dict, enrollment_id: int) -> str:
         step = steps[current - 1]
         action = step.get("action", "task")
         template = step.get("template", "")
-        delay_days = step.get("delay_days", 0)
 
         # Execute step
         if action == "task":

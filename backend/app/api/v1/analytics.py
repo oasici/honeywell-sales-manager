@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 
 import sqlalchemy
@@ -731,19 +733,26 @@ async def get_data_quality(
         )
     )).scalar() or 0
 
+    cust_pct = round((1 - (no_phone + no_company) / (total_customers * 2)) * 100, 1) if total_customers > 0 else 100
+    quote_pct = round((1 - (no_customer + no_items) / (total_quotes * 2)) * 100, 1) if total_quotes > 0 else 100
+    avg_score = round((cust_pct + quote_pct) / 2, 1)
+
     return {
+        "data": {
+            "avg_score": avg_score,
+        },
         "customers": {
             "total": total_customers,
             "missing_phone": no_phone,
             "missing_email": no_email,
             "missing_company": no_company,
-            "completeness_pct": round((1 - (no_phone + no_company) / (total_customers * 2)) * 100, 1) if total_customers > 0 else 100,
+            "completeness_pct": cust_pct,
         },
         "quotes": {
             "total": total_quotes,
             "missing_customer": no_customer,
             "missing_items": no_items,
-            "completeness_pct": round((1 - (no_customer + no_items) / (total_quotes * 2)) * 100, 1) if total_quotes > 0 else 100,
+            "completeness_pct": quote_pct,
         },
     }
 
@@ -833,3 +842,435 @@ async def get_discount_guardrails(
         "flagged_count": len(flagged),
         "flagged_quotes": flagged,
     }
+
+
+# ══════════════════════════════════════════════════════════════
+# FAZ-3 PIPELINE DEPTH ANALYTICS
+# ══════════════════════════════════════════════════════════════
+
+
+@router.get("/deal-velocity")
+async def deal_velocity(
+    window: int = Query(90, ge=7, le=365),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Avg days per stage, total cycle time, stage-to-stage conversion rates."""
+    from app.models.opportunity import Opportunity, OpportunityEvent
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=window)
+
+    # Stage change events in window
+    events_q = await db.execute(
+        select(
+            OpportunityEvent.opportunity_id,
+            OpportunityEvent.description,
+            OpportunityEvent.occurred_at,
+        )
+        .where(
+            OpportunityEvent.event_type == "stage_change",
+            OpportunityEvent.occurred_at >= cutoff,
+        )
+        .order_by(
+            OpportunityEvent.opportunity_id,
+            OpportunityEvent.occurred_at.asc(),
+        )
+    )
+    events = events_q.all()
+
+    # Group events by opportunity
+    opp_events: dict[int, list] = {}
+    for event in events:
+        opp_events.setdefault(event.opportunity_id, []).append(event)
+
+    # Calculate time per stage from consecutive stage_change events
+    stage_durations: dict[str, list[float]] = {}
+    total_cycle_days: list[float] = []
+
+    for opp_id, opp_event_list in opp_events.items():
+        first_event_time = opp_event_list[0].occurred_at
+        last_event_time = opp_event_list[-1].occurred_at
+
+        if first_event_time and last_event_time:
+            if first_event_time.tzinfo is None:
+                first_event_time = first_event_time.replace(tzinfo=timezone.utc)
+            if last_event_time.tzinfo is None:
+                last_event_time = last_event_time.replace(tzinfo=timezone.utc)
+            cycle = (last_event_time - first_event_time).total_seconds() / 86400.0
+            if cycle > 0:
+                total_cycle_days.append(cycle)
+
+        for i in range(len(opp_event_list) - 1):
+            current_evt = opp_event_list[i]
+            next_evt = opp_event_list[i + 1]
+
+            # Extract stage from description "Asamadan gecis: X -> Y"
+            from_stage = _extract_from_stage(current_evt.description)
+            if not from_stage:
+                continue
+
+            t1 = current_evt.occurred_at
+            t2 = next_evt.occurred_at
+            if t1 and t2:
+                if t1.tzinfo is None:
+                    t1 = t1.replace(tzinfo=timezone.utc)
+                if t2.tzinfo is None:
+                    t2 = t2.replace(tzinfo=timezone.utc)
+                days = (t2 - t1).total_seconds() / 86400.0
+                if days >= 0:
+                    stage_durations.setdefault(from_stage, []).append(days)
+
+    # Avg days per stage
+    avg_days_per_stage = {
+        stage: round(sum(durations) / len(durations), 1)
+        for stage, durations in stage_durations.items()
+        if durations
+    }
+
+    avg_cycle_time = (
+        round(sum(total_cycle_days) / len(total_cycle_days), 1)
+        if total_cycle_days
+        else 0.0
+    )
+
+    # Stage-to-stage conversion rates from opportunity counts
+    stage_order = ["prospecting", "qualified", "proposal", "negotiation", "closed_won"]
+    stage_counts_q = await db.execute(
+        select(Opportunity.stage, func.count(Opportunity.id))
+        .where(Opportunity.created_at >= cutoff)
+        .group_by(Opportunity.stage)
+    )
+    stage_counts = {row[0]: row[1] for row in stage_counts_q.all()}
+
+    conversions = []
+    for i in range(len(stage_order) - 1):
+        from_stage = stage_order[i]
+        to_stage = stage_order[i + 1]
+        from_count = sum(
+            stage_counts.get(s, 0) for s in stage_order[i:]
+        )
+        to_count = sum(
+            stage_counts.get(s, 0) for s in stage_order[i + 1:]
+        )
+        rate = round(to_count / from_count * 100, 1) if from_count > 0 else 0.0
+        conversions.append({
+            "from_stage": from_stage,
+            "to_stage": to_stage,
+            "rate": rate,
+        })
+
+    return {
+        "window_days": window,
+        "avg_days_per_stage": avg_days_per_stage,
+        "avg_cycle_time_days": avg_cycle_time,
+        "conversions": conversions,
+    }
+
+
+def _extract_from_stage(description: str | None) -> str | None:
+    """Extract source stage from event description like 'Asamadan gecis: X -> Y'."""
+    if not description:
+        return None
+    if " -> " in description:
+        parts = description.split(" -> ")
+        from_part = parts[0].split(": ")
+        if len(from_part) > 1:
+            return from_part[-1].strip()
+    return None
+
+
+@router.get("/win-loss-detail")
+async def win_loss_detail(
+    window: int = Query(90, ge=7, le=365),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Win rate by owner, by source, avg deal size won vs lost, top loss reasons."""
+    from app.models.opportunity import Opportunity
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=window)
+    closed_filter = and_(
+        Opportunity.stage.in_(["closed_won", "closed_lost"]),
+        Opportunity.updated_at >= cutoff,
+    )
+
+    # Win rate by owner
+    owner_q = await db.execute(
+        select(
+            Opportunity.owner_id,
+            User.full_name,
+            func.count(Opportunity.id).label("total"),
+            func.count(
+                case((Opportunity.stage == "closed_won", Opportunity.id))
+            ).label("won"),
+            func.coalesce(
+                func.sum(
+                    case((Opportunity.stage == "closed_won", Opportunity.amount))
+                ),
+                0.0,
+            ).label("won_value"),
+            func.coalesce(
+                func.sum(
+                    case((Opportunity.stage == "closed_lost", Opportunity.amount))
+                ),
+                0.0,
+            ).label("lost_value"),
+        )
+        .join(User, Opportunity.owner_id == User.id)
+        .where(closed_filter)
+        .group_by(Opportunity.owner_id, User.full_name)
+        .order_by(func.count(Opportunity.id).desc())
+    )
+    owner_rows = owner_q.all()
+
+    by_owner = [
+        {
+            "owner_id": r.owner_id,
+            "full_name": r.full_name,
+            "total": r.total,
+            "won": r.won,
+            "win_rate": round(r.won / r.total * 100, 1) if r.total > 0 else 0.0,
+            "won_value": round(float(r.won_value), 2),
+            "lost_value": round(float(r.lost_value), 2),
+        }
+        for r in owner_rows
+    ]
+
+    # Avg deal size won vs lost
+    avg_q = await db.execute(
+        select(
+            Opportunity.stage,
+            func.coalesce(func.avg(Opportunity.amount), 0.0).label("avg_amount"),
+            func.count(Opportunity.id).label("count"),
+        )
+        .where(closed_filter)
+        .group_by(Opportunity.stage)
+    )
+    avg_rows = {r.stage: {"avg_amount": round(float(r.avg_amount), 2), "count": r.count} for r in avg_q.all()}
+
+    # Top loss reasons
+    loss_reasons_q = await db.execute(
+        select(
+            Opportunity.loss_reason,
+            func.count(Opportunity.id).label("count"),
+            func.coalesce(func.sum(Opportunity.amount), 0.0).label("total_value"),
+        )
+        .where(
+            Opportunity.stage == "closed_lost",
+            Opportunity.updated_at >= cutoff,
+            Opportunity.loss_reason.isnot(None),
+        )
+        .group_by(Opportunity.loss_reason)
+        .order_by(func.count(Opportunity.id).desc())
+        .limit(10)
+    )
+    loss_reasons = [
+        {
+            "reason": r.loss_reason,
+            "count": r.count,
+            "total_value": round(float(r.total_value), 2),
+        }
+        for r in loss_reasons_q.all()
+    ]
+
+    # Overall win rate
+    total_closed = sum(r.total for r in owner_rows)
+    total_won = sum(r.won for r in owner_rows)
+    overall_win_rate = (
+        round(total_won / total_closed * 100, 1) if total_closed > 0 else 0.0
+    )
+
+    return {
+        "window_days": window,
+        "overall_win_rate": overall_win_rate,
+        "total_closed": total_closed,
+        "total_won": total_won,
+        "by_owner": by_owner,
+        "avg_deal_size": {
+            "closed_won": avg_rows.get("closed_won", {"avg_amount": 0, "count": 0}),
+            "closed_lost": avg_rows.get("closed_lost", {"avg_amount": 0, "count": 0}),
+        },
+        "top_loss_reasons": loss_reasons,
+    }
+
+
+# ══════════════════════════════════════════════════════════════
+# MODUL 6: ACTIVITY DROUGHT
+# ══════════════════════════════════════════════════════════════
+
+
+@router.get("/activity-drought")
+async def get_activity_drought(
+    days: int = Query(7, ge=1, le=90, description="Days without activity"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Opportunities with no activity for X days."""
+    from app.models.activity_log import ActivityLog
+    from app.models.opportunity import Opportunity
+    from app.models.user import User as UserModel
+
+    now = datetime.now(timezone.utc)
+    threshold = now - timedelta(days=days)
+
+    # Subquery: last activity per opportunity
+    last_activity_sq = (
+        select(
+            ActivityLog.opportunity_id,
+            func.max(ActivityLog.created_at).label("last_at"),
+        )
+        .where(ActivityLog.opportunity_id.isnot(None))
+        .group_by(ActivityLog.opportunity_id)
+        .subquery()
+    )
+
+    # RBAC scoping
+    conditions = [Opportunity.status == "active"]
+    if current_user.role == UserRole.SALES_REP.value:
+        conditions.append(Opportunity.owner_id == current_user.id)
+
+    # Opportunities where last activity is before threshold OR no activity at all
+    query = (
+        select(
+            Opportunity.id,
+            Opportunity.title,
+            Opportunity.stage,
+            Opportunity.owner_id,
+            last_activity_sq.c.last_at,
+        )
+        .outerjoin(last_activity_sq, Opportunity.id == last_activity_sq.c.opportunity_id)
+        .where(
+            and_(
+                *conditions,
+                (last_activity_sq.c.last_at < threshold) | (last_activity_sq.c.last_at.is_(None)),
+            )
+        )
+        .order_by(last_activity_sq.c.last_at.asc().nullsfirst())
+    )
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    # Enrich with owner names
+    owner_ids = list({r.owner_id for r in rows if r.owner_id})
+    owner_map: dict[int, str] = {}
+    if owner_ids:
+        owners_q = await db.execute(
+            select(UserModel.id, UserModel.full_name).where(UserModel.id.in_(owner_ids))
+        )
+        owner_map = {u.id: u.full_name for u in owners_q.all()}
+
+    items = []
+    for row in rows:
+        if row.last_at:
+            last_at = row.last_at
+            if last_at.tzinfo is None:
+                last_at = last_at.replace(tzinfo=timezone.utc)
+            days_since = (now - last_at).days
+        else:
+            days_since = 999
+
+        items.append({
+            "id": row.id,
+            "title": row.title,
+            "stage": row.stage,
+            "days_since_last": days_since,
+            "owner_name": owner_map.get(row.owner_id, ""),
+        })
+
+    return {"items": items, "total": len(items)}
+
+
+# ── Data Quality ──────────────────────────────────────
+
+@router.get("/data-quality")
+async def get_data_quality(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Overall data quality report."""
+    from app.services.data_quality_service import DataQualityService
+
+    service = DataQualityService(db)
+    overview = await service.get_overview()
+    return {"data": overview}
+
+
+@router.get("/data-quality/{entity_type}/{entity_id}")
+async def get_record_quality(
+    entity_type: str,
+    entity_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Single record quality score."""
+    from app.models.opportunity import Opportunity as OppModel
+    from app.services.data_quality_service import DataQualityService
+
+    service = DataQualityService(db)
+
+    if entity_type == "customer":
+        record = (await db.execute(
+            select(Customer).where(Customer.id == entity_id)
+        )).scalar_one_or_none()
+        if not record:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Musteri bulunamadi")
+        result = await service.score_customer(record)
+    elif entity_type == "opportunity":
+        record = (await db.execute(
+            select(OppModel).where(OppModel.id == entity_id)
+        )).scalar_one_or_none()
+        if not record:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Firsat bulunamadi")
+        result = await service.score_opportunity(record)
+    else:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Gecersiz entity_type: customer veya opportunity")
+
+    return {"data": result}
+
+
+# ══════════════════════════════════════════════════════════════
+# MODUL 5: REVENUE WATERFALL
+# ══════════════════════════════════════════════════════════════
+
+
+@router.get("/waterfall")
+async def get_revenue_waterfall(
+    from_date: str = None,
+    to_date: str = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revenue waterfall: pipeline movement between two dates."""
+    from app.services.revenue_waterfall_service import RevenueWaterfallService
+
+    if not from_date:
+        to_dt = datetime.now(timezone.utc)
+        from_dt = to_dt - timedelta(days=30)
+        from_date = from_dt.isoformat()
+        to_date = to_dt.isoformat()
+
+    service = RevenueWaterfallService(db)
+    result = await service.get_waterfall(from_date, to_date)
+    return {"data": result}
+
+
+# ══════════════════════════════════════════════════════════════
+# MODUL 10: REVENUE LEAK DETECTION
+# ══════════════════════════════════════════════════════════════
+
+
+@router.get("/revenue-leaks")
+async def get_revenue_leaks(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revenue leak detection: scan active opportunities for leak indicators."""
+    from app.services.leak_detection_service import LeakDetectionService
+
+    service = LeakDetectionService(db)
+    result = await service.detect_leaks()
+    return {"data": result}

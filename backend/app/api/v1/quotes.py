@@ -14,6 +14,8 @@ from app.models.enums import UserRole
 from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.quote import QuoteCreate, QuoteUpdate
+from app.core.event_bus import event_bus
+from app.services.activity_logger import log_activity
 from app.services.notification_service import create_notification
 from app.services.quote_service import QuoteService
 
@@ -104,6 +106,12 @@ async def create_quote(
         tax_rate=data.tax_rate,
         notes=data.notes,
         created_by=current_user.id,
+    )
+
+    await log_activity(
+        db, activity_type="quote_created", entity_type="quote", entity_id=quote.id,
+        opportunity_id=quote.opportunity_id, customer_id=quote.customer_id,
+        user_id=current_user.id, summary=f"Teklif olusturuldu: {quote.quote_number}",
     )
 
     return _quote_to_dict(quote, include_items=True)
@@ -240,6 +248,17 @@ async def approve_quote(
         approved_by=current_user.id,
     )
 
+    await log_activity(
+        db, activity_type="quote_approved", entity_type="quote", entity_id=quote.id,
+        opportunity_id=quote.opportunity_id, customer_id=quote.customer_id,
+        user_id=current_user.id, summary=f"Teklif onaylandi: {quote.quote_number}",
+    )
+    await event_bus.publish("quote.approved", {
+        "quote_id": quote.id, "quote_number": quote.quote_number,
+        "customer_id": quote.customer_id, "grand_total": quote.grand_total,
+        "approved_by": current_user.id,
+    })
+
     # Best-effort notification to quote creator
     if quote.created_by and quote.created_by != current_user.id:
         try:
@@ -346,6 +365,16 @@ async def send_quote(
     quote.status = "sent"
     await db.flush()
 
+    await log_activity(
+        db, activity_type="quote_sent", entity_type="quote", entity_id=quote.id,
+        opportunity_id=quote.opportunity_id, customer_id=quote.customer_id,
+        user_id=current_user.id, summary=f"Teklif gonderildi: {quote.quote_number} → {recipient}",
+    )
+    await event_bus.publish("quote.sent", {
+        "quote_id": quote.id, "quote_number": quote.quote_number,
+        "recipient": recipient, "customer_id": quote.customer_id,
+    })
+
     # Best-effort notification
     if quote.created_by:
         try:
@@ -413,6 +442,209 @@ async def download_quote_pdf(
         media_type="application/pdf",
         filename=f"{quote.quote_number}.pdf",
     )
+
+
+class ConvertCurrencyRequest(BaseModel):
+    target_currency: str
+
+
+@router.post("/{quote_id}/convert-currency")
+async def convert_quote_currency(
+    quote_id: int,
+    data: ConvertCurrencyRequest,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-price all items in a quote to target currency using exchange rates."""
+    from app.models.quote_item import QuoteItem
+    from app.services.currency_service import convert_currency
+
+    result = await db.execute(select(Quote).where(Quote.id == quote_id))
+    quote = result.scalar_one_or_none()
+    if not quote:
+        raise NotFoundException("Teklif bulunamadi")
+
+    if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
+        raise ForbiddenException("Bu teklifi guncelleme yetkiniz yok")
+
+    target = data.target_currency.upper()
+    source = quote.currency.upper()
+
+    if source == target:
+        raise BadRequestException(f"Teklif zaten {target} para biriminde")
+
+    if quote.status not in ("draft", "pending_approval"):
+        raise BadRequestException(
+            f"Sadece taslak veya onay bekleyen teklifler donusturulebilir (mevcut: {quote.status})"
+        )
+
+    try:
+        # Convert each item
+        for item in quote.items:
+            new_price = await convert_currency(item.unit_price, source, target)
+            item.unit_price = new_price
+            item.line_total = round(
+                new_price * item.quantity * (1 - item.discount_pct / 100), 2
+            )
+
+        # Recalculate totals
+        subtotal = sum(item.line_total for item in quote.items)
+        quote.subtotal = round(subtotal, 2)
+        quote.discount_total = round(
+            await convert_currency(quote.discount_total, source, target), 2
+        )
+        quote.tax_amount = round(quote.subtotal * quote.tax_rate / 100, 2)
+        quote.grand_total = round(quote.subtotal - quote.discount_total + quote.tax_amount, 2)
+        quote.currency = target
+        await db.flush()
+
+    except ValueError as exc:
+        raise BadRequestException(str(exc))
+
+    return _quote_to_dict(quote, include_items=True)
+
+
+@router.get("/{quote_id}/versions")
+async def get_quote_versions(
+    quote_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns all versions in the chain (follow parent_quote_id links)."""
+    result = await db.execute(select(Quote).where(Quote.id == quote_id))
+    quote = result.scalar_one_or_none()
+    if not quote:
+        raise NotFoundException("Teklif bulunamadi")
+
+    if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
+        raise ForbiddenException("Bu teklife erisim yetkiniz yok")
+
+    # Walk up to root
+    root_id = quote.id
+    current = quote
+    visited = {current.id}
+    while current.parent_quote_id is not None:
+        if current.parent_quote_id in visited:
+            break
+        visited.add(current.parent_quote_id)
+        parent_result = await db.execute(
+            select(Quote).where(Quote.id == current.parent_quote_id)
+        )
+        parent = parent_result.scalar_one_or_none()
+        if not parent:
+            break
+        root_id = parent.id
+        current = parent
+
+    # Get all quotes in chain starting from root
+    all_quotes = []
+    queue = [root_id]
+    seen = set()
+    while queue:
+        qid = queue.pop(0)
+        if qid in seen:
+            continue
+        seen.add(qid)
+        q_result = await db.execute(select(Quote).where(Quote.id == qid))
+        q = q_result.scalar_one_or_none()
+        if q:
+            all_quotes.append(q)
+            # Find children
+            children_result = await db.execute(
+                select(Quote.id).where(Quote.parent_quote_id == qid)
+            )
+            for (child_id,) in children_result.all():
+                queue.append(child_id)
+
+    all_quotes.sort(key=lambda q: q.version)
+
+    return {
+        "quote_id": quote_id,
+        "versions": [
+            {
+                "id": q.id,
+                "quote_number": q.quote_number,
+                "version": q.version,
+                "status": q.status,
+                "grand_total": q.grand_total,
+                "currency": q.currency,
+                "parent_quote_id": q.parent_quote_id,
+                "created_at": q.created_at.isoformat() if q.created_at else None,
+            }
+            for q in all_quotes
+        ],
+    }
+
+
+@router.get("/{quote_id}/compare/{other_id}")
+async def compare_quotes(
+    quote_id: int,
+    other_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compare two quotes: added, removed, changed items and summary diff."""
+    result_a = await db.execute(select(Quote).where(Quote.id == quote_id))
+    quote_a = result_a.scalar_one_or_none()
+    if not quote_a:
+        raise NotFoundException(f"Teklif {quote_id} bulunamadi")
+
+    result_b = await db.execute(select(Quote).where(Quote.id == other_id))
+    quote_b = result_b.scalar_one_or_none()
+    if not quote_b:
+        raise NotFoundException(f"Teklif {other_id} bulunamadi")
+
+    # Authorization check
+    for q in (quote_a, quote_b):
+        if current_user.role != UserRole.SALES_MANAGER.value and q.created_by != current_user.id:
+            raise ForbiddenException(f"Teklif {q.id}'e erisim yetkiniz yok")
+
+    # Build item maps by honeywell_code (or spare_part_id fallback)
+    def _item_key(item):
+        return item.honeywell_code or f"sp_{item.spare_part_id}" or f"idx_{item.sort_order}"
+
+    items_a = {_item_key(i): i for i in (quote_a.items or [])}
+    items_b = {_item_key(i): i for i in (quote_b.items or [])}
+
+    keys_a = set(items_a.keys())
+    keys_b = set(items_b.keys())
+
+    added_items = [
+        {"key": k, "description": items_b[k].description, "quantity": items_b[k].quantity, "unit_price": items_b[k].unit_price}
+        for k in (keys_b - keys_a)
+    ]
+    removed_items = [
+        {"key": k, "description": items_a[k].description, "quantity": items_a[k].quantity, "unit_price": items_a[k].unit_price}
+        for k in (keys_a - keys_b)
+    ]
+    changed_items = []
+    for k in (keys_a & keys_b):
+        a, b = items_a[k], items_b[k]
+        changes = {}
+        if a.quantity != b.quantity:
+            changes["quantity"] = {"from": a.quantity, "to": b.quantity}
+        if a.unit_price != b.unit_price:
+            changes["unit_price"] = {"from": a.unit_price, "to": b.unit_price}
+        if a.discount_pct != b.discount_pct:
+            changes["discount_pct"] = {"from": a.discount_pct, "to": b.discount_pct}
+        if changes:
+            changed_items.append({"key": k, "description": a.description, "changes": changes})
+
+    summary_diff = {
+        "subtotal": {"from": quote_a.subtotal, "to": quote_b.subtotal},
+        "grand_total": {"from": quote_a.grand_total, "to": quote_b.grand_total},
+        "currency": {"from": quote_a.currency, "to": quote_b.currency},
+        "item_count": {"from": len(quote_a.items or []), "to": len(quote_b.items or [])},
+    }
+
+    return {
+        "quote_a": quote_id,
+        "quote_b": other_id,
+        "added_items": added_items,
+        "removed_items": removed_items,
+        "changed_items": changed_items,
+        "summary_diff": summary_diff,
+    }
 
 
 # ---- Helper Functions ----

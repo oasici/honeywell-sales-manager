@@ -8,7 +8,10 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { quotesApi, customersApi, partsApi } from '../../lib/api';
+import { quotesApi, customersApi, partsApi, documentsApi } from '../../lib/api';
+import BundleSelectorModal from './BundleSelectorModal';
+import GuidedSellingWizard from './GuidedSellingWizard';
+import QuoteComparisonModal from './QuoteComparisonModal';
 import { formatCurrency } from '../../lib/formatters';
 import { STATUS_LABELS, STATUS_COLORS } from '../../lib/constants';
 import type { Quote, QuoteItem, Customer, SparePart } from '../../lib/types';
@@ -66,8 +69,12 @@ export default function QuoteEditorPage() {
   const [partSearch, setPartSearch] = useState('');
   const [showPartDropdown, setShowPartDropdown] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [isBundleModalOpen, setIsBundleModalOpen] = useState(false);
+  const [isGuidedSellingOpen, setIsGuidedSellingOpen] = useState(false);
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [customerSelectedIndex, setCustomerSelectedIndex] = useState(-1);
   const [partSelectedIndex, setPartSelectedIndex] = useState(-1);
+  const [shareTrackingUrl, setShareTrackingUrl] = useState<string | null>(null);
 
   // ── Queries ────────────────────────────────────────
   const { data: quote, isLoading: quoteLoading } = useQuery<Quote>({
@@ -91,24 +98,24 @@ export default function QuoteEditorPage() {
   // ── Populate from existing quote ───────────────────
   useEffect(() => {
     if (quote) {
-      setCustomerId(quote.customer_id);
-      setLanguage(quote.language);
-      setCurrency(quote.currency);
-      setTaxRate(quote.tax_rate);
-      setNotes(quote.notes || '');
-      setItems(quote.items.map(itemToEditable));
-      if (quote.customer) {
-        setCustomerSearch(quote.customer.company || quote.customer.name);
-      }
+      queueMicrotask(() => {
+        setCustomerId(quote.customer_id);
+        setLanguage(quote.language);
+        setCurrency(quote.currency);
+        setTaxRate(quote.tax_rate);
+        setNotes(quote.notes || '');
+        setItems(quote.items.map(itemToEditable));
+        if (quote.customer) {
+          setCustomerSearch(quote.customer.company || quote.customer.name);
+        }
+      });
     }
   }, [quote]);
 
   // ── Mutations ──────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
-      quoteId
-        ? quotesApi.updateQuote(quoteId, payload)
-        : quotesApi.createQuote(payload),
+      quoteId ? quotesApi.updateQuote(quoteId, payload) : quotesApi.createQuote(payload),
     onSuccess: (result) => {
       toast.success(quoteId ? 'Teklif guncellendi' : 'Teklif olusturuldu');
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
@@ -200,9 +207,7 @@ export default function QuoteEditorPage() {
 
   const updateItem = useCallback(
     (index: number, field: keyof EditableItem, value: string | number) => {
-      setItems((prev) =>
-        prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
-      );
+      setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
     },
     [],
   );
@@ -228,6 +233,60 @@ export default function QuoteEditorPage() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const handleGuidedSellingComplete = useCallback(
+    (
+      guidedItems: {
+        spare_part_id: number;
+        honeywell_code: string;
+        description: string;
+        quantity: number;
+        unit_price: number;
+        discount_pct: number;
+      }[],
+    ) => {
+      setItems((prev) => [
+        ...prev,
+        ...guidedItems.map((gi, idx) => ({
+          spare_part_id: gi.spare_part_id,
+          honeywell_code: gi.honeywell_code,
+          description: gi.description,
+          quantity: gi.quantity,
+          unit_price: gi.unit_price,
+          discount_pct: gi.discount_pct,
+          sort_order: prev.length + idx + 1,
+        })),
+      ]);
+    },
+    [],
+  );
+
+  const handleAddBundleItems = useCallback(
+    (
+      bundleItems: {
+        spare_part_id: number;
+        honeywell_code: string;
+        description: string;
+        quantity: number;
+        unit_price: number;
+        discount_pct: number;
+      }[],
+    ) => {
+      setItems((prev) => [
+        ...prev,
+        ...bundleItems.map((bi, idx) => ({
+          spare_part_id: bi.spare_part_id,
+          honeywell_code: bi.honeywell_code,
+          description: bi.description,
+          quantity: bi.quantity,
+          unit_price: bi.unit_price,
+          discount_pct: bi.discount_pct,
+          sort_order: prev.length + idx + 1,
+        })),
+      ]);
+    },
+    [],
+  );
+
   const selectCustomer = useCallback((c: Customer) => {
     setCustomerId(c.id);
     setCustomerSearch(c.company || c.name);
@@ -238,13 +297,40 @@ export default function QuoteEditorPage() {
     if (!quoteId) return;
     try {
       await quotesApi.downloadQuotePdf(quoteId);
-    } catch (err: any) {
-      const msg = err?.response?.data?.error?.message
-        || err?.response?.data?.detail
-        || 'PDF indirilemedi';
+    } catch (err: unknown) {
+      const apiErr = err as {
+        response?: { data?: { error?: { message?: string }; detail?: string } };
+      };
+      const msg =
+        apiErr?.response?.data?.error?.message ||
+        apiErr?.response?.data?.detail ||
+        'PDF indirilemedi';
       toast.error(msg);
     }
   }, [quoteId]);
+
+  const handleShareLink = useCallback(async () => {
+    if (!quoteId || !quote) return;
+    const customerEmail = quote.customer?.email || '';
+    if (!customerEmail) {
+      toast.error('Musteri email adresi bulunamadi');
+      return;
+    }
+    try {
+      const result = await documentsApi.share({
+        quote_id: quoteId,
+        file_name: `${quote.quote_number}.pdf`,
+        file_url: `/api/v1/quotes/${quoteId}/pdf`,
+        shared_with_email: customerEmail,
+      });
+      const trackingUrl = `${window.location.origin}${result.data.tracking_url}`;
+      setShareTrackingUrl(trackingUrl);
+      await navigator.clipboard.writeText(trackingUrl);
+      toast.success('Paylasim linki panoya kopyalandi');
+    } catch {
+      toast.error('Paylasim linki olusturulamadi');
+    }
+  }, [quoteId, quote]);
 
   // ── Loading state ──────────────────────────────────
   if (!isNew && quoteLoading) {
@@ -262,11 +348,7 @@ export default function QuoteEditorPage() {
       {/* ── Header ──────────────────────────────────── */}
       <PageHeader
         title={isNew ? 'Yeni Teklif' : `Teklif: ${quote?.quote_number || ''}`}
-        description={
-          !isNew
-            ? undefined
-            : 'Yeni teklif olusturun'
-        }
+        description={!isNew ? undefined : 'Yeni teklif olusturun'}
       >
         {!isNew && (
           <span
@@ -281,10 +363,7 @@ export default function QuoteEditorPage() {
           Geri Don
         </Button>
         {(!quoteId || status === 'draft' || status === 'pending_approval') && (
-          <Button
-            loading={saveMutation.isPending}
-            onClick={handleSave}
-          >
+          <Button loading={saveMutation.isPending} onClick={handleSave}>
             Kaydet
           </Button>
         )}
@@ -311,6 +390,29 @@ export default function QuoteEditorPage() {
         {quoteId && (
           <Button variant="secondary" onClick={handleDownloadPdf}>
             PDF Indir
+          </Button>
+        )}
+        {quoteId && (
+          <Button variant="secondary" onClick={handleShareLink}>
+            Paylasim Linki
+          </Button>
+        )}
+        {shareTrackingUrl && (
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(shareTrackingUrl);
+              toast.success('Link kopyalandi');
+            }}
+            className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-mono text-gray-600 hover:bg-gray-100 transition-colors truncate max-w-xs"
+            title={shareTrackingUrl}
+          >
+            {shareTrackingUrl}
+          </button>
+        )}
+        {quoteId && quote && quote.version > 1 && (
+          <Button variant="secondary" onClick={() => setIsComparisonOpen(true)}>
+            Versiyonlari Karsilastir
           </Button>
         )}
       </PageHeader>
@@ -359,9 +461,7 @@ export default function QuoteEditorPage() {
                     }`}
                   >
                     <span className="font-medium">{c.company || c.name}</span>
-                    {c.company && c.name && (
-                      <span className="text-gray-500"> - {c.name}</span>
-                    )}
+                    {c.company && c.name && <span className="text-gray-500"> - {c.name}</span>}
                     <span className="ml-2 text-xs text-gray-400">{c.email}</span>
                   </button>
                 ))}
@@ -400,56 +500,60 @@ export default function QuoteEditorPage() {
         <Card
           title="Kalemler"
           action={
-            <div className="relative">
-              <Input
-                placeholder="Parca kodu ile ara..."
-                value={partSearch}
-                onChange={(e) => {
-                  setPartSearch(e.target.value);
-                  setShowPartDropdown(true);
-                  setPartSelectedIndex(-1);
-                }}
-                onFocus={() => setShowPartDropdown(true)}
-                onKeyDown={(e) => {
-                  const parts = partResults?.items || [];
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setPartSelectedIndex((prev) => Math.min(prev + 1, parts.length - 1));
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setPartSelectedIndex((prev) => Math.max(prev - 1, 0));
-                  } else if (e.key === 'Enter' && partSelectedIndex >= 0) {
-                    e.preventDefault();
-                    addPartToItems(parts[partSelectedIndex]);
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setIsGuidedSellingOpen(true)}>
+                Rehberli Satis
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setIsBundleModalOpen(true)}>
+                Paket Ekle
+              </Button>
+              <div className="relative">
+                <Input
+                  placeholder="Parca kodu ile ara..."
+                  value={partSearch}
+                  onChange={(e) => {
+                    setPartSearch(e.target.value);
+                    setShowPartDropdown(true);
                     setPartSelectedIndex(-1);
-                  } else if (e.key === 'Escape') {
-                    setShowPartDropdown(false);
-                    setPartSelectedIndex(-1);
-                  }
-                }}
-                className="!w-56"
-              />
-              {showPartDropdown && partResults?.items && partResults.items.length > 0 && (
-                <div className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto">
-                  {partResults.items.map((p, idx) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => addPartToItems(p)}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${
-                        idx === partSelectedIndex ? 'bg-honeywell-red/10' : ''
-                      }`}
-                    >
-                      <span className="font-mono font-semibold text-xs">
-                        {p.honeywell_code}
-                      </span>
-                      <span className="ml-2 text-gray-600">
-                        {p.name_tr || p.name_en}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
+                  }}
+                  onFocus={() => setShowPartDropdown(true)}
+                  onKeyDown={(e) => {
+                    const parts = partResults?.items || [];
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setPartSelectedIndex((prev) => Math.min(prev + 1, parts.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setPartSelectedIndex((prev) => Math.max(prev - 1, 0));
+                    } else if (e.key === 'Enter' && partSelectedIndex >= 0) {
+                      e.preventDefault();
+                      addPartToItems(parts[partSelectedIndex]);
+                      setPartSelectedIndex(-1);
+                    } else if (e.key === 'Escape') {
+                      setShowPartDropdown(false);
+                      setPartSelectedIndex(-1);
+                    }
+                  }}
+                  className="!w-56"
+                />
+                {showPartDropdown && partResults?.items && partResults.items.length > 0 && (
+                  <div className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+                    {partResults.items.map((p, idx) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => addPartToItems(p)}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${
+                          idx === partSelectedIndex ? 'bg-honeywell-red/10' : ''
+                        }`}
+                      >
+                        <span className="font-mono font-semibold text-xs">{p.honeywell_code}</span>
+                        <span className="ml-2 text-gray-600">{p.name_tr || p.name_en}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           }
         >
@@ -462,18 +566,12 @@ export default function QuoteEditorPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-2 py-2 text-xs font-semibold text-gray-500 w-24">
-                      Sira
-                    </th>
+                    <th className="px-2 py-2 text-xs font-semibold text-gray-500 w-24">Sira</th>
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500">
                       Honeywell Kodu
                     </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">
-                      Aciklama
-                    </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-20">
-                      Adet
-                    </th>
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">Aciklama</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-20">Adet</th>
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-28">
                       Birim Fiyat
                     </th>
@@ -489,13 +587,9 @@ export default function QuoteEditorPage() {
                 <tbody>
                   {items.map((item, idx) => {
                     const lineGross = item.quantity * item.unit_price;
-                    const lineNet =
-                      lineGross - lineGross * (item.discount_pct / 100);
+                    const lineNet = lineGross - lineGross * (item.discount_pct / 100);
                     return (
-                      <tr
-                        key={idx}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
+                      <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="px-2 py-2">
                           <div className="flex items-center gap-1">
                             <span className="text-gray-500 w-5 text-center">{idx + 1}</span>
@@ -526,9 +620,7 @@ export default function QuoteEditorPage() {
                           <input
                             type="text"
                             value={item.honeywell_code}
-                            onChange={(e) =>
-                              updateItem(idx, 'honeywell_code', e.target.value)
-                            }
+                            onChange={(e) => updateItem(idx, 'honeywell_code', e.target.value)}
                             className="w-full rounded border border-gray-200 px-2 py-1 text-xs font-mono focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
@@ -536,9 +628,7 @@ export default function QuoteEditorPage() {
                           <input
                             type="text"
                             value={item.description}
-                            onChange={(e) =>
-                              updateItem(idx, 'description', e.target.value)
-                            }
+                            onChange={(e) => updateItem(idx, 'description', e.target.value)}
                             className="w-full rounded border border-gray-200 px-2 py-1 text-sm focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
@@ -547,9 +637,7 @@ export default function QuoteEditorPage() {
                             type="number"
                             min={1}
                             value={item.quantity}
-                            onChange={(e) =>
-                              updateItem(idx, 'quantity', Number(e.target.value))
-                            }
+                            onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
                             className="w-full rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
@@ -559,13 +647,7 @@ export default function QuoteEditorPage() {
                             min={0}
                             step={0.01}
                             value={item.unit_price}
-                            onChange={(e) =>
-                              updateItem(
-                                idx,
-                                'unit_price',
-                                Number(e.target.value),
-                              )
-                            }
+                            onChange={(e) => updateItem(idx, 'unit_price', Number(e.target.value))}
                             className="w-full rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
@@ -577,11 +659,7 @@ export default function QuoteEditorPage() {
                             step={0.1}
                             value={item.discount_pct}
                             onChange={(e) =>
-                              updateItem(
-                                idx,
-                                'discount_pct',
-                                Number(e.target.value),
-                              )
+                              updateItem(idx, 'discount_pct', Number(e.target.value))
                             }
                             className="w-full rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
@@ -601,8 +679,18 @@ export default function QuoteEditorPage() {
                             }`}
                             title="Kalemi sil"
                           >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </td>
@@ -626,15 +714,22 @@ export default function QuoteEditorPage() {
                     const lineGross = item.quantity * item.unit_price;
                     const lineNet = lineGross - lineGross * (item.discount_pct / 100);
                     return (
-                      <div key={idx} className="py-2 border-b border-dashed border-gray-300 last:border-b-0">
+                      <div
+                        key={idx}
+                        className="py-2 border-b border-dashed border-gray-300 last:border-b-0"
+                      >
                         <div className="mb-1">
                           <span className="text-gray-900 font-semibold">{item.honeywell_code}</span>
                           <span className="text-gray-400 mx-1.5">-</span>
                           <span className="text-gray-600">{item.description}</span>
                         </div>
                         <div className="text-right tabular-nums">
-                          <span className="text-gray-500">{item.quantity} x {formatCurrency(item.unit_price, currency)}</span>
-                          <span className="ml-3 font-semibold text-gray-900">{formatCurrency(lineNet, currency)}</span>
+                          <span className="text-gray-500">
+                            {item.quantity} x {formatCurrency(item.unit_price, currency)}
+                          </span>
+                          <span className="ml-3 font-semibold text-gray-900">
+                            {formatCurrency(lineNet, currency)}
+                          </span>
                         </div>
                       </div>
                     );
@@ -649,9 +744,7 @@ export default function QuoteEditorPage() {
             <div className="w-full max-w-xs shrink-0 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Alt Toplam:</span>
-                <span className="font-medium">
-                  {formatCurrency(subtotal, currency)}
-                </span>
+                <span className="font-medium">{formatCurrency(subtotal, currency)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Iskonto:</span>
@@ -661,9 +754,7 @@ export default function QuoteEditorPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">KDV (%{taxRate}):</span>
-                <span className="font-medium">
-                  {formatCurrency(taxAmount, currency)}
-                </span>
+                <span className="font-medium">{formatCurrency(taxAmount, currency)}</span>
               </div>
               <hr className="border-gray-200" />
               <div className="flex justify-between text-base">
@@ -689,6 +780,26 @@ export default function QuoteEditorPage() {
           />
         </Card>
       </div>
+
+      <BundleSelectorModal
+        isOpen={isBundleModalOpen}
+        onClose={() => setIsBundleModalOpen(false)}
+        onAddItems={handleAddBundleItems}
+      />
+
+      <GuidedSellingWizard
+        isOpen={isGuidedSellingOpen}
+        onClose={() => setIsGuidedSellingOpen(false)}
+        onComplete={handleGuidedSellingComplete}
+      />
+
+      {quoteId && (
+        <QuoteComparisonModal
+          isOpen={isComparisonOpen}
+          onClose={() => setIsComparisonOpen(false)}
+          quoteId={quoteId}
+        />
+      )}
     </div>
   );
 }

@@ -120,6 +120,10 @@ async def list_transcripts(
                 "id": t.id, "title": t.title, "source": t.source,
                 "opportunity_id": t.opportunity_id, "customer_id": t.customer_id,
                 "duration_minutes": t.duration_minutes,
+                "content": t.content,
+                "summary": t.summary,
+                "sentiment": t.sentiment,
+                "participants": t.participants,
                 "keywords_found": json.loads(t.keywords_found) if t.keywords_found else [],
                 "created_at": t.created_at.isoformat() if t.created_at else None,
             }
@@ -127,6 +131,21 @@ async def list_transcripts(
         ],
         "total": total, "page": page, "page_size": page_size,
     }
+
+
+@router.post("/transcripts/{transcript_id}/summarize")
+async def summarize_transcript_endpoint(
+    transcript_id: int,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Summarize a transcript using AI or rule-based fallback."""
+    from app.services.transcript_summarizer import summarize_transcript
+
+    result = await summarize_transcript(db, transcript_id)
+    if "error" in result:
+        raise NotFoundException(result["error"])
+    return result
 
 
 @router.get("/transcripts/search")
@@ -314,6 +333,440 @@ async def enroll_in_sequence(
     await db.flush()
     await db.refresh(enrollment)
     return {"id": enrollment.id, "status": enrollment.status, "current_step": enrollment.current_step}
+
+
+@router.get("/sequences/enrollments")
+async def list_enrollments(
+    sequence_id: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List sequence enrollments, optionally filtered by sequence_id."""
+    query = select(SequenceEnrollment)
+    if sequence_id is not None:
+        query = query.where(SequenceEnrollment.sequence_id == sequence_id)
+    result = await db.execute(query.order_by(SequenceEnrollment.created_at.desc()).limit(200))
+    enrollments = result.scalars().all()
+    return {
+        "enrollments": [
+            {
+                "id": e.id,
+                "sequence_id": e.sequence_id,
+                "opportunity_id": e.opportunity_id,
+                "customer_id": e.customer_id,
+                "lead_id": e.lead_id,
+                "current_step": e.current_step,
+                "is_paused": e.is_paused,
+                "status": e.status,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in enrollments
+        ],
+    }
+
+
+@router.patch("/sequences/enrollments/{enrollment_id}/pause")
+async def pause_enrollment(
+    enrollment_id: int,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Pause an enrollment."""
+    enrollment = (await db.execute(
+        select(SequenceEnrollment).where(SequenceEnrollment.id == enrollment_id)
+    )).scalar_one_or_none()
+    if not enrollment:
+        raise NotFoundException("Kayit bulunamadi")
+    enrollment.is_paused = True
+    enrollment.status = "paused"
+    await db.flush()
+    return {"id": enrollment.id, "is_paused": True, "status": "paused"}
+
+
+@router.patch("/sequences/enrollments/{enrollment_id}/resume")
+async def resume_enrollment(
+    enrollment_id: int,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resume a paused enrollment."""
+    enrollment = (await db.execute(
+        select(SequenceEnrollment).where(SequenceEnrollment.id == enrollment_id)
+    )).scalar_one_or_none()
+    if not enrollment:
+        raise NotFoundException("Kayit bulunamadi")
+    enrollment.is_paused = False
+    enrollment.status = "active"
+    await db.flush()
+    return {"id": enrollment.id, "is_paused": False, "status": "active"}
+
+
+class SequenceUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    steps: list[dict] | None = None
+    auto_enroll_rules: dict | None = None
+
+
+# ══════════════════════════════════════════
+# SEQUENCES V2 — Step Run Telemetry + Analytics
+# (MUST be before /sequences/{sequence_id} to avoid route conflict)
+# ══════════════════════════════════════════
+
+
+@router.get("/sequences/analytics")
+async def sequence_analytics(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sequence-level analytics: completion reasons, touches per target, time to first touch."""
+    from app.models.sequence_v2 import SequenceStepRun
+
+    reason_result = await db.execute(
+        select(
+            SequenceEnrollment.exit_reason,
+            func.count(SequenceEnrollment.id),
+        )
+        .where(SequenceEnrollment.status.in_(["completed", "exited"]))
+        .group_by(SequenceEnrollment.exit_reason)
+    )
+    exit_reasons = {row[0] or "unknown": row[1] for row in reason_result.all()}
+
+    touches_result = await db.execute(
+        select(
+            SequenceStepRun.enrollment_id,
+            func.count(SequenceStepRun.id),
+        )
+        .where(SequenceStepRun.status == "completed")
+        .group_by(SequenceStepRun.enrollment_id)
+    )
+    touch_counts = [row[1] for row in touches_result.all()]
+    avg_touches = sum(touch_counts) / len(touch_counts) if touch_counts else 0
+
+    status_result = await db.execute(
+        select(
+            SequenceEnrollment.status,
+            func.count(SequenceEnrollment.id),
+        ).group_by(SequenceEnrollment.status)
+    )
+    status_dist = {row[0]: row[1] for row in status_result.all()}
+
+    return {
+        "exit_reason_distribution": exit_reasons,
+        "avg_touches_per_target": round(avg_touches, 1),
+        "status_distribution": status_dist,
+        "total_step_runs": sum(touch_counts) if touch_counts else 0,
+    }
+
+
+@router.get("/sequences/variant-metrics")
+async def variant_metrics(
+    sequence_id: int | None = None,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """A/B variant performance metrics — aggregated by variant key per step."""
+    from app.models.sequence_v2 import SequenceStepRun
+
+    query = select(
+        SequenceStepRun.sequence_id,
+        SequenceStepRun.step_number,
+        SequenceStepRun.variant_key,
+        func.count(SequenceStepRun.id).label("total"),
+        func.count().filter(SequenceStepRun.status == "completed").label("completed"),
+        func.count().filter(SequenceStepRun.status == "failed").label("failed"),
+    ).where(
+        SequenceStepRun.variant_key.isnot(None),
+    ).group_by(
+        SequenceStepRun.sequence_id,
+        SequenceStepRun.step_number,
+        SequenceStepRun.variant_key,
+    ).order_by(
+        SequenceStepRun.sequence_id,
+        SequenceStepRun.step_number,
+    )
+
+    if sequence_id:
+        query = query.where(SequenceStepRun.sequence_id == sequence_id)
+
+    rows = (await db.execute(query)).all()
+    return {
+        "variants": [
+            {
+                "sequence_id": row[0],
+                "step_number": row[1],
+                "variant_key": row[2],
+                "total": row[3],
+                "completed": row[4],
+                "failed": row[5],
+            }
+            for row in rows
+        ],
+    }
+
+
+@router.get("/sequences/domain-events")
+async def list_domain_events(
+    event_type: str | None = None,
+    limit: int = Query(default=50, le=200),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """List recent domain events (audit/debugging)."""
+    from app.models.sequence_v2 import DomainEvent
+
+    query = select(DomainEvent).order_by(DomainEvent.created_at.desc()).limit(limit)
+    if event_type:
+        query = query.where(DomainEvent.event_type == event_type)
+
+    events = (await db.execute(query)).scalars().all()
+    return {
+        "events": [
+            {
+                "id": e.id,
+                "event_type": e.event_type,
+                "entity_type": e.entity_type,
+                "entity_id": e.entity_id,
+                "payload": json.loads(e.payload_json) if e.payload_json else None,
+                "actor_id": e.actor_id,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in events
+        ],
+    }
+
+
+@router.get("/sequences/enrollments/{enrollment_id}/detail")
+async def get_enrollment_detail(
+    enrollment_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get detailed enrollment info including v2 fields and step runs."""
+    from app.models.sequence_v2 import SequenceStepRun
+
+    enrollment = (
+        await db.execute(
+            select(SequenceEnrollment).where(SequenceEnrollment.id == enrollment_id)
+        )
+    ).scalar_one_or_none()
+    if not enrollment:
+        raise NotFoundException("Enrollment bulunamadi")
+
+    seq = (
+        await db.execute(select(Sequence).where(Sequence.id == enrollment.sequence_id))
+    ).scalar_one_or_none()
+
+    step_runs_result = await db.execute(
+        select(SequenceStepRun)
+        .where(SequenceStepRun.enrollment_id == enrollment_id)
+        .order_by(SequenceStepRun.step_number.asc())
+    )
+    step_runs = step_runs_result.scalars().all()
+
+    return {
+        "enrollment": {
+            "id": enrollment.id,
+            "sequence_id": enrollment.sequence_id,
+            "sequence_name": seq.name if seq else None,
+            "opportunity_id": enrollment.opportunity_id,
+            "customer_id": enrollment.customer_id,
+            "lead_id": enrollment.lead_id,
+            "current_step": enrollment.current_step,
+            "status": enrollment.status,
+            "is_paused": enrollment.is_paused,
+            "exit_reason": enrollment.exit_reason,
+            "completed_at": enrollment.completed_at.isoformat() if enrollment.completed_at else None,
+            "next_action_at": enrollment.next_action_at.isoformat() if enrollment.next_action_at else None,
+            "created_at": enrollment.created_at.isoformat() if enrollment.created_at else None,
+        },
+        "step_runs": [
+            {
+                "id": sr.id,
+                "step_number": sr.step_number,
+                "step_action": sr.step_action,
+                "variant_key": sr.variant_key,
+                "status": sr.status,
+                "reason_codes": json.loads(sr.reason_codes) if sr.reason_codes else [],
+                "started_at": sr.started_at.isoformat() if sr.started_at else None,
+                "completed_at": sr.completed_at.isoformat() if sr.completed_at else None,
+            }
+            for sr in step_runs
+        ],
+        "total_steps": len(json.loads(seq.steps_json)) if seq and seq.steps_json else 0,
+    }
+
+
+@router.get("/sequences/enrollments/{enrollment_id}/step-runs")
+async def list_step_runs(
+    enrollment_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all step run records for an enrollment (telemetry)."""
+    from app.models.sequence_v2 import SequenceStepRun
+
+    runs = (
+        await db.execute(
+            select(SequenceStepRun)
+            .where(SequenceStepRun.enrollment_id == enrollment_id)
+            .order_by(SequenceStepRun.step_number.asc())
+        )
+    ).scalars().all()
+
+    return {
+        "enrollment_id": enrollment_id,
+        "step_runs": [
+            {
+                "id": r.id,
+                "step_number": r.step_number,
+                "step_action": r.step_action,
+                "variant_key": r.variant_key,
+                "status": r.status,
+                "reason_codes": json.loads(r.reason_codes) if r.reason_codes else [],
+                "payload_snapshot": json.loads(r.payload_snapshot) if r.payload_snapshot else None,
+                "started_at": r.started_at.isoformat() if r.started_at else None,
+                "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+            }
+            for r in runs
+        ],
+    }
+
+
+@router.get("/sequences/{sequence_id}")
+async def get_sequence(
+    sequence_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a single sequence by ID."""
+    seq = (await db.execute(select(Sequence).where(Sequence.id == sequence_id))).scalar_one_or_none()
+    if not seq:
+        raise NotFoundException("Sekans bulunamadi")
+    return {
+        "id": seq.id,
+        "name": seq.name,
+        "description": seq.description,
+        "steps": json.loads(seq.steps_json) if seq.steps_json else [],
+        "auto_enroll_rules": json.loads(seq.auto_enroll_rules_json) if seq.auto_enroll_rules_json else None,
+        "created_at": seq.created_at.isoformat() if seq.created_at else None,
+    }
+
+
+@router.patch("/sequences/{sequence_id}")
+async def update_sequence(
+    sequence_id: int,
+    body: SequenceUpdate,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update an existing sequence."""
+    seq = (await db.execute(select(Sequence).where(Sequence.id == sequence_id))).scalar_one_or_none()
+    if not seq:
+        raise NotFoundException("Sekans bulunamadi")
+
+    if body.name is not None:
+        seq.name = body.name
+    if body.description is not None:
+        seq.description = body.description
+    if body.steps is not None:
+        seq.steps_json = json.dumps(body.steps, ensure_ascii=False)
+    if body.auto_enroll_rules is not None:
+        seq.auto_enroll_rules_json = json.dumps(body.auto_enroll_rules, ensure_ascii=False)
+
+    await db.flush()
+    await db.refresh(seq)
+    return {
+        "id": seq.id,
+        "name": seq.name,
+        "description": seq.description,
+        "steps": json.loads(seq.steps_json) if seq.steps_json else [],
+        "auto_enroll_rules": json.loads(seq.auto_enroll_rules_json) if seq.auto_enroll_rules_json else None,
+    }
+
+
+@router.post("/sequences/{sequence_id}/auto-enroll")
+async def auto_enroll_sequence(
+    sequence_id: int,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Run auto-enrollment rules for a sequence against all leads not yet enrolled.
+
+    Reads auto_enroll_rules_json from the sequence and enrolls matching leads
+    that do not already have an active or completed enrollment.
+    """
+    from app.models.lead import Lead
+
+    seq = (await db.execute(select(Sequence).where(Sequence.id == sequence_id))).scalar_one_or_none()
+    if not seq:
+        raise NotFoundException("Sekans bulunamadi")
+
+    rules = json.loads(seq.auto_enroll_rules_json) if seq.auto_enroll_rules_json else []
+    if not rules:
+        return {"enrolled": 0, "message": "Auto-enrollment rules not configured for this sequence"}
+
+    # Fetch leads not yet enrolled in this sequence
+    already_enrolled_result = await db.execute(
+        select(SequenceEnrollment.lead_id).where(
+            SequenceEnrollment.sequence_id == sequence_id,
+            SequenceEnrollment.lead_id.isnot(None),
+            SequenceEnrollment.status.in_(["active", "paused", "completed"]),
+        )
+    )
+    already_enrolled_ids = {row[0] for row in already_enrolled_result.all()}
+
+    # Apply simple rule matching against Lead fields (exclude converted/closed leads)
+    lead_query = select(Lead).where(Lead.status.notin_(["converted", "lost", "cancelled"]))
+    leads_result = await db.execute(lead_query.limit(500))
+    leads = leads_result.scalars().all()
+
+    enrolled_count = 0
+    for lead in leads:
+        if lead.id in already_enrolled_ids:
+            continue
+        if _lead_matches_rules(lead, rules):
+            enrollment = SequenceEnrollment(
+                sequence_id=sequence_id,
+                lead_id=lead.id,
+                enrolled_by=current_user.id,
+                next_action_at=datetime.now(timezone.utc),
+            )
+            db.add(enrollment)
+            enrolled_count += 1
+
+    if enrolled_count > 0:
+        await db.flush()
+
+    return {
+        "sequence_id": sequence_id,
+        "enrolled": enrolled_count,
+        "message": f"{enrolled_count} leads enrolled via auto-enrollment rules",
+    }
+
+
+def _lead_matches_rules(lead, rules: list[dict]) -> bool:
+    """Check if a lead matches all auto-enrollment rules (AND logic)."""
+    for rule in rules:
+        field = rule.get("field", "")
+        op = rule.get("op", "")
+        value = rule.get("value", "")
+        if not hasattr(lead, field):
+            continue
+        field_val = getattr(lead, field)
+        if op == "equals" and str(field_val) != str(value):
+            return False
+        elif op == "contains" and value.lower() not in str(field_val or "").lower():
+            return False
+        elif op == "not_empty" and not field_val:
+            return False
+        elif op == "gte":
+            try:
+                if float(field_val or 0) < float(value):
+                    return False
+            except (TypeError, ValueError):
+                return False
+    return True
 
 
 # ══════════════════════════════════════════

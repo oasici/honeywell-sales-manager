@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.models.enums import UserRole
-from app.core.exceptions import BadRequestException, UnauthorizedException
+from app.core.exceptions import BadRequestException, NotFoundException, UnauthorizedException
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -26,6 +26,7 @@ from app.core.security import (
 from app.models.user import User
 from app.schemas.auth import TokenResponse, UserCreate, UserResponse
 from app.services import auth_service
+from app.services import session_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -49,6 +50,27 @@ async def login(
 
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    # Create session if session management is enabled
+    if settings.FEATURE_SESSION_MANAGEMENT:
+        from datetime import timedelta, timezone
+        from datetime import datetime
+
+        access_payload = decode_token(access_token)
+        if access_payload and access_payload.get("jti"):
+            device_info = form_data.scopes[0] if form_data.scopes else None
+            ip_address = None
+            expires_at = datetime.now(timezone.utc) + timedelta(
+                minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+            )
+            await session_service.create_session(
+                db=db,
+                user_id=user.id,
+                jti=access_payload["jti"],
+                device_info=device_info,
+                ip_address=ip_address,
+                expires_at=expires_at,
+            )
 
     return TokenResponse(
         access_token=access_token,
@@ -131,12 +153,21 @@ async def logout(
     request: Request,
     body: LogoutRequest,
     current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     """Revoke both access and refresh tokens on logout."""
     # Revoke access token from Authorization header
     auth_header = request.headers.get("authorization", "")
     if auth_header.startswith("Bearer "):
-        await revoke_token_async(auth_header[7:])
+        access_token = auth_header[7:]
+        await revoke_token_async(access_token)
+
+        # Invalidate session if session management is enabled
+        if settings.FEATURE_SESSION_MANAGEMENT:
+            payload = decode_token(access_token)
+            if payload and payload.get("jti"):
+                await session_service.invalidate_session(db, payload["jti"])
+
     # Revoke refresh token if provided
     if body.refresh_token:
         await revoke_token_async(body.refresh_token)
@@ -167,3 +198,54 @@ async def change_password(
     await db.flush()
 
     return {"message": "Sifre basariyla degistirildi"}
+
+
+class SessionResponse(BaseModel):
+    id: int
+    jti: str
+    device_info: str | None = None
+    ip_address: str | None = None
+    is_active: bool
+    created_at: str | None = None
+    expires_at: str | None = None
+
+
+@router.get("/sessions", response_model=list[SessionResponse])
+async def list_sessions(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Aktif oturumlari listele."""
+    if not settings.FEATURE_SESSION_MANAGEMENT:
+        raise NotFoundException("Bu ozellik aktif degil")
+
+    sessions = await session_service.get_active_sessions(db, current_user.id)
+    return [
+        SessionResponse(
+            id=s.id,
+            jti=s.jti,
+            device_info=s.device_info,
+            ip_address=s.ip_address,
+            is_active=s.is_active,
+            created_at=s.created_at.isoformat() if s.created_at else None,
+            expires_at=s.expires_at.isoformat() if s.expires_at else None,
+        )
+        for s in sessions
+    ]
+
+
+@router.delete("/sessions/{jti}")
+async def kill_session(
+    jti: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Belirli bir oturumu sonlandir."""
+    if not settings.FEATURE_SESSION_MANAGEMENT:
+        raise NotFoundException("Bu ozellik aktif degil")
+
+    deleted = await session_service.invalidate_session(db, jti)
+    if not deleted:
+        raise NotFoundException("Oturum bulunamadi veya zaten kapatilmis")
+
+    return {"message": "Oturum basariyla sonlandirildi"}

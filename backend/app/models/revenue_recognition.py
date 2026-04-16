@@ -1,0 +1,58 @@
+"""Revenue recognition models — schedule-based revenue tracking."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.database import Base
+
+
+class RevenueSchedule(Base):
+    __tablename__ = "revenue_schedules"
+    __table_args__ = (Index("ix_rs_contract", "contract_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    contract_id: Mapped[int] = mapped_column(Integer, ForeignKey("contracts.id"), nullable=False)
+    recognition_type: Mapped[str] = mapped_column(String(20), nullable=False, default="straight_line")
+    # immediate | straight_line | milestone | usage
+    start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    total_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    recognized_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    currency: Mapped[str] = mapped_column(String(10), default="TRY")
+    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    contract = relationship("Contract", lazy="selectin")
+    entries = relationship("RevenueScheduleEntry", back_populates="schedule", lazy="noload")
+    creator = relationship("User", lazy="selectin")
+
+
+class RevenueScheduleEntry(Base):
+    __tablename__ = "revenue_schedule_entries"
+    __table_args__ = (Index("ix_rse_schedule", "schedule_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("revenue_schedules.id"), nullable=False)
+    period: Mapped[str] = mapped_column(String(7), nullable=False)  # "2026-04" (YYYY-MM)
+    amount: Mapped[float] = mapped_column(Float, nullable=False)
+    recognized_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    # pending | recognized | adjusted
+    recognized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    schedule = relationship("RevenueSchedule", back_populates="entries", lazy="selectin")

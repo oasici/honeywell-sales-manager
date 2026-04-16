@@ -1,6 +1,8 @@
 """Opportunity (deal/pipeline) model — v2 Sales Board foundation."""
 
-from datetime import datetime, timezone
+from __future__ import annotations
+
+from datetime import date, datetime, timezone
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -29,6 +31,20 @@ class Opportunity(Base):
     status: Mapped[str] = mapped_column(String(20), default="active")  # active | closed
     forecast_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # commit | best_case | pipeline | omitted
+    probability: Mapped[float] = mapped_column(Float, default=0.0)
+    loss_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    # Revenue leak tracking — previous values before last update
+    previous_stage: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    previous_close_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    previous_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    pipeline_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("pipelines.id"), nullable=True, index=True
+    )
+    territory_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("territories.id"), nullable=True, index=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

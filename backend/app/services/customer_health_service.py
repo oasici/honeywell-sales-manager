@@ -5,6 +5,9 @@ Skor; teklif sikligi, yanit suresi, deger trendi, parca cesitliligi,
 etkilesim guncelligi ve donusum orani gostergelerine dayanir.
 """
 
+from __future__ import annotations
+
+import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -12,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.customer import Customer
 
 logger = logging.getLogger(__name__)
@@ -148,6 +152,153 @@ class CustomerHealthService:
             await compute_conversion_rate(self._db, customer_id, lookback),
         ]
         return indicators
+
+    async def predict_churn_risk(self, customer_id: int) -> dict:
+        """Predict churn risk for a customer using Claude AI or rule-based fallback.
+
+        Returns {churn_probability, risk_level, risk_factors, retention_actions}.
+        """
+        health_report = await self.calculate_health_score(customer_id)
+        if not health_report:
+            return {"error": "Musteri bulunamadi"}
+
+        health_data = {
+            "customer_id": health_report.customer_id,
+            "customer_name": health_report.customer_name,
+            "company": health_report.company,
+            "score": health_report.score,
+            "risk_level": health_report.risk_level,
+            "indicators": [
+                {
+                    "name": ind.name,
+                    "label": ind.label,
+                    "score": ind.score,
+                    "raw_value": str(ind.raw_value),
+                    "description": ind.description,
+                }
+                for ind in health_report.indicators
+            ],
+            "recommendations": health_report.recommendations,
+        }
+
+        # Strategy 1: Claude AI prediction
+        if settings.ANTHROPIC_API_KEY:
+            ai_result = await self._claude_churn_prediction(health_data)
+            if ai_result:
+                return ai_result
+
+        # Strategy 2: Rule-based fallback
+        return self._rule_based_churn_prediction(health_data)
+
+    async def _claude_churn_prediction(self, health_data: dict) -> dict | None:
+        """Use Claude for churn risk prediction."""
+        try:
+            import anthropic
+
+            client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+            indicators_text = "\n".join(
+                f"- {ind['label']}: {ind['score']}/100 ({ind['description']})"
+                for ind in health_data["indicators"]
+            )
+
+            prompt = (
+                f"Musteri: {health_data['customer_name']}\n"
+                f"Sirket: {health_data['company'] or 'Bilinmiyor'}\n"
+                f"Saglik Skoru: {health_data['score']}/100\n"
+                f"Risk Seviyesi: {health_data['risk_level']}\n\n"
+                f"Gostergeler:\n{indicators_text}\n\n"
+                "Bu musterinin kayip (churn) riskini degerlendir. JSON formatinda cevap ver:\n"
+                '{"churn_probability": 0-100, "risk_level": "high|medium|low", '
+                '"risk_factors": [{"name": "...", "description": "..."}], '
+                '"retention_actions": ["..."]}'
+            )
+
+            response = await client.messages.create(
+                model=settings.AI_MODEL_NAME,
+                max_tokens=512,
+                system=(
+                    "Sen bir musteri kayip analiz asistanisin. Musteri verilerini "
+                    "inceleyerek kayip riskini degerlendir ve elde tutma onerileri sun."
+                ),
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+            text = response.content[0].text if response.content else None
+            if text:
+                parsed = json.loads(text.strip())
+                valid_levels = {"high", "medium", "low"}
+                if parsed.get("risk_level") in valid_levels:
+                    return {
+                        "customer_id": health_data["customer_id"],
+                        "churn_probability": min(100, max(0, int(parsed.get("churn_probability", 50)))),
+                        "risk_level": parsed["risk_level"],
+                        "risk_factors": parsed.get("risk_factors", []),
+                        "retention_actions": parsed.get("retention_actions", []),
+                        "method": "ai",
+                    }
+        except Exception as exc:
+            logger.error("Claude churn prediction hatasi: %s", exc)
+
+        return None
+
+    @staticmethod
+    def _rule_based_churn_prediction(health_data: dict) -> dict:
+        """Rule-based churn risk prediction fallback."""
+        score = health_data["score"]
+        risk_factors = []
+        retention_actions = []
+
+        # Determine churn probability inversely from health score
+        churn_probability = max(0, min(100, 100 - score))
+
+        # Determine risk level
+        if score < 40:
+            risk_level = "high"
+        elif score < 60:
+            risk_level = "medium"
+        else:
+            risk_level = "low"
+
+        # Analyze indicators for specific risk factors
+        for ind in health_data["indicators"]:
+            if ind["score"] < 40:
+                risk_factors.append({
+                    "name": ind["label"],
+                    "description": ind["description"],
+                })
+
+        # Generate retention actions based on risk level
+        if risk_level == "high":
+            retention_actions.extend([
+                "Acil olarak musteri ile yuz yuze toplanti planlayin.",
+                "Ozel indirim veya kampanya teklifi hazirlayip sunun.",
+                "Ust duzey yonetici ile iletisim kanalini acin.",
+            ])
+        elif risk_level == "medium":
+            retention_actions.extend([
+                "Musteri ile duzenli check-in gorusmeleri baslantin.",
+                "Memnuniyet anketi gondererek geri bildirim alin.",
+                "Capraz satis firsatlarini degerlendirin.",
+            ])
+        else:
+            retention_actions.append(
+                "Mevcut iliskiyi koruyun ve proaktif iletisimi surdurun."
+            )
+
+        # Add specific actions from recommendations
+        for rec in health_data.get("recommendations", []):
+            if rec not in retention_actions:
+                retention_actions.append(rec)
+
+        return {
+            "customer_id": health_data["customer_id"],
+            "churn_probability": churn_probability,
+            "risk_level": risk_level,
+            "risk_factors": risk_factors,
+            "retention_actions": retention_actions,
+            "method": "rule_based",
+        }
 
     @staticmethod
     def _determine_risk_level(score: int) -> str:

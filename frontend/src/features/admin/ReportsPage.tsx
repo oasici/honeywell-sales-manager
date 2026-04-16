@@ -88,7 +88,7 @@ export default function ReportsPage() {
     queryFn: async (): Promise<NoPricePart[]> => {
       const raw = await analyticsApi.getPartsWithoutPrice();
       if (Array.isArray(raw)) return raw as unknown as NoPricePart[];
-      return ((raw as unknown as { items: NoPricePart[] }).items) ?? [];
+      return (raw as unknown as { items: NoPricePart[] }).items ?? [];
     },
   });
 
@@ -166,10 +166,34 @@ export default function ReportsPage() {
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 12,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+              />
               <Legend />
-              <Area yAxisId="left" type="monotone" dataKey="quote_count" stroke="#D32F2F" fill="url(#rptGradRed)" name="Teklif Sayisi" strokeWidth={2.5} dot={{ r: 4, fill: '#D32F2F' }} />
-              <Area yAxisId="right" type="monotone" dataKey="revenue" stroke="#1976D2" fill="url(#rptGradBlue)" name="Gelir" strokeWidth={2.5} dot={{ r: 4, fill: '#1976D2' }} />
+              <Area
+                yAxisId="left"
+                type="monotone"
+                dataKey="quote_count"
+                stroke="#D32F2F"
+                fill="url(#rptGradRed)"
+                name="Teklif Sayisi"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: '#D32F2F' }}
+              />
+              <Area
+                yAxisId="right"
+                type="monotone"
+                dataKey="revenue"
+                stroke="#1976D2"
+                fill="url(#rptGradBlue)"
+                name="Gelir"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: '#1976D2' }}
+              />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
@@ -207,7 +231,13 @@ export default function ReportsPage() {
               />
               <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 12,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+              />
               <Legend />
               <Bar
                 yAxisId="left"
@@ -251,7 +281,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {topParts.map((part: any, index: number) => (
+                {topParts.map((part: TopPart, index: number) => (
                   <tr
                     key={part.honeywell_code}
                     className="border-b border-gray-100 transition-colors hover:bg-gray-50"
@@ -266,9 +296,7 @@ export default function ReportsPage() {
                     <td className="px-3 py-3 text-right">{part.request_count}</td>
                     <td className="px-3 py-3 text-right">{part.total_quantity}</td>
                     <td className="px-3 py-3 text-right">
-                      {part.total_value != null
-                        ? formatCurrency(part.total_value)
-                        : '-'}
+                      {part.total_value != null ? formatCurrency(part.total_value) : '-'}
                     </td>
                   </tr>
                 ))}
@@ -304,9 +332,7 @@ export default function ReportsPage() {
                     <td className="px-3 py-3 font-mono text-xs font-medium">
                       {part.honeywell_code}
                     </td>
-                    <td className="px-3 py-3">
-                      {part.name_tr || part.name_en || '-'}
-                    </td>
+                    <td className="px-3 py-3">{part.name_tr || part.name_en || '-'}</td>
                     <td className="px-3 py-3">{part.category || '-'}</td>
                     <td className="px-3 py-3">
                       <span
@@ -316,9 +342,7 @@ export default function ReportsPage() {
                             : 'bg-amber-100 text-amber-700'
                         }`}
                       >
-                        {part.status === 'unknown_part'
-                          ? 'Bilinmeyen Parca'
-                          : 'Fiyat Yok'}
+                        {part.status === 'unknown_part' ? 'Bilinmeyen Parca' : 'Fiyat Yok'}
                       </span>
                     </td>
                   </tr>

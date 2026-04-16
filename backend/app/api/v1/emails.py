@@ -13,6 +13,8 @@ from app.models.email_request import EmailRequest
 from app.models.enums import ReviewStatus, UserRole
 from app.models.user import User
 from app.schemas.email_request import ManualEmailCreate
+from app.core.event_bus import event_bus
+from app.services.activity_logger import log_activity
 from app.services.email_processing_service import EmailProcessingService
 from app.services.notification_service import create_notification
 
@@ -86,6 +88,68 @@ async def list_emails(
         "page": page,
         "page_size": page_size,
         "pages": math.ceil(total / page_size) if total > 0 else 0,
+    }
+
+
+@router.get("/training-data", status_code=200)
+async def get_training_data(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    model_used: str | None = Query(None),
+    field: str | None = Query(None, description="Filter by corrected field"),
+    format: str = Query("json", description="json or jsonl"),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export AI training data with pagination and filtering."""
+    from app.models.ai_training_data import AITrainingData
+    from fastapi.responses import PlainTextResponse
+
+    query = select(AITrainingData).order_by(AITrainingData.created_at.desc())
+    count_query = select(func.count(AITrainingData.id))
+
+    if model_used:
+        query = query.where(AITrainingData.model_used == model_used)
+        count_query = count_query.where(AITrainingData.model_used == model_used)
+    if field:
+        query = query.where(AITrainingData.correction_fields.contains(field))
+        count_query = count_query.where(AITrainingData.correction_fields.contains(field))
+
+    total = (await db.execute(count_query)).scalar() or 0
+    offset = (page - 1) * page_size
+    result = await db.execute(query.offset(offset).limit(page_size))
+    entries = result.scalars().all()
+
+    def _safe_json(s: str | None) -> dict | None:
+        if not s:
+            return None
+        try:
+            return json.loads(s)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
+    items = [
+        {
+            "id": e.id,
+            "email_id": e.email_id,
+            "original_parse": _safe_json(e.original_parse),
+            "corrected_parse": _safe_json(e.corrected_parse),
+            "correction_fields": e.correction_fields.split(",") if e.correction_fields else [],
+            "model_used": e.model_used,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in entries
+    ]
+
+    if format == "jsonl":
+        lines = "\n".join(json.dumps(item, ensure_ascii=False) for item in items)
+        return PlainTextResponse(content=lines, media_type="application/jsonl")
+
+    return {
+        "count": total,
+        "page": page,
+        "page_size": page_size,
+        "data": items,
     }
 
 
@@ -279,6 +343,37 @@ async def poll_emails(
     }
 
 
+@router.get("/{email_id}/thread")
+async def get_email_thread(
+    email_id: int,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all emails in the same thread, ordered chronologically."""
+    result = await db.execute(
+        select(EmailRequest).where(EmailRequest.id == email_id)
+    )
+    email = result.scalar_one_or_none()
+    if not email:
+        raise NotFoundException("E-posta bulunamadi")
+    _check_email_ownership(email, current_user)
+
+    if not email.thread_id:
+        return {"thread_id": None, "emails": [_email_to_dict(email)]}
+
+    thread_result = await db.execute(
+        select(EmailRequest)
+        .where(EmailRequest.thread_id == email.thread_id)
+        .order_by(EmailRequest.created_at.asc())
+    )
+    thread_emails = thread_result.scalars().all()
+
+    return {
+        "thread_id": email.thread_id,
+        "emails": [_email_to_dict(e) for e in thread_emails],
+    }
+
+
 @router.patch("/{email_id}/read", status_code=200)
 async def mark_email_read(
     email_id: int,
@@ -338,8 +433,10 @@ async def reparse_email(
     service = EmailProcessingService(db)
     email = await service.process_email(email_id)
     email.last_parsed_at = datetime.now(tz.utc)
+    await db.flush()
+    await db.refresh(email)
 
-    return {"message": f"Email {email_id} ayristirildi", "status": email.status}
+    return _email_to_dict(email, include_body=True)
 
 
 class CorrectParseRequest(BaseModel):
@@ -399,68 +496,6 @@ async def correct_parse(
     return {
         "message": f"Duzeltme kaydedildi ({len(changed_fields)} alan)",
         "changed_fields": changed_fields,
-    }
-
-
-@router.get("/training-data", status_code=200)
-async def get_training_data(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-    model_used: str | None = Query(None),
-    field: str | None = Query(None, description="Filter by corrected field"),
-    format: str = Query("json", description="json or jsonl"),
-    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
-    db: AsyncSession = Depends(get_db),
-):
-    """Export AI training data with pagination and filtering."""
-    from app.models.ai_training_data import AITrainingData
-    from fastapi.responses import PlainTextResponse
-
-    query = select(AITrainingData).order_by(AITrainingData.created_at.desc())
-    count_query = select(func.count(AITrainingData.id))
-
-    if model_used:
-        query = query.where(AITrainingData.model_used == model_used)
-        count_query = count_query.where(AITrainingData.model_used == model_used)
-    if field:
-        query = query.where(AITrainingData.correction_fields.contains(field))
-        count_query = count_query.where(AITrainingData.correction_fields.contains(field))
-
-    total = (await db.execute(count_query)).scalar() or 0
-    offset = (page - 1) * page_size
-    result = await db.execute(query.offset(offset).limit(page_size))
-    entries = result.scalars().all()
-
-    def _safe_json(s: str | None) -> dict | None:
-        if not s:
-            return None
-        try:
-            return json.loads(s)
-        except (json.JSONDecodeError, TypeError):
-            return None
-
-    items = [
-        {
-            "id": e.id,
-            "email_id": e.email_id,
-            "original_parse": _safe_json(e.original_parse),
-            "corrected_parse": _safe_json(e.corrected_parse),
-            "correction_fields": e.correction_fields.split(",") if e.correction_fields else [],
-            "model_used": e.model_used,
-            "created_at": e.created_at.isoformat() if e.created_at else None,
-        }
-        for e in entries
-    ]
-
-    if format == "jsonl":
-        lines = "\n".join(json.dumps(item, ensure_ascii=False) for item in items)
-        return PlainTextResponse(content=lines, media_type="application/jsonl")
-
-    return {
-        "count": total,
-        "page": page,
-        "page_size": page_size,
-        "data": items,
     }
 
 
@@ -532,6 +567,17 @@ async def review_email(
             logging.getLogger(__name__).warning("Auto-create on approval failed: %s", exc)
 
     await db.flush()
+
+    await log_activity(
+        db, activity_type="email_parsed", entity_type="email", entity_id=email.id,
+        opportunity_id=email.opportunity_id, customer_id=email.customer_id,
+        user_id=current_user.id,
+        summary=f"Email incelendi ({action}): {email.subject[:80] if email.subject else ''}",
+    )
+    await event_bus.publish("email.parsed", {
+        "email_id": email.id, "action": action,
+        "customer_id": email.customer_id, "category": email.category,
+    })
 
     # Best-effort notification to assignee
     if email.assigned_to and email.assigned_to != current_user.id:
@@ -680,6 +726,8 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
         "review_status": email.review_status,
         "assigned_to": email.assigned_to,
         "reviewed_by": email.reviewed_by,
+        "thread_id": getattr(email, "thread_id", None),
+        "in_reply_to": getattr(email, "in_reply_to", None),
         "is_read": getattr(email, "is_read", False),
         "last_parsed_at": email.last_parsed_at.isoformat() if getattr(email, "last_parsed_at", None) else None,
         "created_at": email.created_at.isoformat() if email.created_at else None,

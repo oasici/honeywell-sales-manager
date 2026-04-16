@@ -1,0 +1,247 @@
+"""Contract Lifecycle API endpoints."""
+
+from __future__ import annotations
+
+import json
+from datetime import date, datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.dependencies import get_current_user
+from app.core.exceptions import BadRequestException, NotFoundException
+from app.models.contract import Contract, ContractAmendment
+from app.models.user import User
+
+router = APIRouter(tags=["Contracts"])
+
+VALID_STATUSES = {"draft", "active", "amended", "expired", "terminated"}
+VALID_AMENDMENT_TYPES = {"extension", "modification", "termination"}
+
+
+class ContractCreate(BaseModel):
+    customer_id: int
+    quote_id: int | None = None
+    title: str = Field(min_length=1, max_length=200)
+    start_date: date | None = None
+    end_date: date | None = None
+    value: float | None = None
+    terms_json: str | None = None
+
+
+class ContractUpdate(BaseModel):
+    title: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    value: float | None = None
+    terms_json: str | None = None
+    status: str | None = None
+
+
+class AmendmentCreate(BaseModel):
+    amendment_type: str
+    changes_json: str | None = None
+    effective_date: date | None = None
+
+
+def _serialize_contract(c: Contract) -> dict:
+    return {
+        "id": c.id,
+        "customer_id": c.customer_id,
+        "quote_id": c.quote_id,
+        "title": c.title,
+        "status": c.status,
+        "start_date": c.start_date.isoformat() if c.start_date else None,
+        "end_date": c.end_date.isoformat() if c.end_date else None,
+        "value": c.value,
+        "terms_json": c.terms_json,
+        "signed_at": c.signed_at.isoformat() if c.signed_at else None,
+        "signed_by": c.signed_by,
+        "created_by": c.created_by,
+        "created_at": c.created_at.isoformat() if c.created_at else None,
+        "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+        "amendments": [
+            {
+                "id": a.id,
+                "amendment_type": a.amendment_type,
+                "changes_json": a.changes_json,
+                "effective_date": a.effective_date.isoformat() if a.effective_date else None,
+                "approved_by": a.approved_by,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in (c.amendments or [])
+        ],
+    }
+
+
+@router.get("/contracts/")
+async def list_contracts(
+    customer_id: int | None = Query(None),
+    status: str | None = Query(None),
+    search: str | None = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List contracts with optional filters."""
+    query = select(Contract).order_by(Contract.created_at.desc())
+    if customer_id:
+        query = query.where(Contract.customer_id == customer_id)
+    if status:
+        query = query.where(Contract.status == status)
+    if search:
+        query = query.where(Contract.title.ilike(f"%{search}%"))
+    result = await db.execute(query)
+    contracts = result.scalars().all()
+    return {"contracts": [_serialize_contract(c) for c in contracts]}
+
+
+@router.post("/contracts/", status_code=201)
+async def create_contract(
+    body: ContractCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new contract."""
+    contract = Contract(
+        customer_id=body.customer_id,
+        quote_id=body.quote_id,
+        title=body.title,
+        start_date=body.start_date,
+        end_date=body.end_date,
+        value=body.value,
+        terms_json=body.terms_json,
+        created_by=current_user.id,
+    )
+    db.add(contract)
+    await db.flush()
+    await db.refresh(contract)
+    return _serialize_contract(contract)
+
+
+@router.get("/contracts/expiring")
+async def expiring_contracts(
+    days: int = Query(30, ge=1, le=365),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get contracts expiring within the next N days."""
+    threshold = date.today() + timedelta(days=days)
+    result = await db.execute(
+        select(Contract)
+        .where(
+            Contract.status == "active",
+            Contract.end_date.isnot(None),
+            Contract.end_date <= threshold,
+            Contract.end_date >= date.today(),
+        )
+        .order_by(Contract.end_date.asc()),
+    )
+    contracts = result.scalars().all()
+    return {"contracts": [_serialize_contract(c) for c in contracts], "count": len(contracts)}
+
+
+@router.get("/contracts/{contract_id}")
+async def get_contract(
+    contract_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get contract detail with amendments."""
+    contract = await db.get(Contract, contract_id)
+    if not contract:
+        raise NotFoundException("Kontrat bulunamadi")
+    return _serialize_contract(contract)
+
+
+@router.put("/contracts/{contract_id}")
+async def update_contract(
+    contract_id: int,
+    body: ContractUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update contract fields."""
+    contract = await db.get(Contract, contract_id)
+    if not contract:
+        raise NotFoundException("Kontrat bulunamadi")
+
+    if body.title is not None:
+        contract.title = body.title
+    if body.start_date is not None:
+        contract.start_date = body.start_date
+    if body.end_date is not None:
+        contract.end_date = body.end_date
+    if body.value is not None:
+        contract.value = body.value
+    if body.terms_json is not None:
+        contract.terms_json = body.terms_json
+    if body.status is not None:
+        if body.status not in VALID_STATUSES:
+            raise BadRequestException(f"Gecersiz durum: {body.status}")
+        contract.status = body.status
+
+    await db.flush()
+    await db.refresh(contract)
+    return _serialize_contract(contract)
+
+
+@router.post("/contracts/{contract_id}/amend")
+async def amend_contract(
+    contract_id: int,
+    body: AmendmentCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create an amendment for a contract."""
+    contract = await db.get(Contract, contract_id)
+    if not contract:
+        raise NotFoundException("Kontrat bulunamadi")
+
+    if body.amendment_type not in VALID_AMENDMENT_TYPES:
+        raise BadRequestException(f"Gecersiz degisiklik tipi: {body.amendment_type}")
+
+    amendment = ContractAmendment(
+        contract_id=contract_id,
+        amendment_type=body.amendment_type,
+        changes_json=body.changes_json,
+        effective_date=body.effective_date,
+        approved_by=current_user.id,
+    )
+    db.add(amendment)
+
+    if contract.status == "active":
+        contract.status = "amended"
+
+    await db.flush()
+    await db.refresh(amendment)
+    return {
+        "id": amendment.id,
+        "amendment_type": amendment.amendment_type,
+        "contract_status": contract.status,
+    }
+
+
+@router.post("/contracts/{contract_id}/activate")
+async def activate_contract(
+    contract_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Activate a draft contract."""
+    contract = await db.get(Contract, contract_id)
+    if not contract:
+        raise NotFoundException("Kontrat bulunamadi")
+
+    if contract.status != "draft":
+        raise BadRequestException("Sadece taslak kontratlar aktiflestirebilir")
+
+    contract.status = "active"
+    contract.signed_at = datetime.now(timezone.utc)
+    contract.signed_by = current_user.full_name if hasattr(current_user, "full_name") else str(current_user.id)
+
+    await db.flush()
+    await db.refresh(contract)
+    return _serialize_contract(contract)

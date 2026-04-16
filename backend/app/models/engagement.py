@@ -7,6 +7,8 @@ All tables are additive (non-breaking). Free-tier compatible:
 - Keyword packs: configurable signal detection keywords
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
@@ -33,6 +35,9 @@ class Transcript(Base):
     participants: Mapped[str | None] = mapped_column(Text, nullable=True)  # comma-separated
     # Full-text search vector populated by trigger/app
     keywords_found: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON list
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    action_items_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sentiment: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -65,6 +70,8 @@ class Sequence(Base):
     steps_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     # JSON array: [{"step":1,"action":"email","delay_days":0,"template":"..."},
     #              {"step":2,"action":"task","delay_days":3,"template":"Follow up call"}]
+    auto_enroll_rules_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    exit_criteria_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -84,9 +91,18 @@ class SequenceEnrollment(Base):
     customer_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=True
     )
+    lead_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("leads.id"), nullable=True, index=True
+    )
     current_step: Mapped[int] = mapped_column(Integer, default=1)
-    status: Mapped[str] = mapped_column(String(20), default="active")  # active | paused | completed | cancelled
+    is_paused: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(20), default="active")  # active | paused | completed | exited | cancelled
     next_action_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # V2 additive fields (FEATURE_SEQUENCES_V2)
+    exit_reason: Mapped[str | None] = mapped_column(
+        String(50), nullable=True
+    )  # all_steps_completed | lead_converted | opp_closed | email_bounced | dnc | manual | global_exit
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     enrolled_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

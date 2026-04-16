@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -9,7 +9,11 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { BulkActionBar } from '../../components/ui/BulkActionBar';
+import { useMultiSelect } from '../../hooks/useMultiSelect';
 import { customersApi, quotesApi } from '../../lib/api';
+import { DuplicateWarning } from '../../components/ui/DuplicateWarning';
 import { formatCurrency } from '../../lib/formatters';
 import { STATUS_LABELS, STATUS_COLORS } from '../../lib/constants';
 import type { Customer, Quote, PaginatedResponse } from '../../lib/types';
@@ -51,9 +55,13 @@ function getInitials(name: string): string {
 function CustomerCard({
   customer: c,
   navigate,
+  isSelected,
+  onToggle,
 }: {
   customer: Customer;
   navigate: ReturnType<typeof useNavigate>;
+  isSelected: boolean;
+  onToggle: (id: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const quoteCount = c.quote_count ?? 0;
@@ -70,13 +78,24 @@ function CustomerCard({
   const quotes = quotesData?.items ?? [];
 
   return (
-    <div className="card-modern flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200">
+    <div className={`card-modern flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
       {/* Top section - clickable to customer detail */}
-      <button
-        type="button"
-        onClick={() => navigate(`/customers/${c.id}`)}
-        className="flex items-start gap-4 p-5 text-left hover:bg-gray-50/60 transition-colors rounded-t-2xl"
-      >
+      <div className="flex items-start gap-4 p-5">
+        {/* Checkbox */}
+        <label className="flex items-center shrink-0 pt-0.5" aria-label={`${c.name} sec`}>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggle(c.id)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={() => navigate(`/customers/${c.id}`)}
+          className="flex items-start gap-4 flex-1 text-left hover:bg-gray-50/60 transition-colors rounded-lg -m-1 p-1"
+        >
         {/* Avatar */}
         <div
           className={`${avatarColor} flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm`}
@@ -95,6 +114,7 @@ function CustomerCard({
           <p className="mt-0.5 text-xs text-gray-400 truncate">{c.email}</p>
         </div>
       </button>
+      </div>
 
       {/* Stats row + dropdown toggle */}
       <div className="border-t border-gray-100">
@@ -275,6 +295,61 @@ export default function CustomerListPage() {
   const customers = data?.items || [];
   const totalPages = data?.pages || 1;
 
+  const {
+    selectedIds,
+    toggleItem,
+    toggleAll,
+    isSelected,
+    clearSelection,
+    isAllSelected,
+    selectedCount,
+  } = useMultiSelect(customers);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const bulkMutation = useMutation({
+    mutationFn: (payload: { ids: number[]; action: string; params?: Record<string, unknown> }) =>
+      customersApi.bulkAction(payload),
+    onSuccess: (res) => {
+      toast.success(res.message);
+      clearSelection();
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: () => toast.error('Toplu islem basarisiz oldu'),
+  });
+
+  const handleBulkAction = useCallback(
+    (key: string) => {
+      const ids = Array.from(selectedIds);
+      if (key === 'delete') {
+        setShowDeleteConfirm(true);
+        return;
+      }
+      if (key === 'export') {
+        bulkMutation.mutate({ ids, action: 'export' });
+        return;
+      }
+      if (key === 'assign') {
+        const ownerIdStr = window.prompt('Atanacak kullanici ID\'sini girin:');
+        if (!ownerIdStr) return;
+        const ownerId = parseInt(ownerIdStr, 10);
+        if (isNaN(ownerId)) {
+          toast.error('Gecersiz kullanici ID');
+          return;
+        }
+        bulkMutation.mutate({ ids, action: 'assign', params: { created_by: ownerId } });
+        return;
+      }
+    },
+    [selectedIds, bulkMutation],
+  );
+
+  const BULK_ACTIONS = [
+    { key: 'assign', label: 'Sahip Ata' },
+    { key: 'export', label: 'CSV Indir' },
+    { key: 'delete', label: 'Sil', variant: 'danger' as const },
+  ];
+
   return (
     <div>
       <PageHeader title="Musteriler" description="Musteri yonetimi">
@@ -295,16 +370,29 @@ export default function CustomerListPage() {
         <Button onClick={() => setModalOpen(true)}>Yeni Musteri</Button>
       </PageHeader>
 
-      {/* Search */}
-      <div className="mb-6 max-w-md">
-        <Input
-          placeholder="Isim, sirket veya email ile ara..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-        />
+      {/* Search + Select All */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="max-w-md flex-1">
+          <Input
+            placeholder="Isim, sirket veya email ile ara..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        {customers.length > 0 && (
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isAllSelected}
+              onChange={toggleAll}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            Tumu Sec
+          </label>
+        )}
       </div>
 
       {/* Customer Grid */}
@@ -331,7 +419,13 @@ export default function CustomerListPage() {
         <>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {customers.map((c) => (
-              <CustomerCard key={c.id} customer={c} navigate={navigate} />
+              <CustomerCard
+                key={c.id}
+                customer={c}
+                navigate={navigate}
+                isSelected={isSelected(c.id)}
+                onToggle={toggleItem}
+              />
             ))}
           </div>
 
@@ -414,6 +508,12 @@ export default function CustomerListPage() {
               placeholder="tr / en"
             />
           </div>
+          <DuplicateWarning
+            entityType="customer"
+            name={form.name}
+            company={form.company}
+            email={form.email}
+          />
           <Input
             label="Adres"
             value={form.address}
@@ -433,6 +533,29 @@ export default function CustomerListPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedCount}
+        actions={BULK_ACTIONS}
+        onAction={handleBulkAction}
+        onClearSelection={clearSelection}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          bulkMutation.mutate({ ids: Array.from(selectedIds), action: 'delete' });
+          setShowDeleteConfirm(false);
+        }}
+        title="Musterileri Sil"
+        message={`${selectedCount} musteriyi silmek istediginize emin misiniz? Bu islem geri alinamaz.`}
+        confirmLabel="Sil"
+        confirmVariant="danger"
+        isLoading={bulkMutation.isPending}
+      />
     </div>
   );
 }

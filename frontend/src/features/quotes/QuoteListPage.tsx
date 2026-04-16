@@ -22,9 +22,7 @@ export default function QuoteListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [statusTab, setStatusTab] = useState(
-    searchParams.get('status') || '',
-  );
+  const [statusTab, setStatusTab] = useState(searchParams.get('status') || '');
 
   const { data, isLoading } = useQuery<PaginatedResponse<Quote>>({
     queryKey: ['quotes', { page, status: statusTab }],
@@ -52,7 +50,9 @@ export default function QuoteListPage() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      const { data: result } = await (await import('../../lib/api')).default.post('/quotes/from-pdf', formData, {
+      const { data: result } = await (
+        await import('../../lib/api')
+      ).default.post('/quotes/from-pdf', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return result;
@@ -61,8 +61,10 @@ export default function QuoteListPage() {
       toast.success(`Taslak teklif olusturuldu: ${quote.quote_number}`);
       navigate(`/quotes/${quote.id}`);
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'PDF\'den teklif olusturulamadi';
+    onError: (err: unknown) => {
+      const msg =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message || "PDF'den teklif olusturulamadi";
       toast.error(msg);
     },
   });
@@ -94,9 +96,7 @@ export default function QuoteListPage() {
       key: 'customer',
       header: 'Musteri',
       render: (row: Quote) => (
-        <span className="text-sm">
-          {row.customer?.company || row.customer?.name || '-'}
-        </span>
+        <span className="text-sm">{row.customer?.company || row.customer?.name || '-'}</span>
       ),
     },
     {
@@ -117,26 +117,20 @@ export default function QuoteListPage() {
       header: 'Toplam',
       sortable: true,
       render: (row: Quote) => (
-        <span className="font-medium text-sm">
-          {formatCurrency(row.grand_total, row.currency)}
-        </span>
+        <span className="font-medium text-sm">{formatCurrency(row.grand_total, row.currency)}</span>
       ),
     },
     {
       key: 'currency',
       header: 'Para Birimi',
-      render: (row: Quote) => (
-        <span className="text-sm">{row.currency}</span>
-      ),
+      render: (row: Quote) => <span className="text-sm">{row.currency}</span>,
     },
     {
       key: 'created_at',
       header: 'Tarih',
       sortable: true,
       render: (row: Quote) => (
-        <span className="text-sm whitespace-nowrap">
-          {formatDate(row.created_at)}
-        </span>
+        <span className="text-sm whitespace-nowrap">{formatDate(row.created_at)}</span>
       ),
     },
   ];
@@ -151,7 +145,11 @@ export default function QuoteListPage() {
           className="hidden"
           onChange={handlePdfImport}
         />
-        <Button variant="secondary" loading={pdfMutation.isPending} onClick={() => pdfRef.current?.click()}>
+        <Button
+          variant="secondary"
+          loading={pdfMutation.isPending}
+          onClick={() => pdfRef.current?.click()}
+        >
           PDF'den Teklif
         </Button>
         <Button onClick={() => navigate('/quotes/new')}>Yeni Teklif</Button>

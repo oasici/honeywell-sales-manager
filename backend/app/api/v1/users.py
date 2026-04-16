@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+import csv
+import io
 import math
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -123,6 +127,99 @@ async def change_user_role(
     await db.refresh(user)
 
     return _user_to_dict(user)
+
+
+@router.post("/bulk-import")
+async def bulk_import_users(
+    file: UploadFile,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """CSV upload for batch user creation. Manager only.
+
+    Expected CSV columns: email, full_name, role, password
+    """
+    if not file.filename or not file.filename.endswith(".csv"):
+        raise BadRequestException("Sadece CSV dosyasi yuklenebilir")
+
+    content = await file.read()
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            raise BadRequestException("Dosya UTF-8 formatinda olmali")
+
+    reader = csv.DictReader(io.StringIO(text))
+    required_columns = {"email", "full_name", "role", "password"}
+    if not reader.fieldnames or not required_columns.issubset(set(reader.fieldnames)):
+        raise BadRequestException(
+            f"CSV dosyasinda su sutunlar olmali: {', '.join(sorted(required_columns))}"
+        )
+
+    from app.core.security import hash_password
+
+    imported = 0
+    skipped = 0
+    errors: list[dict] = []
+
+    for row_num, row in enumerate(reader, start=2):
+        email = (row.get("email") or "").strip().lower()
+        full_name = (row.get("full_name") or "").strip()
+        role = (row.get("role") or "").strip()
+        password = (row.get("password") or "").strip()
+
+        # Validate row
+        if not email or "@" not in email:
+            errors.append({"row": row_num, "email": email, "error": "Gecersiz email"})
+            continue
+
+        if not full_name:
+            errors.append({"row": row_num, "email": email, "error": "Isim bos olamaz"})
+            continue
+
+        if role not in VALID_ROLES:
+            errors.append({
+                "row": row_num,
+                "email": email,
+                "error": f"Gecersiz rol: {role}",
+            })
+            continue
+
+        if len(password) < 6:
+            errors.append({
+                "row": row_num,
+                "email": email,
+                "error": "Sifre en az 6 karakter olmali",
+            })
+            continue
+
+        # Check for duplicate
+        existing = await db.execute(select(User.id).where(User.email == email))
+        if existing.scalar_one_or_none() is not None:
+            skipped += 1
+            continue
+
+        user = User(
+            email=email,
+            full_name=full_name,
+            role=role,
+            hashed_password=hash_password(password),
+            is_active=True,
+        )
+        db.add(user)
+        imported += 1
+
+    if imported > 0:
+        await db.flush()
+
+    return {
+        "message": f"{imported} kullanici iceri aktarildi, {skipped} atlanildi",
+        "imported": imported,
+        "skipped": skipped,
+        "errors": errors,
+    }
 
 
 def _user_to_dict(user: User) -> dict:

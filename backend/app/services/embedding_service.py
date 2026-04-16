@@ -4,18 +4,38 @@ Instead of rebuilding ALL embeddings after every import, this service
 only re-embeds new or modified parts by tracking content hashes.
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
+from pathlib import Path
 
 import numpy as np
-from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.spare_part import SparePart
 
 logger = logging.getLogger(__name__)
+
+_embedding_model = None  # Module-level singleton
+
+
+def _get_embedding_model():
+    """Lazy-load and cache the embedding model (singleton)."""
+    global _embedding_model
+    if _embedding_model is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+
+            _embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+            logger.info("Embedding model loaded and cached (embedding_service)")
+        except ImportError:
+            logger.error("sentence-transformers not installed — embeddings unavailable")
+            raise RuntimeError("sentence-transformers required for embeddings")
+    return _embedding_model
+
 
 EMBEDDINGS_DIR = Path("data/embeddings")
 CATALOG_FILE = EMBEDDINGS_DIR / "catalog_ids.json"
@@ -72,12 +92,10 @@ async def update_embeddings_incremental(db: AsyncSession) -> dict:
         logger.info("No embedding changes needed")
         return {"new": 0, "total": len(all_parts)}
 
-    # Try to load model
+    # Load cached model
     try:
-        from sentence_transformers import SentenceTransformer
-
-        model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-    except ImportError:
+        model = _get_embedding_model()
+    except (ImportError, RuntimeError):
         logger.warning("sentence-transformers not installed, skipping embeddings")
         return {"error": "sentence-transformers not installed", "new": len(new_parts)}
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -17,6 +19,9 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     email_setup_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     password_change_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    manager_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True, index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

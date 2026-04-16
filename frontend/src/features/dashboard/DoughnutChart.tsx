@@ -1,7 +1,7 @@
 import React, { useId } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
-export const PALETTE = [
+const PALETTE = [
   ['#D32F2F', '#fce4ec'],
   ['#1976D2', '#e3f2fd'],
   ['#388E3C', '#e8f5e9'],
@@ -35,7 +35,9 @@ export const DoughnutChart = React.memo(function DoughnutChart({
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm h-full dark:border-gray-700 dark:bg-gray-800">
-      <p className="mb-3 text-sm font-medium text-gray-500 text-center dark:text-gray-400">{title}</p>
+      <p className="mb-3 text-sm font-medium text-gray-500 text-center dark:text-gray-400">
+        {title}
+      </p>
       <div className="flex items-center justify-center">
         <div className="relative" style={{ width: 150, height: 150 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -46,7 +48,13 @@ export const DoughnutChart = React.memo(function DoughnutChart({
                   <stop offset="100%" stopColor={colors[0]} stopOpacity={0.7} />
                 </linearGradient>
                 <filter id={`shadow-${uid}`}>
-                  <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor={colors[0]} floodOpacity="0.25" />
+                  <feDropShadow
+                    dx="0"
+                    dy="1"
+                    stdDeviation="2"
+                    floodColor={colors[0]}
+                    floodOpacity="0.25"
+                  />
                 </filter>
               </defs>
               <Pie

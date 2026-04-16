@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Sparkles } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { emailsApi, quotesApi } from '../../lib/api';
+import { emailsApi, quotesApi, aiApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import {
   CATEGORY_LABELS,
@@ -19,8 +22,10 @@ import type { EmailRequest, MatchResult } from '../../lib/types';
 function ScoreBadge({ score }: { score: number }) {
   const pct = Math.round(score * 100);
   let colorClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
-  if (pct >= 80) colorClass = 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
-  else if (pct >= 50) colorClass = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
+  if (pct >= 80)
+    colorClass = 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+  else if (pct >= 50)
+    colorClass = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${colorClass}`}
@@ -49,18 +54,38 @@ function ConfidenceBar({ score }: { score: number }) {
 }
 
 const STRATEGY_STYLES: Record<string, { label: string; color: string }> = {
-  exact_code: { label: 'Tam Eslesme', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-  exact_model: { label: 'Model Eslesme', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-  prefix_code: { label: 'Prefix', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  fuzzy_code: { label: 'Fuzzy Kod', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
-  fuzzy_name: { label: 'Fuzzy Isim', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
-  semantic: { label: 'Semantik', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+  exact_code: {
+    label: 'Tam Eslesme',
+    color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  },
+  exact_model: {
+    label: 'Model Eslesme',
+    color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  },
+  prefix_code: {
+    label: 'Prefix',
+    color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  },
+  fuzzy_code: {
+    label: 'Fuzzy Kod',
+    color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  },
+  fuzzy_name: {
+    label: 'Fuzzy Isim',
+    color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+  },
+  semantic: {
+    label: 'Semantik',
+    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  },
 };
 
 function StrategyBadge({ strategy }: { strategy: string }) {
   const s = STRATEGY_STYLES[strategy] || { label: strategy, color: 'bg-gray-100 text-gray-600' };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.color}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.color}`}
+    >
       {s.label}
     </span>
   );
@@ -77,6 +102,9 @@ export default function EmailDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const emailId = Number(id);
+
+  const [draftModalOpen, setDraftModalOpen] = useState(false);
+  const [draftText, setDraftText] = useState('');
 
   const { data: email, isLoading } = useQuery<EmailRequest>({
     queryKey: ['email', emailId],
@@ -118,6 +146,17 @@ export default function EmailDetailPage() {
     onError: () => toast.error('Teklif olusturulamadi'),
   });
 
+  const draftReplyMutation = useMutation({
+    mutationFn: () =>
+      aiApi.draftReply({ email_id: emailId, draft_type: 'reply', tone: 'professional' }),
+    onSuccess: (result: { draft?: string; text?: string }) => {
+      const text = result?.draft ?? result?.text ?? '';
+      setDraftText(text);
+      setDraftModalOpen(true);
+    },
+    onError: () => toast.error('AI yanit onerisi olusturulamadi'),
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -127,9 +166,7 @@ export default function EmailDetailPage() {
   }
 
   if (!email) {
-    return (
-      <div className="py-16 text-center text-gray-500">Email bulunamadi</div>
-    );
+    return <div className="py-16 text-center text-gray-500">Email bulunamadi</div>;
   }
 
   const parsed = email.parsed_data;
@@ -144,9 +181,15 @@ export default function EmailDetailPage() {
             REVIEW_STATUS_COLORS[rs] || 'bg-gray-100 text-gray-700'
           }`}
         >
-          <div className={`w-1.5 self-stretch ${
-            rs === 'approved' ? 'bg-green-500' : rs === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'
-          }`} />
+          <div
+            className={`w-1.5 self-stretch ${
+              rs === 'approved'
+                ? 'bg-green-500'
+                : rs === 'rejected'
+                  ? 'bg-red-500'
+                  : 'bg-yellow-500'
+            }`}
+          />
           <span className="py-3 text-sm font-medium">
             Inceleme Durumu: {REVIEW_STATUS_LABELS[rs] || rs}
           </span>
@@ -169,6 +212,15 @@ export default function EmailDetailPage() {
           onClick={() => createQuoteMutation.mutate()}
         >
           Teklif Olustur
+        </Button>
+        <Button
+          variant="secondary"
+          loading={draftReplyMutation.isPending}
+          onClick={() => draftReplyMutation.mutate()}
+          className="inline-flex items-center gap-1.5"
+        >
+          <Sparkles size={15} />
+          AI Yanit Onerisi
         </Button>
         {rs !== 'approved' && (
           <Button
@@ -243,13 +295,9 @@ export default function EmailDetailPage() {
                 <span className="font-medium text-gray-500">Dil:</span>
                 <span className="text-gray-900">{parsed.language || '-'}</span>
                 <span className="font-medium text-gray-500">Musteri:</span>
-                <span className="text-gray-900">
-                  {parsed.customer_name || '-'}
-                </span>
+                <span className="text-gray-900">{parsed.customer_name || '-'}</span>
                 <span className="font-medium text-gray-500">Sirket:</span>
-                <span className="text-gray-900">
-                  {parsed.customer_company || '-'}
-                </span>
+                <span className="text-gray-900">{parsed.customer_company || '-'}</span>
                 <span className="font-medium text-gray-500">Yedek Parca:</span>
                 <span className="text-gray-900">
                   {parsed.is_spare_part_request ? 'Evet' : 'Hayir'}
@@ -283,7 +331,9 @@ export default function EmailDetailPage() {
                             x{part.quantity}
                           </span>
                           {part.urgency && (
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${URGENCY_COLORS[part.urgency] || URGENCY_COLORS.normal}`}>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${URGENCY_COLORS[part.urgency] || URGENCY_COLORS.normal}`}
+                            >
                               {part.urgency}
                             </span>
                           )}
@@ -303,6 +353,41 @@ export default function EmailDetailPage() {
           )}
         </Card>
       </div>
+
+      {/* AI Draft Reply Modal */}
+      <Modal
+        isOpen={draftModalOpen}
+        onClose={() => setDraftModalOpen(false)}
+        title="AI Yanit Onerisi"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Asagidaki taslagi duzenleyebilir, ardından kopyalayabilirsiniz.
+          </p>
+          <textarea
+            rows={10}
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 resize-y"
+            value={draftText}
+            onChange={(e) => setDraftText(e.target.value)}
+          />
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setDraftModalOpen(false)}>
+              Kapat
+            </Button>
+            <Button
+              onClick={() => {
+                navigator.clipboard
+                  .writeText(draftText)
+                  .then(() => toast.success('Metin panoya kopyalandi'))
+                  .catch(() => toast.error('Kopyalama basarisiz'));
+              }}
+            >
+              Kopyala
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Part Matching Results */}
       <div className="mt-6">
@@ -350,9 +435,7 @@ export default function EmailDetailPage() {
               </table>
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-500">
-              Eslestirme sonucu bulunamadi
-            </p>
+            <p className="py-8 text-center text-sm text-gray-500">Eslestirme sonucu bulunamadi</p>
           )}
         </Card>
       </div>

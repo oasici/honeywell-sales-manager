@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { CheckCircle, AlertCircle, Trash2, Sun, Moon, Minus, Plus, RotateCcw } from 'lucide-react';
+import {
+  CheckCircle,
+  AlertCircle,
+  Trash2,
+  Sun,
+  Moon,
+  Minus,
+  Plus,
+  RotateCcw,
+  Save,
+  Bell,
+  Copy,
+  Calendar,
+  Link2,
+} from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -9,10 +23,15 @@ import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { settingsApi } from '../../lib/api';
+import { settingsApi, meetingsApi } from '../../lib/api';
 import { usePreferencesStore } from '../../stores/preferencesStore';
+import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
 import { LANGUAGE_OPTIONS } from '../../lib/i18n';
+import SharingRulesSection from './SharingRulesSection';
+import WebhookSettings from './WebhookSettings';
+
+import type { StageConfig, MeetingLink, MeetingBooking } from '../../lib/types';
 
 interface SettingsData {
   quote_prefix: string;
@@ -36,6 +55,7 @@ const DEFAULTS: SettingsData = {
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
   const [form, setForm] = useState<SettingsData>(DEFAULTS);
 
   const { data: settings, isLoading } = useQuery<Record<string, unknown>>({
@@ -46,12 +66,14 @@ export default function SettingsPage() {
   useEffect(() => {
     if (settings) {
       const s = (settings as { settings?: Record<string, string> }).settings || settings;
-      setForm({
-        quote_prefix: (s.quote_prefix as string) || 'HW',
-        default_tax_rate: Number(s.default_tax_rate) || 20,
-        default_currency: (s.default_currency as string) || 'USD',
-        quote_validity_days: Number(s.quote_validity_days) || 30,
-      });
+      queueMicrotask(() =>
+        setForm({
+          quote_prefix: (s.quote_prefix as string) || 'HW',
+          default_tax_rate: Number(s.default_tax_rate) || 20,
+          default_currency: (s.default_currency as string) || 'USD',
+          quote_validity_days: Number(s.quote_validity_days) || 30,
+        }),
+      );
     }
   }, [settings]);
 
@@ -80,10 +102,7 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader title="Ayarlar" description="Sistem yapilandirmasi">
-        <Button
-          loading={saveMutation.isPending}
-          onClick={() => saveMutation.mutate(form)}
-        >
+        <Button loading={saveMutation.isPending} onClick={() => saveMutation.mutate(form)}>
           Kaydet
         </Button>
       </PageHeader>
@@ -128,6 +147,17 @@ export default function SettingsPage() {
             />
           </div>
         </Card>
+
+        {/* Meeting Link — visible to all roles */}
+        <MeetingLinkSection />
+
+        {/* Stage Configuration — sales_manager only */}
+        {user?.role === 'sales_manager' && <StageConfigSection />}
+
+        {/* Sharing Rules & Webhooks — sales_manager only */}
+        {user?.role === 'sales_manager' && <SharingRulesSection />}
+        {user?.role === 'sales_manager' && <WebhookSettings />}
+        {user?.role === 'sales_manager' && <NotificationChannelsSection />}
       </div>
     </div>
   );
@@ -144,7 +174,9 @@ function DisplaySettingsSection() {
       <div className="space-y-6">
         {/* Theme */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">{t('settings.theme')}</label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            {t('settings.theme')}
+          </label>
           <div className="flex gap-2">
             <button
               type="button"
@@ -175,7 +207,9 @@ function DisplaySettingsSection() {
 
         {/* Language */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">{t('settings.language')}</label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            {t('settings.language')}
+          </label>
           <div className="flex flex-wrap gap-2">
             {LANGUAGE_OPTIONS.map((opt) => (
               <button
@@ -197,7 +231,8 @@ function DisplaySettingsSection() {
         {/* Font Size */}
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
-            {t('settings.font_size')} ({fontSizeOffset >= 0 ? '+' : ''}{fontSizeOffset}px)
+            {t('settings.font_size')} ({fontSizeOffset >= 0 ? '+' : ''}
+            {fontSizeOffset}px)
           </label>
           <div className="flex items-center gap-3">
             <button
@@ -242,7 +277,6 @@ function DisplaySettingsSection() {
   );
 }
 
-
 /* ── Email Settings Section ── */
 function EmailSettingsSection() {
   const queryClient = useQueryClient();
@@ -267,14 +301,16 @@ function EmailSettingsSection() {
   // Load stored credentials into form
   useEffect(() => {
     if (creds && creds.is_configured) {
-      setEmailForm({
-        email_address: creds.email_address || '',
-        email_password: '',
-        imap_host: creds.imap_host || '',
-        imap_port: creds.imap_port || 993,
-        smtp_host: creds.smtp_host || '',
-        smtp_port: creds.smtp_port || 587,
-      });
+      queueMicrotask(() =>
+        setEmailForm({
+          email_address: creds.email_address || '',
+          email_password: '',
+          imap_host: creds.imap_host || '',
+          imap_port: creds.imap_port || 993,
+          smtp_host: creds.smtp_host || '',
+          smtp_port: creds.smtp_port || 587,
+        }),
+      );
     }
   }, [creds]);
 
@@ -384,7 +420,8 @@ function EmailSettingsSection() {
   if (isLoading) return <Skeleton variant="card" />;
 
   const isConfigured = creds?.is_configured;
-  const canSave = emailForm.email_address.length > 3 && (emailForm.email_password.length > 0 || isConfigured);
+  const canSave =
+    emailForm.email_address.length > 3 && (emailForm.email_password.length > 0 || isConfigured);
 
   return (
     <>
@@ -427,7 +464,9 @@ function EmailSettingsSection() {
                 setEmailForm((p) => ({ ...p, email_password: e.target.value }));
                 setTestResult(null);
               }}
-              placeholder={isConfigured ? '(degistirmek icin yeni sifre girin)' : 'Sifre veya App Password'}
+              placeholder={
+                isConfigured ? '(degistirmek icin yeni sifre girin)' : 'Sifre veya App Password'
+              }
             />
           </div>
 
@@ -475,7 +514,9 @@ function EmailSettingsSection() {
                   label="IMAP Port"
                   type="number"
                   value={String(emailForm.imap_port)}
-                  onChange={(e) => setEmailForm((p) => ({ ...p, imap_port: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setEmailForm((p) => ({ ...p, imap_port: Number(e.target.value) }))
+                  }
                 />
                 <Input
                   label="SMTP Sunucusu"
@@ -486,7 +527,9 @@ function EmailSettingsSection() {
                   label="SMTP Port"
                   type="number"
                   value={String(emailForm.smtp_port)}
-                  onChange={(e) => setEmailForm((p) => ({ ...p, smtp_port: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setEmailForm((p) => ({ ...p, smtp_port: Number(e.target.value) }))
+                  }
                 />
               </div>
               <button
@@ -546,5 +589,405 @@ function EmailSettingsSection() {
         isLoading={deleteMutation.isPending}
       />
     </>
+  );
+}
+
+/* ── Stage Configuration Section ── */
+function StageConfigSection() {
+  const queryClient = useQueryClient();
+  const [stages, setStages] = useState<StageConfig[]>([]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['stage-config'],
+    queryFn: settingsApi.getStageConfig,
+  });
+
+  useEffect(() => {
+    if (data?.items) {
+      queueMicrotask(() => setStages(data.items));
+    }
+  }, [data]);
+
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      const payload = stages.map((s) => ({
+        stage_name: s.stage_name,
+        label: s.label,
+        probability_pct: s.probability_pct,
+        rotting_threshold_days: s.rotting_threshold_days,
+      }));
+      return settingsApi.updateStageConfig(payload);
+    },
+    onSuccess: () => {
+      toast.success('Asama ayarlari kaydedildi');
+      queryClient.invalidateQueries({ queryKey: ['stage-config'] });
+    },
+    onError: () => toast.error('Asama ayarlari kaydedilemedi'),
+  });
+
+  const updateStage = (index: number, field: keyof StageConfig, value: string | number) => {
+    setStages((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  if (isLoading) return <Skeleton variant="card" />;
+
+  return (
+    <Card title="Asama Ayarlari">
+      <p className="mb-4 text-xs text-gray-500">
+        Firsat asamalarinin olasilik yuzdelerini ve rotting esiklerini yapilandirin.
+      </p>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 text-left">
+              <th className="pb-2 pr-4 font-medium text-gray-600">Asama</th>
+              <th className="pb-2 pr-4 font-medium text-gray-600">Etiket</th>
+              <th className="pb-2 pr-4 font-medium text-gray-600">Olasilik %</th>
+              <th className="pb-2 font-medium text-gray-600">Rotting Esigi (gun)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stages.map((stage, idx) => (
+              <tr key={stage.stage_name} className="border-b border-gray-100 last:border-0">
+                <td className="py-2 pr-4">
+                  <span className="font-mono text-xs text-gray-500">{stage.stage_name}</span>
+                </td>
+                <td className="py-2 pr-4">
+                  <input
+                    type="text"
+                    value={stage.label}
+                    onChange={(e) => updateStage(idx, 'label', e.target.value)}
+                    className="w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                  />
+                </td>
+                <td className="py-2 pr-4">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={stage.probability_pct}
+                    onChange={(e) => updateStage(idx, 'probability_pct', Number(e.target.value))}
+                    className="w-24 rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                  />
+                </td>
+                <td className="py-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={stage.rotting_threshold_days}
+                    onChange={(e) =>
+                      updateStage(idx, 'rotting_threshold_days', Number(e.target.value))
+                    }
+                    className="w-24 rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4 flex justify-end">
+        <Button onClick={() => saveMutation.mutate()} loading={saveMutation.isPending}>
+          <Save size={14} className="mr-1" />
+          Asama Ayarlarini Kaydet
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+/* ── Notification Channels Section ── */
+function NotificationChannelsSection() {
+  const [slackUrl, setSlackUrl] = useState('');
+  const [teamsUrl, setTeamsUrl] = useState('');
+
+  const { data: channelsData, isLoading } = useQuery({
+    queryKey: ['notification-channels'],
+    queryFn: settingsApi.getNotificationChannels,
+  });
+
+  const testMutation = useMutation({
+    mutationFn: (payload: { slack_url?: string; teams_url?: string }) =>
+      settingsApi.testNotificationChannel(payload),
+    onSuccess: (result) => {
+      const results = result.data;
+      if (results.slack === true) {
+        toast.success('Slack test bildirimi gonderildi');
+      } else if (results.slack === false) {
+        toast.error('Slack test bildirimi gonderilemedi');
+      }
+      if (results.teams === true) {
+        toast.success('Teams test bildirimi gonderildi');
+      } else if (results.teams === false) {
+        toast.error('Teams test bildirimi gonderilemedi');
+      }
+    },
+    onError: () => toast.error('Test bildirimi gonderilemedi'),
+  });
+
+  if (isLoading) return <Skeleton variant="card" />;
+
+  const isSlackConfigured = channelsData?.data?.slack_configured ?? false;
+  const isTeamsConfigured = channelsData?.data?.teams_configured ?? false;
+
+  return (
+    <Card title="Bildirim Kanallari">
+      <div className="space-y-6">
+        <p className="text-xs text-gray-500">
+          Firsat ve teklif bildirimleri icin Slack ve Microsoft Teams entegrasyonu. Webhook
+          URL&apos;leri .env dosyasinda yapilandirilir.
+        </p>
+
+        {/* Slack */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell size={16} className="text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Slack</span>
+            </div>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                isSlackConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isSlackConfigured ? 'bg-green-500' : 'bg-gray-400'
+                }`}
+              />
+              {isSlackConfigured ? 'Bagli' : 'Bagli Degil'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              label="Slack Webhook URL"
+              value={slackUrl}
+              onChange={(e) => setSlackUrl(e.target.value)}
+              placeholder="https://hooks.slack.com/services/..."
+            />
+            <Button
+              variant="secondary"
+              loading={testMutation.isPending}
+              disabled={!slackUrl}
+              onClick={() => testMutation.mutate({ slack_url: slackUrl })}
+              className="mt-5 shrink-0"
+            >
+              Test Et
+            </Button>
+          </div>
+        </div>
+
+        {/* Teams */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell size={16} className="text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Microsoft Teams</span>
+            </div>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                isTeamsConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isTeamsConfigured ? 'bg-green-500' : 'bg-gray-400'
+                }`}
+              />
+              {isTeamsConfigured ? 'Bagli' : 'Bagli Degil'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              label="Teams Webhook URL"
+              value={teamsUrl}
+              onChange={(e) => setTeamsUrl(e.target.value)}
+              placeholder="https://outlook.office.com/webhook/..."
+            />
+            <Button
+              variant="secondary"
+              loading={testMutation.isPending}
+              disabled={!teamsUrl}
+              onClick={() => testMutation.mutate({ teams_url: teamsUrl })}
+              className="mt-5 shrink-0"
+            >
+              Test Et
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ── Meeting Link Section ── */
+const DURATION_OPTIONS = [
+  { value: '15', label: '15 dakika' },
+  { value: '30', label: '30 dakika' },
+  { value: '45', label: '45 dakika' },
+  { value: '60', label: '60 dakika' },
+];
+
+function MeetingLinkSection() {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [duration, setDuration] = useState('30');
+
+  const { data: linksData, isLoading: linksLoading } = useQuery({
+    queryKey: ['meeting-links'],
+    queryFn: meetingsApi.listLinks,
+  });
+
+  const { data: bookingsData } = useQuery({
+    queryKey: ['meeting-bookings'],
+    queryFn: meetingsApi.listBookings,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () => meetingsApi.createLink({ title, duration_minutes: Number(duration) }),
+    onSuccess: () => {
+      toast.success('Toplanti linki olusturuldu');
+      setTitle('');
+      queryClient.invalidateQueries({ queryKey: ['meeting-links'] });
+    },
+    onError: () => toast.error('Toplanti linki olusturulamadi'),
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: number) => meetingsApi.deactivateLink(id),
+    onSuccess: () => {
+      toast.success('Toplanti linki devre disi birakildi');
+      queryClient.invalidateQueries({ queryKey: ['meeting-links'] });
+    },
+    onError: () => toast.error('Islem basarisiz'),
+  });
+
+  const links: MeetingLink[] = linksData?.data || [];
+  const bookings: MeetingBooking[] = bookingsData?.data || [];
+
+  const copyUrl = (slug: string) => {
+    const url = `${window.location.origin}/api/v1/meetings/book/${slug}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Link kopyalandi');
+  };
+
+  if (linksLoading) return <Skeleton variant="card" />;
+
+  return (
+    <Card title="Toplanti Linkim">
+      <div className="space-y-6">
+        {/* Create form */}
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500">
+            Musterilerinizin sizinle toplanti planlamasini kolaylastirin.
+          </p>
+          <div className="flex items-end gap-3">
+            <Input
+              label="Toplanti Basligi"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Tanitim Gorusmesi"
+              className="flex-1"
+            />
+            <Select
+              label="Sure"
+              options={DURATION_OPTIONS}
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
+            <Button
+              onClick={() => createMutation.mutate()}
+              loading={createMutation.isPending}
+              disabled={!title.trim()}
+              className="shrink-0"
+            >
+              Olustur
+            </Button>
+          </div>
+        </div>
+
+        {/* Active links */}
+        {links.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-gray-700">Aktif Linkler</h4>
+            <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+              {links.map((lnk) => (
+                <div key={lnk.id} className="flex items-center justify-between px-4 py-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-800">{lnk.title}</span>
+                    <span className="ml-2 text-xs text-gray-400">{lnk.duration_minutes} dk</span>
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <Link2 size={12} className="text-gray-400" />
+                      <span className="text-xs font-mono text-gray-500">
+                        /meetings/book/{lnk.slug}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => copyUrl(lnk.slug)}
+                      className="flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      <Copy size={12} />
+                      Kopyala
+                    </button>
+                    {lnk.is_active && (
+                      <button
+                        type="button"
+                        onClick={() => deactivateMutation.mutate(lnk.id)}
+                        className="flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                        Kapat
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Active bookings */}
+        {bookings.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-gray-700">Aktif Rezervasyonlar</h4>
+            <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+              {bookings.map((b) => (
+                <div key={b.id} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <Calendar size={16} className="text-gray-400 shrink-0" />
+                    <div>
+                      <span className="text-sm font-medium text-gray-800">{b.booker_name}</span>
+                      <span className="ml-2 text-xs text-gray-400">{b.booker_email}</span>
+                      <div className="mt-0.5 text-xs text-gray-500">
+                        {new Date(b.scheduled_at).toLocaleString('tr-TR')}
+                      </div>
+                      {b.notes && <p className="mt-0.5 text-xs text-gray-400 italic">{b.notes}</p>}
+                    </div>
+                  </div>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      b.status === 'confirmed'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    {b.status === 'confirmed' ? 'Onaylandi' : b.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }

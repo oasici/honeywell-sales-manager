@@ -25,10 +25,10 @@ function LoadingSkeleton({ columns }: { columns: number }) {
   return (
     <>
       {[0, 1, 2].map((row) => (
-        <tr key={row} className="border-b border-gray-100">
+        <tr key={row} className="border-b" style={{ borderColor: 'var(--border-light)' }}>
           {Array.from({ length: columns }, (_, col) => (
             <td key={col} className="px-6 py-4">
-              <div className="h-3 w-full animate-pulse rounded bg-gray-200" />
+              <div className="h-3 w-full skeleton-shimmer rounded" />
             </td>
           ))}
         </tr>
@@ -72,11 +72,14 @@ export function DataTable<T = any>({
   }, [data, sortKey, sortDir]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white" role="table">
+    <div className="card-modern overflow-hidden" role="table">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
+            <tr
+              className="border-b bg-gray-50/80 dark:bg-white/5"
+              style={{ borderColor: 'var(--border)' }}
+            >
               {columns.map((col) => (
                 <th
                   key={col.key}
@@ -90,8 +93,8 @@ export function DataTable<T = any>({
                         ? 'none'
                         : undefined
                   }
-                  className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500
-                    ${col.sortable ? 'cursor-pointer select-none hover:text-gray-700' : ''}`}
+                  className={`px-6 py-3 text-overline
+                    ${col.sortable ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-300' : ''}`}
                   role={col.sortable ? 'button' : undefined}
                   tabIndex={col.sortable ? 0 : undefined}
                   onClick={() => col.sortable && handleSort(col.key)}
@@ -105,7 +108,13 @@ export function DataTable<T = any>({
                   <span className="inline-flex items-center gap-1">
                     {col.header}
                     {col.sortable && sortKey === col.key && (
-                      <span>{sortDir === 'asc' ? <ArrowUp size={14} className="shrink-0" /> : <ArrowDown size={14} className="shrink-0" />}</span>
+                      <span>
+                        {sortDir === 'asc' ? (
+                          <ArrowUp size={14} className="shrink-0" />
+                        ) : (
+                          <ArrowDown size={14} className="shrink-0" />
+                        )}
+                      </span>
                     )}
                   </span>
                 </th>
@@ -126,14 +135,16 @@ export function DataTable<T = any>({
                 <tr
                   key={idx}
                   onClick={() => onRowClick?.(row)}
-                  className={`border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors
+                  className={`border-b last:border-b-0 transition-colors duration-150
+                    hover:bg-gray-50 dark:hover:bg-white/5
                     ${onRowClick ? 'cursor-pointer' : ''}`}
+                  style={{ borderColor: 'var(--border-light)' }}
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className="px-6 py-4 text-gray-700">
+                    <td key={col.key} className="px-6 py-4 text-gray-700 dark:text-gray-300">
                       {col.render
                         ? col.render(row)
-                        : ((row as Record<string, unknown>)[col.key] as ReactNode) ?? '-'}
+                        : (((row as Record<string, unknown>)[col.key] as ReactNode) ?? '-')}
                     </td>
                   ))}
                 </tr>
@@ -145,8 +156,11 @@ export function DataTable<T = any>({
 
       {/* Pagination */}
       {page != null && totalPages != null && totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3">
-          <span className="text-sm text-gray-500">
+        <div
+          className="flex items-center justify-between border-t px-6 py-3"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <span className="text-caption">
             Sayfa {page} / {totalPages}
           </span>
           <div className="flex gap-2">

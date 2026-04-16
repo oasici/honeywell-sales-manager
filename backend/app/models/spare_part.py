@@ -28,6 +28,7 @@ class SparePart(Base):
     transfer_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     supplier_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     price_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    min_margin_pct: Mapped[float] = mapped_column(Float, default=0.0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

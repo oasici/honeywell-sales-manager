@@ -9,15 +9,14 @@ interface CardProps {
 
 export function Card({ title, children, className = '', action }: CardProps) {
   return (
-    <div
-      className={`card-modern overflow-hidden ${className}`}
-    >
+    <div className={`card-modern overflow-hidden animate-fade-in ${className}`}>
       {(title || action) && (
-        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 py-4">
-          {title && (
-            <h3 className="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-white">{title}</h3>
-          )}
-          {action && <div>{action}</div>}
+        <div
+          className="flex items-center justify-between border-b px-6 py-4"
+          style={{ borderColor: 'var(--border-light)' }}
+        >
+          {title && <h3 className="text-heading-3 text-gray-900 dark:text-white">{title}</h3>}
+          {action && <div className="flex items-center gap-2">{action}</div>}
         </div>
       )}
       <div className="px-6 py-5">{children}</div>
