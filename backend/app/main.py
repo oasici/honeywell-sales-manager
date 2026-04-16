@@ -395,6 +395,211 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 app.include_router(v1_router, prefix="/api/v1")
 
 
+@app.post("/api/admin/seed-demo")
+async def seed_demo_data():
+    """One-time seed endpoint for Render deployment. Creates all demo data."""
+    import json as _json
+    from datetime import date, timedelta
+    from sqlalchemy import select, func
+
+    results: dict[str, str] = {}
+
+    async with async_session() as db:
+        from app.models.user import User
+        from app.models.customer import Customer
+        from app.models.spare_part import SparePart
+        from app.models.price_entry import PriceEntry
+        from app.models.opportunity import Opportunity, OpportunityEvent, OpportunitySignal
+        from app.models.quote import Quote
+        from app.models.quote_item import QuoteItem
+        from app.models.lead import Lead
+        from app.models.email_request import EmailRequest
+        from app.core.security import hash_password
+
+        # Guard: skip if data already exists
+        opp_count = (await db.execute(select(func.count(Opportunity.id)))).scalar() or 0
+        if opp_count > 3:
+            return {"status": "skipped", "message": f"Data already exists ({opp_count} opportunities)"}
+
+        NOW = datetime.now(timezone.utc)
+
+        # ── Users (rep, ops) ──
+        rep = (await db.execute(select(User).where(User.email == "rep@honeywell.com"))).scalar_one_or_none()
+        if not rep:
+            rep = User(email="rep@honeywell.com", full_name="Elif Kaya", hashed_password=hash_password("Rep12345!"), role="sales_rep", is_active=True)
+            db.add(rep)
+            await db.flush()
+            results["rep"] = f"created id={rep.id}"
+        ops = (await db.execute(select(User).where(User.email == "ops@honeywell.com"))).scalar_one_or_none()
+        if not ops:
+            ops = User(email="ops@honeywell.com", full_name="Mehmet Demir", hashed_password=hash_password("Ops12345!"), role="operations", is_active=True)
+            db.add(ops)
+            await db.flush()
+            results["ops"] = f"created id={ops.id}"
+        admin = (await db.execute(select(User).where(User.email == "admin@honeywell.com"))).scalar_one_or_none()
+
+        # ── Customers (10) ──
+        cust_count = (await db.execute(select(func.count(Customer.id)))).scalar() or 0
+        customers = []
+        if cust_count < 5:
+            cust_data = [
+                ("Anadolu Endustri A.S.", "Anadolu", "satis@anadoluendustri.com.tr", "+90 212 555 0101"),
+                ("Ege Mekatronik Ltd.", "Ege Mekatronik", "info@egemekatronik.com", "+90 232 555 0202"),
+                ("Karadeniz Otomasyon", "Karadeniz Oto", "siparis@karadenizoto.com.tr", "+90 462 555 0303"),
+                ("Ankara Teknik Servis", "Ankara Teknik", "destek@ankarateknik.com.tr", "+90 312 555 0404"),
+                ("Marmara HVAC Systems", "Marmara HVAC", "purchasing@marmarahvac.com", "+90 216 555 0505"),
+                ("Akdeniz Proses", "Akdeniz Proses", "tedarik@akdenizproses.com.tr", "+90 242 555 0606"),
+                ("Trakya Endustriyel", "Trakya End.", "satis@trakyaend.com.tr", "+90 284 555 0707"),
+                ("GAP Muhendislik", "GAP Muh.", "proje@gapmuh.com.tr", "+90 414 555 0808"),
+                ("Bolu Termal Sistemler", "Bolu Termal", "info@bolutermal.com", "+90 374 555 0909"),
+                ("Kocaeli Filtre San.", "Kocaeli Filtre", "siparis@kocaelifiltre.com.tr", "+90 262 555 1010"),
+            ]
+            for name, company, email, phone in cust_data:
+                c = Customer(name=name, company=company, email=email, phone=phone)
+                db.add(c)
+                customers.append(c)
+            await db.flush()
+            results["customers"] = f"created {len(customers)}"
+
+        all_customers = (await db.execute(select(Customer).order_by(Customer.id))).scalars().all()
+
+        # ── Spare Parts (10) ──
+        part_count = (await db.execute(select(func.count(SparePart.id)))).scalar() or 0
+        if part_count < 5:
+            parts_data = [
+                ("HW-VALVE-001", "Pnomatik Aktuator", "Pneumatic Actuator", "valve"),
+                ("HW-ACTU-002", "Elektrik Aktuator 24V", "Electric Actuator 24V", "actuator"),
+                ("HW-CTRL-001", "PLC Kontrolor HC900", "PLC Controller HC900", "controller"),
+                ("HW-CTRL-002", "DCS Modul C300", "DCS Module C300", "controller"),
+                ("HW-SENS-001", "Sicaklik Sensoru PT100", "Temperature Sensor PT100", "sensor"),
+                ("HW-SENS-002", "Basinc Transmiteri", "Pressure Transmitter", "sensor"),
+                ("HW-FLTR-001", "Hava Filtresi Panel 20x20", "Air Filter Panel 20x20", "filter"),
+                ("HW-FLTR-002", "HEPA Filtre H13", "HEPA Filter H13", "filter"),
+                ("HW-ANAL-001", "Gaz Analizoru", "Gas Analyzer", "analyzer"),
+                ("HW-FLOW-001", "Debi Olcer Versaflow", "Flow Meter Versaflow", "flow"),
+            ]
+            for code, name_tr, name_en, cat in parts_data:
+                p = SparePart(honeywell_code=code, name_tr=name_tr, name_en=name_en, category=cat)
+                db.add(p)
+            await db.flush()
+            results["parts"] = f"created {len(parts_data)}"
+
+        all_parts = (await db.execute(select(SparePart).order_by(SparePart.id))).scalars().all()
+
+        # ── Opportunities (8) ──
+        if opp_count < 3:
+            opp_data = [
+                ("Anadolu Endustri - HVAC Yenileme", "proposal", 125000, "TRY"),
+                ("Ege Mekatronik - PLC Upgrade", "negotiation", 270000, "TRY"),
+                ("Karadeniz - Sensor Paketi", "qualified", 85000, "TRY"),
+                ("Marmara HVAC - Yillik Bakim", "prospecting", 50000, "TRY"),
+                ("GAP Muhendislik - DCS Modernizasyon", "proposal", 450000, "USD"),
+                ("Bolu Termal - Filtre Tedarikat", "negotiation", 35000, "TRY"),
+                ("Kocaeli Filtre - Yillik Tedarikat", "qualified", 120000, "TRY"),
+                ("Akdeniz Proses - Otomasyon Paketi", "negotiation", 310000, "TRY"),
+            ]
+            for i, (title, stage, amount, currency) in enumerate(opp_data):
+                cust = all_customers[i % len(all_customers)] if all_customers else None
+                o = Opportunity(
+                    title=title, stage=stage, amount=amount, currency=currency,
+                    customer_id=cust.id if cust else None,
+                    owner_id=admin.id if admin else (rep.id if rep else 1),
+                    close_date=date.today() + timedelta(days=30 + i * 15),
+                    source="inbound",
+                )
+                db.add(o)
+            await db.flush()
+            results["opportunities"] = f"created {len(opp_data)}"
+
+        # ── Pipeline Snapshots (4 weeks) ──
+        from app.models.forecast import PipelineSnapshot
+        snap_count = (await db.execute(select(func.count(PipelineSnapshot.id)))).scalar() or 0
+        if snap_count == 0:
+            stages = [("prospecting", 5, 150000), ("qualified", 4, 280000), ("proposal", 6, 420000), ("negotiation", 3, 350000)]
+            for week in range(4):
+                snap_date = (NOW - timedelta(weeks=3 - week)).date()
+                growth = 1 + week * 0.12
+                for stage, count, total in stages:
+                    db.add(PipelineSnapshot(snapshot_date=snap_date, stage=stage, opportunity_count=int(count * growth), total_amount=round(total * growth, 2), weighted_amount=round(total * growth * 0.6, 2)))
+            await db.flush()
+            results["snapshots"] = "created 16"
+
+        # ── Competitor Mentions ──
+        from app.models.competitor_mention import CompetitorMention
+        cm_count = (await db.execute(select(func.count(CompetitorMention.id)))).scalar() or 0
+        if cm_count == 0:
+            for comp, sent, snippet, days in [
+                ("Siemens", "negative", "Siemens PLC fiyatlari ile karsilastirma", 2),
+                ("Siemens", "positive", "Siemens teslimat 8 hafta, biz 4 hafta", 8),
+                ("ABB", "negative", "ABB yeni seri degerlendiriliyor", 5),
+                ("ABB", "positive", "ABB ile ayni kalite, fiyat avantajimiz var", 12),
+                ("Schneider", "positive", "Schneider otomasyon daha pahali", 15),
+                ("Emerson", "positive", "Emerson DCS gecis planlaniyor", 7),
+                ("Yokogawa", "positive", "Yokogawa teklif vermis ama servis agimiz genis", 20),
+            ]:
+                db.add(CompetitorMention(competitor_name=comp, source_entity_type="email", source_entity_id=1, context_snippet=snippet, sentiment=sent, detected_by="keyword", created_at=NOW - timedelta(days=days)))
+            await db.flush()
+            results["competitors"] = "created 7"
+
+        # ── Pipelines ──
+        from app.models.pipeline import Pipeline
+        pipe_count = (await db.execute(select(func.count(Pipeline.id)))).scalar() or 0
+        if pipe_count == 0:
+            for name, desc, is_default, stages_json in [
+                ("Standart Satis", "Standart satis pipeline", True, _json.dumps([{"key":"prospecting","label":"Arastirma","order":1,"probability":10},{"key":"qualified","label":"Nitelenmis","order":2,"probability":25},{"key":"proposal","label":"Teklif","order":3,"probability":50},{"key":"negotiation","label":"Muzakere","order":4,"probability":75},{"key":"closed_won","label":"Kazanildi","order":5,"probability":100},{"key":"closed_lost","label":"Kaybedildi","order":6,"probability":0}])),
+                ("Hizli Satis", "Hizli satis pipeline", False, _json.dumps([{"key":"qualified","label":"Nitelenmis","order":1,"probability":30},{"key":"proposal","label":"Teklif","order":2,"probability":60},{"key":"closed_won","label":"Kazanildi","order":3,"probability":100},{"key":"closed_lost","label":"Kaybedildi","order":4,"probability":0}])),
+            ]:
+                db.add(Pipeline(name=name, description=desc, is_default=is_default, stages_json=stages_json, created_by=admin.id if admin else 1))
+            await db.flush()
+            results["pipelines"] = "created 2"
+
+        # ── Territories ──
+        from app.models.territory import Territory
+        terr_count = (await db.execute(select(func.count(Territory.id)))).scalar() or 0
+        if terr_count == 0:
+            t1 = Territory(name="Marmara Bolgesi", description="Istanbul, Bursa, Kocaeli", region="Marmara", created_by=admin.id if admin else 1)
+            t2 = Territory(name="Ege-Akdeniz Bolgesi", description="Izmir, Antalya, Mugla", region="Ege", created_by=admin.id if admin else 1)
+            t3 = Territory(name="Ic Anadolu", description="Ankara, Konya, Eskisehir", region="Ic Anadolu", created_by=admin.id if admin else 1)
+            db.add_all([t1, t2, t3])
+            await db.flush()
+            results["territories"] = "created 3"
+
+        # ── Report Templates ──
+        from app.models.report import ReportTemplate
+        rt_count = (await db.execute(select(func.count(ReportTemplate.id)))).scalar() or 0
+        if rt_count == 0:
+            templates = [
+                ("Aylik Satis Raporu", "opportunity", '["title","stage","amount","close_date"]', "bar", "stage"),
+                ("Teklif Durum Ozeti", "quote", '["quote_number","status","grand_total","created_at"]', "pie", "status"),
+                ("Musteri Listesi", "customer", '["name","company","email","phone"]', "table", None),
+            ]
+            for name, etype, cols, chart, group in templates:
+                db.add(ReportTemplate(name=name, entity_type=etype, columns_json=cols, chart_type=chart, group_by=group, sort_by=group or "created_at", sort_order="desc", created_by=admin.id if admin else 1))
+            await db.flush()
+            results["report_templates"] = "created 3"
+
+        # ── Contracts ──
+        from app.models.contract import Contract
+        ct_count = (await db.execute(select(func.count(Contract.id)))).scalar() or 0
+        if ct_count == 0 and all_customers:
+            for title, cust_idx, val in [("Anadolu HVAC Bakim", 0, 250000), ("Ege Sensor Tedarikat", 1, 180000)]:
+                db.add(Contract(title=title, customer_id=all_customers[cust_idx].id if len(all_customers) > cust_idx else 1, value=val, currency="TRY", status="active", start_date=date.today() - timedelta(days=90), end_date=date.today() + timedelta(days=275), created_by=admin.id if admin else 1))
+            await db.flush()
+            results["contracts"] = "created 2"
+
+        # ── Workflow Rules ──
+        from app.models.workflow_rule import WorkflowRule
+        wf_count = (await db.execute(select(func.count(WorkflowRule.id)))).scalar() or 0
+        if wf_count == 0:
+            db.add(WorkflowRule(name="Yuksek Deger Firsat Bildirimi", entity_type="opportunity", trigger_event="stage_change", conditions_json='{"conditions":[{"field":"amount","operator":"gt","value":100000}]}', actions_json='{"actions":[{"type":"notification","target":"manager"}]}', flow_json='{"nodes":[],"edges":[]}', is_active=True, created_by=admin.id if admin else 1))
+            await db.flush()
+            results["workflow_rules"] = "created 1"
+
+        await db.commit()
+
+    return {"status": "ok", "results": results}
+
+
 @app.get("/api/debug/login-test")
 async def debug_login_test():
     """Debug endpoint to test login flow."""
