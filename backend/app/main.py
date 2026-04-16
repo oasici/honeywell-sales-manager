@@ -399,10 +399,22 @@ app.include_router(v1_router, prefix="/api/v1")
 async def seed_demo_data():
     """One-time seed endpoint for Render deployment. Creates all demo data."""
     import json as _json
+    import traceback
     from datetime import date, timedelta
     from sqlalchemy import select, func
 
     results: dict[str, str] = {}
+
+    try:
+        return await _run_seed(results)
+    except Exception as e:
+        return {"status": "error", "error": str(e), "trace": traceback.format_exc()[-1500:], "results": results}
+
+
+async def _run_seed(results: dict) -> dict:
+    import json as _json
+    from datetime import date, timedelta
+    from sqlalchemy import select, func
 
     async with async_session() as db:
         from app.models.user import User
