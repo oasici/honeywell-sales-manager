@@ -517,7 +517,6 @@ async def _run_seed(results: dict) -> dict:
                     customer_id=cust.id if cust else None,
                     owner_id=admin.id if admin else (rep.id if rep else 1),
                     close_date=date.today() + timedelta(days=30 + i * 15),
-                    source="inbound",
                 )
                 db.add(o)
             await db.flush()
