@@ -103,13 +103,13 @@ export function ChatWidget() {
         <div
           className="w-80 h-96 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-hidden animate-slide-up"
           role="dialog"
-          aria-label="Canli Sohbet"
+          aria-label="Canlı Sohbet"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-honeywell-red text-white">
             <div className="flex items-center gap-2">
               <MessageSquare size={16} />
-              <span className="text-sm font-semibold">Canli Destek</span>
+              <span className="text-sm font-semibold">Canlı Destek</span>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -127,7 +127,7 @@ export function ChatWidget() {
             )}
             {hasSessionError && !createSessionMutation.isPending && (
               <div className="flex flex-col items-center gap-2 pt-8">
-                <p className="text-center text-xs text-red-500">Hata olustu, tekrar deneyin</p>
+                <p className="text-center text-xs text-red-500">Hata oluştu, tekrar deneyin</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -178,7 +178,7 @@ export function ChatWidget() {
               onClick={handleSend}
               disabled={!inputText.trim() || !sessionId || sendMutation.isPending}
               className="rounded-lg p-1.5 bg-honeywell-red text-white hover:bg-honeywell-red/90 disabled:opacity-40 transition-colors cursor-pointer"
-              aria-label="Gonder"
+              aria-label="Gönder"
             >
               <Send size={15} />
             </button>

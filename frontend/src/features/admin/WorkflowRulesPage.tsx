@@ -17,44 +17,44 @@ import { formatDateTime } from '../../lib/formatters';
 import type { WorkflowRule } from '../../lib/types';
 
 const ENTITY_TYPE_OPTIONS = [
-  { value: 'opportunity', label: 'Firsat' },
+  { value: 'opportunity', label: 'Fırsat' },
   { value: 'quote', label: 'Teklif' },
   { value: 'email', label: 'E-posta' },
-  { value: 'customer', label: 'Musteri' },
+  { value: 'customer', label: 'Müşteri' },
 ];
 
 const TRIGGER_EVENT_OPTIONS: Record<string, { value: string; label: string }[]> = {
   opportunity: [
-    { value: 'stage_changed', label: 'Asama Degisti' },
-    { value: 'created', label: 'Olusturuldu' },
-    { value: 'amount_changed', label: 'Tutar Degisti' },
+    { value: 'stage_changed', label: 'Aşama Değişti' },
+    { value: 'created', label: 'Oluşturuldu' },
+    { value: 'amount_changed', label: 'Tutar Değişti' },
   ],
   quote: [
-    { value: 'approved', label: 'Onaylandi' },
-    { value: 'sent', label: 'Gonderildi' },
-    { value: 'created', label: 'Olusturuldu' },
+    { value: 'approved', label: 'Onaylandı' },
+    { value: 'sent', label: 'Gönderildi' },
+    { value: 'created', label: 'Oluşturuldu' },
   ],
   email: [
-    { value: 'parsed', label: 'Ayristirma Tamamlandi' },
+    { value: 'parsed', label: 'Ayrıştırma Tamamlandi' },
     { value: 'received', label: 'Alindi' },
   ],
   customer: [
-    { value: 'created', label: 'Olusturuldu' },
-    { value: 'updated', label: 'Guncellendi' },
+    { value: 'created', label: 'Oluşturuldu' },
+    { value: 'updated', label: 'Güncellendi' },
   ],
 };
 
 const ACTION_TYPE_OPTIONS = [
-  { value: 'send_notification', label: 'Bildirim Gonder' },
-  { value: 'create_task', label: 'Gorev Olustur' },
+  { value: 'send_notification', label: 'Bildirim Gönder' },
+  { value: 'create_task', label: 'Gorev Oluştur' },
   { value: 'emit_signal', label: 'Sinyal Yayinla' },
-  { value: 'field_update', label: 'Alan Guncelle' },
+  { value: 'field_update', label: 'Alan Güncelle' },
 ];
 
 const OPERATOR_OPTIONS = [
   { value: 'eq', label: 'Esit' },
-  { value: 'neq', label: 'Esit Degil' },
-  { value: 'contains', label: 'Icerir' },
+  { value: 'neq', label: 'Esit Değil' },
+  { value: 'contains', label: 'İçerir' },
   { value: 'gte', label: 'Buyuk Esit' },
   { value: 'lte', label: 'Kucuk Esit' },
 ];
@@ -106,11 +106,11 @@ export default function WorkflowRulesPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => workflowRulesApi.create(payload),
     onSuccess: () => {
-      toast.success('Is kurali olusturuldu');
+      toast.success('İş kuralı oluşturuldu');
       resetForm();
       queryClient.invalidateQueries({ queryKey: ['workflowRules'] });
     },
-    onError: () => toast.error('Is kurali olusturulamadi'),
+    onError: () => toast.error('İş kuralı oluşturulamadı'),
   });
 
   const toggleMutation = useMutation({
@@ -120,18 +120,18 @@ export default function WorkflowRulesPage() {
       toast.success('Kural durumu guncellendi');
       queryClient.invalidateQueries({ queryKey: ['workflowRules'] });
     },
-    onError: () => toast.error('Guncelleme basarisiz'),
+    onError: () => toast.error('Güncelleme başarısız'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => workflowRulesApi.remove(id),
     onSuccess: () => {
-      toast.success('Is kurali silindi');
+      toast.success('İş kuralı silindi');
       setDeleteTarget(null);
       queryClient.invalidateQueries({ queryKey: ['workflowRules'] });
     },
     onError: () => {
-      toast.error('Is kurali silinemedi');
+      toast.error('İş kuralı silinemedi');
       setDeleteTarget(null);
     },
   });
@@ -208,7 +208,7 @@ export default function WorkflowRulesPage() {
 
   return (
     <div>
-      <PageHeader title="Is Kurallari" description="Olay tabanli otomasyon kurallari">
+      <PageHeader title="İş Kuralları" description="Olay tabanli otomasyon kuralları">
         <Button variant="secondary" onClick={() => navigate('/admin/workflow-rules/flow/new')}>
           Yeni Gorsel Kural
         </Button>
@@ -219,16 +219,16 @@ export default function WorkflowRulesPage() {
 
       {isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
-          <p className="text-red-600 font-medium">Is kurallari yuklenemedi</p>
+          <p className="text-red-600 font-medium">Is kuralları yuklenemedi</p>
           <p className="text-sm text-red-500 mt-1">Sayfa yeniden yuklenmeyi deneyin</p>
         </div>
       )}
 
       {!isLoading && !isError && items.length === 0 && (
         <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">Henuz is kurali tanimlanmamis</p>
+          <p className="text-gray-500">Henüz is kuralı tanimlanmamis</p>
           <Button className="mt-4" onClick={() => setIsCreateOpen(true)}>
-            Ilk Kurali Olustur
+            İlk Kuralı Oluştur
           </Button>
         </div>
       )}
@@ -246,7 +246,7 @@ export default function WorkflowRulesPage() {
 
               <div className="mt-3 space-y-1 text-sm text-gray-600">
                 <p>
-                  <span className="font-medium">Varlik:</span> {entityLabel(rule.entity_type)}
+                  <span className="font-medium">Varlık:</span> {entityLabel(rule.entity_type)}
                 </p>
                 <p>
                   <span className="font-medium">Tetikleyici:</span>{' '}
@@ -287,17 +287,17 @@ export default function WorkflowRulesPage() {
       )}
 
       {/* Create modal */}
-      <Modal isOpen={isCreateOpen} onClose={resetForm} title="Yeni Is Kurali">
+      <Modal isOpen={isCreateOpen} onClose={resetForm} title="Yeni İş Kuralı">
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
           <Input
             label="Kural Adi"
-            placeholder="Ornegin: Yuksek tutar bildirimi"
+            placeholder="Örneğin: Yüksek tutar bildirimi"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
 
           <Select
-            label="Varlik Tipi"
+            label="Varlık Tipi"
             options={ENTITY_TYPE_OPTIONS}
             value={form.entity_type}
             onChange={(e) =>
@@ -342,7 +342,7 @@ export default function WorkflowRulesPage() {
                   onChange={(e) => updateCondition(idx, 'operator', e.target.value)}
                 />
                 <Input
-                  label={idx === 0 ? 'Deger' : undefined}
+                  label={idx === 0 ? 'Değer' : undefined}
                   placeholder="negotiation"
                   value={cond.value}
                   onChange={(e) => updateCondition(idx, 'value', e.target.value)}
@@ -405,10 +405,10 @@ export default function WorkflowRulesPage() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={resetForm}>
-              Iptal
+              İptal
             </Button>
             <Button onClick={handleCreate} loading={createMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>
@@ -418,7 +418,7 @@ export default function WorkflowRulesPage() {
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget !== null && deleteMutation.mutate(deleteTarget)}
-        title="Is Kurali Sil"
+        title="İş Kuralı Sil"
         message="Bu is kuralini silmek istediginizden emin misiniz?"
         confirmLabel="Sil"
         confirmVariant="danger"

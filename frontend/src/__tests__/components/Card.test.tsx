@@ -6,7 +6,7 @@ describe('Card', () => {
   it('renders with title', () => {
     const { container } = render(
       <Card title="Test Basligi">
-        <p>Icerik</p>
+        <p>İçerik</p>
       </Card>,
     );
     expect(container.firstChild).toMatchSnapshot();
@@ -15,7 +15,7 @@ describe('Card', () => {
   it('renders without title', () => {
     const { container } = render(
       <Card>
-        <p>Sadece icerik</p>
+        <p>Sadece içerik</p>
       </Card>,
     );
     expect(container.firstChild).toMatchSnapshot();

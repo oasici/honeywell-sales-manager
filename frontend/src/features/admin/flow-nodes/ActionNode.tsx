@@ -12,7 +12,7 @@ const ACTION_LABELS: Record<string, string> = {
   send_notification: 'Bildirim',
   create_task: 'Gorev',
   emit_signal: 'Sinyal',
-  field_update: 'Guncelleme',
+  field_update: 'Güncelleme',
 };
 
 export function ActionNode({ data, selected }: NodeProps) {

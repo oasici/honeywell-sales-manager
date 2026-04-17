@@ -105,20 +105,20 @@ export default function PlaybookDetailPage() {
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Hata olustu',
+          'Hata oluştu',
       ),
   });
 
   const cancelExecutionMutation = useMutation({
     mutationFn: (execId: number) => playbookApi.cancelExecution(execId),
     onSuccess: () => {
-      toast.success('Yurutme iptal edildi');
+      toast.success('Yürütme iptal edildi');
       queryClient.invalidateQueries({ queryKey: ['playbook-executions', playbookId] });
     },
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Hata olustu',
+          'Hata oluştu',
       ),
   });
 
@@ -138,7 +138,7 @@ export default function PlaybookDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={playbook.name} description={playbook.description ?? undefined}>
-        {!isEditing && <Button onClick={startEditing}>Duzenle</Button>}
+        {!isEditing && <Button onClick={startEditing}>Düzenle</Button>}
       </PageHeader>
 
       {/* Edit form */}
@@ -162,7 +162,7 @@ export default function PlaybookDetailPage() {
               required
             />
             <Input
-              label="Aciklama"
+              label="Açıklama"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
@@ -196,7 +196,7 @@ export default function PlaybookDetailPage() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" type="button" onClick={() => setIsEditing(false)}>
-                Iptal
+                İptal
               </Button>
               <Button type="submit" loading={updateMutation.isPending}>
                 Kaydet
@@ -223,7 +223,7 @@ export default function PlaybookDetailPage() {
       {/* Steps stepper */}
       <Card>
         <div className="p-4">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Adimlar</h2>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Adımlar</h2>
           {isEditing ? (
             <StepBuilder steps={editSteps} onChange={setEditSteps} />
           ) : (
@@ -237,7 +237,7 @@ export default function PlaybookDetailPage() {
         <div className="p-4">
           <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Yurutmeler</h2>
           {executions.length === 0 ? (
-            <p className="text-sm text-gray-500">Henuz yurutme bulunmuyor.</p>
+            <p className="text-sm text-gray-500">Henüz yurutme bulunmuyor.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -245,10 +245,10 @@ export default function PlaybookDetailPage() {
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="pb-2 font-medium text-gray-500">ID</th>
                     <th className="pb-2 font-medium text-gray-500">Durum</th>
-                    <th className="pb-2 font-medium text-gray-500">Mevcut Adim</th>
+                    <th className="pb-2 font-medium text-gray-500">Mevcut Adım</th>
                     <th className="pb-2 font-medium text-gray-500">Baslangic</th>
                     <th className="pb-2 font-medium text-gray-500">Bitis</th>
-                    <th className="pb-2 font-medium text-gray-500">Islem</th>
+                    <th className="pb-2 font-medium text-gray-500">İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -275,7 +275,7 @@ export default function PlaybookDetailPage() {
                             size="sm"
                             onClick={() => cancelExecutionMutation.mutate(exec.id)}
                           >
-                            Iptal Et
+                            İptal Et
                           </Button>
                         ) : null}
                       </td>

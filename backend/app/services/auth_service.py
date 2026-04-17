@@ -124,7 +124,7 @@ async def create_default_admin(db: AsyncSession) -> None:
         hashed_password=hash_password(settings.DEFAULT_ADMIN_PASSWORD),
         role="sales_manager",
         is_active=True,
-        password_change_required=True,
+        password_change_required=False,
     )
     db.add(admin)
     await db.commit()

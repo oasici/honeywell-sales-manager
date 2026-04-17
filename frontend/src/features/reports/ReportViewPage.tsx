@@ -40,8 +40,8 @@ const CHART_COLORS = [
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
   quote: 'Teklif',
-  opportunity: 'Firsat',
-  customer: 'Musteri',
+  opportunity: 'Fırsat',
+  customer: 'Müşteri',
   email: 'Email',
 };
 
@@ -101,7 +101,7 @@ export default function ReportViewPage() {
   if (isTemplateLoading || isExecuting) {
     return (
       <div>
-        <PageHeader title="Rapor Yukleniyor..." />
+        <PageHeader title="Rapor Yükleniyor..." />
         <div className="space-y-4">
           <Skeleton variant="card" count={2} />
         </div>

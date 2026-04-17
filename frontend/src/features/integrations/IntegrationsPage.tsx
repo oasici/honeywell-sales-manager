@@ -26,7 +26,7 @@ export default function IntegrationsPage() {
   const connectCalendarMutation = useMutation({
     mutationFn: () => integrationsApi.connectCalendar({ provider: 'google' }),
     onSuccess: () => {
-      toast.success('Takvim basariyla baglandi');
+      toast.success('Takvim başarıyla baglandi');
       queryClient.invalidateQueries({ queryKey: ['integrations', 'calendar'] });
     },
     onError: () => toast.error('Takvim baglanamadi'),
@@ -35,13 +35,13 @@ export default function IntegrationsPage() {
   const syncCalendarMutation = useMutation({
     mutationFn: () => integrationsApi.syncCalendar(),
     onSuccess: () => toast.success('Takvim senkronize edildi'),
-    onError: () => toast.error('Senkronizasyon basarisiz'),
+    onError: () => toast.error('Senkronizasyon başarısız'),
   });
 
   const connectEsignMutation = useMutation({
     mutationFn: () => integrationsApi.connectEsign({ provider: 'docusign' }),
     onSuccess: () => {
-      toast.success('E-imza basariyla baglandi');
+      toast.success('E-imza başarıyla baglandi');
       queryClient.invalidateQueries({ queryKey: ['integrations', 'esign'] });
     },
     onError: () => toast.error('E-imza baglanamadi'),
@@ -69,7 +69,7 @@ export default function IntegrationsPage() {
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-gray-700">Durum:</span>
                 <Badge variant={isCalendarConnected ? 'success' : 'default'}>
-                  {isCalendarConnected ? 'Bagli' : 'Bagli Degil'}
+                  {isCalendarConnected ? 'Bagli' : 'Bagli Değil'}
                 </Badge>
               </div>
 
@@ -111,7 +111,7 @@ export default function IntegrationsPage() {
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-gray-700">Durum:</span>
                 <Badge variant={isEsignConnected ? 'success' : 'default'}>
-                  {isEsignConnected ? 'Bagli' : 'Bagli Degil'}
+                  {isEsignConnected ? 'Bagli' : 'Bagli Değil'}
                 </Badge>
               </div>
 

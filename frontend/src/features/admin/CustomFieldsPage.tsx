@@ -17,8 +17,8 @@ import { formatDateTime } from '../../lib/formatters';
 import type { CustomFieldDefinition } from '../../lib/types';
 
 const ENTITY_TYPE_OPTIONS = [
-  { value: 'customer', label: 'Musteri' },
-  { value: 'opportunity', label: 'Firsat' },
+  { value: 'customer', label: 'Müşteri' },
+  { value: 'opportunity', label: 'Fırsat' },
   { value: 'quote', label: 'Teklif' },
   { value: 'lead', label: 'Aday' },
 ];
@@ -27,7 +27,7 @@ const FIELD_TYPE_OPTIONS = [
   { value: 'text', label: 'Metin' },
   { value: 'number', label: 'Sayi' },
   { value: 'date', label: 'Tarih' },
-  { value: 'select', label: 'Secim' },
+  { value: 'select', label: 'Seçim' },
   { value: 'checkbox', label: 'Onay Kutusu' },
 ];
 
@@ -54,23 +54,23 @@ export default function CustomFieldsPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => customFieldsApi.create(payload),
     onSuccess: () => {
-      toast.success('Ozel alan olusturuldu');
+      toast.success('Özel alan oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['customFields', entityType] });
     },
-    onError: () => toast.error('Ozel alan olusturulamadi'),
+    onError: () => toast.error('Özel alan oluşturulamadı'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => customFieldsApi.remove(id),
     onSuccess: () => {
-      toast.success('Ozel alan silindi');
+      toast.success('Özel alan silindi');
       setDeleteTarget(null);
       queryClient.invalidateQueries({ queryKey: ['customFields', entityType] });
     },
     onError: () => {
-      toast.error('Ozel alan silinemedi');
+      toast.error('Özel alan silinemedi');
       setDeleteTarget(null);
     },
   });
@@ -138,7 +138,7 @@ export default function CustomFieldsPage() {
     },
     {
       key: 'actions',
-      header: 'Islemler',
+      header: 'İşlemler',
       render: (row: CustomFieldDefinition) => (
         <Button size="sm" variant="danger" onClick={() => setDeleteTarget(row.id)}>
           Sil
@@ -150,8 +150,8 @@ export default function CustomFieldsPage() {
   return (
     <div>
       <PageHeader
-        title="Ozel Alanlar"
-        description="Varlik tipine gore ozel alan tanimlamalari"
+        title="Özel Alanlar"
+        description="Varlık tipine gore özel alan tanimlamalari"
       >
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Alan</Button>
       </PageHeader>
@@ -159,7 +159,7 @@ export default function CustomFieldsPage() {
       {/* Entity type selector */}
       <div className="mb-6 max-w-xs">
         <Select
-          label="Varlik Tipi"
+          label="Varlık Tipi"
           options={ENTITY_TYPE_OPTIONS}
           value={entityType}
           onChange={(e) => setEntityType(e.target.value)}
@@ -172,7 +172,7 @@ export default function CustomFieldsPage() {
         <DataTable
           columns={columns}
           data={items}
-          emptyMessage="Ozel alan bulunamadi"
+          emptyMessage="Özel alan bulunamadi"
         />
       )}
 
@@ -180,12 +180,12 @@ export default function CustomFieldsPage() {
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Yeni Ozel Alan"
+        title="Yeni Özel Alan"
       >
         <div className="space-y-4">
           <Input
             label="Alan Adi"
-            placeholder="Ornegin: vergi_no"
+            placeholder="Örneğin: vergi_no"
             value={form.field_name}
             onChange={(e) => setForm({ ...form, field_name: e.target.value })}
           />
@@ -198,7 +198,7 @@ export default function CustomFieldsPage() {
           {form.field_type === 'select' && (
             <Input
               label="Secenekler (JSON)"
-              placeholder='["Secenek 1", "Secenek 2"]'
+              placeholder='["Seçenek 1", "Seçenek 2"]'
               value={form.options_json}
               onChange={(e) => setForm({ ...form, options_json: e.target.value })}
             />
@@ -214,10 +214,10 @@ export default function CustomFieldsPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button onClick={handleCreate} loading={createMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>
@@ -227,8 +227,8 @@ export default function CustomFieldsPage() {
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget !== null && deleteMutation.mutate(deleteTarget)}
-        title="Ozel Alan Sil"
-        message="Bu ozel alani silmek istediginizden emin misiniz?"
+        title="Özel Alan Sil"
+        message="Bu özel alani silmek istediginizden emin misiniz?"
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}

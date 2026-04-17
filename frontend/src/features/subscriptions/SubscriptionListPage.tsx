@@ -10,8 +10,8 @@ import type { Subscription, MrrDashboard } from '../../lib/types';
 const STATUS_LABELS: Record<string, string> = {
   active: 'Aktif',
   paused: 'Duraklatildi',
-  cancelled: 'Iptal Edildi',
-  expired: 'Suresi Doldu',
+  cancelled: 'İptal Edildi',
+  expired: 'Süresi Doldu',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -83,17 +83,17 @@ export default function SubscriptionListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => subscriptionsApi.create(payload),
     onSuccess: () => {
-      toast.success('Abonelik olusturuldu');
+      toast.success('Abonelik oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       setShowCreate(false);
       setForm(INITIAL_FORM);
     },
-    onError: () => toast.error('Abonelik olusturulamadi'),
+    onError: () => toast.error('Abonelik oluşturulamadı'),
   });
 
   const handleCreate = () => {
     if (!form.name || !form.customer_id) {
-      toast.error('Ad ve musteri alanlari zorunludur');
+      toast.error('Ad ve müşteri alanlari zorunludur');
       return;
     }
     createMutation.mutate({
@@ -234,11 +234,11 @@ export default function SubscriptionListPage() {
               color: 'var(--text-primary)',
             }}
           >
-            <option value="">Tum Durumlar</option>
+            <option value="">Tüm Durumlar</option>
             <option value="active">Aktif</option>
             <option value="paused">Duraklatildi</option>
-            <option value="cancelled">Iptal Edildi</option>
-            <option value="expired">Suresi Doldu</option>
+            <option value="cancelled">İptal Edildi</option>
+            <option value="expired">Süresi Doldu</option>
           </select>
         </div>
       </div>
@@ -262,7 +262,7 @@ export default function SubscriptionListPage() {
             {isLoading && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                  Yukleniyor...
+                  Yükleniyor...
                 </td>
               </tr>
             )}
@@ -333,7 +333,7 @@ export default function SubscriptionListPage() {
               </div>
               <div>
                 <label htmlFor="sub-customer" className="mb-1 block text-sm text-gray-500">
-                  Musteri
+                  Müşteri
                 </label>
                 <select
                   id="sub-customer"
@@ -346,7 +346,7 @@ export default function SubscriptionListPage() {
                     color: 'var(--text-primary)',
                   }}
                 >
-                  <option value="">Musteri secin</option>
+                  <option value="">Müşteri seçin</option>
                   {(customers?.items ?? []).map(
                     (c: { id: number; name: string; company: string }) => (
                       <option key={c.id} value={c.id}>
@@ -464,7 +464,7 @@ export default function SubscriptionListPage() {
                 disabled={createMutation.isPending}
                 className="rounded-lg bg-honeywell-red px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                {createMutation.isPending ? 'Olusturuluyor...' : 'Olustur'}
+                {createMutation.isPending ? 'Oluşturuluyor...' : 'Oluştur'}
               </button>
             </div>
           </div>

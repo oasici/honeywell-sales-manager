@@ -23,7 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
   draft: 'Taslak',
   active: 'Aktif',
   amended: 'Degistirilmis',
-  expired: 'Suresi Dolmus',
+  expired: 'Süresi Dolmus',
   terminated: 'Feshedilmis',
 };
 
@@ -64,7 +64,7 @@ export default function ContractDetailPage() {
       toast.success('Kontrat aktiflestirildi');
       queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
     },
-    onError: () => toast.error('Aktiflesitirme basarisiz'),
+    onError: () => toast.error('Aktiflesitirme başarısız'),
   });
 
   const amendMutation = useMutation({
@@ -163,7 +163,7 @@ export default function ContractDetailPage() {
         <Card title="Kontrat Bilgileri">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <p className="text-xs text-gray-500">Musteri ID</p>
+              <p className="text-xs text-gray-500">Müşteri ID</p>
               <p className="text-sm font-medium text-gray-900">{contract.customer_id}</p>
             </div>
             {contract.quote_id && (
@@ -181,7 +181,7 @@ export default function ContractDetailPage() {
               <p className="text-sm font-medium text-gray-900">{contract.end_date || '-'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Deger</p>
+              <p className="text-xs text-gray-500">Değer</p>
               <p className="text-sm font-medium text-gray-900">
                 {contract.value != null
                   ? contract.value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })
@@ -205,7 +205,7 @@ export default function ContractDetailPage() {
         {/* Amendment Timeline */}
         <Card title="Degisiklik Gecmisi">
           {amendments.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">Henuz degisiklik yok</p>
+            <p className="py-6 text-center text-sm text-gray-400">Henüz degisiklik yok</p>
           ) : (
             <div className="relative pl-6">
               <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-gray-200" />
@@ -255,7 +255,7 @@ export default function ContractDetailPage() {
                 onChange={(e) => setAmendType(e.target.value)}
               />
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Aciklama</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Açıklama</label>
                 <textarea
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light focus:border-honeywell-red"
                   rows={3}
@@ -273,7 +273,7 @@ export default function ContractDetailPage() {
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setIsAmendOpen(false)}>
-                Iptal
+                İptal
               </Button>
               <Button onClick={handleAmend} loading={amendMutation.isPending}>
                 Ekle

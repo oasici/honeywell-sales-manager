@@ -17,7 +17,7 @@ export function TriggerNode({ data, selected }: NodeProps) {
       }`}
     >
       <div className="text-[10px] font-bold text-green-600 uppercase mb-1">Tetikleyici</div>
-      <div className="text-sm font-semibold text-gray-900">{nodeData.label || 'Olay Sec'}</div>
+      <div className="text-sm font-semibold text-gray-900">{nodeData.label || 'Olay Seç'}</div>
       {nodeData.entity_type && (
         <div className="text-xs text-gray-500 mt-0.5">
           {nodeData.entity_type} . {nodeData.trigger_event}

@@ -27,7 +27,7 @@ export function ConfirmDialog({
       <p className="text-sm text-gray-600 mb-6">{message}</p>
       <div className="flex justify-end gap-3">
         <Button variant="secondary" onClick={onClose} disabled={isLoading}>
-          Iptal
+          İptal
         </Button>
         <Button variant={confirmVariant} onClick={onConfirm} loading={isLoading}>
           {confirmLabel}

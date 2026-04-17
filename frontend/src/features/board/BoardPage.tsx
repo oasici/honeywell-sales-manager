@@ -226,7 +226,7 @@ export default function BoardPage() {
             </div>
             <div className="space-y-2 rounded-xl bg-gray-50 p-2 dark:bg-gray-900/50 min-h-[200px]">
               {col.items.length === 0 ? (
-                <p className="py-8 text-center text-xs text-gray-400">Firsat yok</p>
+                <p className="py-8 text-center text-xs text-gray-400">Fırsat yok</p>
               ) : (
                 col.items.map((opp) => (
                   <KanbanCard key={opp.id} opp={opp} healthScore={healthMap.get(opp.id) ?? null} />

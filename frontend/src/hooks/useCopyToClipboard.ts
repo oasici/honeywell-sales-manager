@@ -7,7 +7,7 @@ export function useCopyToClipboard() {
       await navigator.clipboard.writeText(text);
       toast.success('Kopyalandi');
     } catch {
-      toast.error('Kopyalama basarisiz');
+      toast.error('Kopyalama başarısız');
     }
   }, []);
   return copy;

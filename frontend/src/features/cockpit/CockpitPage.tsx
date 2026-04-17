@@ -55,9 +55,9 @@ const SEVERITY_VARIANT: Record<string, BadgeVariant> = {
 
 const SEVERITY_LABEL: Record<string, string> = {
   critical: 'Kritik',
-  high: 'Yuksek',
+  high: 'Yüksek',
   medium: 'Orta',
-  low: 'Dusuk',
+  low: 'Düşük',
 };
 
 const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
@@ -69,9 +69,9 @@ const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
 
 const PRIORITY_LABEL: Record<string, string> = {
   urgent: 'Acil',
-  high: 'Yuksek',
+  high: 'Yüksek',
   normal: 'Normal',
-  low: 'Dusuk',
+  low: 'Düşük',
 };
 
 // ── KPI Strip ────────────────────────────────────────
@@ -106,7 +106,7 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
       icon: <AlertTriangle size={18} className="text-red-500" />,
     },
     {
-      label: 'Ort. Hiz (gun)',
+      label: 'Ort. Hız (gun)',
       value: String(data.avg_deal_velocity_days),
       icon: <Clock size={18} className="text-amber-500" />,
     },
@@ -171,9 +171,9 @@ function SignalStream() {
         >
           <option value="all">Tumu</option>
           <option value="critical">Kritik</option>
-          <option value="high">Yuksek</option>
+          <option value="high">Yüksek</option>
           <option value="medium">Orta</option>
-          <option value="low">Dusuk</option>
+          <option value="low">Düşük</option>
         </select>
       }
     >
@@ -233,7 +233,7 @@ function ActionQueue() {
   const actions: CockpitAction[] = data?.items ?? [];
 
   return (
-    <Card title="AI Onerilen Gorevler">
+    <Card title="AI Önerilen Gorevler">
       {isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : actions.length === 0 ? (
@@ -362,7 +362,7 @@ function PlaybookPanel() {
                 size="sm"
                 onClick={() => cancelMutation.mutate(exec.id)}
                 loading={cancelMutation.isPending}
-                title="Iptal Et"
+                title="İptal Et"
               >
                 <XCircle size={16} className="text-red-400" />
               </Button>
@@ -403,7 +403,7 @@ function CoachingPanel() {
                 <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Temsilci</th>
                 <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Skor</th>
                 <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Risk</th>
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Oneriler</th>
+                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Öneriler</th>
               </tr>
             </thead>
             <tbody>
@@ -452,7 +452,7 @@ function CompetitiveIntelPanel() {
       queryClient.invalidateQueries({ queryKey: ['ai-competitive-intel'] });
     },
     onError: () => {
-      toast.error('Rakip tarama basarisiz oldu');
+      toast.error('Rakip tarama başarısız oldu');
     },
   });
 
@@ -545,11 +545,11 @@ function AtRiskDealsPanel() {
   const deals = data?.opportunities ?? data?.deals ?? data?.items ?? [];
 
   return (
-    <Card title="Riskli Firsatlar">
+    <Card title="Riskli Fırsatlar">
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : deals.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">Risk altinda firsat yok</p>
+        <p className="py-6 text-center text-sm text-gray-400">Risk altinda fırsat yok</p>
       ) : (
         <div className="space-y-2">
           {deals
@@ -622,7 +622,7 @@ function ActivityDroughtPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : items.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">Son 7 gunde aktivitesiz firsat yok</p>
+        <p className="py-6 text-center text-sm text-gray-400">Son 7 gunde aktivitesiz fırsat yok</p>
       ) : (
         <div className="space-y-2">
           {items.slice(0, 7).map((item) => (
@@ -688,7 +688,7 @@ function RevenueLeakPanel() {
             <span className="text-2xl font-bold text-red-600">
               {formatCurrency(leaks.total_leak_amount, 'TRY')}
             </span>
-            <Badge variant="danger">{leaks.total_leaks} firsat</Badge>
+            <Badge variant="danger">{leaks.total_leaks} fırsat</Badge>
           </div>
           <div className="space-y-2">
             {leaks.items.slice(0, 5).map((item: RevenueLeakItem) => (
@@ -791,17 +791,18 @@ function SequencesTab() {
       </div>
 
       {/* Exit Reason Distribution */}
-      {analytics.exit_reason_distribution && Object.keys(analytics.exit_reason_distribution).length > 0 && (
-        <Card title="Tamamlama Nedeni Dagilimi">
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(analytics.exit_reason_distribution).map(([reason, count]) => (
-              <Badge key={reason} variant="default">
-                {reason}: {count as number}
-              </Badge>
-            ))}
-          </div>
-        </Card>
-      )}
+      {analytics.exit_reason_distribution &&
+        Object.keys(analytics.exit_reason_distribution).length > 0 && (
+          <Card title="Tamamlama Nedeni Dagilimi">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(analytics.exit_reason_distribution).map(([reason, count]) => (
+                <Badge key={reason} variant="default">
+                  {reason}: {count as number}
+                </Badge>
+              ))}
+            </div>
+          </Card>
+        )}
 
       {/* Active Enrollments (next actions) */}
       <Card title={`Aktif Diziler (${activeEnrollments.length})`}>
@@ -845,7 +846,7 @@ export default function CockpitPage() {
     <div className="space-y-6">
       <PageHeader
         title="Gelir Kokpiti"
-        description="Pipeline, sinyaller ve AI destekli gorev yonetimi"
+        description="Pipeline, sinyaller ve AI destekli gorev yönetimi"
       />
 
       {/* KPI Strip */}

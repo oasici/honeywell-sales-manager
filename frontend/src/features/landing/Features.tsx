@@ -5,32 +5,32 @@ const FEATURES = [
   {
     icon: Mail,
     title: 'Email → Teklif Otomasyonu',
-    desc: 'IMAP ile gelen kutusunu tarayin. AI, her e-postadan musteri adini, parca kodlarini ve miktarlari cikarir. Manuel kopyala-yapistir tarih oldu.',
+    desc: 'IMAP ile gelen kutusunu tarayin. AI, her e-postadan müşteri adini, parça kodlarini ve miktarlari cikarir. Manuel kopyala-yapistir tarih oldu.',
   },
   {
     icon: Search,
-    title: 'Akilli Parca Eslestirme',
+    title: 'Akilli Parça Eslestirme',
     desc: '5 stratejiyle (tam kod, prefix, fuzzy, isim, semantik) katalogunuzdaki 4000+ parcayi saniyede eslestirir. Guven skoru ile sunar.',
   },
   {
     icon: FileCheck,
-    title: 'Onay Akisi + PDF Uretim',
-    desc: 'Manager tek tikla onaylar, profesyonel PDF otomatik olusur, musteri e-postasi ek ile gonderilir. Tum surecler denetim izinde.',
+    title: 'Onay Akisi + PDF Üretim',
+    desc: 'Manager tek tikla onaylar, profesyonel PDF otomatik olusur, müşteri e-postasi ek ile gonderilir. Tüm surecler denetim izinde.',
   },
   {
     icon: Shield,
     title: 'Denetim Izi (Audit Trail)',
-    desc: 'Her islem — olusturma, guncelleme, onay, gonderim — kimin, ne zaman, ne yaptigi ile kayit altindadir. Uyumluluk icin hazir.',
+    desc: 'Her işlem — oluşturma, guncelleme, onay, gonderim — kimin, ne zaman, ne yaptigi ile kayıt altindadir. Uyumluluk için hazir.',
   },
   {
     icon: Bell,
-    title: 'Bildirimler + Is Kuyrugu',
-    desc: 'Yeni talepler, onay bekleyen teklifler, suresi dolan firsatlar anlik bildirimlerle takip edilir. Hicbir sey gozden kacar kacirilmaz.',
+    title: 'Bildirimler + İş Kuyrugu',
+    desc: 'Yeni talepler, onay bekleyen teklifler, süresi dolan fırsatlar anlik bildirimlerle takip edilir. Hicbir sey gozden kacar kacirilmaz.',
   },
   {
     icon: BarChart3,
-    title: 'Raporlar + Musteri Sagligi',
-    desc: 'Donusum orani, yanit suresi, temsilci performansi, indirim analizi, musteri saglik skoru. Yoneticiler icin tek ekranda.',
+    title: 'Raporlar + Müşteri Sagligi',
+    desc: 'Donusum orani, yanit süresi, temsilci performansi, indirim analizi, müşteri saglik skoru. Yoneticiler için tek ekranda.',
   },
 ];
 
@@ -46,7 +46,7 @@ export default function Features() {
         >
           <p className="text-xs font-semibold uppercase tracking-widest text-red-600">Ozellikler</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            Satis surecinin her adiminida kapsayan tek platform
+            Satış surecinin her adiminida kapsayan tek platform
           </h2>
         </motion.div>
 

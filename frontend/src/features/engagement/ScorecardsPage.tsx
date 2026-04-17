@@ -100,7 +100,7 @@ export default function ScorecardsPage() {
 
   return (
     <div>
-      <PageHeader title="Performans Kartlari" description="Satis ekibi etkinlik skorlari">
+      <PageHeader title="Performans Kartlari" description="Satış ekibi etkinlik skorlari">
         <div className="flex items-center gap-2">
           {WINDOW_OPTIONS.map((opt) => (
             <Button
@@ -120,7 +120,7 @@ export default function ScorecardsPage() {
       ) : scorecards.length === 0 ? (
         <EmptyState
           title="Skor karti bulunamadi"
-          description="Secilen donem icin veri yok"
+          description="Seçilen donem için veri yok"
           icon={<BarChart3 size={40} />}
         />
       ) : (

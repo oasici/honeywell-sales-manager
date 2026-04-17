@@ -37,10 +37,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="flex min-h-[400px] flex-col items-center justify-center px-4 text-center">
           <div className="mb-4"><AlertTriangle size={48} className="text-red-400" /></div>
           <h2 className="mb-2 text-xl font-semibold text-gray-900">
-            Bir hata olustu
+            Bir hata oluştu
           </h2>
           <p className="mb-4 max-w-md text-sm text-gray-500">
-            Beklenmeyen bir hata meydana geldi. Lutfen tekrar deneyin.
+            Beklenmeyen bir hata meydana geldi. Lütfen tekrar deneyin.
           </p>
           <details className="mb-6 w-full max-w-lg text-left">
             <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600">

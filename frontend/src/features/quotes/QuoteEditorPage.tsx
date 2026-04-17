@@ -117,12 +117,12 @@ export default function QuoteEditorPage() {
     mutationFn: (payload: Record<string, unknown>) =>
       quoteId ? quotesApi.updateQuote(quoteId, payload) : quotesApi.createQuote(payload),
     onSuccess: (result) => {
-      toast.success(quoteId ? 'Teklif guncellendi' : 'Teklif olusturuldu');
+      toast.success(quoteId ? 'Teklif guncellendi' : 'Teklif oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
       if (!quoteId) navigate(`/quotes/${result.id}`, { replace: true });
       else queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
     },
-    onError: () => toast.error('Kaydetme basarisiz'),
+    onError: () => toast.error('Kaydetme başarısız'),
   });
 
   const approveMutation = useMutation({
@@ -131,7 +131,7 @@ export default function QuoteEditorPage() {
       toast.success('Teklif onaylandi');
       queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
     },
-    onError: () => toast.error('Onaylama basarisiz'),
+    onError: () => toast.error('Onaylama başarısız'),
   });
 
   const sendMutation = useMutation({
@@ -140,7 +140,7 @@ export default function QuoteEditorPage() {
       toast.success('Teklif gonderildi');
       queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
     },
-    onError: () => toast.error('Gonderme basarisiz'),
+    onError: () => toast.error('Gönderme başarısız'),
   });
 
   // ── Calculations ───────────────────────────────────
@@ -166,7 +166,7 @@ export default function QuoteEditorPage() {
   // ── Handlers ───────────────────────────────────────
   const handleSave = useCallback(() => {
     if (!customerId) {
-      toast.error('Lutfen musteri secin');
+      toast.error('Lütfen müşteri seçin');
       return;
     }
     saveMutation.mutate({
@@ -313,7 +313,7 @@ export default function QuoteEditorPage() {
     if (!quoteId || !quote) return;
     const customerEmail = quote.customer?.email || '';
     if (!customerEmail) {
-      toast.error('Musteri email adresi bulunamadi');
+      toast.error('Müşteri email adresi bulunamadi');
       return;
     }
     try {
@@ -328,7 +328,7 @@ export default function QuoteEditorPage() {
       await navigator.clipboard.writeText(trackingUrl);
       toast.success('Paylasim linki panoya kopyalandi');
     } catch {
-      toast.error('Paylasim linki olusturulamadi');
+      toast.error('Paylasim linki oluşturulamadı');
     }
   }, [quoteId, quote]);
 
@@ -384,7 +384,7 @@ export default function QuoteEditorPage() {
             onClick={() => sendMutation.mutate()}
             className="!bg-blue-600 !text-white hover:!bg-blue-700"
           >
-            Gonder
+            Gönder
           </Button>
         )}
         {quoteId && (
@@ -419,11 +419,11 @@ export default function QuoteEditorPage() {
 
       <div className="space-y-6">
         {/* ── Customer Section ──────────────────────── */}
-        <Card title="Musteri">
+        <Card title="Müşteri">
           <div className="relative max-w-md">
             <Input
-              label="Musteri Ara"
-              placeholder="Sirket veya isim yazin..."
+              label="Müşteri Ara"
+              placeholder="Şirket veya isim yazin..."
               value={customerSearch}
               onChange={(e) => {
                 setCustomerSearch(e.target.value);
@@ -502,14 +502,14 @@ export default function QuoteEditorPage() {
           action={
             <div className="flex items-center gap-2">
               <Button variant="secondary" size="sm" onClick={() => setIsGuidedSellingOpen(true)}>
-                Rehberli Satis
+                Rehberli Satış
               </Button>
               <Button variant="secondary" size="sm" onClick={() => setIsBundleModalOpen(true)}>
                 Paket Ekle
               </Button>
               <div className="relative">
                 <Input
-                  placeholder="Parca kodu ile ara..."
+                  placeholder="Parça kodu ile ara..."
                   value={partSearch}
                   onChange={(e) => {
                     setPartSearch(e.target.value);
@@ -559,7 +559,7 @@ export default function QuoteEditorPage() {
         >
           {items.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">
-              Henuz kalem eklenmedi. Yukardaki arama kutusundan parca ekleyin.
+              Henüz kalem eklenmedi. Yukardaki arama kutusundan parça ekleyin.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -704,7 +704,7 @@ export default function QuoteEditorPage() {
         </Card>
 
         {/* ── Summary ───────────────────────────────── */}
-        <Card title="Ozet">
+        <Card title="Özet">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Receipt-style item list */}
             <div className="flex-1 min-w-0">
@@ -736,7 +736,7 @@ export default function QuoteEditorPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 italic">Henuz kalem eklenmedi</p>
+                <p className="text-sm text-gray-400 italic">Henüz kalem eklenmedi</p>
               )}
             </div>
 

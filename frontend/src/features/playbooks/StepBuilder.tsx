@@ -11,9 +11,9 @@ const ACTION_TYPE_OPTIONS = [
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: 'low', label: 'Dusuk' },
+  { value: 'low', label: 'Düşük' },
   { value: 'normal', label: 'Normal' },
-  { value: 'high', label: 'Yuksek' },
+  { value: 'high', label: 'Yüksek' },
   { value: 'urgent', label: 'Acil' },
 ];
 
@@ -69,7 +69,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
 
   if (readOnly) {
     if (steps.length === 0) {
-      return <p className="text-sm text-gray-500">Tanimlanmis adim bulunmuyor.</p>;
+      return <p className="text-sm text-gray-500">Tanimlanmis adım bulunmuyor.</p>;
     }
 
     return (
@@ -192,7 +192,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
 
             <div className="mt-3">
               <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Mesaj Sablonu
+                Mesaj Şablonu
               </label>
               <textarea
                 className={TEXTAREA_CLASS}
@@ -207,7 +207,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Dogru ise (Adim No)
+                    Dogru ise (Adım No)
                   </label>
                   <input
                     type="number"
@@ -223,7 +223,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Yanlis ise (Adim No)
+                    Yanlis ise (Adım No)
                   </label>
                   <input
                     type="number"
@@ -249,7 +249,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
         className="inline-flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-gray-400 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300"
       >
         <Plus className="h-4 w-4" />
-        Adim Ekle
+        Adım Ekle
       </button>
     </div>
   );

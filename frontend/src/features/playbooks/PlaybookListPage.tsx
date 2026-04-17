@@ -57,7 +57,7 @@ export default function PlaybookListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => playbookApi.create(payload),
     onSuccess: () => {
-      toast.success('Playbook olusturuldu');
+      toast.success('Playbook oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['playbooks'] });
       setShowCreate(false);
       setForm({ ...EMPTY_FORM });
@@ -67,7 +67,7 @@ export default function PlaybookListPage() {
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Hata olustu',
+          'Hata oluştu',
       ),
   });
 
@@ -81,7 +81,7 @@ export default function PlaybookListPage() {
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Hata olustu',
+          'Hata oluştu',
       ),
   });
 
@@ -94,7 +94,7 @@ export default function PlaybookListPage() {
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Hata olustu',
+          'Hata oluştu',
       ),
   });
 
@@ -103,7 +103,7 @@ export default function PlaybookListPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Playbook'lar" description="Satis sureci playbook yonetimi" />
+        <PageHeader title="Playbook'lar" description="Satış sureci playbook yönetimi" />
         <Skeleton variant="card" count={3} />
       </div>
     );
@@ -111,14 +111,14 @@ export default function PlaybookListPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Playbook'lar" description="Satis sureci playbook yonetimi">
+      <PageHeader title="Playbook'lar" description="Satış sureci playbook yönetimi">
         <Button onClick={() => setShowCreate(true)}>Yeni Playbook</Button>
       </PageHeader>
 
       {playbooks.length === 0 ? (
         <Card>
           <EmptyState
-            title="Henuz playbook bulunmuyor"
+            title="Henüz playbook bulunmuyor"
             description="Yeni bir playbook olusturarak baslayabilirsiniz."
             action={<Button onClick={() => setShowCreate(true)}>Yeni Playbook</Button>}
           />
@@ -191,7 +191,7 @@ export default function PlaybookListPage() {
         </div>
       )}
 
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Yeni Playbook Olustur">
+      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Yeni Playbook Oluştur">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -210,7 +210,7 @@ export default function PlaybookListPage() {
             required
           />
           <Input
-            label="Aciklama"
+            label="Açıklama"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
@@ -236,16 +236,16 @@ export default function PlaybookListPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Adimlar
+              Adımlar
             </label>
             <StepBuilder steps={formSteps} onChange={setFormSteps} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setShowCreate(false)} type="button">
-              Iptal
+              İptal
             </Button>
             <Button type="submit" loading={createMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </form>

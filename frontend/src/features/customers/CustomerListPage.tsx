@@ -82,7 +82,7 @@ function CustomerCard({
       {/* Top section - clickable to customer detail */}
       <div className="flex items-start gap-4 p-5">
         {/* Checkbox */}
-        <label className="flex items-center shrink-0 pt-0.5" aria-label={`${c.name} sec`}>
+        <label className="flex items-center shrink-0 pt-0.5" aria-label={`${c.name} seç`}>
           <input
             type="checkbox"
             checked={isSelected}
@@ -265,21 +265,21 @@ export default function CustomerListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => customersApi.createCustomer(payload),
     onSuccess: () => {
-      toast.success('Musteri basariyla eklendi');
+      toast.success('Müşteri başarıyla eklendi');
       setModalOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: () => toast.error('Musteri eklenemedi'),
+    onError: () => toast.error('Müşteri eklenemedi'),
   });
 
   const importMutation = useMutation({
     mutationFn: (file: File) => customersApi.importCustomers(file),
     onSuccess: (res) => {
-      toast.success(`${res.imported} musteri ice aktarildi`);
+      toast.success(`${res.imported} müşteri içe aktarıldı`);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: () => toast.error('Ice aktarma basarisiz'),
+    onError: () => toast.error('İçe aktarma başarısız'),
   });
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,7 +315,7 @@ export default function CustomerListPage() {
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: () => toast.error('Toplu islem basarisiz oldu'),
+    onError: () => toast.error('Toplu işlem başarısız oldu'),
   });
 
   const handleBulkAction = useCallback(
@@ -330,11 +330,11 @@ export default function CustomerListPage() {
         return;
       }
       if (key === 'assign') {
-        const ownerIdStr = window.prompt('Atanacak kullanici ID\'sini girin:');
+        const ownerIdStr = window.prompt('Atanacak kullanıcı ID\'sini girin:');
         if (!ownerIdStr) return;
         const ownerId = parseInt(ownerIdStr, 10);
         if (isNaN(ownerId)) {
-          toast.error('Gecersiz kullanici ID');
+          toast.error('Geçersiz kullanıcı ID');
           return;
         }
         bulkMutation.mutate({ ids, action: 'assign', params: { created_by: ownerId } });
@@ -352,7 +352,7 @@ export default function CustomerListPage() {
 
   return (
     <div>
-      <PageHeader title="Musteriler" description="Musteri yonetimi">
+      <PageHeader title="Müşteriler" description="Müşteri yönetimi">
         <input
           type="file"
           ref={importRef}
@@ -365,16 +365,16 @@ export default function CustomerListPage() {
           loading={importMutation.isPending}
           onClick={() => importRef.current?.click()}
         >
-          Ice Aktar
+          İçe Aktar
         </Button>
-        <Button onClick={() => setModalOpen(true)}>Yeni Musteri</Button>
+        <Button onClick={() => setModalOpen(true)}>Yeni Müşteri</Button>
       </PageHeader>
 
       {/* Search + Select All */}
       <div className="mb-6 flex items-center gap-4">
         <div className="max-w-md flex-1">
           <Input
-            placeholder="Isim, sirket veya email ile ara..."
+            placeholder="İsim, şirket veya email ile ara..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -390,7 +390,7 @@ export default function CustomerListPage() {
               onChange={toggleAll}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            Tumu Sec
+            Tumu Seç
           </label>
         )}
       </div>
@@ -408,10 +408,10 @@ export default function CustomerListPage() {
             <Users size={36} className="text-gray-400" />
           </div>
           <EmptyState
-            title="Musteri bulunamadi"
-            description="Yeni musteri ekleyerek baslayabilirsiniz"
+            title="Müşteri bulunamadi"
+            description="Yeni müşteri ekleyerek baslayabilirsiniz"
             action={
-              <Button onClick={() => setModalOpen(true)}>Yeni Musteri</Button>
+              <Button onClick={() => setModalOpen(true)}>Yeni Müşteri</Button>
             }
           />
         </div>
@@ -462,7 +462,7 @@ export default function CustomerListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title="Yeni Musteri"
+        title="Yeni Müşteri"
         size="lg"
       >
         <form
@@ -474,13 +474,13 @@ export default function CustomerListPage() {
         >
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Input
-              label="Isim"
+              label="İsim"
               value={form.name}
               onChange={(e) => updateField('name', e.target.value)}
               required
             />
             <Input
-              label="Sirket"
+              label="Şirket"
               value={form.company}
               onChange={(e) => updateField('company', e.target.value)}
             />
@@ -521,7 +521,7 @@ export default function CustomerListPage() {
           />
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button
               type="submit"
@@ -551,7 +551,7 @@ export default function CustomerListPage() {
           setShowDeleteConfirm(false);
         }}
         title="Musterileri Sil"
-        message={`${selectedCount} musteriyi silmek istediginize emin misiniz? Bu islem geri alinamaz.`}
+        message={`${selectedCount} musteriyi silmek istediginize emin misiniz? Bu işlem geri alinamaz.`}
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={bulkMutation.isPending}

@@ -17,7 +17,7 @@ export function QuickAddFAB() {
 
   const actions: QuickAction[] = [
     {
-      label: 'Yeni Firsat',
+      label: 'Yeni Fırsat',
       icon: Briefcase,
       onClick: () => {
         setIsOpen(false);
@@ -33,7 +33,7 @@ export function QuickAddFAB() {
       },
     },
     {
-      label: 'Hizli Not',
+      label: 'Hızlı Not',
       icon: StickyNote,
       onClick: () => {
         setIsOpen(false);
@@ -99,7 +99,7 @@ export function QuickAddFAB() {
           <div className="w-full max-w-lg rounded-t-2xl bg-white p-5 shadow-2xl dark:bg-gray-900">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                Hizli Not
+                Hızlı Not
               </h3>
               <button
                 type="button"
@@ -129,7 +129,7 @@ export function QuickAddFAB() {
                 }}
                 className="rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
-                Iptal
+                İptal
               </button>
               <button
                 type="button"

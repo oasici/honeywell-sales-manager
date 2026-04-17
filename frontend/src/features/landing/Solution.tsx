@@ -6,21 +6,21 @@ const STEPS = [
     num: '01',
     icon: Mail,
     title: 'Email Yakala + Ayikla',
-    desc: 'IMAP ile gelen kutusu taranir. AI (Claude) e-postayi ayristirir: musteri, parca kodlari, miktarlar, aciliyet. Dusuk guvenli sonuclar insan onayina sunulur.',
+    desc: 'IMAP ile gelen kutusu taranir. AI (Claude) e-postayi ayristirir: müşteri, parça kodlari, miktarlar, aciliyet. Düşük guvenli sonuclar insan onayina sunulur.',
     color: 'from-blue-600 to-blue-500',
   },
   {
     num: '02',
     icon: Search,
-    title: 'Parca Eslesir + Teklif Hazirla',
-    desc: '4000+ parcalik katalogda fuzzy eslestirme. Kod, isim, semantik benzerlik ile en yakin parcalar bulunur. Fiyat otomatik cekilir, teklif taslagi olusur.',
+    title: 'Parça Eslesir + Teklif Hazirla',
+    desc: '4000+ parcalik katalogda fuzzy eslestirme. Kod, isim, semantik benzerlik ile en yakin parçalar bulunur. Fiyat otomatik cekilir, teklif taslagi olusur.',
     color: 'from-violet-600 to-violet-500',
   },
   {
     num: '03',
     icon: Send,
-    title: 'Onayla + PDF + Gonder + Izle',
-    desc: 'Manager onaylar, profesyonel PDF uretilir, musteri e-postasi tek tikla gonderilir. Her adim denetim izinde. Bildirimler anlik.',
+    title: 'Onayla + PDF + Gönder + Izle',
+    desc: 'Manager onaylar, profesyonel PDF uretilir, müşteri e-postasi tek tikla gonderilir. Her adım denetim izinde. Bildirimler anlik.',
     color: 'from-red-600 to-red-500',
   },
 ];
@@ -35,7 +35,7 @@ export default function Solution() {
           viewport={{ once: true, margin: '-100px' }}
           className="mx-auto max-w-2xl text-center"
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-green-600">Cozum</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-green-600">Çözüm</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
             3 adimda: e-postadan profesyonel teklife
           </h2>
@@ -83,9 +83,9 @@ export default function Solution() {
           <div>
             <p className="text-sm font-semibold text-blue-900">AI onermede bulunur, insan karar verir.</p>
             <p className="mt-1 text-xs text-blue-700">
-              Parca eslestirme ve kategori tahmini AI desteklidir. Ancak her oneri
-              guven skoru ile sunulur ve dusuk guvenli sonuclar otomatik olarak
-              insan incelemesine yonlendirilir. Hicbir islem otomatik onaylanmaz.
+              Parça eslestirme ve kategori tahmini AI desteklidir. Ancak her öneri
+              guven skoru ile sunulur ve düşük guvenli sonuclar otomatik olarak
+              insan incelemesine yonlendirilir. Hicbir işlem otomatik onaylanmaz.
             </p>
           </div>
         </motion.div>

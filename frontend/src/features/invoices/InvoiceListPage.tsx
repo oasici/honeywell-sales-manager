@@ -17,18 +17,18 @@ import type { Invoice, Customer } from '../../lib/types';
 const STATUS_TABS = [
   { value: '', label: 'Tumu' },
   { value: 'draft', label: 'Taslak' },
-  { value: 'sent', label: 'Gonderildi' },
-  { value: 'paid', label: 'Odendi' },
+  { value: 'sent', label: 'Gönderildi' },
+  { value: 'paid', label: 'Ödendi' },
   { value: 'overdue', label: 'Gecikti' },
-  { value: 'voided', label: 'Iptal' },
+  { value: 'voided', label: 'İptal' },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Taslak',
-  sent: 'Gonderildi',
-  paid: 'Odendi',
+  sent: 'Gönderildi',
+  paid: 'Ödendi',
   overdue: 'Gecikti',
-  voided: 'Iptal',
+  voided: 'İptal',
 };
 
 const STATUS_VARIANTS: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
@@ -79,25 +79,25 @@ export default function InvoiceListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Parameters<typeof invoicesApi.create>[0]) => invoicesApi.create(payload),
     onSuccess: (created: Invoice) => {
-      toast.success('Fatura olusturuldu');
+      toast.success('Fatura oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       navigate(`/invoices/${created.id}`);
     },
-    onError: () => toast.error('Fatura olusturulamadi'),
+    onError: () => toast.error('Fatura oluşturulamadı'),
   });
 
   const createFromQuoteMutation = useMutation({
     mutationFn: (quoteId: number) => invoicesApi.createFromQuote(quoteId),
     onSuccess: (created: Invoice) => {
-      toast.success('Fatura tekliften olusturuldu');
+      toast.success('Fatura tekliften oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       navigate(`/invoices/${created.id}`);
     },
-    onError: () => toast.error('Fatura olusturulamadi'),
+    onError: () => toast.error('Fatura oluşturulamadı'),
   });
 
   const handleCreate = useCallback(() => {
@@ -110,7 +110,7 @@ export default function InvoiceListPage() {
       return;
     }
     if (!form.customer_id) {
-      toast.error('Musteri secimi zorunludur');
+      toast.error('Müşteri secimi zorunludur');
       return;
     }
     createMutation.mutate({
@@ -126,11 +126,11 @@ export default function InvoiceListPage() {
   if (isError) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Faturalar" description="Fatura yonetimi ve takibi" />
+        <PageHeader title="Faturalar" description="Fatura yönetimi ve takibi" />
         <Card>
           <div className="p-8 text-center">
             <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata olustu. Lutfen sayfayi yenileyin.
+              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
             </p>
           </div>
         </Card>
@@ -140,7 +140,7 @@ export default function InvoiceListPage() {
 
   return (
     <div>
-      <PageHeader title="Faturalar" description="Fatura yonetimi ve takibi">
+      <PageHeader title="Faturalar" description="Fatura yönetimi ve takibi">
         <Button onClick={() => setIsCreateOpen(true)}>
           <ReceiptText className="mr-1.5 h-4 w-4" />
           Yeni Fatura
@@ -180,9 +180,9 @@ export default function InvoiceListPage() {
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500">Fatura No</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Musteri</th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Müşteri</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500">Durum</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Duzenleme</th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Düzenleme</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500">Vade</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
                     Toplam
@@ -256,7 +256,7 @@ export default function InvoiceListPage() {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'
             }`}
           >
-            Manuel Olustur
+            Manuel Oluştur
           </button>
           <button
             type="button"
@@ -267,7 +267,7 @@ export default function InvoiceListPage() {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'
             }`}
           >
-            Tekliften Olustur
+            Tekliften Oluştur
           </button>
         </div>
 
@@ -284,19 +284,19 @@ export default function InvoiceListPage() {
             <>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Musteri Ara
+                  Müşteri Ara
                 </label>
                 <input
                   type="text"
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                  placeholder="Musteri adi ile ara..."
+                  placeholder="Müşteri adi ile ara..."
                   value={customerSearch}
                   onChange={(e) => setCustomerSearch(e.target.value)}
                 />
                 {customerSearch.length >= 2 && (
                   <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-800">
                     {!customerResults?.items?.length && (
-                      <p className="px-3 py-2 text-sm text-gray-400">Musteri bulunamadi</p>
+                      <p className="px-3 py-2 text-sm text-gray-400">Müşteri bulunamadi</p>
                     )}
                     {customerResults?.items?.map((c) => (
                       <button
@@ -315,7 +315,7 @@ export default function InvoiceListPage() {
                   </div>
                 )}
                 {form.customer_id && (
-                  <p className="mt-1 text-xs text-green-600">Secilen ID: {form.customer_id}</p>
+                  <p className="mt-1 text-xs text-green-600">Seçilen ID: {form.customer_id}</p>
                 )}
               </div>
               <Input
@@ -359,10 +359,10 @@ export default function InvoiceListPage() {
               setCustomerSearch('');
             }}
           >
-            Iptal
+            İptal
           </Button>
           <Button onClick={handleCreate} loading={isPending}>
-            Olustur
+            Oluştur
           </Button>
         </div>
       </Modal>

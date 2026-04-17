@@ -51,7 +51,7 @@ export default function AgentChatPage() {
       toast.success('Oturum size atandi');
       queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
     },
-    onError: () => toast.error('Atama basarisiz'),
+    onError: () => toast.error('Atama başarısız'),
   });
 
   const closeMutation = useMutation({
@@ -60,7 +60,7 @@ export default function AgentChatPage() {
       toast.success('Oturum kapatildi');
       queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
     },
-    onError: () => toast.error('Kapatma basarisiz'),
+    onError: () => toast.error('Kapatma başarısız'),
   });
 
   const sendMutation = useMutation({
@@ -100,11 +100,11 @@ export default function AgentChatPage() {
   if (isSessionsError) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Canli Sohbet" description="Ziyaretci oturumlarini yonetin" />
+        <PageHeader title="Canlı Sohbet" description="Ziyaretci oturumlarini yonetin" />
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="p-8 text-center">
             <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata olustu. Lutfen sayfayi yenileyin.
+              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
             </p>
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function AgentChatPage() {
 
   return (
     <div className="animate-fade-in h-full flex flex-col">
-      <PageHeader title="Canli Sohbet" description="Ziyaretci oturumlarini yonetin" />
+      <PageHeader title="Canlı Sohbet" description="Ziyaretci oturumlarini yonetin" />
 
       <div className="flex flex-1 gap-4 overflow-hidden min-h-0">
         {/* Session list */}
@@ -172,7 +172,7 @@ export default function AgentChatPage() {
                   size={40}
                   className="mx-auto mb-3 text-gray-300 dark:text-gray-600"
                 />
-                <p className="text-sm">Sol panelden bir oturum secin</p>
+                <p className="text-sm">Sol panelden bir oturum seçin</p>
               </div>
             </div>
           ) : (
@@ -219,7 +219,7 @@ export default function AgentChatPage() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                 {messages.length === 0 ? (
-                  <p className="text-center text-xs text-gray-400 pt-8">Henuz mesaj yok</p>
+                  <p className="text-center text-xs text-gray-400 pt-8">Henüz mesaj yok</p>
                 ) : (
                   messages.map((msg) => {
                     const isAgent = msg.sender_type === 'agent';
@@ -261,7 +261,7 @@ export default function AgentChatPage() {
                     onClick={handleSend}
                     disabled={!messageInput.trim() || sendMutation.isPending}
                     className="rounded-lg p-2 bg-honeywell-red text-white hover:bg-honeywell-red/90 disabled:opacity-40 transition-colors cursor-pointer"
-                    aria-label="Gonder"
+                    aria-label="Gönder"
                   >
                     <Send size={16} />
                   </button>

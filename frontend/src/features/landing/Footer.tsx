@@ -12,13 +12,13 @@ export default function Footer() {
               <span className="text-base font-bold tracking-tight text-slate-900">Sales Suite</span>
             </div>
             <p className="mt-3 text-sm text-slate-500">
-              Honeywell Turkiye yedek parca satis sureci icin tasarlandi.
+              Honeywell Turkiye yedek parça satış sureci için tasarlandi.
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Urun</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Ürün</h4>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               <li><a href="#features" className="transition-colors hover:text-slate-900">Ozellikler</a></li>
               <li><a href="#pricing" className="transition-colors hover:text-slate-900">Fiyatlar</a></li>
@@ -29,7 +29,7 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Sirket</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Şirket</h4>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               <li><a href="/login" className="transition-colors hover:text-slate-900">Giris Yap</a></li>
               <li><a href="#demo" className="transition-colors hover:text-slate-900">Demo Planla</a></li>

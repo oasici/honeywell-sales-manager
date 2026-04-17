@@ -47,7 +47,7 @@ export default function ComplianceDashboardPage() {
         purpose: 'general',
       }),
     onSuccess: () => {
-      toast.success('Onay basariyla kaydedildi');
+      toast.success('Onay başarıyla kaydedildi');
       queryClient.invalidateQueries({ queryKey: ['compliance', 'consent', searchedCustomerId] });
     },
     onError: () => toast.error('Onay kaydedilemedi'),
@@ -56,7 +56,7 @@ export default function ComplianceDashboardPage() {
   const exportDataMutation = useMutation({
     mutationFn: () => complianceApi.exportData(searchedCustomerId!),
     onSuccess: () => toast.success('Veri aktarimi baslatildi'),
-    onError: () => toast.error('Veri aktarimi basarisiz'),
+    onError: () => toast.error('Veri aktarimi başarısız'),
   });
 
   const anonymizeDataMutation = useMutation({
@@ -67,7 +67,7 @@ export default function ComplianceDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ['compliance', 'consent', searchedCustomerId] });
     },
     onError: () => {
-      toast.error('Anonimlestime basarisiz');
+      toast.error('Anonimlestime başarısız');
       setIsAnonymizeOpen(false);
     },
   });
@@ -75,7 +75,7 @@ export default function ComplianceDashboardPage() {
   function handleSearch() {
     const parsed = parseInt(customerIdInput, 10);
     if (isNaN(parsed) || parsed <= 0) {
-      toast.error('Gecerli bir musteri ID giriniz');
+      toast.error('Geçerli bir müşteri ID giriniz');
       return;
     }
     setSearchedCustomerId(parsed);
@@ -86,8 +86,8 @@ export default function ComplianceDashboardPage() {
   const overdueCount = report?.overdue_count ?? 0;
 
   const retentionColumns = [
-    { key: 'id', header: 'Musteri ID', sortable: true },
-    { key: 'name', header: 'Musteri Adi', sortable: true },
+    { key: 'id', header: 'Müşteri ID', sortable: true },
+    { key: 'name', header: 'Müşteri Adi', sortable: true },
     {
       key: 'retention_until',
       header: 'Saklama Tarihi',
@@ -101,15 +101,15 @@ export default function ComplianceDashboardPage() {
     <div>
       <PageHeader
         title="Uyumluluk Paneli"
-        description="KVKK ve veri koruma uyumluluk yonetimi"
+        description="KVKK ve veri koruma uyumluluk yönetimi"
       />
 
       {/* Search */}
       <div className="mb-6 flex items-end gap-3">
         <div className="max-w-xs flex-1">
           <Input
-            label="Musteri ID"
-            placeholder="Musteri ID giriniz"
+            label="Müşteri ID"
+            placeholder="Müşteri ID giriniz"
             value={customerIdInput}
             onChange={(e) => setCustomerIdInput(e.target.value)}
             onKeyDown={(e) => {
@@ -182,7 +182,7 @@ export default function ComplianceDashboardPage() {
 
       {/* Retention report */}
       <Card
-        title="Saklama Suresi Raporu"
+        title="Saklama Süresi Raporu"
         action={
           <Badge variant={overdueCount > 0 ? 'danger' : 'success'}>
             {overdueCount} gecikme
@@ -222,7 +222,7 @@ export default function ComplianceDashboardPage() {
         onClose={() => setIsAnonymizeOpen(false)}
         onConfirm={() => anonymizeDataMutation.mutate()}
         title="Veriyi Anonimletir"
-        message="Bu musteri verisi kalici olarak anonimlestirilecektir. Devam etmek istediginizden emin misiniz?"
+        message="Bu müşteri verisi kalici olarak anonimlestirilecektir. Devam etmek istediginizden emin misiniz?"
         confirmLabel="Anonimlesitir"
         confirmVariant="danger"
         isLoading={anonymizeDataMutation.isPending}

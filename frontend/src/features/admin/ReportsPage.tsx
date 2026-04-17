@@ -111,7 +111,7 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Raporlar</h1>
-          <p className="text-sm text-gray-500">Satis Raporlari</p>
+          <p className="text-sm text-gray-500">Satış Raporlari</p>
         </div>
 
         <div className="flex items-center gap-3 print:hidden">
@@ -147,7 +147,7 @@ export default function ReportsPage() {
       <Card title="Aylik Teklif & Gelir Trendi">
         {isTrendLoading ? (
           <div className="flex h-[300px] items-center justify-center">
-            <p className="text-sm text-gray-400">Yukleniyor...</p>
+            <p className="text-sm text-gray-400">Yükleniyor...</p>
           </div>
         ) : trendChartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
@@ -197,7 +197,7 @@ export default function ReportsPage() {
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>
+          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
         )}
       </Card>
 
@@ -205,7 +205,7 @@ export default function ReportsPage() {
       <Card title="Kategori Dagilimi">
         {isCategoryLoading ? (
           <div className="flex h-[300px] items-center justify-center">
-            <p className="text-sm text-gray-400">Yukleniyor...</p>
+            <p className="text-sm text-gray-400">Yükleniyor...</p>
           </div>
         ) : categoryData && categoryData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
@@ -251,22 +251,22 @@ export default function ReportsPage() {
                 yAxisId="right"
                 dataKey="total_value"
                 fill="url(#catBarGradBlue)"
-                name="Toplam Deger (USD)"
+                name="Toplam Değer (USD)"
                 radius={[6, 6, 0, 0]}
                 label={{ position: 'top', fontSize: 10, fill: '#94a3b8' }}
               />
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>
+          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
         )}
       </Card>
 
       {/* Section 3: Top Requested Parts */}
       <div className="print-page-break" />
-      <Card title="En Cok Talep Edilen Parcalar">
+      <Card title="En Çok Talep Edilen Parçalar">
         {isTopPartsLoading ? (
-          <p className="py-8 text-center text-sm text-gray-400">Yukleniyor...</p>
+          <p className="py-8 text-center text-sm text-gray-400">Yükleniyor...</p>
         ) : topParts && topParts.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -274,10 +274,10 @@ export default function ReportsPage() {
                 <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-500">
                   <th className="px-3 py-3">#</th>
                   <th className="px-3 py-3">Honeywell Kodu</th>
-                  <th className="px-3 py-3">Parca Adi</th>
+                  <th className="px-3 py-3">Parça Adi</th>
                   <th className="px-3 py-3 text-right">Talep Sayisi</th>
                   <th className="px-3 py-3 text-right">Toplam Miktar</th>
-                  <th className="px-3 py-3 text-right">Toplam Deger</th>
+                  <th className="px-3 py-3 text-right">Toplam Değer</th>
                 </tr>
               </thead>
               <tbody>
@@ -304,21 +304,21 @@ export default function ReportsPage() {
             </table>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>
+          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
         )}
       </Card>
 
       {/* Section 4: Parts Without Price */}
-      <Card title="Fiyatsiz Parcalar">
+      <Card title="Fiyatsiz Parçalar">
         {isNoPriceLoading ? (
-          <p className="py-8 text-center text-sm text-gray-400">Yukleniyor...</p>
+          <p className="py-8 text-center text-sm text-gray-400">Yükleniyor...</p>
         ) : noPriceParts && noPriceParts.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-500">
                   <th className="px-3 py-3">Honeywell Kodu</th>
-                  <th className="px-3 py-3">Parca Adi</th>
+                  <th className="px-3 py-3">Parça Adi</th>
                   <th className="px-3 py-3">Kategori</th>
                   <th className="px-3 py-3">Durum</th>
                 </tr>
@@ -342,7 +342,7 @@ export default function ReportsPage() {
                             : 'bg-amber-100 text-amber-700'
                         }`}
                       >
-                        {part.status === 'unknown_part' ? 'Bilinmeyen Parca' : 'Fiyat Yok'}
+                        {part.status === 'unknown_part' ? 'Bilinmeyen Parça' : 'Fiyat Yok'}
                       </span>
                     </td>
                   </tr>
@@ -350,12 +350,12 @@ export default function ReportsPage() {
               </tbody>
             </table>
             <p className="mt-3 text-xs text-gray-400">
-              Toplam {noPriceParts.length} parca fiyat bilgisi eksik
+              Toplam {noPriceParts.length} parça fiyat bilgisi eksik
             </p>
           </div>
         ) : (
           <p className="py-8 text-center text-sm text-gray-400">
-            Tum parcalarin fiyat bilgisi mevcut
+            Tüm parcalarin fiyat bilgisi mevcut
           </p>
         )}
       </Card>

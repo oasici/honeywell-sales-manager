@@ -16,7 +16,7 @@ const STATUS_OPTIONS = [
   { value: 'draft', label: 'Taslak' },
   { value: 'active', label: 'Aktif' },
   { value: 'amended', label: 'Degistirilmis' },
-  { value: 'expired', label: 'Suresi Dolmus' },
+  { value: 'expired', label: 'Süresi Dolmus' },
   { value: 'terminated', label: 'Feshedilmis' },
 ];
 
@@ -32,7 +32,7 @@ const STATUS_LABELS: Record<string, string> = {
   draft: 'Taslak',
   active: 'Aktif',
   amended: 'Degistirilmis',
-  expired: 'Suresi Dolmus',
+  expired: 'Süresi Dolmus',
   terminated: 'Feshedilmis',
 };
 
@@ -75,13 +75,13 @@ export default function ContractListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => contractsApi.create(payload),
     onSuccess: (data) => {
-      toast.success('Kontrat olusturuldu');
+      toast.success('Kontrat oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       setIsCreateOpen(false);
       resetForm();
       navigate(`/contracts/${(data as Contract).id}`);
     },
-    onError: () => toast.error('Kontrat olusturulamadi'),
+    onError: () => toast.error('Kontrat oluşturulamadı'),
   });
 
   const resetForm = useCallback(() => {
@@ -95,7 +95,7 @@ export default function ContractListPage() {
 
   const handleCreate = useCallback(() => {
     if (!formTitle || !formCustomerId) {
-      toast.error('Baslik ve musteri zorunludur');
+      toast.error('Baslik ve müşteri zorunludur');
       return;
     }
     createMutation.mutate({
@@ -113,7 +113,7 @@ export default function ContractListPage() {
 
   return (
     <div>
-      <PageHeader title="Kontratlar" description="Kontrat yasam dongusu yonetimi">
+      <PageHeader title="Kontratlar" description="Kontrat yasam dongusu yönetimi">
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Kontrat</Button>
       </PageHeader>
 
@@ -128,7 +128,7 @@ export default function ContractListPage() {
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          Tum Kontratlar
+          Tüm Kontratlar
         </button>
         <button
           type="button"
@@ -195,7 +195,7 @@ export default function ContractListPage() {
                       <th className="px-3 py-2 text-xs font-semibold text-gray-500">Baslangic</th>
                       <th className="px-3 py-2 text-xs font-semibold text-gray-500">Bitis</th>
                       <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
-                        Deger
+                        Değer
                       </th>
                       <th className="px-3 py-2 text-xs font-semibold text-gray-500">Olusturulma</th>
                     </tr>
@@ -238,10 +238,10 @@ export default function ContractListPage() {
       )}
 
       {activeTab === 'expiring' && (
-        <Card title="Suresi Yaklasiyor (30 gun)">
+        <Card title="Süresi Yaklasiyor (30 gun)">
           {expiringContracts.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">
-              Suresi dolmak uzere olan kontrat yok
+              Süresi dolmak uzere olan kontrat yok
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -251,7 +251,7 @@ export default function ContractListPage() {
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500">Baslik</th>
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500">Bitis Tarihi</th>
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
-                      Deger
+                      Değer
                     </th>
                   </tr>
                 </thead>
@@ -294,10 +294,10 @@ export default function ContractListPage() {
               />
               <div className="relative">
                 <Input
-                  label="Musteri"
+                  label="Müşteri"
                   value={formCustomerSearch}
                   onChange={(e) => setFormCustomerSearch(e.target.value)}
-                  placeholder="Musteri ara..."
+                  placeholder="Müşteri ara..."
                 />
                 {customerResults?.items &&
                   customerResults.items.length > 0 &&
@@ -336,7 +336,7 @@ export default function ContractListPage() {
                 />
               </div>
               <Input
-                label="Deger"
+                label="Değer"
                 type="number"
                 min={0}
                 step={0.01}
@@ -353,10 +353,10 @@ export default function ContractListPage() {
                   resetForm();
                 }}
               >
-                Iptal
+                İptal
               </Button>
               <Button onClick={handleCreate} loading={createMutation.isPending}>
-                Olustur
+                Oluştur
               </Button>
             </div>
           </div>

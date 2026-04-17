@@ -9,7 +9,7 @@ describe('Button', () => {
   });
 
   it('renders secondary variant', () => {
-    const { container } = render(<Button variant="secondary">Iptal</Button>);
+    const { container } = render(<Button variant="secondary">İptal</Button>);
     expect(container.firstChild).toMatchSnapshot();
   });
 
@@ -19,7 +19,7 @@ describe('Button', () => {
   });
 
   it('renders loading state with spinner', () => {
-    const { container } = render(<Button loading>Yukleniyor</Button>);
+    const { container } = render(<Button loading>Yükleniyor</Button>);
     expect(container.firstChild).toMatchSnapshot();
   });
 

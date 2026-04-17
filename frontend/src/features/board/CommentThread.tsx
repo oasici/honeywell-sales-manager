@@ -15,7 +15,7 @@ function formatTimestamp(iso: string): string {
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60_000);
 
-  if (diffMin < 1) return 'az once';
+  if (diffMin < 1) return 'az önce';
   if (diffMin < 60) return `${diffMin} dk once`;
 
   const diffHours = Math.floor(diffMin / 60);
@@ -76,7 +76,7 @@ function CommentItem({
   isReplyTarget,
   isNested = false,
 }: CommentItemProps) {
-  const userName = comment.user?.full_name || 'Kullanici';
+  const userName = comment.user?.full_name || 'Kullanıcı';
   const initial = userName.charAt(0).toUpperCase();
   const avatarColor = getAvatarColor(userName);
 
@@ -282,7 +282,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
     <Card title="Yorumlar">
       <div className="space-y-0 divide-y divide-gray-100 dark:divide-gray-800">
         {comments.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-400">Henuz yorum yok</p>
+          <p className="py-6 text-center text-sm text-gray-400">Henüz yorum yok</p>
         ) : (
           comments.map((comment) => (
             <CommentItem
@@ -307,7 +307,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
               onClick={() => setReplyToId(null)}
               className="text-xs text-red-500 hover:underline"
             >
-              Iptal
+              İptal
             </button>
           </div>
         )}

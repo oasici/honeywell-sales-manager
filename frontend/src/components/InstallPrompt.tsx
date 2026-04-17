@@ -50,7 +50,7 @@ export function InstallPrompt() {
     >
       <div className="flex items-center gap-2 text-sm">
         <Download size={16} className="shrink-0" aria-hidden="true" />
-        <span>Bu uygulamayi yukleyin ve daha hizli erisim saglayin</span>
+        <span>Bu uygulamayi yukleyin ve daha hızlı erişim saglayin</span>
       </div>
       <div className="flex items-center gap-2">
         <button
@@ -58,7 +58,7 @@ export function InstallPrompt() {
           onClick={handleInstall}
           className="rounded bg-white px-3 py-1 text-xs font-semibold text-honeywell-red hover:bg-red-50 transition-colors"
         >
-          Yukle
+          Yükle
         </button>
         <button
           type="button"

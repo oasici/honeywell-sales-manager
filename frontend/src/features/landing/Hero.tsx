@@ -78,7 +78,7 @@ function DashboardMock() {
               {[
                 'KORDSA A.S. — Turbinmetre talebi',
                 'DEMIOREN — Sensor fiyat istegi',
-                'ARCELIK — Kalibrasyon parcasi',
+                'ARCELIK — Kalibrasyon parçası',
               ].map((item, i) => (
                 <div
                   key={i}
@@ -135,7 +135,7 @@ export default function Hero() {
             </span>
           </h1>
           <p className="mt-5 text-base leading-relaxed text-slate-600 md:text-lg">
-            Honeywell yedek parca satis ekipleri icin: gelen talep e-postalarini AI ile ayristirin,
+            Honeywell yedek parça satış ekipleri için: gelen talep e-postalarini AI ile ayristirin,
             parcalari otomatik eslestirin, teklifi hazirlayin, onaylayin ve gonderin. Tek
             platformda.
           </p>

@@ -21,10 +21,10 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
 } from 'recharts';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { SafeChart } from '../../components/ui/SafeChart';
 import { dashboardApi, analyticsApi, subscriptionsApi, activitiesApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type {
@@ -44,7 +44,7 @@ import { LeaderboardCard } from './LeaderboardCard';
 function formatRelativeTime(isoString: string): string {
   const diffMs = Date.now() - new Date(isoString).getTime();
   const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 1) return 'az once';
+  if (diffMins < 1) return 'az önce';
   if (diffMins < 60) return `${diffMins}d once`;
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}s once`;
@@ -93,7 +93,7 @@ export default function DashboardPage() {
   const [doughnutOrder, setDoughnutOrder] = useState(() =>
     loadOrder('dash-donut', DEFAULT_DOUGHNUTS),
   );
-  const [secOrder, setSecOrder] = useState(() => loadOrder('dash-sec', DEFAULT_SECTIONS));
+  const [secOrder, setSecOrder] = useState(() => loadOrder('dash-seç', DEFAULT_SECTIONS));
 
   /* ── Email setup popup (first login only) ── */
   const user = useAuthStore((s) => s.user);
@@ -166,7 +166,7 @@ export default function DashboardPage() {
         prev.indexOf(active.id as string),
         prev.indexOf(over.id as string),
       );
-      localStorage.setItem('dash-sec', JSON.stringify(next));
+      localStorage.setItem('dash-seç', JSON.stringify(next));
       return next;
     });
   }, []);
@@ -215,11 +215,11 @@ export default function DashboardPage() {
       <KpiCard label="Toplam Teklif" value={s.total_quotes} onClick={() => navigate('/quotes')} />
     ),
     total_parts: (
-      <KpiCard label="Toplam Parca" value={s.total_parts} onClick={() => navigate('/parts')} />
+      <KpiCard label="Toplam Parça" value={s.total_parts} onClick={() => navigate('/parts')} />
     ),
     total_customers: (
       <KpiCard
-        label="Toplam Musteri"
+        label="Toplam Müşteri"
         value={s.total_customers}
         onClick={() => navigate('/customers')}
       />
@@ -227,7 +227,7 @@ export default function DashboardPage() {
     conversion_rate: <KpiCard label="Donusum Orani" value={`%${s.conversion_rate}`} />,
     pending_review: (
       <KpiCard
-        label="Inceleme Bekleyen"
+        label="İnceleme Bekleyen"
         value={s.pending_review_count}
         onClick={() => navigate('/emails?review=pending_review')}
       />
@@ -248,7 +248,7 @@ export default function DashboardPage() {
         ),
         d_value: (
           <DoughnutChart
-            title="Cevaplanan Parca Degeri"
+            title="Cevaplanan Parça Degeri"
             filled={s.answered_parts_value}
             total={s.total_parts_value}
             unit="USD"
@@ -257,7 +257,7 @@ export default function DashboardPage() {
         ),
         d_count: (
           <DoughnutChart
-            title="Cevaplanan Parca Sayisi"
+            title="Cevaplanan Parça Sayisi"
             filled={s.answered_parts_count}
             total={s.total_parts_count}
             unit="adet"
@@ -347,11 +347,10 @@ export default function DashboardPage() {
     top_parts: (
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
-          En Cok Talep Edilen Parcalar
+          En Çok Talep Edilen Parçalar
         </h3>
         {topParts && topParts.length > 0 ? (
-          <div style={{ width: '100%', minWidth: 200, height: 350 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <SafeChart height={350} minHeight={250}>
             <BarChart data={topParts} margin={{ top: 20, right: 10, left: 10, bottom: 60 }}>
               <defs>
                 <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
@@ -389,10 +388,9 @@ export default function DashboardPage() {
                 label={{ position: 'top', fontSize: 10, fill: '#94a3b8' }}
               />
             </BarChart>
-          </ResponsiveContainer>
-          </div>
+          </SafeChart>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>
+          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
         )}
       </div>
     ),
@@ -403,8 +401,7 @@ export default function DashboardPage() {
           Aylik Teklif & Gelir Trendi
         </h3>
         {trend && trend.length > 0 ? (
-          <div style={{ width: '100%', minWidth: 200, height: 300 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <SafeChart height={300} minHeight={240}>
             <AreaChart
               data={trend.map((t) => ({
                 ...t,
@@ -454,10 +451,9 @@ export default function DashboardPage() {
                 dot={{ r: 4, fill: '#1976D2' }}
               />
             </AreaChart>
-          </ResponsiveContainer>
-          </div>
+          </SafeChart>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>
+          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
         )}
       </div>
     ),
@@ -530,7 +526,7 @@ export default function DashboardPage() {
             ))}
           </ul>
         ) : (
-          <p className="py-6 text-center text-sm text-gray-400">Henuz aktivite yok</p>
+          <p className="py-6 text-center text-sm text-gray-400">Henüz aktivite yok</p>
         )}
       </div>
     ),
@@ -538,14 +534,14 @@ export default function DashboardPage() {
     action_required: (
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
-          Islem Bekleyen
+          İşlem Bekleyen
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div
             className="cursor-pointer rounded-lg border-l-4 border-l-amber-500 bg-amber-50 p-4 hover:bg-amber-100 transition-colors"
             onClick={() => navigate('/emails?review=pending_review')}
           >
-            <p className="text-sm font-medium text-amber-900">Inceleme Bekleyen Mailler</p>
+            <p className="text-sm font-medium text-amber-900">İnceleme Bekleyen Mailler</p>
             <p className="mt-1 text-2xl font-bold text-amber-800">{s.pending_review_count}</p>
           </div>
           <div
@@ -603,7 +599,7 @@ export default function DashboardPage() {
                 onClick={() => navigate('/customers')}
                 className={`text-sm ${s.total_customers > 0 ? 'text-green-700 line-through' : 'text-blue-700 hover:underline cursor-pointer'}`}
               >
-                Ilk musterinizi ekleyin
+                İlk musterinizi ekleyin
               </button>
             </div>
             <div className="flex items-center gap-3">
@@ -617,7 +613,7 @@ export default function DashboardPage() {
                 onClick={() => navigate('/quotes/new')}
                 className={`text-sm ${s.total_quotes > 0 ? 'text-green-700 line-through' : 'text-blue-700 hover:underline cursor-pointer'}`}
               >
-                Ilk teklifinizi olusturun
+                İlk teklifinizi olusturun
               </button>
             </div>
           </div>

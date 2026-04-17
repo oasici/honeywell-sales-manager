@@ -65,8 +65,8 @@ export function EmailSetupModal({ isOpen, onClose }: EmailSetupModalProps) {
       }
     },
     onError: () => {
-      setTestResult({ success: false, message: 'Baglanti testi basarisiz' });
-      toast.error('Baglanti testi basarisiz');
+      setTestResult({ success: false, message: 'Baglanti testi başarısız' });
+      toast.error('Baglanti testi başarısız');
     },
   });
 
@@ -87,7 +87,7 @@ export function EmailSetupModal({ isOpen, onClose }: EmailSetupModalProps) {
           </div>
           <h2 className="text-xl font-bold text-gray-900">Email Baglantisi Kurulumu</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Gelen kutunuzu baglamak icin Outlook email bilgilerinizi giriniz.
+            Gelen kutunuzu baglamak için Outlook email bilgilerinizi giriniz.
             <br />
             Bu bilgiler guvenli bir sekilde saklanacaktir.
           </p>
@@ -97,7 +97,7 @@ export function EmailSetupModal({ isOpen, onClose }: EmailSetupModalProps) {
         <div className="flex items-start gap-3 rounded-lg bg-blue-50 border border-blue-200 p-3">
           <Shield size={16} className="mt-0.5 shrink-0 text-blue-600" />
           <p className="text-xs text-blue-700">
-            Email bilgileriniz sifrelenerek sunucuda saklanir ve sadece email okuma/gonderme icin kullanilir.
+            Email bilgileriniz sifrelenerek sunucuda saklanir ve sadece email okuma/gonderme için kullanilir.
             Ayarlar sayfasindan istediginiz zaman degistirebilirsiniz.
           </p>
         </div>
@@ -107,7 +107,7 @@ export function EmailSetupModal({ isOpen, onClose }: EmailSetupModalProps) {
           <Input
             label="Email Adresi"
             type="email"
-            placeholder="ornek@sirket.com"
+            placeholder="örnek@şirket.com"
             value={form.email_address}
             onChange={(e) => updateField('email_address', e.target.value)}
             required

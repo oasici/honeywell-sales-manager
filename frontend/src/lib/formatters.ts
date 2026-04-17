@@ -44,3 +44,16 @@ export function formatPercent(value: number): string {
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat('tr-TR').format(value);
 }
+
+/** Turkish locale-aware string comparator (sorts İ/I, ş/s, ç/c correctly) */
+export const TR_COLLATOR = new Intl.Collator('tr', { sensitivity: 'base', numeric: true });
+
+/** Turkish-safe lowercase (İ→i, I→ı) */
+export function toLowerTR(str: string): string {
+  return str.toLocaleLowerCase('tr');
+}
+
+/** Turkish-safe uppercase (i→İ, ı→I) */
+export function toUpperTR(str: string): string {
+  return str.toLocaleUpperCase('tr');
+}

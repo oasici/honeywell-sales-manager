@@ -30,19 +30,19 @@ interface MergePreviewData {
 
 const FIELD_LABELS: Record<string, string> = {
   id: 'ID',
-  name: 'Isim',
-  company: 'Sirket',
+  name: 'İsim',
+  company: 'Şirket',
   email: 'Email',
   phone: 'Telefon',
   address: 'Adres',
   tax_id: 'Vergi No',
   preferred_lang: 'Tercih Edilen Dil',
-  created_at: 'Olusturma Tarihi',
+  created_at: 'Oluşturma Tarihi',
 };
 
 const RELATED_LABELS: Record<string, string> = {
   quotes: 'Teklif',
-  opportunities: 'Firsat',
+  opportunities: 'Fırsat',
   emails: 'Email',
   activities: 'Aktivite',
   team_members: 'Takim Uyesi',
@@ -87,11 +87,11 @@ export default function MergeRecordsPage() {
         loser_id: Number(loserId),
       }),
     onSuccess: () => {
-      toast.success('Kayitlar basariyla birlestirildi');
+      toast.success('Kayıtlar başarıyla birlestirildi');
       navigate(`/customers/${winnerId}`);
     },
     onError: () => {
-      toast.error('Birlestirme islemi basarisiz oldu');
+      toast.error('Birlestirme işlemi başarısız oldu');
     },
   });
 
@@ -106,7 +106,7 @@ export default function MergeRecordsPage() {
   if (isError || !data?.data) {
     return (
       <div className="py-20 text-center text-gray-500">
-        Onizleme yuklenemedi. Kayitlar bulunamadi.
+        Onizleme yuklenemedi. Kayıtlar bulunamadi.
       </div>
     );
   }
@@ -121,13 +121,13 @@ export default function MergeRecordsPage() {
   const transferSummary =
     transferSummaryParts.length > 0
       ? transferSummaryParts.join(', ') + ' aktarilacak'
-      : 'Aktarilacak iliskili kayit bulunmuyor';
+      : 'Aktarilacak iliskili kayıt bulunmuyor';
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Kayit Birlestirme"
-        description={`${entityType === 'customer' ? 'Musteri' : 'Lead'} kayitlarini birlestir`}
+        title="Kayıt Birlestirme"
+        description={`${entityType === 'customer' ? 'Müşteri' : 'Lead'} kayitlarini birlestir`}
       >
         <Button variant="secondary" onClick={() => navigate(-1)}>
           Geri Don
@@ -139,7 +139,7 @@ export default function MergeRecordsPage() {
         <Card>
           <div className="border-b-2 border-green-500 px-5 py-3">
             <h3 className="text-base font-semibold text-green-700">
-              Kazanan Kayit (Korunacak)
+              Kazanan Kayıt (Korunacak)
             </h3>
           </div>
           <div className="divide-y divide-gray-100">
@@ -160,7 +160,7 @@ export default function MergeRecordsPage() {
         <Card>
           <div className="border-b-2 border-red-500 px-5 py-3">
             <h3 className="text-base font-semibold text-red-700">
-              Kaybeden Kayit (Silinecek)
+              Kaybeden Kayıt (Silinecek)
             </h3>
           </div>
           <div className="divide-y divide-gray-100">
@@ -189,7 +189,7 @@ export default function MergeRecordsPage() {
       <Card>
         <div className="px-5 py-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">
-            Iliskili Kayitlar
+            Iliskili Kayıtlar
           </h3>
           <div className="flex flex-wrap gap-4">
             {Object.entries(relatedCounts).map(([key, count]) => (
@@ -227,7 +227,7 @@ export default function MergeRecordsPage() {
           setIsConfirmOpen(false);
         }}
         title="Birlestirme Onayi"
-        message={`"${loser.name}" kaydi silinecek ve tum iliskili kayitlar "${winner.name}" kaydina aktarilacak. Bu islem geri alinamaz.`}
+        message={`"${loser.name}" kaydi silinecek ve tüm iliskili kayitlar "${winner.name}" kaydina aktarilacak. Bu işlem geri alinamaz.`}
         confirmLabel="Birlestir"
         confirmVariant="danger"
         isLoading={mergeMutation.isPending}

@@ -30,7 +30,7 @@ interface EntityOption {
 }
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-  { key: 'summarize', label: 'AI Ozet', icon: <Sparkles size={16} /> },
+  { key: 'summarize', label: 'AI Özet', icon: <Sparkles size={16} /> },
   { key: 'pipeline', label: 'Pipeline Onerisi', icon: <TrendingUp size={16} /> },
   { key: 'risk', label: 'Risk Analizi', icon: <AlertTriangle size={16} /> },
   { key: 'competitive', label: 'Rekabet Istihbarati', icon: <Swords size={16} /> },
@@ -81,7 +81,7 @@ function SummarizeTab() {
   const mutation = useMutation({
     mutationFn: () => aiApi.summarize({ entity_type: entityType, entity_id: Number(entityId) }),
     onSuccess: (data) => setResult(data),
-    onError: () => toast.error('Ozet olusturulamadi'),
+    onError: () => toast.error('Özet oluşturulamadı'),
   });
 
   function handleEntityTypeChange(value: string) {
@@ -94,29 +94,29 @@ function SummarizeTab() {
       <div className="flex gap-3 items-end flex-wrap">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Varlik Tipi
+            Varlık Tipi
           </label>
           <select
             className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
             value={entityType}
             onChange={(e) => handleEntityTypeChange(e.target.value)}
           >
-            <option value="opportunity">Firsat</option>
+            <option value="opportunity">Fırsat</option>
             <option value="quote">Teklif</option>
             <option value="email">E-posta</option>
-            <option value="customer">Musteri</option>
+            <option value="customer">Müşteri</option>
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Varlik Sec
+            Varlık Seç
           </label>
           <select
             className={ENTITY_DROPDOWN_CLASS}
             value={entityId}
             onChange={(e) => setEntityId(e.target.value)}
           >
-            <option value="">-- Secin --</option>
+            <option value="">-- Seçin --</option>
             {entities.map((ent) => (
               <option key={ent.id} value={ent.id}>
                 {ent.label}
@@ -132,7 +132,7 @@ function SummarizeTab() {
         <Card>
           <div className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-sm font-semibold text-gray-900">AI Ozeti</h3>
+              <h3 className="text-sm font-semibold text-gray-900">AI Özeti</h3>
               {result.cached && (
                 <Badge variant="default" size="sm">
                   Onbellek
@@ -166,7 +166,7 @@ function PipelineTab() {
   const mutation = useMutation({
     mutationFn: () => aiApi.suggestPipeline({ opportunity_id: Number(oppId) }),
     onSuccess: (data) => setResult(data),
-    onError: () => toast.error('Oneri olusturulamadi'),
+    onError: () => toast.error('Öneri oluşturulamadı'),
   });
 
   return (
@@ -174,14 +174,14 @@ function PipelineTab() {
       <div className="flex gap-3 items-end flex-wrap">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Firsat Sec
+            Fırsat Seç
           </label>
           <select
             className={ENTITY_DROPDOWN_CLASS}
             value={oppId}
             onChange={(e) => setOppId(e.target.value)}
           >
-            <option value="">-- Secin --</option>
+            <option value="">-- Seçin --</option>
             {opportunities.map((opp) => (
               <option key={opp.id} value={opp.id}>
                 {opp.label}
@@ -198,17 +198,17 @@ function PipelineTab() {
           <div className="p-4 space-y-3">
             <div className="flex items-center gap-4">
               <div>
-                <span className="text-xs text-gray-500">Mevcut Asama</span>
+                <span className="text-xs text-gray-500">Mevcut Aşama</span>
                 <p className="text-sm font-medium">{result.current_stage}</p>
               </div>
               <span className="text-gray-300">→</span>
               <div>
-                <span className="text-xs text-gray-500">Onerilen Asama</span>
+                <span className="text-xs text-gray-500">Önerilen Aşama</span>
                 <p className="text-sm font-semibold text-honeywell-red">{result.suggested_stage}</p>
               </div>
             </div>
             <div>
-              <h4 className="text-xs font-medium text-gray-500 mb-1">Onerilen Sonraki Adimlar</h4>
+              <h4 className="text-xs font-medium text-gray-500 mb-1">Önerilen Sonraki Adımlar</h4>
               <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                 {result.suggested_next_steps.map((step, i) => (
                   <li key={i}>{step}</li>
@@ -256,14 +256,14 @@ function RiskTab() {
       <div className="flex gap-3 items-end flex-wrap">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Firsat Sec
+            Fırsat Seç
           </label>
           <select
             className={ENTITY_DROPDOWN_CLASS}
             value={oppId}
             onChange={(e) => setOppId(e.target.value)}
           >
-            <option value="">-- Secin --</option>
+            <option value="">-- Seçin --</option>
             {opportunities.map((opp) => (
               <option key={opp.id} value={opp.id}>
                 {opp.label}
@@ -318,7 +318,7 @@ function RiskTab() {
             </div>
             {result.recommendations.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-500 mb-1">Oneriler</h4>
+                <h4 className="text-xs font-medium text-gray-500 mb-1">Öneriler</h4>
                 <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                   {result.recommendations.map((r, i) => (
                     <li key={i}>{r}</li>
@@ -405,7 +405,7 @@ export default function AiInsightsPage() {
 
   return (
     <div>
-      <PageHeader title="AI Asistan" description="Yapay zeka destekli analizler ve oneriler">
+      <PageHeader title="AI Asistan" description="Yapay zeka destekli analizler ve öneriler">
         <Brain size={20} className="text-honeywell-red" />
       </PageHeader>
 

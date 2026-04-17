@@ -51,7 +51,7 @@ const FORECAST_CATEGORIES = [
   { value: 'commit', label: 'Kesin' },
   { value: 'best_case', label: 'En Iyi Durum' },
   { value: 'pipeline', label: 'Pipeline' },
-  { value: 'omitted', label: 'Haric' },
+  { value: 'omitted', label: 'Hariç' },
 ];
 
 const SCORE_RING_RADIUS = 36;
@@ -163,22 +163,22 @@ export default function OpportunityDetailPage() {
 
   const createDealRoomMutation = useMutation({
     mutationFn: () =>
-      dealRoomsApi.create({ opportunity_id: oppId, name: `${opp?.title ?? 'Firsat'} - Deal Room` }),
+      dealRoomsApi.create({ opportunity_id: oppId, name: `${opp?.title ?? 'Fırsat'} - Deal Room` }),
     onSuccess: () => {
-      toast.success('Deal room olusturuldu');
+      toast.success('Deal room oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['deal-rooms'] });
     },
-    onError: () => toast.error('Deal room olusturulamadi'),
+    onError: () => toast.error('Deal room oluşturulamadı'),
   });
 
   const generateActionsMutation = useMutation({
     mutationFn: () => aiApi.generateActions({ opportunity_id: oppId }),
     onSuccess: (data: { actions: unknown[]; count: number }) => {
-      toast.success(`${data.count} AI gorev olusturuldu`);
+      toast.success(`${data.count} AI gorev oluşturuldu`);
       queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['cockpit'] });
     },
-    onError: () => toast.error('AI gorevler olusturulamadi'),
+    onError: () => toast.error('AI gorevler oluşturulamadı'),
   });
 
   const [adjForm, setAdjForm] = useState({
@@ -201,7 +201,7 @@ export default function OpportunityDetailPage() {
   }
 
   if (!opp) {
-    return <div className="py-16 text-center text-gray-500">Firsat bulunamadi</div>;
+    return <div className="py-16 text-center text-gray-500">Fırsat bulunamadi</div>;
   }
 
   const events = timelineData?.events || [];
@@ -210,8 +210,7 @@ export default function OpportunityDetailPage() {
     <div>
       <PageHeader title={opp.title} description={STAGE_LABELS[opp.stage] || opp.stage}>
         <Button variant="secondary" onClick={() => navigate('/board')}>
-          Board'a Don
-        </Button>
+          Board'a Don'        </Button>
       </PageHeader>
 
       <SalesPathBar oppId={oppId} currentStage={opp.stage} />
@@ -219,10 +218,10 @@ export default function OpportunityDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Details */}
         <div className="lg:col-span-2 space-y-6">
-          <Card title="Firsat Bilgileri">
+          <Card title="Fırsat Bilgileri">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Asama</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Aşama</span>
                 <p className="font-semibold text-gray-900 dark:text-white">
                   {STAGE_LABELS[opp.stage] || opp.stage}
                 </p>
@@ -242,7 +241,7 @@ export default function OpportunityDetailPage() {
                 <p className="text-gray-700 dark:text-gray-300">{opp.owner?.full_name || '-'}</p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Musteri</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Müşteri</span>
                 <p className="text-gray-700 dark:text-gray-300">
                   {opp.customer ? `${opp.customer.name} (${opp.customer.company})` : '-'}
                 </p>
@@ -291,7 +290,7 @@ export default function OpportunityDetailPage() {
         <div>
           <Card title="Timeline">
             {events.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">Henuz olay yok</p>
+              <p className="py-8 text-center text-sm text-gray-400">Henüz olay yok</p>
             ) : (
               <div className="space-y-0">
                 {events.map((event, idx) => (
@@ -327,7 +326,7 @@ export default function OpportunityDetailPage() {
 
       {/* Deal Health Section */}
       <div className="mt-6">
-        <Card title="Firsat Sagligi">
+        <Card title="Fırsat Sagligi">
           {healthLoading ? (
             <Skeleton variant="card" />
           ) : dealHealth ? (
@@ -378,7 +377,7 @@ export default function OpportunityDetailPage() {
               {dealHealth.recommendations.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Oneriler
+                    Öneriler
                   </h4>
                   <ul className="space-y-1.5">
                     {dealHealth.recommendations.map((rec, idx) => (
@@ -421,11 +420,11 @@ export default function OpportunityDetailPage() {
                     }
                   >
                     {aiRisk.risk_level === 'low'
-                      ? 'Dusuk Risk'
+                      ? 'Düşük Risk'
                       : aiRisk.risk_level === 'medium'
                         ? 'Orta Risk'
                         : aiRisk.risk_level === 'high'
-                          ? 'Yuksek Risk'
+                          ? 'Yüksek Risk'
                           : 'Kritik Risk'}
                   </Badge>
                   <p className="mt-1 text-xs text-gray-500">Claude AI tarafindan degerlendirildi</p>
@@ -478,7 +477,7 @@ export default function OpportunityDetailPage() {
                 loading={generateActionsMutation.isPending}
                 onClick={() => generateActionsMutation.mutate()}
               >
-                AI Aksiyon Olustur
+                AI Aksiyon Oluştur
               </Button>
             </div>
           ) : (
@@ -505,10 +504,10 @@ export default function OpportunityDetailPage() {
                     }
                   >
                     {closePrediction.data.confidence === 'high'
-                      ? 'Yuksek Guven'
+                      ? 'Yüksek Guven'
                       : closePrediction.data.confidence === 'medium'
                         ? 'Orta Guven'
-                        : 'Dusuk Guven'}
+                        : 'Düşük Guven'}
                   </Badge>
                   <p className="mt-1 text-xs text-gray-500">Kapanma olasiligi tahmini</p>
                 </div>
@@ -552,7 +551,7 @@ export default function OpportunityDetailPage() {
               {closePrediction.data.next_steps && closePrediction.data.next_steps.length > 0 && (
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                    Sonraki Adimlar
+                    Sonraki Adımlar
                   </h4>
                   <ul className="space-y-1">
                     {closePrediction.data.next_steps.map((step, i) => (
@@ -576,7 +575,7 @@ export default function OpportunityDetailPage() {
         </Card>
 
         {/* AI Summary */}
-        <Card title="AI Ozet">
+        <Card title="AI Özet">
           {aiSummaryLoading ? (
             <Skeleton variant="card" />
           ) : aiSummary ? (
@@ -599,12 +598,12 @@ export default function OpportunityDetailPage() {
                   variant="ghost"
                   onClick={() => navigate(`/customers/${opp.customer_id}`)}
                 >
-                  Musteri Sagligi Gor &rarr;
+                  Müşteri Sagligi Gor &rarr;
                 </Button>
               )}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">AI ozet bulunamadi</p>
+            <p className="py-6 text-center text-sm text-gray-400">AI özet bulunamadi</p>
           )}
         </Card>
       </div>
@@ -661,7 +660,7 @@ export default function OpportunityDetailPage() {
                   </table>
                 </div>
               ) : (
-                <p className="py-4 text-center text-sm text-gray-400">Henuz ayarlama yapilmamis</p>
+                <p className="py-4 text-center text-sm text-gray-400">Henüz ayarlama yapilmamis</p>
               )}
 
               {/* Adjustment form (manager only) */}
@@ -710,7 +709,7 @@ export default function OpportunityDetailPage() {
                         onChange={(e) => setAdjForm((f) => ({ ...f, reason: e.target.value }))}
                         rows={1}
                         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        placeholder="Aciklama..."
+                        placeholder="Açıklama..."
                       />
                     </div>
                   </div>
@@ -740,7 +739,7 @@ export default function OpportunityDetailPage() {
 
       {/* Activity Summary (Modul 6) */}
       <div className="mt-6">
-        <Card title="Aktivite Ozeti">
+        <Card title="Aktivite Özeti">
           {activitySummaryLoading ? (
             <Skeleton variant="card" />
           ) : activitySummary ? (
@@ -762,7 +761,7 @@ export default function OpportunityDetailPage() {
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Asama Ortalamasi</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Aşama Ortalamasi</span>
                 <p className="text-xl font-bold text-gray-900 dark:text-white">
                   {activitySummary.avg_activities_for_stage}
                 </p>
@@ -819,13 +818,13 @@ export default function OpportunityDetailPage() {
             </div>
           ) : (
             <div className="py-4 text-center">
-              <p className="mb-3 text-sm text-gray-400">Bu firsat icin deal room bulunmuyor</p>
+              <p className="mb-3 text-sm text-gray-400">Bu fırsat için deal room bulunmuyor</p>
               <Button
                 size="sm"
                 loading={createDealRoomMutation.isPending}
                 onClick={() => createDealRoomMutation.mutate()}
               >
-                Deal Room Olustur
+                Deal Room Oluştur
               </Button>
             </div>
           )}

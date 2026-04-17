@@ -19,7 +19,7 @@ export function AtRiskCustomersCard() {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
-        Risk Altindaki Musteriler
+        Risk Altindaki Müşteriler
       </h3>
       {atRiskData && atRiskData.customers.length > 0 ? (
         <div className="space-y-2">
@@ -62,7 +62,7 @@ export function AtRiskCustomersCard() {
         </div>
       ) : (
         <p className="py-8 text-center text-sm text-gray-400">
-          Risk altinda musteri bulunmuyor
+          Risk altinda müşteri bulunmuyor
         </p>
       )}
     </div>

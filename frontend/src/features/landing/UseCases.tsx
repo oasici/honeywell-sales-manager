@@ -4,11 +4,11 @@ import { Zap, Eye, Database } from 'lucide-react';
 const PERSONAS = [
   {
     icon: Zap,
-    role: 'Satis Temsilcisi',
-    headline: 'Daha az manuel is, daha cok satis',
+    role: 'Satış Temsilcisi',
+    headline: 'Daha az manuel is, daha çok satış',
     bullets: [
       'Gelen talebi okuyup parcalari aramak yerine, AI ayristirsin ve eslessin.',
-      'Tek tikla teklif taslagi olusur — sadece onayla ve gonder.',
+      'Tek tikla teklif taslagi olusur — sadece onayla ve gönder.',
       'Bildirimler ile kacan talep sifira iner.',
     ],
     color: 'border-blue-200 bg-blue-50',
@@ -16,10 +16,10 @@ const PERSONAS = [
   },
   {
     icon: Eye,
-    role: 'Satis Yoneticisi',
+    role: 'Satış Yoneticisi',
     headline: 'Pipeline gorunurlugu + kontrol',
     bullets: [
-      'Dashboard\'da donusum orani, yanit suresi, temsilci performansi.',
+      'Dashboard\'da donusum orani, yanit süresi, temsilci performansi.',
       'Onay akisiyla her teklif kontrolden gecer.',
       'Denetim izi ile "kim ne degistirdi" sorusu cevapsiz kalmaz.',
     ],
@@ -31,9 +31,9 @@ const PERSONAS = [
     role: 'Operasyon',
     headline: 'Katalog, fiyat ve veri kalitesi',
     bullets: [
-      'Excel/CSV/PDF ile parca ve fiyat listesi toplu import.',
-      'Eksik fiyat, katalog disi parca uyarilari.',
-      'Veri kalitesi paneli: hangi musteri/teklif bilgisi eksik?',
+      'Excel/CSV/PDF ile parça ve fiyat listesi toplu import.',
+      'Eksik fiyat, katalog disi parça uyarilari.',
+      'Veri kalitesi paneli: hangi müşteri/teklif bilgisi eksik?',
     ],
     color: 'border-emerald-200 bg-emerald-50',
     iconColor: 'bg-emerald-600',
@@ -50,9 +50,9 @@ export default function UseCases() {
           viewport={{ once: true }}
           className="mx-auto max-w-2xl text-center"
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Kullanim Alanlari</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Kullanim Alanları</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            Her rol icin tasarlandi
+            Her rol için tasarlandi
           </h2>
         </motion.div>
 

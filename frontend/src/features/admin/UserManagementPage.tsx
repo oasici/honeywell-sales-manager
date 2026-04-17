@@ -27,8 +27,8 @@ interface PaginatedUsers {
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Yonetici' },
-  { value: 'sales_manager', label: 'Satis Muduru' },
-  { value: 'sales_rep', label: 'Satis Temsilcisi' },
+  { value: 'sales_manager', label: 'Satış Muduru' },
+  { value: 'sales_rep', label: 'Satış Temsilcisi' },
   { value: 'viewer', label: 'Goruntuleyici' },
 ];
 
@@ -54,7 +54,7 @@ export default function UserManagementPage() {
   const toggleActiveMutation = useMutation({
     mutationFn: (id: number) => usersApi.toggleActive(id),
     onSuccess: (_data, id) => {
-      toast.success(`Kullanici #${id} durumu guncellendi`);
+      toast.success(`Kullanıcı #${id} durumu guncellendi`);
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: () => toast.error('Durum guncellenemedi'),
@@ -63,7 +63,7 @@ export default function UserManagementPage() {
   const changeRoleMutation = useMutation({
     mutationFn: ({ id, role }: { id: number; role: string }) => usersApi.changeRole(id, role),
     onSuccess: () => {
-      toast.success('Rol basariyla degistirildi');
+      toast.success('Rol başarıyla degistirildi');
       setRoleConfirm(null);
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
@@ -92,7 +92,7 @@ export default function UserManagementPage() {
   const columns = [
     {
       key: 'full_name',
-      header: 'Isim',
+      header: 'İsim',
       sortable: true,
       render: (row: User) => (
         <span className="font-medium text-gray-900">{row.full_name}</span>
@@ -111,7 +111,7 @@ export default function UserManagementPage() {
           value={row.role}
           onChange={(e) => handleRoleChange(row.id, e.target.value)}
           className="rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light"
-          aria-label={`${row.full_name} icin rol degistir`}
+          aria-label={`${row.full_name} için rol degistir`}
         >
           {ROLE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -160,13 +160,13 @@ export default function UserManagementPage() {
   return (
     <div>
       <PageHeader
-        title="Kullanici Yonetimi"
+        title="Kullanıcı Yönetimi"
         description="Sistem kullanicilarini yonetin"
       />
 
       <div className="mb-6 max-w-md">
         <Input
-          placeholder="Isim veya email ile ara..."
+          placeholder="İsim veya email ile ara..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -179,7 +179,7 @@ export default function UserManagementPage() {
         columns={columns}
         data={users}
         loading={isLoading}
-        emptyMessage="Kullanici bulunamadi"
+        emptyMessage="Kullanıcı bulunamadi"
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}

@@ -31,7 +31,7 @@ const RISK_LABELS: Record<string, string> = {
 const PLAN_STATUS_LABELS: Record<string, string> = {
   active: 'Aktif',
   completed: 'Tamamlandi',
-  cancelled: 'Iptal Edildi',
+  cancelled: 'İptal Edildi',
   draft: 'Taslak',
 };
 
@@ -92,7 +92,7 @@ export default function CoachingOverviewPage() {
       start_date: string;
     }) => coachingApi.createPlan(payload),
     onSuccess: () => {
-      toast.success('Kocluk plani olusturuldu');
+      toast.success('Koçluk plani oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['coaching', 'plans'] });
       setShowCreatePlan(false);
       setPlanForm(INITIAL_PLAN_FORM);
@@ -101,7 +101,7 @@ export default function CoachingOverviewPage() {
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Plan olusturulurken hata olustu',
+          'Plan olusturulurken hata oluştu',
       ),
   });
 
@@ -123,7 +123,7 @@ export default function CoachingOverviewPage() {
     e.preventDefault();
     const userId = Number(planForm.user_id);
     if (!userId) {
-      toast.error('Gecerli bir temsilci secin');
+      toast.error('Geçerli bir temsilci seçin');
       return;
     }
     const validGoals = goalRows.filter((r) => r.goal.trim() !== '');
@@ -149,10 +149,10 @@ export default function CoachingOverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Kocluk Paneli"
-        description="Satis temsilcilerinin performans takibi ve kocluk planlari"
+        title="Koçluk Paneli"
+        description="Satış temsilcilerinin performans takibi ve koçluk planlari"
       >
-        <Button onClick={() => setShowCreatePlan(true)}>Yeni Kocluk Plani</Button>
+        <Button onClick={() => setShowCreatePlan(true)}>Yeni Koçluk Plani</Button>
       </PageHeader>
 
       {/* KPI Strip */}
@@ -176,7 +176,7 @@ export default function CoachingOverviewPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Dusuk Performans</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Düşük Performans</p>
               <p className="text-3xl font-bold text-red-600 dark:text-red-400">
                 {summary.low_performers}
               </p>
@@ -189,7 +189,7 @@ export default function CoachingOverviewPage() {
       <div>
         <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Temsilciler</h2>
         {reps.length === 0 ? (
-          <EmptyState title="Henuz temsilci verisi bulunmuyor" />
+          <EmptyState title="Henüz temsilci verisi bulunmuyor" />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {reps.map((rep) => (
@@ -237,7 +237,7 @@ export default function CoachingOverviewPage() {
                     {rep.recommendations.length > 0 && (
                       <div className="border-t border-gray-100 pt-2 dark:border-gray-700">
                         <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                          Oneriler
+                          Öneriler
                         </p>
                         <ul className="space-y-1">
                           {rep.recommendations.slice(0, 2).map((rec, idx) => (
@@ -259,12 +259,12 @@ export default function CoachingOverviewPage() {
       {/* Plans List */}
       <div>
         <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
-          Kocluk Planlari
+          Koçluk Planlari
         </h2>
         {isPlansLoading ? (
           <Skeleton variant="card" count={2} />
         ) : plans.length === 0 ? (
-          <EmptyState title="Henuz kocluk plani olusturulmamis" />
+          <EmptyState title="Henüz koçluk plani olusturulmamis" />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {plans.map((plan) => {
@@ -319,7 +319,7 @@ export default function CoachingOverviewPage() {
                     {currentWeek !== null && (
                       <div>
                         <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                          <span>Ilerleme</span>
+                          <span>İlerleme</span>
                           <span>
                             {currentWeek} / {plan.weeks} hafta (
                             {Math.round((currentWeek / plan.weeks) * 100)}%)
@@ -375,7 +375,7 @@ export default function CoachingOverviewPage() {
       <Modal
         isOpen={showCreatePlan}
         onClose={() => setShowCreatePlan(false)}
-        title="Yeni Kocluk Plani Olustur"
+        title="Yeni Koçluk Plani Oluştur"
       >
         <form onSubmit={handleCreatePlan} className="space-y-4">
           <div>
@@ -388,7 +388,7 @@ export default function CoachingOverviewPage() {
               onChange={(e) => setPlanForm({ ...planForm, user_id: e.target.value })}
               required
             >
-              <option value="">Temsilci secin</option>
+              <option value="">Temsilci seçin</option>
               {reps.map((rep) => (
                 <option key={rep.user_id} value={rep.user_id}>
                   {rep.user_name}
@@ -437,7 +437,7 @@ export default function CoachingOverviewPage() {
             </Button>
           </div>
           <Input
-            label="Sure (Hafta)"
+            label="Süre (Hafta)"
             type="number"
             value={planForm.weeks}
             onChange={(e) => setPlanForm({ ...planForm, weeks: Number(e.target.value) })}
@@ -451,10 +451,10 @@ export default function CoachingOverviewPage() {
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setShowCreatePlan(false)} type="button">
-              Iptal
+              İptal
             </Button>
             <Button type="submit" loading={createPlanMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </form>

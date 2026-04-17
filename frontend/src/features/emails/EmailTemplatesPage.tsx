@@ -92,32 +92,32 @@ export default function EmailTemplatesPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => emailTemplatesApi.create(payload),
     onSuccess: () => {
-      toast.success('Sablon olusturuldu');
+      toast.success('Şablon oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       closeModal();
     },
-    onError: () => toast.error('Sablon olusturulamadi'),
+    onError: () => toast.error('Şablon oluşturulamadı'),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
       emailTemplatesApi.update(id, payload),
     onSuccess: () => {
-      toast.success('Sablon guncellendi');
+      toast.success('Şablon guncellendi');
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       closeModal();
     },
-    onError: () => toast.error('Sablon guncellenemedi'),
+    onError: () => toast.error('Şablon guncellenemedi'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => emailTemplatesApi.remove(id),
     onSuccess: () => {
-      toast.success('Sablon silindi');
+      toast.success('Şablon silindi');
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       setDeleteId(null);
     },
-    onError: () => toast.error('Sablon silinemedi'),
+    onError: () => toast.error('Şablon silinemedi'),
   });
 
   const sendMutation = useMutation({
@@ -129,7 +129,7 @@ export default function EmailTemplatesPage() {
       payload: { to_email: string; context: Record<string, string> };
     }) => emailTemplatesApi.send(id, payload),
     onSuccess: () => {
-      toast.success('Email gonderildi');
+      toast.success('Email gönderildi');
       closeSendModal();
     },
     onError: () => toast.error('Email gonderilemedi'),
@@ -237,12 +237,12 @@ export default function EmailTemplatesPage() {
   return (
     <div>
       <PageHeader
-        title="Email Sablonlari"
-        description="Hazir email sablonlari olusturun ve gonderin"
+        title="Email Şablonları"
+        description="Hazir email şablonları olusturun ve gonderin"
       >
         <Button onClick={openCreate}>
           <Plus size={16} className="mr-1" />
-          Yeni Sablon
+          Yeni Şablon
         </Button>
       </PageHeader>
 
@@ -252,7 +252,7 @@ export default function EmailTemplatesPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Sablon ara..."
+            placeholder="Şablon ara..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-honeywell-red focus:outline-none"
@@ -274,10 +274,10 @@ export default function EmailTemplatesPage() {
       {/* Template Grid */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 py-16">
-          <p className="text-gray-500 text-sm">Henuz sablon bulunmuyor</p>
+          <p className="text-gray-500 text-sm">Henüz şablon bulunmuyor</p>
           <Button variant="secondary" className="mt-3" onClick={openCreate}>
             <Plus size={16} className="mr-1" />
-            Ilk Sablonu Olustur
+            İlk Şablonu Oluştur
           </Button>
         </div>
       ) : (
@@ -317,7 +317,7 @@ export default function EmailTemplatesPage() {
                   className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-honeywell-red hover:bg-red-50 transition-colors"
                 >
                   <Send size={12} />
-                  Gonder
+                  Gönder
                 </button>
                 {t.created_by === user?.id && (
                   <>
@@ -327,7 +327,7 @@ export default function EmailTemplatesPage() {
                       className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
                     >
                       <Pencil size={12} />
-                      Duzenle
+                      Düzenle
                     </button>
                     <button
                       type="button"
@@ -350,7 +350,7 @@ export default function EmailTemplatesPage() {
           <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
-                {editingId ? 'Sablonu Duzenle' : 'Yeni Sablon'}
+                {editingId ? 'Şablonu Düzenle' : 'Yeni Şablon'}
               </h2>
               <button
                 type="button"
@@ -363,22 +363,22 @@ export default function EmailTemplatesPage() {
 
             <div className="space-y-4">
               <Input
-                label="Sablon Adi"
+                label="Şablon Adi"
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Ornek: Teklif Takip Maili"
+                placeholder="Örnek: Teklif Takip Maili"
               />
 
               <Input
                 label="Konu"
                 value={form.subject}
                 onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-                placeholder="Ornek: {{company}} icin Teklif #{{quote_number}}"
+                placeholder="Örnek: {{company}} için Teklif #{{quote_number}}"
               />
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Icerik (HTML)
+                  İçerik (HTML)
                 </label>
                 <textarea
                   ref={bodyRef}
@@ -415,7 +415,7 @@ export default function EmailTemplatesPage() {
                     onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none"
                   >
-                    <option value="">Secin...</option>
+                    <option value="">Seçin...</option>
                     <option value="followup">Takip</option>
                     <option value="intro">Tanitim</option>
                     <option value="quote">Teklif</option>
@@ -431,7 +431,7 @@ export default function EmailTemplatesPage() {
                       onChange={(e) => setForm((p) => ({ ...p, is_shared: e.target.checked }))}
                       className="h-4 w-4 rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
                     />
-                    Tum ekiple paylas
+                    Tüm ekiple paylas
                   </label>
                 </div>
               </div>
@@ -439,14 +439,14 @@ export default function EmailTemplatesPage() {
 
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="secondary" onClick={closeModal}>
-                Iptal
+                İptal
               </Button>
               <Button
                 onClick={handleSave}
                 loading={createMutation.isPending || updateMutation.isPending}
                 disabled={!form.name || !form.subject || !form.body_html}
               >
-                {editingId ? 'Guncelle' : 'Olustur'}
+                {editingId ? 'Güncelle' : 'Oluştur'}
               </Button>
             </div>
           </div>
@@ -458,7 +458,7 @@ export default function EmailTemplatesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Email Gonder</h2>
+              <h2 className="text-lg font-bold text-gray-900">Email Gönder</h2>
               <button
                 type="button"
                 onClick={closeSendModal}
@@ -474,7 +474,7 @@ export default function EmailTemplatesPage() {
                 type="email"
                 value={sendEmail}
                 onChange={(e) => setSendEmail(e.target.value)}
-                placeholder="musteri@sirket.com"
+                placeholder="müşteri@şirket.com"
               />
 
               <div>
@@ -502,11 +502,11 @@ export default function EmailTemplatesPage() {
 
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="secondary" onClick={closeSendModal}>
-                Iptal
+                İptal
               </Button>
               <Button onClick={handleSend} loading={sendMutation.isPending} disabled={!sendEmail}>
                 <Send size={14} className="mr-1" />
-                Gonder
+                Gönder
               </Button>
             </div>
           </div>
@@ -518,8 +518,8 @@ export default function EmailTemplatesPage() {
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="Sablonu Sil"
-        message="Bu email sablonu kalici olarak silinecek. Devam etmek istiyor musunuz?"
+        title="Şablonu Sil"
+        message="Bu email şablonu kalici olarak silinecek. Devam etmek istiyor musunuz?"
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}

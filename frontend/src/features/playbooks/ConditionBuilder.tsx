@@ -5,18 +5,18 @@ import type { TriggerCondition } from '../../lib/types';
 const FIELD_OPTIONS = [
   { value: 'signal_type', label: 'Sinyal Tipi' },
   { value: 'severity', label: 'Siddet' },
-  { value: 'stage', label: 'Asama' },
+  { value: 'stage', label: 'Aşama' },
   { value: 'amount', label: 'Tutar' },
   { value: 'priority', label: 'Oncelik' },
-  { value: 'source_entity_type', label: 'Kaynak Varlik Tipi' },
+  { value: 'source_entity_type', label: 'Kaynak Varlık Tipi' },
 ];
 
 const OPERATOR_OPTIONS = [
   { value: 'eq', label: 'Esit' },
-  { value: 'neq', label: 'Esit Degil' },
+  { value: 'neq', label: 'Esit Değil' },
   { value: 'gte', label: '>=' },
   { value: 'lte', label: '<=' },
-  { value: 'contains', label: 'Icerir' },
+  { value: 'contains', label: 'İçerir' },
   { value: 'in', label: 'Listede' },
 ];
 
@@ -106,7 +106,7 @@ export function ConditionBuilder({ conditions, onChange, readOnly }: ConditionBu
             type="text"
             className={INPUT_CLASS}
             value={condition.value}
-            placeholder="Deger"
+            placeholder="Değer"
             onChange={(e) => handleUpdate(index, { value: e.target.value })}
           />
 

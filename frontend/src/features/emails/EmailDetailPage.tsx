@@ -71,7 +71,7 @@ const STRATEGY_STYLES: Record<string, { label: string; color: string }> = {
     color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
   },
   fuzzy_name: {
-    label: 'Fuzzy Isim',
+    label: 'Fuzzy İsim',
     color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
   },
   semantic: {
@@ -121,29 +121,29 @@ export default function EmailDetailPage() {
   const reparseMutation = useMutation({
     mutationFn: () => emailsApi.reparseEmail(emailId),
     onSuccess: () => {
-      toast.success('Email yeniden ayristirildi');
+      toast.success('Email yeniden ayrıştırıldı');
       queryClient.invalidateQueries({ queryKey: ['email', emailId] });
       queryClient.invalidateQueries({ queryKey: ['email-matches', emailId] });
     },
-    onError: () => toast.error('Yeniden ayristirma basarisiz'),
+    onError: () => toast.error('Yeniden ayrıştırma başarısız'),
   });
 
   const reviewMutation = useMutation({
     mutationFn: (action: string) => emailsApi.reviewEmail(emailId, action),
     onSuccess: () => {
-      toast.success('Inceleme durumu guncellendi');
+      toast.success('İnceleme durumu guncellendi');
       queryClient.invalidateQueries({ queryKey: ['email', emailId] });
     },
-    onError: () => toast.error('Inceleme guncellenemedi'),
+    onError: () => toast.error('İnceleme guncellenemedi'),
   });
 
   const createQuoteMutation = useMutation({
     mutationFn: () => quotesApi.createQuoteFromEmail(emailId),
     onSuccess: (quote) => {
-      toast.success('Teklif olusturuldu');
+      toast.success('Teklif oluşturuldu');
       navigate(`/quotes/${quote.id}`);
     },
-    onError: () => toast.error('Teklif olusturulamadi'),
+    onError: () => toast.error('Teklif oluşturulamadı'),
   });
 
   const draftReplyMutation = useMutation({
@@ -154,7 +154,7 @@ export default function EmailDetailPage() {
       setDraftText(text);
       setDraftModalOpen(true);
     },
-    onError: () => toast.error('AI yanit onerisi olusturulamadi'),
+    onError: () => toast.error('AI yanit onerisi oluşturulamadı'),
   });
 
   if (isLoading) {
@@ -211,7 +211,7 @@ export default function EmailDetailPage() {
           loading={createQuoteMutation.isPending}
           onClick={() => createQuoteMutation.mutate()}
         >
-          Teklif Olustur
+          Teklif Oluştur
         </Button>
         <Button
           variant="secondary"
@@ -249,7 +249,7 @@ export default function EmailDetailPage() {
         <Card title="Orijinal Email">
           <div className="space-y-3">
             <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
-              <span className="font-medium text-gray-500">Gonderen:</span>
+              <span className="font-medium text-gray-500">Gönderen:</span>
               <span className="text-gray-900">{email.from_address}</span>
               <span className="font-medium text-gray-500">Konu:</span>
               <span className="text-gray-900">{email.subject}</span>
@@ -270,13 +270,13 @@ export default function EmailDetailPage() {
             </div>
             <hr className="border-gray-200" />
             <div className="max-h-96 overflow-y-auto whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
-              {email.body_text || '(Icerik yok)'}
+              {email.body_text || '(İçerik yok)'}
             </div>
           </div>
         </Card>
 
         {/* Right: AI Parse Results */}
-        <Card title="AI Ayristirma Sonuclari">
+        <Card title="AI Ayrıştırma Sonuclari">
           {parsed ? (
             <div className="space-y-4">
               <div className="grid grid-cols-[120px_1fr] gap-2 text-sm">
@@ -294,11 +294,11 @@ export default function EmailDetailPage() {
                 </span>
                 <span className="font-medium text-gray-500">Dil:</span>
                 <span className="text-gray-900">{parsed.language || '-'}</span>
-                <span className="font-medium text-gray-500">Musteri:</span>
+                <span className="font-medium text-gray-500">Müşteri:</span>
                 <span className="text-gray-900">{parsed.customer_name || '-'}</span>
-                <span className="font-medium text-gray-500">Sirket:</span>
+                <span className="font-medium text-gray-500">Şirket:</span>
                 <span className="text-gray-900">{parsed.customer_company || '-'}</span>
-                <span className="font-medium text-gray-500">Yedek Parca:</span>
+                <span className="font-medium text-gray-500">Yedek Parça:</span>
                 <span className="text-gray-900">
                   {parsed.is_spare_part_request ? 'Evet' : 'Hayir'}
                 </span>
@@ -308,7 +308,7 @@ export default function EmailDetailPage() {
               {parsed.parts && parsed.parts.length > 0 && (
                 <div>
                   <h4 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    Cikarilan Parcalar ({parsed.parts.length})
+                    Çıkarılan Parçalar ({parsed.parts.length})
                   </h4>
                   <div className="space-y-2">
                     {parsed.parts.map((part, idx) => (
@@ -347,8 +347,8 @@ export default function EmailDetailPage() {
           ) : (
             <p className="py-8 text-center text-sm text-gray-500">
               {email.status === 'parsing'
-                ? 'Ayristirma devam ediyor...'
-                : 'Ayristirma sonucu bulunamadi'}
+                ? 'Ayrıştırma devam ediyor...'
+                : 'Ayrıştırma sonucu bulunamadi'}
             </p>
           )}
         </Card>
@@ -380,7 +380,7 @@ export default function EmailDetailPage() {
                 navigator.clipboard
                   .writeText(draftText)
                   .then(() => toast.success('Metin panoya kopyalandi'))
-                  .catch(() => toast.error('Kopyalama basarisiz'));
+                  .catch(() => toast.error('Kopyalama başarısız'));
               }}
             >
               Kopyala
@@ -391,7 +391,7 @@ export default function EmailDetailPage() {
 
       {/* Part Matching Results */}
       <div className="mt-6">
-        <Card title="Parca Eslestirme Sonuclari">
+        <Card title="Parça Eslestirme Sonuclari">
           {matchesLoading ? (
             <Skeleton variant="table" />
           ) : matches && matches.length > 0 ? (
@@ -403,7 +403,7 @@ export default function EmailDetailPage() {
                       Honeywell Kodu
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-                      Isim
+                      İsim
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                       Skor

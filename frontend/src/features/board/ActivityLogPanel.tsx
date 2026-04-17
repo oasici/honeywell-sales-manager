@@ -32,7 +32,7 @@ const OUTCOME_LABELS: Record<string, string> = {
   cevap_yok: 'Cevap Yok',
   tamamlandi: 'Tamamlandi',
   ertelendi: 'Ertelendi',
-  iptal: 'Iptal',
+  iptal: 'İptal',
 };
 
 const OUTCOME_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
@@ -81,7 +81,7 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
           <Skeleton variant="card" count={2} />
         ) : activities.length === 0 ? (
           <p className="py-8 text-center text-sm text-gray-400">
-            Henuz aktivite kaydedilmemis
+            Henüz aktivite kaydedilmemis
           </p>
         ) : (
           <div className="space-y-5">

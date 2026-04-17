@@ -381,7 +381,7 @@ export default function DashboardEditorPage() {
       {widgets.length === 0 ? (
         <Card>
           <div className="p-8 text-center text-sm text-gray-500">
-            Henuz widget eklenmedi. &quot;Widget Ekle&quot; butonuna tiklayarak baslayabilirsiniz.
+            Henüz widget eklenmedi. &quot;Widget Ekle&quot; butonuna tiklayarak baslayabilirsiniz.
           </div>
         </Card>
       ) : (
@@ -424,7 +424,7 @@ export default function DashboardEditorPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Rapor Sablonu
+                      Rapor Şablonu
                     </label>
                     <select
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
@@ -435,7 +435,7 @@ export default function DashboardEditorPage() {
                         })
                       }
                     >
-                      <option value="">-- Sec --</option>
+                      <option value="">-- Seç --</option>
                       {templates.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.name}
@@ -487,12 +487,12 @@ export default function DashboardEditorPage() {
                         <span className="font-medium">Rapor ID:</span> {w.report_id}
                       </p>
                       <p className="text-xs text-amber-600 italic">
-                        Rapor verisi yuklenemedi veya bos.
+                        Rapor verisi yuklenemedi veya boş.
                       </p>
                     </div>
                   ) : (
                     <p className="text-sm text-gray-400 italic">
-                      Widget icin rapor sablonu secilmedi.
+                      Widget için rapor sablonu secilmedi.
                     </p>
                   )}
                 </div>

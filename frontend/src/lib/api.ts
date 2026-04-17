@@ -139,10 +139,10 @@ api.interceptors.response.use(
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
-        toast.error('Gecersiz veri');
+        toast.error('Geçersiz veri');
       }
     } else if (status >= 500) {
-      toast.error('Sunucu hatasi, lutfen tekrar deneyin');
+      toast.error('Sunucu hatasi, lütfen tekrar deneyin');
     }
 
     return Promise.reject(error);
@@ -1239,77 +1239,77 @@ export const dashboardsApi = {
 // ── Engagement ────────────────────────────────────────
 export const engagementApi = {
   listTranscripts: async (params?: Record<string, unknown>) => {
-    const { data } = await api.get('/transcripts/', { params });
+    const { data } = await api.get('/engagement/transcripts/', { params });
     return data;
   },
   createTranscript: async (payload: Record<string, unknown>) => {
-    const { data } = await api.post('/transcripts/', payload);
+    const { data } = await api.post('/engagement/transcripts/', payload);
     return data;
   },
   summarizeTranscript: async (id: number) => {
-    const { data } = await api.post(`/transcripts/${id}/summarize`);
+    const { data } = await api.post(`/engagement/transcripts/${id}/summarize`);
     return data;
   },
   searchTranscripts: async (params: Record<string, unknown>) => {
-    const { data } = await api.get('/transcripts/search', { params });
+    const { data } = await api.get('/engagement/transcripts/search', { params });
     return data;
   },
   listKeywordPacks: async () => {
-    const { data } = await api.get('/keyword-packs/');
+    const { data } = await api.get('/engagement/keyword-packs/');
     return data;
   },
   createKeywordPack: async (payload: Record<string, unknown>) => {
-    const { data } = await api.post('/keyword-packs/', payload);
+    const { data } = await api.post('/engagement/keyword-packs/', payload);
     return data;
   },
   listSequences: async () => {
-    const { data } = await api.get('/sequences/');
+    const { data } = await api.get('/engagement/sequences/');
     return data;
   },
   getSequence: async (id: number) => {
-    const { data } = await api.get(`/sequences/${id}`);
+    const { data } = await api.get(`/engagement/sequences/${id}`);
     return data;
   },
   createSequence: async (payload: Record<string, unknown>) => {
-    const { data } = await api.post('/sequences/', payload);
+    const { data } = await api.post('/engagement/sequences/', payload);
     return data;
   },
   updateSequence: async (id: number, payload: Record<string, unknown>) => {
-    const { data } = await api.patch(`/sequences/${id}`, payload);
+    const { data } = await api.patch(`/engagement/sequences/${id}`, payload);
     return data;
   },
   enrollInSequence: async (payload: Record<string, unknown>) => {
-    const { data } = await api.post('/sequences/enroll', payload);
+    const { data } = await api.post('/engagement/sequences/enroll', payload);
     return data;
   },
   listEnrollments: async (sequenceId?: number) => {
-    const { data } = await api.get('/sequences/enrollments', {
+    const { data } = await api.get('/engagement/sequences/enrollments', {
       params: sequenceId ? { sequence_id: sequenceId } : {},
     });
     return data;
   },
   pauseEnrollment: async (enrollmentId: number) => {
-    const { data } = await api.patch(`/sequences/enrollments/${enrollmentId}/pause`);
+    const { data } = await api.patch(`/engagement/sequences/enrollments/${enrollmentId}/pause`);
     return data;
   },
   resumeEnrollment: async (enrollmentId: number) => {
-    const { data } = await api.patch(`/sequences/enrollments/${enrollmentId}/resume`);
+    const { data } = await api.patch(`/engagement/sequences/enrollments/${enrollmentId}/resume`);
     return data;
   },
   listSegments: async () => {
-    const { data } = await api.get('/segments/');
+    const { data } = await api.get('/engagement/segments/');
     return data;
   },
   createSegment: async (payload: Record<string, unknown>) => {
-    const { data } = await api.post('/segments/', payload);
+    const { data } = await api.post('/engagement/segments/', payload);
     return data;
   },
   getSegmentCustomers: async (id: number) => {
-    const { data } = await api.get(`/segments/${id}/customers`);
+    const { data } = await api.get(`/engagement/segments/${id}/customers`);
     return data;
   },
   getCoachingScorecards: async (window = 30) => {
-    const { data } = await api.get('/coaching/scorecards', { params: { window } });
+    const { data } = await api.get('/engagement/coaching/scorecards', { params: { window } });
     return data;
   },
 };
@@ -2093,26 +2093,26 @@ export const stakeholdersApi = {
 // ── Sequence V2 Analytics ──
 export const sequenceV2Api = {
   getEnrollmentDetail: async (enrollmentId: number) => {
-    const { data } = await api.get(`/sequences/enrollments/${enrollmentId}/detail`);
+    const { data } = await api.get(`/engagement/sequences/enrollments/${enrollmentId}/detail`);
     return data;
   },
   getStepRuns: async (enrollmentId: number) => {
-    const { data } = await api.get(`/sequences/enrollments/${enrollmentId}/step-runs`);
+    const { data } = await api.get(`/engagement/sequences/enrollments/${enrollmentId}/step-runs`);
     return data;
   },
   getAnalytics: async () => {
-    const { data } = await api.get('/sequences/analytics');
+    const { data } = await api.get('/engagement/sequences/analytics');
     return data;
   },
   getVariantMetrics: async (sequenceId?: number) => {
     const params = sequenceId ? `?sequence_id=${sequenceId}` : '';
-    const { data } = await api.get(`/sequences/variant-metrics${params}`);
+    const { data } = await api.get(`/engagement/sequences/variant-metrics${params}`);
     return data;
   },
   getDomainEvents: async (eventType?: string, limit = 50) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (eventType) params.set('event_type', eventType);
-    const { data } = await api.get(`/sequences/domain-events?${params}`);
+    const { data } = await api.get(`/engagement/sequences/domain-events?${params}`);
     return data;
   },
 };

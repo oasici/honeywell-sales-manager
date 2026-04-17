@@ -14,8 +14,8 @@ const STATUS_TABS = [
   { value: '', label: 'Tumu' },
   { value: 'draft', label: 'Taslak' },
   { value: 'pending_approval', label: 'Onay Bekliyor' },
-  { value: 'approved', label: 'Onaylandi' },
-  { value: 'sent', label: 'Gonderildi' },
+  { value: 'approved', label: 'Onaylandı' },
+  { value: 'sent', label: 'Gönderildi' },
 ];
 
 export default function QuoteListPage() {
@@ -58,13 +58,13 @@ export default function QuoteListPage() {
       return result;
     },
     onSuccess: (quote: Quote) => {
-      toast.success(`Taslak teklif olusturuldu: ${quote.quote_number}`);
+      toast.success(`Taslak teklif oluşturuldu: ${quote.quote_number}`);
       navigate(`/quotes/${quote.id}`);
     },
     onError: (err: unknown) => {
       const msg =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message || "PDF'den teklif olusturulamadi";
+          ?.message || "PDF'den teklif oluşturulamadı";
       toast.error(msg);
     },
   });
@@ -94,7 +94,7 @@ export default function QuoteListPage() {
     },
     {
       key: 'customer',
-      header: 'Musteri',
+      header: 'Müşteri',
       render: (row: Quote) => (
         <span className="text-sm">{row.customer?.company || row.customer?.name || '-'}</span>
       ),
@@ -137,7 +137,7 @@ export default function QuoteListPage() {
 
   return (
     <div>
-      <PageHeader title="Teklifler" description="Teklif yonetimi">
+      <PageHeader title="Teklifler" description="Teklif yönetimi">
         <input
           type="file"
           ref={pdfRef}
@@ -150,8 +150,7 @@ export default function QuoteListPage() {
           loading={pdfMutation.isPending}
           onClick={() => pdfRef.current?.click()}
         >
-          PDF'den Teklif
-        </Button>
+          PDF'den Teklif'        </Button>
         <Button onClick={() => navigate('/quotes/new')}>Yeni Teklif</Button>
       </PageHeader>
 
@@ -178,7 +177,7 @@ export default function QuoteListPage() {
         columns={columns}
         data={data?.items || []}
         loading={isLoading}
-        emptyMessage="Henuz teklif bulunamadi"
+        emptyMessage="Henüz teklif bulunamadi"
         page={data?.page || page}
         totalPages={data?.pages || 1}
         onPageChange={setPage}

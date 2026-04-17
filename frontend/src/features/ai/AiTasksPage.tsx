@@ -19,7 +19,7 @@ const STATUS_LABELS: Record<string, string> = {
   open: 'Acik',
   in_progress: 'Devam Ediyor',
   completed: 'Tamamlandi',
-  cancelled: 'Iptal',
+  cancelled: 'İptal',
 };
 
 const STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'default'> = {
@@ -31,9 +31,9 @@ const STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'default'
 
 const PRIORITY_LABELS: Record<string, string> = {
   urgent: 'Acil',
-  high: 'Yuksek',
+  high: 'Yüksek',
   normal: 'Normal',
-  low: 'Dusuk',
+  low: 'Düşük',
 };
 
 const PRIORITY_VARIANTS: Record<string, 'danger' | 'warning' | 'info' | 'default'> = {
@@ -59,12 +59,12 @@ export default function AiTasksPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => aiApi.createTask(payload),
     onSuccess: () => {
-      toast.success('Gorev olusturuldu');
+      toast.success('Gorev oluşturuldu');
       setModalOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
     },
-    onError: () => toast.error('Gorev olusturulamadi'),
+    onError: () => toast.error('Gorev oluşturulamadı'),
   });
 
   const updateMutation = useMutation({
@@ -74,7 +74,7 @@ export default function AiTasksPage() {
       toast.success('Gorev guncellendi');
       queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
     },
-    onError: () => toast.error('Guncellenemedi'),
+    onError: () => toast.error('Güncellenemedi'),
   });
 
   const tasks = data?.tasks ?? [];
@@ -93,7 +93,7 @@ export default function AiTasksPage() {
 
   return (
     <div>
-      <PageHeader title="AI Gorevleri" description="Yapay zeka tarafindan onerilen ve manuel gorevler">
+      <PageHeader title="AI Gorevleri" description="Yapay zeka tarafindan önerilen ve manuel gorevler">
         <Button onClick={() => setModalOpen(true)}>
           <Plus size={16} className="mr-1" /> Yeni Gorev
         </Button>
@@ -159,7 +159,7 @@ export default function AiTasksPage() {
                       </span>
                     )}
                     {task.opportunity_id && (
-                      <span>Firsat #{task.opportunity_id}</span>
+                      <span>Fırsat #{task.opportunity_id}</span>
                     )}
                   </div>
                 </div>
@@ -188,13 +188,13 @@ export default function AiTasksPage() {
             required
           />
           <Input
-            label="Aciklama"
+            label="Açıklama"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Firsat ID (opsiyonel)"
+              label="Fırsat ID (opsiyonel)"
               type="number"
               value={form.opportunity_id}
               onChange={(e) => setForm({ ...form, opportunity_id: e.target.value })}
@@ -213,14 +213,14 @@ export default function AiTasksPage() {
               value={form.priority}
               onChange={(e) => setForm({ ...form, priority: e.target.value })}
             >
-              <option value="low">Dusuk</option>
+              <option value="low">Düşük</option>
               <option value="normal">Normal</option>
-              <option value="high">Yuksek</option>
+              <option value="high">Yüksek</option>
               <option value="urgent">Acil</option>
             </select>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Iptal</Button>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>İptal</Button>
             <Button type="submit" loading={createMutation.isPending}>Kaydet</Button>
           </div>
         </form>

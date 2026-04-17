@@ -6,7 +6,7 @@ describe('Modal', () => {
   it('renders nothing when closed', () => {
     const { container } = render(
       <Modal isOpen={false} onClose={vi.fn()} title="Test">
-        <p>Icerik</p>
+        <p>İçerik</p>
       </Modal>,
     );
     expect(container.innerHTML).toBe('');
@@ -24,7 +24,7 @@ describe('Modal', () => {
   it('renders large size', () => {
     const { container } = render(
       <Modal isOpen={true} onClose={vi.fn()} title="Buyuk Modal" size="lg">
-        <p>Genis icerik</p>
+        <p>Genis içerik</p>
       </Modal>,
     );
     expect(container.firstChild).toMatchSnapshot();

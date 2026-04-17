@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts';
 
 const PALETTE = [
   ['#D32F2F', '#fce4ec'],
@@ -40,9 +40,8 @@ export const DoughnutChart = React.memo(function DoughnutChart({
       </p>
       <div className="flex items-center justify-center">
         <div className="relative" style={{ width: 150, height: 150 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <defs>
+          <PieChart width={150} height={150}>
+            <defs>
                 <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor={colors[0]} stopOpacity={1} />
                   <stop offset="100%" stopColor={colors[0]} stopOpacity={0.7} />
@@ -76,7 +75,6 @@ export const DoughnutChart = React.memo(function DoughnutChart({
                 <Cell fill={colors[1]} />
               </Pie>
             </PieChart>
-          </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className="text-2xl font-bold text-gray-900 dark:text-white">%{pct}</span>
           </div>

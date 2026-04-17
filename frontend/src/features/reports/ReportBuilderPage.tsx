@@ -47,8 +47,8 @@ const TOTAL_STEPS = 5;
 
 const ENTITY_TYPES = [
   { key: 'quote', label: 'Teklifler', icon: FileText, color: 'text-blue-500' },
-  { key: 'opportunity', label: 'Firsatlar', icon: Target, color: 'text-green-500' },
-  { key: 'customer', label: 'Musteriler', icon: Users, color: 'text-purple-500' },
+  { key: 'opportunity', label: 'Fırsatlar', icon: Target, color: 'text-green-500' },
+  { key: 'customer', label: 'Müşteriler', icon: Users, color: 'text-purple-500' },
   { key: 'email', label: 'Emailler', icon: Mail, color: 'text-orange-500' },
 ];
 
@@ -61,12 +61,12 @@ const CHART_TYPES = [
 
 const OPERATOR_OPTIONS = [
   { value: 'eq', label: 'Esit' },
-  { value: 'neq', label: 'Esit Degil' },
+  { value: 'neq', label: 'Esit Değil' },
   { value: 'gt', label: 'Buyuk' },
   { value: 'gte', label: 'Buyuk Esit' },
   { value: 'lt', label: 'Kucuk' },
   { value: 'lte', label: 'Kucuk Esit' },
-  { value: 'contains', label: 'Icerir' },
+  { value: 'contains', label: 'İçerir' },
 ];
 
 const CHART_COLORS = [
@@ -169,7 +169,7 @@ export default function ReportBuilderPage() {
         is_public: saveForm.is_public,
       }),
     onSuccess: () => {
-      toast.success('Rapor sablonu kaydedildi');
+      toast.success('Rapor şablonu kaydedildi');
       setIsSaveModalOpen(false);
       navigate('/reports/saved');
     },
@@ -239,7 +239,7 @@ export default function ReportBuilderPage() {
 
   return (
     <div>
-      <PageHeader title="Rapor Olusturucu" description="Adim adim ozel rapor olusturun">
+      <PageHeader title="Rapor Olusturucu" description="Adım adım özel rapor olusturun">
         <Button variant="secondary" onClick={() => navigate('/reports/saved')}>
           Geri Don
         </Button>
@@ -289,7 +289,7 @@ export default function ReportBuilderPage() {
 
       {/* Step 1: Entity Type */}
       {step === 1 && (
-        <Card title="Veri Kaynagi Secin">
+        <Card title="Veri Kaynagi Seçin">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {ENTITY_TYPES.map((et) => {
               const Icon = et.icon;
@@ -327,7 +327,7 @@ export default function ReportBuilderPage() {
 
       {/* Step 2: Columns */}
       {step === 2 && (
-        <Card title="Kolonlari Secin">
+        <Card title="Kolonlari Seçin">
           {isColumnsLoading ? (
             <Skeleton variant="line" count={6} />
           ) : availableColumns.length === 0 ? (
@@ -376,7 +376,7 @@ export default function ReportBuilderPage() {
         >
           {filters.length === 0 ? (
             <p className="py-4 text-sm text-gray-500 dark:text-gray-400">
-              Filtre eklenmedi. Tum veriler dahil edilecek.
+              Filtre eklenmedi. Tüm veriler dahil edilecek.
             </p>
           ) : (
             <div className="space-y-3">
@@ -390,7 +390,7 @@ export default function ReportBuilderPage() {
                     options={columnOptions}
                     value={filter.field}
                     onChange={(e) => updateFilter(idx, 'field', e.target.value)}
-                    placeholder="Alan secin"
+                    placeholder="Alan seçin"
                   />
                   <Select
                     label="Operator"
@@ -399,10 +399,10 @@ export default function ReportBuilderPage() {
                     onChange={(e) => updateFilter(idx, 'operator', e.target.value)}
                   />
                   <Input
-                    label="Deger"
+                    label="Değer"
                     value={filter.value}
                     onChange={(e) => updateFilter(idx, 'value', e.target.value)}
-                    placeholder="Deger girin"
+                    placeholder="Değer girin"
                   />
                   <button
                     type="button"
@@ -549,7 +549,7 @@ export default function ReportBuilderPage() {
       <div className="mt-6 flex items-center justify-between">
         <Button variant="secondary" onClick={handlePrev} disabled={step === 1}>
           <ChevronLeft size={16} className="mr-1" />
-          Onceki
+          Önceki
         </Button>
 
         <div className="flex gap-2">
@@ -579,10 +579,10 @@ export default function ReportBuilderPage() {
             label="Rapor Adi"
             value={saveForm.name}
             onChange={(e) => setSaveForm((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="ornek: Aylik Teklif Ozeti"
+            placeholder="örnek: Aylik Teklif Özeti"
           />
           <Input
-            label="Aciklama"
+            label="Açıklama"
             value={saveForm.description}
             onChange={(e) =>
               setSaveForm((prev) => ({
@@ -608,7 +608,7 @@ export default function ReportBuilderPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsSaveModalOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button
               onClick={() => saveMutation.mutate()}

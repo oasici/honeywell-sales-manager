@@ -29,7 +29,7 @@ const CALL_OUTCOMES = [
 const MEETING_OUTCOMES = [
   { value: 'tamamlandi', label: 'Tamamlandi' },
   { value: 'ertelendi', label: 'Ertelendi' },
-  { value: 'iptal', label: 'Iptal' },
+  { value: 'iptal', label: 'İptal' },
 ];
 
 const INITIAL_FORM = {
@@ -139,7 +139,7 @@ export default function QuickActivityModal({
         {/* Summary — shared by all types */}
         <div>
           <label htmlFor="activity-summary" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-            Ozet
+            Özet
           </label>
           <textarea
             id="activity-summary"
@@ -157,7 +157,7 @@ export default function QuickActivityModal({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="call-duration" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Sure (dk)
+                  Süre (dk)
                 </label>
                 <input
                   id="call-duration"
@@ -171,7 +171,7 @@ export default function QuickActivityModal({
               </div>
               <div>
                 <label htmlFor="call-outcome" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Sonuc
+                  Sonuç
                 </label>
                 <select
                   id="call-outcome"
@@ -179,7 +179,7 @@ export default function QuickActivityModal({
                   onChange={(e) => updateField('outcome', e.target.value)}
                   className={inputClass}
                 >
-                  <option value="">Seciniz</option>
+                  <option value="">Seçiniz</option>
                   {CALL_OUTCOMES.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
@@ -195,7 +195,7 @@ export default function QuickActivityModal({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="meeting-duration" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Sure (dk)
+                  Süre (dk)
                 </label>
                 <input
                   id="meeting-duration"
@@ -209,7 +209,7 @@ export default function QuickActivityModal({
               </div>
               <div>
                 <label htmlFor="meeting-outcome" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Sonuc
+                  Sonuç
                 </label>
                 <select
                   id="meeting-outcome"
@@ -217,7 +217,7 @@ export default function QuickActivityModal({
                   onChange={(e) => updateField('outcome', e.target.value)}
                   className={inputClass}
                 >
-                  <option value="">Seciniz</option>
+                  <option value="">Seçiniz</option>
                   {MEETING_OUTCOMES.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
@@ -259,7 +259,7 @@ export default function QuickActivityModal({
       {/* Actions */}
       <div className="mt-6 flex justify-end gap-2">
         <Button variant="secondary" size="sm" onClick={handleClose}>
-          Iptal
+          İptal
         </Button>
         <Button
           size="sm"

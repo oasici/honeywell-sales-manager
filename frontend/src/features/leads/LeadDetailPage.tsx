@@ -43,14 +43,14 @@ const SCORE_REASON_LABELS: Record<string, string> = {
   email_replied: 'Email yanit',
   email_bounced: 'Email bounce',
   meeting_booked: 'Toplanti',
-  quote_sent: 'Teklif gonderildi',
-  quote_approved: 'Teklif onaylandi',
+  quote_sent: 'Teklif gönderildi',
+  quote_approved: 'Teklif onaylandı',
   call_connected: 'Arama baglandi',
   sequence_step_completed: 'Dizi adimi',
   positive_keyword: 'Pozitif anahtar kelime',
   dnc_flagged: 'DNC isaretlendi',
-  sequence_exited_unresponsive: 'Yanitsiz cikis',
-  workflow_rule: 'Is kurali',
+  sequence_exited_unresponsive: 'Yanitsiz çıkış',
+  workflow_rule: 'İş kuralı',
 };
 
 function ScoreHistory({ leadId }: { leadId: number }) {
@@ -161,7 +161,7 @@ export default function LeadDetailPage() {
   const convertMutation = useMutation({
     mutationFn: () => leadsApi.convert(leadId, convertForm),
     onSuccess: (data: { customer_id?: number; opportunity_id?: number }) => {
-      toast.success('Lead basariyla donusturuldu!');
+      toast.success('Lead başarıyla donusturuldu!');
       setShowConvert(false);
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
       if (data.customer_id) {
@@ -281,7 +281,7 @@ export default function LeadDetailPage() {
 
         {/* Status Management */}
         {!isConverted && (
-          <Card title="Durum Yonetimi" className="lg:col-span-3">
+          <Card title="Durum Yönetimi" className="lg:col-span-3">
             <div className="flex flex-wrap gap-2 p-4">
               {['new', 'contacted', 'qualified', 'unqualified'].map((s) => (
                 <Button
@@ -310,25 +310,25 @@ export default function LeadDetailPage() {
               </div>
               {lead.converted_customer_id && (
                 <div>
-                  <p className="text-xs text-gray-500">Musteri</p>
+                  <p className="text-xs text-gray-500">Müşteri</p>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate(`/customers/${lead.converted_customer_id}`)}
                   >
-                    Musteri #{lead.converted_customer_id}
+                    Müşteri #{lead.converted_customer_id}
                   </Button>
                 </div>
               )}
               {lead.converted_opportunity_id && (
                 <div>
-                  <p className="text-xs text-gray-500">Firsat</p>
+                  <p className="text-xs text-gray-500">Fırsat</p>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate(`/opportunities/${lead.converted_opportunity_id}`)}
                   >
-                    Firsat #{lead.converted_opportunity_id}
+                    Fırsat #{lead.converted_opportunity_id}
                   </Button>
                 </div>
               )}
@@ -359,7 +359,7 @@ export default function LeadDetailPage() {
             <strong>
               {lead.first_name} {lead.last_name}
             </strong>{' '}
-            musteri olarak kaydedilecek.
+            müşteri olarak kaydedilecek.
           </p>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -371,18 +371,18 @@ export default function LeadDetailPage() {
               className="rounded border-gray-300"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              Ayni zamanda firsat olustur
+              Ayni zamanda fırsat oluştur
             </span>
           </label>
           {convertForm.create_opportunity && (
             <div className="space-y-3 border-l-2 border-blue-200 pl-4 dark:border-blue-800">
               <Input
-                label="Firsat Basligi"
+                label="Fırsat Basligi"
                 value={convertForm.opportunity_title}
                 onChange={(e) =>
                   setConvertForm({ ...convertForm, opportunity_title: e.target.value })
                 }
-                placeholder={`${lead.company || lead.last_name} - Yeni Firsat`}
+                placeholder={`${lead.company || lead.last_name} - Yeni Fırsat`}
               />
               <Input
                 label="Tahmini Tutar (TRY)"
@@ -396,7 +396,7 @@ export default function LeadDetailPage() {
           )}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setShowConvert(false)} type="button">
-              Iptal
+              İptal
             </Button>
             <Button type="submit" loading={convertMutation.isPending}>
               Donustur

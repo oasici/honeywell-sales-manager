@@ -16,10 +16,10 @@ import type { Invoice } from '../../lib/types';
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Taslak',
-  sent: 'Gonderildi',
-  paid: 'Odendi',
+  sent: 'Gönderildi',
+  paid: 'Ödendi',
   overdue: 'Gecikti',
-  voided: 'Iptal',
+  voided: 'İptal',
 };
 
 const STATUS_VARIANTS: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
@@ -94,7 +94,7 @@ export default function InvoiceDetailPage() {
       signer_name?: string;
     }) => signaturesApi.request(payload),
     onSuccess: () => {
-      toast.success('Imza istegi gonderildi');
+      toast.success('Imza istegi gönderildi');
       setIsSignModalOpen(false);
       setSignForm(INITIAL_SIGN_FORM);
     },
@@ -154,7 +154,7 @@ export default function InvoiceDetailPage() {
           <>
             <Button onClick={() => handleStatusChange('sent')} loading={statusMutation.isPending}>
               <Send className="mr-1.5 h-4 w-4" />
-              Gonder
+              Gönder
             </Button>
             <Button
               variant="danger"
@@ -162,7 +162,7 @@ export default function InvoiceDetailPage() {
               loading={statusMutation.isPending}
             >
               <Ban className="mr-1.5 h-4 w-4" />
-              Iptal Et
+              İptal Et
             </Button>
           </>
         )}
@@ -171,7 +171,7 @@ export default function InvoiceDetailPage() {
           <>
             <Button onClick={() => handleStatusChange('paid')} loading={statusMutation.isPending}>
               <CheckCircle className="mr-1.5 h-4 w-4" />
-              Odendi
+              Ödendi
             </Button>
             <Button
               variant="secondary"
@@ -187,7 +187,7 @@ export default function InvoiceDetailPage() {
               loading={statusMutation.isPending}
             >
               <Ban className="mr-1.5 h-4 w-4" />
-              Iptal Et
+              İptal Et
             </Button>
           </>
         )}
@@ -196,7 +196,7 @@ export default function InvoiceDetailPage() {
           <>
             <Button onClick={() => handleStatusChange('paid')} loading={statusMutation.isPending}>
               <CheckCircle className="mr-1.5 h-4 w-4" />
-              Odendi
+              Ödendi
             </Button>
             <Button
               variant="danger"
@@ -204,7 +204,7 @@ export default function InvoiceDetailPage() {
               loading={statusMutation.isPending}
             >
               <Ban className="mr-1.5 h-4 w-4" />
-              Iptal Et
+              İptal Et
             </Button>
           </>
         )}
@@ -225,7 +225,7 @@ export default function InvoiceDetailPage() {
       <Card title="Fatura Bilgileri">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <p className="text-xs text-gray-500">Musteri</p>
+            <p className="text-xs text-gray-500">Müşteri</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
               {invoice.customer?.name ?? `#${invoice.customer_id}`}
             </p>
@@ -234,7 +234,7 @@ export default function InvoiceDetailPage() {
             )}
           </div>
           <div>
-            <p className="text-xs text-gray-500">Duzenleme Tarihi</p>
+            <p className="text-xs text-gray-500">Düzenleme Tarihi</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
               {formatDate(invoice.issue_date)}
             </p>
@@ -263,7 +263,7 @@ export default function InvoiceDetailPage() {
           )}
           {invoice.paid_at && (
             <div>
-              <p className="text-xs text-gray-500">Odeme Tarihi</p>
+              <p className="text-xs text-gray-500">Ödeme Tarihi</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {formatDate(invoice.paid_at)}
               </p>
@@ -279,7 +279,7 @@ export default function InvoiceDetailPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Aciklama</th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Açıklama</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">Adet</th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
                     Birim Fiyat
@@ -317,7 +317,7 @@ export default function InvoiceDetailPage() {
       )}
 
       {/* Totals */}
-      <Card title="Tutar Ozeti">
+      <Card title="Tutar Özeti">
         <div className="ml-auto max-w-xs space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Ara Toplam</span>
@@ -354,11 +354,11 @@ export default function InvoiceDetailPage() {
           setIsSignModalOpen(false);
           setSignForm(INITIAL_SIGN_FORM);
         }}
-        title="Imza Istegi Gonder"
+        title="Imza Istegi Gönder"
         size="sm"
       >
         <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-          Fatura <strong>{invoice.invoice_number}</strong> icin imza istegi e-posta ile
+          Fatura <strong>{invoice.invoice_number}</strong> için imza istegi e-posta ile
           gonderilecektir.
         </p>
         <div className="space-y-3">
@@ -367,7 +367,7 @@ export default function InvoiceDetailPage() {
             type="email"
             value={signForm.signer_email}
             onChange={(e) => setSignForm({ ...signForm, signer_email: e.target.value })}
-            placeholder="ornek@firma.com"
+            placeholder="örnek@firma.com"
           />
           <Input
             label="Imzalayan Adi (isteğe bagli)"
@@ -384,11 +384,11 @@ export default function InvoiceDetailPage() {
               setSignForm(INITIAL_SIGN_FORM);
             }}
           >
-            Iptal
+            İptal
           </Button>
           <Button onClick={handleSignatureRequest} loading={signatureMutation.isPending}>
             <PenLine className="mr-1.5 h-4 w-4" />
-            Gonder
+            Gönder
           </Button>
         </div>
       </Modal>

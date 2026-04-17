@@ -28,7 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const ENTITY_LABEL: Record<string, string> = {
   quote: 'Teklif',
-  opportunity: 'Firsat',
+  opportunity: 'Fırsat',
 };
 
 function entityLink(entityType: string, entityId: number) {
@@ -55,12 +55,12 @@ export default function PendingApprovalsPage() {
     mutationFn: ({ id, comment }: { id: number; comment: string }) =>
       approvalsApi.approve(id, comment),
     onSuccess: () => {
-      toast.success('Onay basarili');
+      toast.success('Onay başarılı');
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       closeModal();
     },
     onError: () => {
-      toast.error('Onay islemi basarisiz');
+      toast.error('Onay işlemi başarısız');
     },
   });
 
@@ -68,12 +68,12 @@ export default function PendingApprovalsPage() {
     mutationFn: ({ id, comment }: { id: number; comment: string }) =>
       approvalsApi.reject(id, comment),
     onSuccess: () => {
-      toast.success('Red islemi tamamlandi');
+      toast.success('Red işlemi tamamlandi');
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       closeModal();
     },
     onError: () => {
-      toast.error('Red islemi basarisiz');
+      toast.error('Red işlemi başarısız');
     },
   });
 
@@ -172,7 +172,7 @@ export default function PendingApprovalsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Bekleyen Onaylar"
-        description="Onay bekleyen teklif ve firsat talepleri"
+        description="Onay bekleyen teklif ve fırsat talepleri"
       />
 
       <Card>
@@ -220,7 +220,7 @@ export default function PendingApprovalsPage() {
               onClick={closeModal}
               disabled={isSubmitting}
             >
-              Iptal
+              İptal
             </Button>
             <Button
               variant={actionModal.type === 'approve' ? 'primary' : 'danger'}

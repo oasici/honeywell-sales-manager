@@ -29,7 +29,7 @@ from app.models.quote import Quote
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
-router = APIRouter(tags=["Engagement (v2)"])
+router = APIRouter(prefix="/engagement", tags=["Engagement"])
 
 
 # ══════════════════════════════════════════

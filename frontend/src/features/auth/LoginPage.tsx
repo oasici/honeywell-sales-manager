@@ -7,7 +7,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { SalesSuitLogo } from '../../components/brand/SalesSuitLogo';
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'E-posta adresi gereklidir').email('Gecerli bir e-posta adresi giriniz'),
+  email: z.string().min(1, 'E-posta adresi gereklidir').email('Geçerli bir e-posta adresi giriniz'),
   password: z.string().min(1, 'Sifre gereklidir'),
 });
 
@@ -32,12 +32,12 @@ export function LoginPage() {
   const onSubmit = async (values: LoginForm) => {
     try {
       await login(values.email, values.password);
-      toast.success('Giris basarili');
+      toast.success('Giris başarılı');
       navigate(from, { replace: true });
     } catch (error: unknown) {
       const raw =
         (error as { response?: { data?: { detail?: unknown; error?: { message?: string } } } })?.response?.data;
-      let message = 'Giris basarisiz. Lutfen bilgilerinizi kontrol ediniz.';
+      let message = 'Giris başarısız. Lütfen bilgilerinizi kontrol ediniz.';
       if (raw?.error?.message) {
         message = raw.error.message;
       } else if (typeof raw?.detail === 'string') {
@@ -68,7 +68,7 @@ export function LoginPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="ornek@honeywell.com"
+                placeholder="örnek@honeywell.com"
                 className={`w-full rounded-xl border bg-gray-50/50 px-4 py-3 text-sm outline-none transition-all duration-200 focus:bg-white focus:border-honeywell-red focus:ring-2 focus:ring-honeywell-light focus:shadow-sm ${
                   errors.email ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
                 }`}
@@ -111,7 +111,7 @@ export function LoginPage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-gray-400">
-          &copy; 2026 Honeywell Sales Suit. Tum haklar saklidir.
+          &copy; 2026 Honeywell Sales Suit. Tüm haklar saklidir.
         </p>
       </div>
     </div>

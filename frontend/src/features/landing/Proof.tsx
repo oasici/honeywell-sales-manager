@@ -2,14 +2,14 @@ import { motion } from 'framer-motion';
 import { TrendingDown, TrendingUp, Clock, Shield, Lock, Server } from 'lucide-react';
 
 const METRICS = [
-  { icon: TrendingDown, value: '%60', label: 'Daha hizli teklif hazirlama', desc: 'Beklenen etki: 4+ saatten 90 dakikanin altina' },
-  { icon: TrendingUp, value: '%35', label: 'Daha yuksek donusum orani', desc: 'Beklenen etki: hizli yanit + tutarli fiyatlandirma' },
+  { icon: TrendingDown, value: '%60', label: 'Daha hızlı teklif hazirlama', desc: 'Beklenen etki: 4+ saatten 90 dakikanin altina' },
+  { icon: TrendingUp, value: '%35', label: 'Daha yüksek donusum orani', desc: 'Beklenen etki: hızlı yanit + tutarli fiyatlandirma' },
   { icon: Clock, value: '0', label: 'Kacan talep', desc: 'Beklenen etki: otomatik tarama + bildirimler' },
 ];
 
 const TRUST_SIGNALS = [
-  { icon: Shield, label: 'RBAC + rol bazli erisim', desc: 'sales_rep, sales_manager, operations — her rol sadece yetkili oldugu verileri gorur.' },
-  { icon: Lock, label: 'Fernet sifreleme + audit trail', desc: 'Email sifreleri AES ile korunur. Her islem denetim izinde kayitlidir.' },
+  { icon: Shield, label: 'RBAC + rol bazli erişim', desc: 'sales_rep, sales_manager, operations — her rol sadece yetkili oldugu verileri gorur.' },
+  { icon: Lock, label: 'Fernet sifreleme + audit trail', desc: 'Email sifreleri AES ile korunur. Her işlem denetim izinde kayitlidir.' },
   { icon: Server, label: 'Multi-worker + Redis', desc: 'Gunicorn 4 worker, Redis paylasimli state, PgBouncer connection pooling.' },
 ];
 

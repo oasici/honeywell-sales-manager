@@ -29,8 +29,8 @@ const ENTITY_TYPE_BADGE: Record<
   { label: string; variant: 'info' | 'success' | 'warning' | 'danger' | 'default' }
 > = {
   quote: { label: 'Teklif', variant: 'info' },
-  opportunity: { label: 'Firsat', variant: 'success' },
-  customer: { label: 'Musteri', variant: 'warning' },
+  opportunity: { label: 'Fırsat', variant: 'success' },
+  customer: { label: 'Müşteri', variant: 'warning' },
   email: { label: 'Email', variant: 'danger' },
 };
 
@@ -57,7 +57,7 @@ export default function SavedReportsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => reportsApi.deleteTemplate(id),
     onSuccess: () => {
-      toast.success('Rapor sablonu silindi');
+      toast.success('Rapor şablonu silindi');
       queryClient.invalidateQueries({ queryKey: ['report-templates'] });
       setDeleteTarget(null);
     },
@@ -115,12 +115,12 @@ export default function SavedReportsPage() {
       {templates.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-center">
           <BarChart3 size={48} className="mb-3 text-gray-300 dark:text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Henuz rapor yok</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Henüz rapor yok</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Yeni bir rapor olusturarak baslayabilirsiniz
           </p>
           <Button className="mt-4" onClick={() => navigate('/reports/builder')}>
-            Rapor Olustur
+            Rapor Oluştur
           </Button>
         </div>
       ) : (
@@ -164,7 +164,7 @@ export default function SavedReportsPage() {
                     ) : (
                       <Badge variant="default" size="sm">
                         <Lock size={10} className="mr-1" />
-                        Ozel
+                        Özel
                       </Badge>
                     )}
                     {template.is_system && (
@@ -232,7 +232,7 @@ export default function SavedReportsPage() {
           }
         }}
         title="Rapor Sablonunu Sil"
-        message={`"${deleteTarget?.name}" rapor sablonu silinecek. Devam etmek istiyor musunuz?`}
+        message={`"${deleteTarget?.name}" rapor şablonu silinecek. Devam etmek istiyor musunuz?`}
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}

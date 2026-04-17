@@ -14,8 +14,8 @@ interface ApiErrorResponse {
 const LOGIN_ERROR_MESSAGES: Record<number, string> = {
   401: 'E-posta veya sifre hatali',
   403: 'Hesabiniz devre disi birakilmis',
-  404: 'Kullanici bulunamadi',
-  429: 'Cok fazla deneme yaptiniz, lutfen bekleyin',
+  404: 'Kullanıcı bulunamadi',
+  429: 'Çok fazla deneme yaptiniz, lütfen bekleyin',
 };
 
 function extractLoginErrorMessage(error: unknown): string {
@@ -36,7 +36,7 @@ function extractLoginErrorMessage(error: unknown): string {
     return serverMessage;
   }
 
-  return LOGIN_ERROR_MESSAGES[status] || 'Giris basarisiz, lutfen tekrar deneyin';
+  return LOGIN_ERROR_MESSAGES[status] || 'Giris başarısız, lütfen tekrar deneyin';
 }
 
 interface AuthState {

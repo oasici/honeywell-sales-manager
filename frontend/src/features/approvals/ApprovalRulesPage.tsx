@@ -32,7 +32,7 @@ const OPERATOR_OPTIONS = [
 ];
 
 const APPROVER_ROLE_OPTIONS = [
-  { value: 'sales_manager', label: 'Satis Yoneticisi' },
+  { value: 'sales_manager', label: 'Satış Yoneticisi' },
 ];
 
 const OPERATOR_SYMBOL: Record<string, string> = {
@@ -84,12 +84,12 @@ export default function ApprovalRulesPage() {
     mutationFn: (payload: Record<string, unknown>) =>
       approvalsApi.createRule(payload),
     onSuccess: () => {
-      toast.success('Kural olusturuldu');
+      toast.success('Kural oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['approval-rules'] });
       closeForm();
     },
     onError: () => {
-      toast.error('Kural olusturulamadi');
+      toast.error('Kural oluşturulamadı');
     },
   });
 
@@ -193,7 +193,7 @@ export default function ApprovalRulesPage() {
     },
     {
       key: 'entity_type',
-      header: 'Varlik Tipi',
+      header: 'Varlık Tipi',
       render: (row: ApprovalRule) => (
         <span className="text-gray-700 dark:text-gray-300">
           {row.entity_type === 'quote' ? 'Teklif' : row.entity_type}
@@ -211,7 +211,7 @@ export default function ApprovalRulesPage() {
     },
     {
       key: 'threshold',
-      header: 'Esik Deger',
+      header: 'Esik Değer',
       render: (row: ApprovalRule) => (
         <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
           {OPERATOR_SYMBOL[row.threshold_operator] || row.threshold_operator}{' '}
@@ -225,7 +225,7 @@ export default function ApprovalRulesPage() {
       render: (row: ApprovalRule) => (
         <span className="text-gray-700 dark:text-gray-300">
           {row.approver_role === 'sales_manager'
-            ? 'Satis Yoneticisi'
+            ? 'Satış Yoneticisi'
             : row.approver_role || '-'}
         </span>
       ),
@@ -272,7 +272,7 @@ export default function ApprovalRulesPage() {
               openEdit(row);
             }}
           >
-            Duzenle
+            Düzenle
           </Button>
           <Button
             size="sm"
@@ -294,8 +294,8 @@ export default function ApprovalRulesPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Onay Kurallari"
-        description="Teklif ve firsat icin otomatik onay kurallarini yonetin"
+        title="Onay Kuralları"
+        description="Teklif ve fırsat için otomatik onay kurallarini yonetin"
       >
         <Button onClick={openCreate}>Yeni Kural</Button>
       </PageHeader>
@@ -305,7 +305,7 @@ export default function ApprovalRulesPage() {
           columns={columns}
           data={items}
           loading={isLoading}
-          emptyMessage="Henuz onay kurali tanimlanmamis"
+          emptyMessage="Henüz onay kuralı tanimlanmamis"
         />
       </Card>
 
@@ -313,7 +313,7 @@ export default function ApprovalRulesPage() {
       <Modal
         isOpen={showForm}
         onClose={closeForm}
-        title={editingRule ? 'Kural Duzenle' : 'Yeni Onay Kurali'}
+        title={editingRule ? 'Kural Düzenle' : 'Yeni Onay Kuralı'}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -326,7 +326,7 @@ export default function ApprovalRulesPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Select
-              label="Varlik Tipi"
+              label="Varlık Tipi"
               options={ENTITY_TYPE_OPTIONS}
               value={form.entity_type}
               onChange={(e) =>
@@ -353,7 +353,7 @@ export default function ApprovalRulesPage() {
               }
             />
             <Input
-              label="Esik Deger"
+              label="Esik Değer"
               type="number"
               step="any"
               value={form.threshold_value}
@@ -387,10 +387,10 @@ export default function ApprovalRulesPage() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={closeForm} type="button">
-              Iptal
+              İptal
             </Button>
             <Button type="submit" loading={isSaving}>
-              {editingRule ? 'Guncelle' : 'Olustur'}
+              {editingRule ? 'Güncelle' : 'Oluştur'}
             </Button>
           </div>
         </form>
@@ -402,7 +402,7 @@ export default function ApprovalRulesPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         title="Kural Sil"
-        message={`"${deleteTarget?.name}" kuralini silmek istediginizden emin misiniz? Bu islem geri alinamaz.`}
+        message={`"${deleteTarget?.name}" kuralini silmek istediginizden emin misiniz? Bu işlem geri alinamaz.`}
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}

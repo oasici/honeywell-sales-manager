@@ -43,14 +43,14 @@ export default function PlaybookTemplatesPage() {
         steps_json: template.steps_json,
       }),
     onSuccess: () => {
-      toast.success('Sablondan playbook olusturuldu');
+      toast.success('Sablondan playbook oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['playbooks'] });
       navigate('/playbooks');
     },
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Hata olustu',
+          'Hata oluştu',
       ),
   });
 
@@ -60,7 +60,7 @@ export default function PlaybookTemplatesPage() {
     return (
       <div className="space-y-4">
         <PageHeader
-          title="Playbook Sablonlari"
+          title="Playbook Şablonları"
           description="Hazir sablonlardan playbook olusturun"
         />
         <Skeleton variant="card" count={3} />
@@ -70,13 +70,13 @@ export default function PlaybookTemplatesPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Playbook Sablonlari" description="Hazir sablonlardan playbook olusturun" />
+      <PageHeader title="Playbook Şablonları" description="Hazir sablonlardan playbook olusturun" />
 
       {templates.length === 0 ? (
         <Card>
           <EmptyState
-            title="Henuz sablon bulunmuyor"
-            description="Playbook sablonlari henuz tanimlanmamis."
+            title="Henüz şablon bulunmuyor"
+            description="Playbook şablonları henüz tanimlanmamis."
           />
         </Card>
       ) : (
@@ -105,7 +105,7 @@ export default function PlaybookTemplatesPage() {
                     onClick={() => createFromTemplateMutation.mutate(template)}
                     loading={createFromTemplateMutation.isPending}
                   >
-                    Sablondan Olustur
+                    Sablondan Oluştur
                   </Button>
                 </div>
               </div>

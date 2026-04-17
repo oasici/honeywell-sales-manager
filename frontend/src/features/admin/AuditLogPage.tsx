@@ -25,11 +25,11 @@ interface PaginatedAuditLogs {
 
 const ENTITY_TYPE_OPTIONS = [
   { value: '', label: 'Tumu' },
-  { value: 'user', label: 'Kullanici' },
+  { value: 'user', label: 'Kullanıcı' },
   { value: 'email', label: 'Email' },
   { value: 'quote', label: 'Teklif' },
-  { value: 'customer', label: 'Musteri' },
-  { value: 'part', label: 'Parca' },
+  { value: 'customer', label: 'Müşteri' },
+  { value: 'part', label: 'Parça' },
   { value: 'price', label: 'Fiyat' },
   { value: 'settings', label: 'Ayarlar' },
 ];
@@ -64,7 +64,7 @@ export default function AuditLogPage() {
     },
     {
       key: 'user_email',
-      header: 'Kullanici',
+      header: 'Kullanıcı',
       sortable: true,
       render: (row: AuditLog) => (
         <span className="text-sm font-medium text-gray-900">{row.user_email}</span>
@@ -72,7 +72,7 @@ export default function AuditLogPage() {
     },
     {
       key: 'action',
-      header: 'Islem',
+      header: 'İşlem',
       sortable: true,
       render: (row: AuditLog) => (
         <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
@@ -82,7 +82,7 @@ export default function AuditLogPage() {
     },
     {
       key: 'entity_type',
-      header: 'Varlik',
+      header: 'Varlık',
       render: (row: AuditLog) => (
         <span className="text-sm text-gray-600">
           {row.entity_type}
@@ -104,13 +104,13 @@ export default function AuditLogPage() {
   return (
     <div>
       <PageHeader
-        title="Denetim Kayitlari"
-        description="Sistem islem gecmisi"
+        title="Denetim Kayıtları"
+        description="Sistem işlem gecmisi"
       />
 
       <div className="mb-6 max-w-xs">
         <Select
-          label="Varlik Tipi"
+          label="Varlık Tipi"
           options={ENTITY_TYPE_OPTIONS}
           value={entityType}
           onChange={(e) => {

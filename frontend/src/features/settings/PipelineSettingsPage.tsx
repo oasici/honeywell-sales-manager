@@ -93,11 +93,11 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
         stages_json: JSON.stringify(values.stages),
       }),
     onSuccess: () => {
-      toast.success('Pipeline olusturuldu');
+      toast.success('Pipeline oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['pipelines'] });
       onClose();
     },
-    onError: () => toast.error('Pipeline olusturulamadi'),
+    onError: () => toast.error('Pipeline oluşturulamadı'),
   });
 
   const updateMutation = useMutation({
@@ -127,7 +127,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Modal isOpen onClose={onClose} title={isEdit ? 'Pipeline Duzenle' : 'Yeni Pipeline'} size="lg">
+    <Modal isOpen onClose={onClose} title={isEdit ? 'Pipeline Düzenle' : 'Yeni Pipeline'} size="lg">
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
           {/* Name */}
@@ -138,7 +138,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
             <input
               {...register('name')}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="Ornegin: Standart Satis Pipeline"
+              placeholder="Örneğin: Standart Satış Pipeline"
             />
             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
           </div>
@@ -146,13 +146,13 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Aciklama
+              Açıklama
             </label>
             <textarea
               {...register('description')}
               rows={2}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-red resize-none dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="Bu pipeline hakkinda kisa bir aciklama..."
+              placeholder="Bu pipeline hakkinda kısa bir açıklama..."
             />
           </div>
 
@@ -164,7 +164,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
               className="rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              Varsayilan Pipeline olarak ayarla
+              Varsayılan Pipeline olarak ayarla
             </span>
           </label>
 
@@ -172,7 +172,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Asamalar
+                Aşamalar
               </label>
               <button
                 type="button"
@@ -180,7 +180,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
                 className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10 transition-colors"
               >
                 <Plus size={14} />
-                Asama Ekle
+                Aşama Ekle
               </button>
             </div>
 
@@ -240,7 +240,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
             </div>
 
             <p className="mt-1.5 text-[11px] text-gray-500">
-              Her asama icin benzersiz bir anahtar, goruntulenen etiket ve kapanma olasiligi girin.
+              Her aşama için benzersiz bir anahtar, goruntulenen etiket ve kapanma olasiligi girin.
             </p>
           </div>
         </div>
@@ -248,11 +248,11 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 mt-6">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Iptal
+            İptal
           </Button>
           <Button type="submit" loading={isPending}>
             <Check size={16} />
-            {isPending ? 'Kaydediliyor...' : isEdit ? 'Guncelle' : 'Olustur'}
+            {isPending ? 'Kaydediliyor...' : isEdit ? 'Güncelle' : 'Oluştur'}
           </Button>
         </div>
       </form>
@@ -292,7 +292,7 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
                 {pipeline.is_default && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                     <Star size={10} />
-                    Varsayilan
+                    Varsayılan
                   </span>
                 )}
               </div>
@@ -301,7 +301,7 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
                   {pipeline.description}
                 </p>
               )}
-              <p className="mt-1 text-xs text-gray-400">{stageCount} asama</p>
+              <p className="mt-1 text-xs text-gray-400">{stageCount} aşama</p>
             </div>
           </button>
 
@@ -309,16 +309,16 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
             {!pipeline.is_default && (
               <button
                 onClick={onSetDefault}
-                title="Varsayilan Yap"
+                title="Varsayılan Yap"
                 className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-amber-500/10 hover:text-amber-500 dark:text-gray-400 transition-colors"
               >
                 <Star size={14} />
-                Varsayilan Yap
+                Varsayılan Yap
               </button>
             )}
             <button
               onClick={onEdit}
-              title="Duzenle"
+              title="Düzenle"
               className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-800 dark:hover:text-white transition-colors"
             >
               <Pencil size={15} />
@@ -370,10 +370,10 @@ export default function PipelineSettingsPage() {
   const setDefaultMutation = useMutation({
     mutationFn: (id: number) => pipelinesApi.setDefault(id),
     onSuccess: () => {
-      toast.success('Varsayilan pipeline guncellendi');
+      toast.success('Varsayılan pipeline guncellendi');
       queryClient.invalidateQueries({ queryKey: ['pipelines'] });
     },
-    onError: () => toast.error('Islem basarisiz'),
+    onError: () => toast.error('İşlem başarısız'),
   });
 
   const handleEdit = (pipeline: Pipeline) => {
@@ -396,12 +396,12 @@ export default function PipelineSettingsPage() {
       <div className="space-y-6">
         <PageHeader
           title="Pipeline Ayarlari"
-          description="Satis pipeline'larinizi ve asamalarini yonetin"
+          description="Satış pipeline'larinizi ve asamalarini yonetin"
         />
         <Card>
           <div className="p-8 text-center">
             <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata olustu. Lutfen sayfayi yenileyin.
+              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
             </p>
           </div>
         </Card>
@@ -413,7 +413,7 @@ export default function PipelineSettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Pipeline Ayarlari"
-        description="Satis pipeline'larinizi ve asamalarini yonetin"
+        description="Satış pipeline'larinizi ve asamalarini yonetin"
       >
         <Button onClick={handleNew}>
           <Plus size={16} />
@@ -430,14 +430,13 @@ export default function PipelineSettingsPage() {
       ) : pipelines.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 py-16 text-center">
           <GitBranch className="mx-auto mb-3 text-gray-300 dark:text-gray-600" size={32} />
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Henuz pipeline yok</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Henüz pipeline yok</p>
           <p className="mt-1 text-xs text-gray-400">
-            Satis sureclerinizi yonetmek icin yeni bir pipeline olusturun.
+            Satış sureclerinizi yonetmek için yeni bir pipeline olusturun.
           </p>
           <Button onClick={handleNew} className="mt-4">
             <Plus size={14} />
-            Ilk Pipeline'i Olustur
-          </Button>
+            Ilk Pipeline'i Oluştur'          </Button>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">

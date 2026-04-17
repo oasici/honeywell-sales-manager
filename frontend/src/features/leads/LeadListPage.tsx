@@ -105,7 +105,7 @@ export default function LeadListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => leadsApi.create(payload),
     onSuccess: () => {
-      toast.success('Lead olusturuldu');
+      toast.success('Lead oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setShowCreate(false);
       setForm({
@@ -118,7 +118,7 @@ export default function LeadListPage() {
         source: 'manual',
       });
     },
-    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Hata olustu')),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Hata oluştu')),
   });
 
   const bulkMutation = useMutation({
@@ -129,7 +129,7 @@ export default function LeadListPage() {
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
-    onError: () => toast.error('Toplu islem basarisiz oldu'),
+    onError: () => toast.error('Toplu işlem başarısız oldu'),
   });
 
   const handleBulkAction = useCallback(
@@ -144,11 +144,11 @@ export default function LeadListPage() {
         return;
       }
       if (key === 'assign') {
-        const ownerIdStr = window.prompt("Atanacak kullanici ID'sini girin:");
+        const ownerIdStr = window.prompt("Atanacak kullanıcı ID'sini girin:");
         if (!ownerIdStr) return;
         const ownerId = parseInt(ownerIdStr, 10);
         if (isNaN(ownerId)) {
-          toast.error('Gecersiz kullanici ID');
+          toast.error('Geçersiz kullanıcı ID');
           return;
         }
         bulkMutation.mutate({ ids, action: 'assign', params: { owner_id: ownerId } });
@@ -174,7 +174,7 @@ export default function LeadListPage() {
       key: 'select',
       header: '',
       render: (row: Lead) => (
-        <label className="flex items-center" aria-label={`${row.first_name} ${row.last_name} sec`}>
+        <label className="flex items-center" aria-label={`${row.first_name} ${row.last_name} seç`}>
           <input
             type="checkbox"
             checked={isSelected(row.id)}
@@ -226,8 +226,8 @@ export default function LeadListPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Potansiyel Musteriler (Leads)"
-        description="Lead yonetimi, skorlama ve donusum"
+        title="Potansiyel Müşteriler (Leads)"
+        description="Lead yönetimi, skorlama ve donusum"
       >
         <Button onClick={() => setShowCreate(true)}>
           <UserPlus className="mr-1 h-4 w-4" /> Yeni Lead
@@ -256,7 +256,7 @@ export default function LeadListPage() {
             setPage(1);
           }}
         >
-          <option value="">Tum Durumlar</option>
+          <option value="">Tüm Durumlar</option>
           {Object.entries(STATUS_LABELS).map(([k, v]) => (
             <option key={k} value={k}>
               {v}
@@ -271,7 +271,7 @@ export default function LeadListPage() {
               onChange={toggleAll}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            Tumu Sec
+            Tumu Seç
           </label>
         )}
       </div>
@@ -281,7 +281,7 @@ export default function LeadListPage() {
           columns={columns}
           data={items}
           loading={isLoading}
-          emptyMessage="Henuz lead bulunmuyor"
+          emptyMessage="Henüz lead bulunmuyor"
           onRowClick={(row: Lead) => navigate(`/leads/${row.id}`)}
           page={page}
           totalPages={data?.pages || 0}
@@ -290,7 +290,7 @@ export default function LeadListPage() {
       </Card>
 
       {/* Create Lead Modal */}
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Yeni Lead Olustur">
+      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Yeni Lead Oluştur">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -342,10 +342,10 @@ export default function LeadListPage() {
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setShowCreate(false)} type="button">
-              Iptal
+              İptal
             </Button>
             <Button type="submit" loading={createMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </form>
@@ -368,7 +368,7 @@ export default function LeadListPage() {
           setShowDeleteConfirm(false);
         }}
         title="Leadleri Sil"
-        message={`${selectedCount} leadi silmek istediginize emin misiniz? Bu islem geri alinamaz.`}
+        message={`${selectedCount} leadi silmek istediginize emin misiniz? Bu işlem geri alinamaz.`}
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={bulkMutation.isPending}
@@ -381,7 +381,7 @@ export default function LeadListPage() {
         title="Durum Degistir"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">{selectedCount} lead icin yeni durum secin:</p>
+          <p className="text-sm text-gray-600">{selectedCount} lead icin yeni durum seçin:</p>
           <select
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             value={newStatus}
@@ -395,7 +395,7 @@ export default function LeadListPage() {
           </select>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowStatusModal(false)}>
-              Iptal
+              İptal
             </Button>
             <Button
               onClick={() => {

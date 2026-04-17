@@ -76,7 +76,7 @@ export default function QuoteComparisonModal({
           <>
             {/* Version selector */}
             <div className="mb-4 flex items-center gap-3 text-sm">
-              <label className="text-gray-500 dark:text-gray-400">Onceki:</label>
+              <label className="text-gray-500 dark:text-gray-400">Önceki:</label>
               <select
                 value={compPrev ?? ''}
                 onChange={(e) =>
@@ -125,9 +125,9 @@ export default function QuoteComparisonModal({
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="py-2 px-3 text-left text-xs text-gray-500">Urun</th>
+                          <th className="py-2 px-3 text-left text-xs text-gray-500">Ürün</th>
                           <th className="py-2 px-3 text-left text-xs text-gray-500">Alan</th>
-                          <th className="py-2 px-3 text-right text-xs text-gray-500">Onceki</th>
+                          <th className="py-2 px-3 text-right text-xs text-gray-500">Önceki</th>
                           <th className="py-2 px-3 text-right text-xs text-gray-500">Yeni</th>
                         </tr>
                       </thead>
@@ -165,7 +165,7 @@ export default function QuoteComparisonModal({
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="py-2 px-3 text-left text-xs text-gray-500">Urun</th>
+                          <th className="py-2 px-3 text-left text-xs text-gray-500">Ürün</th>
                           <th className="py-2 px-3 text-right text-xs text-gray-500">Miktar</th>
                           <th className="py-2 px-3 text-right text-xs text-gray-500">
                             Birim Fiyat
@@ -201,7 +201,7 @@ export default function QuoteComparisonModal({
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="py-2 px-3 text-left text-xs text-gray-500">Urun</th>
+                          <th className="py-2 px-3 text-left text-xs text-gray-500">Ürün</th>
                           <th className="py-2 px-3 text-right text-xs text-gray-500">Miktar</th>
                           <th className="py-2 px-3 text-right text-xs text-gray-500">
                             Birim Fiyat
@@ -232,7 +232,7 @@ export default function QuoteComparisonModal({
                 <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">
-                      +{addedCount} urun eklendi, -{removedCount} urun kaldirildi
+                      +{addedCount} ürün eklendi, -{removedCount} ürün kaldırıldı
                     </span>
                     <span
                       className={`font-bold ${totalDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}

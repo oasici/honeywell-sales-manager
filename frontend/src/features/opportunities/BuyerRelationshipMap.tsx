@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 const SENIORITY_ORDER = ['executive', 'senior', 'mid_level', 'junior'];
 const SENIORITY_LABELS: Record<string, string> = {
-  executive: 'Ust Yonetim',
+  executive: 'Üst Yönetim',
   senior: 'Kidemli',
   mid_level: 'Orta',
   junior: 'Junior',
@@ -17,10 +17,10 @@ const DEPARTMENT_LABELS: Record<string, string> = {
   finance: 'Finans',
   legal: 'Hukuk',
   operations: 'Operasyon',
-  sales: 'Satis',
+  sales: 'Satış',
   marketing: 'Pazarlama',
   hr: 'IK',
-  other: 'Diger',
+  other: 'Diğer',
 };
 const ROLE_LABELS: Record<string, string> = {
   decision_maker: 'Karar Verici',
@@ -28,7 +28,7 @@ const ROLE_LABELS: Record<string, string> = {
   champion: 'Sampiyon',
   detractor: 'Muhalif',
   gatekeeper: 'Kapici',
-  end_user: 'Son Kullanici',
+  end_user: 'Son Kullanıcı',
 };
 const ROLE_COLORS: Record<string, string> = {
   decision_maker: 'bg-purple-100 text-purple-800',
@@ -145,7 +145,7 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
         )}
         {stakeholders.length === 0 && (
           <div className="p-8 text-center text-gray-400">
-            Henuz paydas eklenmemis. Alis komitesini olusturmaya baslayin.
+            Henüz paydas eklenmemis. Alis komitesini olusturmaya baslayin.
           </div>
         )}
       </div>

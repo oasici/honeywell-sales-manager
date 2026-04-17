@@ -125,7 +125,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   });
   const pendingCount = pendingData?.items?.length ?? 0;
 
-  // Auto-expand if user navigates to a yedek parca route
+  // Auto-expand if user navigates to a yedek parça route
   useEffect(() => {
     const isYedekParcaRoute = visibleYedekParcaItems.some((item) =>
       location.pathname.startsWith(item.to),
@@ -165,7 +165,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           <>
             <div className="pt-4 pb-1 px-3">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                Satis
+                Satış
               </span>
             </div>
             <NavLink to="/cockpit" className={navLinkClass} onClick={onNavigate}>
@@ -182,14 +182,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         {userRole === 'sales_manager' && (
           <NavLink to="/sales-analytics" className={navLinkClass} onClick={onNavigate}>
             <TrendingUp size={18} className="shrink-0" />
-            Satis Analitigi
+            Satış Analitiği
           </NavLink>
         )}
 
         {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
           <NavLink to="/leads" className={navLinkClass} onClick={onNavigate}>
             <Target size={18} className="shrink-0" />
-            Potansiyel Musteriler
+            Potansiyel Müşteriler
           </NavLink>
         )}
 
@@ -224,21 +224,21 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
           <NavLink to="/revenue-recognition" className={navLinkClass} onClick={onNavigate}>
             <TrendingUp size={18} className="shrink-0" />
-            Gelir Tanima
+            Gelir Tanıma
           </NavLink>
         )}
 
         {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
           <NavLink to="/at-risk" className={navLinkClass} onClick={onNavigate}>
             <AlertTriangle size={18} className="shrink-0" />
-            Riskli Firsatlar
+            Riskli Fırsatlar
           </NavLink>
         )}
 
         {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
           <NavLink to="/leaderboard" className={navLinkClass} onClick={onNavigate}>
             <Trophy size={18} className="shrink-0" />
-            Siralama
+            Sıralama
           </NavLink>
         )}
 
@@ -254,7 +254,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           </NavLink>
         )}
 
-        {/* Yedek Parca collapsible section */}
+        {/* Yedek Parça collapsible section */}
         <div>
           <button
             onClick={() => setCollapsed((c: boolean) => !c)}
@@ -297,7 +297,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             </NavLink>
             <NavLink to="/email-templates" className={navLinkClass} onClick={onNavigate}>
               <FilePenLine size={18} className="shrink-0" />
-              Email Sablonlari
+              Email Şablonları
             </NavLink>
             <NavLink to="/dashboards" className={navLinkClass} onClick={onNavigate}>
               <LayoutGrid size={18} className="shrink-0" />
@@ -314,20 +314,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           </NavLink>
         )}
 
-        {/* Kocluk - manager only */}
+        {/* Koçluk - manager only */}
         {userRole === 'sales_manager' && (
           <NavLink to="/coaching" className={navLinkClass} onClick={onNavigate}>
             <GraduationCap size={18} className="shrink-0" />
-            Kocluk
+            Koçluk
           </NavLink>
         )}
 
-        {/* Etkilesim - sales roles */}
+        {/* Etkileşim - sales roles */}
         {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
           <>
             <NavLink to="/engagement/transcripts" className={navLinkClass} onClick={onNavigate}>
               <MessageSquare size={18} className="shrink-0" />
-              Gorusmeler
+              Görüşmeler
             </NavLink>
             <NavLink to="/engagement/keywords" className={navLinkClass} onClick={onNavigate}>
               <Tag size={18} className="shrink-0" />
@@ -389,24 +389,24 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           <>
             <div className="pt-4 pb-1 px-3">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                Yonetim
+                Yönetim
               </span>
             </div>
             <NavLink to="/admin/custom-fields" className={navLinkClass} onClick={onNavigate}>
               <FormInput size={18} className="shrink-0" />
-              Ozel Alanlar
+              Özel Alanlar
             </NavLink>
             <NavLink to="/admin/field-permissions" className={navLinkClass} onClick={onNavigate}>
               <KeyRound size={18} className="shrink-0" />
-              Alan Izinleri
+              Alan İzinleri
             </NavLink>
             <NavLink to="/admin/product-rules" className={navLinkClass} onClick={onNavigate}>
               <Scale size={18} className="shrink-0" />
-              Urun Kurallari
+              Ürün Kuralları
             </NavLink>
             <NavLink to="/admin/workflow-rules" className={navLinkClass} onClick={onNavigate}>
               <Workflow size={18} className="shrink-0" />
-              Is Kurallari
+              İş Kuralları
             </NavLink>
             <NavLink to="/admin/data-quality" className={navLinkClass} onClick={onNavigate}>
               <BarChart2 size={18} className="shrink-0" />
@@ -414,15 +414,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             </NavLink>
             <NavLink to="/admin/territories" className={navLinkClass} onClick={onNavigate}>
               <Map size={18} className="shrink-0" />
-              Bolge Yonetimi
+              Bölge Yönetimi
             </NavLink>
             <NavLink to="/admin/pricing" className={navLinkClass} onClick={onNavigate}>
               <Layers size={18} className="shrink-0" />
-              Fiyatlama Yonetimi
+              Fiyatlama Yönetimi
             </NavLink>
             <NavLink to="/admin/chat" className={navLinkClass} onClick={onNavigate}>
               <MessageSquare size={18} className="shrink-0" />
-              Canli Sohbet
+              Canlı Sohbet
             </NavLink>
           </>
         )}
@@ -433,15 +433,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-white">
-              {user?.full_name || 'Kullanici'}
+              {user?.full_name || 'Kullanıcı'}
             </p>
             <p className="truncate text-xs text-gray-400">{user?.email || ''}</p>
           </div>
           <button
             onClick={handleLogout}
             className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
-            aria-label="Cikis Yap"
-            title="Cikis Yap"
+            aria-label="Çıkış Yap"
+            title="Çıkış Yap"
           >
             <LogOut size={20} className="shrink-0" />
           </button>

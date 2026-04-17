@@ -133,7 +133,7 @@ function PriceTiersTab() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-          Yedek Parca:
+          Yedek Parça:
         </label>
         <select
           className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
@@ -143,7 +143,7 @@ function PriceTiersTab() {
             setShowAddForm(false);
           }}
         >
-          <option value="">-- Parca seciniz --</option>
+          <option value="">-- Parça seçiniz --</option>
           {parts.map((p) => (
             <option key={p.id} value={p.id}>
               {p.honeywell_code} — {p.name_tr || p.name_en}
@@ -154,7 +154,7 @@ function PriceTiersTab() {
 
       {selectedPartId && !priceEntry && !tiersLoading && (
         <p className="text-sm text-yellow-600 dark:text-yellow-400">
-          Bu parca icin fiyat girisi bulunamadi. Once Fiyatlar sayfasinda fiyat ekleyiniz.
+          Bu parça için fiyat girisi bulunamadi. Önce Fiyatlar sayfasinda fiyat ekleyiniz.
         </p>
       )}
 
@@ -183,7 +183,7 @@ function PriceTiersTab() {
                 {tiersLoading ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                      Yukleniyor...
+                      Yükleniyor...
                     </td>
                   </tr>
                 ) : tiers.length === 0 ? (
@@ -282,7 +282,7 @@ function PriceTiersTab() {
                     setTierForm(EMPTY_TIER_FORM);
                   }}
                 >
-                  Iptal
+                  İptal
                 </Button>
               </div>
             </div>
@@ -365,27 +365,27 @@ function CustomerPricingTab() {
         ...(payload.notes && { notes: payload.notes }),
       }),
     onSuccess: () => {
-      toast.success('Musteri fiyati eklendi');
+      toast.success('Müşteri fiyati eklendi');
       queryClient.invalidateQueries({ queryKey: ['customer-pricing', selectedCustomerId] });
       setAddModalOpen(false);
       setCpForm(EMPTY_CP_FORM);
     },
-    onError: () => toast.error('Musteri fiyati eklenemedi'),
+    onError: () => toast.error('Müşteri fiyati eklenemedi'),
   });
 
   const deleteCpMutation = useMutation({
     mutationFn: (pricingId: number) =>
       pricingApi.deleteCustomerPricing(selectedCustomerId!, pricingId),
     onSuccess: () => {
-      toast.success('Musteri fiyati silindi');
+      toast.success('Müşteri fiyati silindi');
       queryClient.invalidateQueries({ queryKey: ['customer-pricing', selectedCustomerId] });
     },
-    onError: () => toast.error('Musteri fiyati silinemedi'),
+    onError: () => toast.error('Müşteri fiyati silinemedi'),
   });
 
   const handleAddSubmit = () => {
     if (!cpForm.spare_part_id || !cpForm.contracted_price) {
-      toast.error('Parca ve anlasilan fiyat zorunludur');
+      toast.error('Parça ve anlasilan fiyat zorunludur');
       return;
     }
     createCpMutation.mutate(cpForm);
@@ -395,14 +395,14 @@ function CustomerPricingTab() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-          Musteri:
+          Müşteri:
         </label>
         <select
           className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           value={selectedCustomerId ?? ''}
           onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
         >
-          <option value="">-- Musteri seciniz --</option>
+          <option value="">-- Müşteri seçiniz --</option>
           {customers.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name} — {c.company}
@@ -417,7 +417,7 @@ function CustomerPricingTab() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Parca</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Parça</th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
                     Anlasilan Fiyat
                   </th>
@@ -436,13 +436,13 @@ function CustomerPricingTab() {
                 {pricingsLoading ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                      Yukleniyor...
+                      Yükleniyor...
                     </td>
                   </tr>
                 ) : customerPricings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                      Musteri fiyati bulunamadi
+                      Müşteri fiyati bulunamadi
                     </td>
                   </tr>
                 ) : (
@@ -498,18 +498,18 @@ function CustomerPricingTab() {
           setAddModalOpen(false);
           setCpForm(EMPTY_CP_FORM);
         }}
-        title="Musteri Ozel Fiyat Ekle"
+        title="Müşteri Özel Fiyat Ekle"
         size="md"
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Yedek Parca *</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Yedek Parça *</label>
             <select
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
               value={cpForm.spare_part_id}
               onChange={(e) => setCpForm((f) => ({ ...f, spare_part_id: e.target.value }))}
             >
-              <option value="">-- Parca seciniz --</option>
+              <option value="">-- Parça seçiniz --</option>
               {parts.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.honeywell_code} — {p.name_tr || p.name_en}
@@ -599,7 +599,7 @@ function CustomerPricingTab() {
                 setCpForm(EMPTY_CP_FORM);
               }}
             >
-              Iptal
+              İptal
             </Button>
             <Button loading={createCpMutation.isPending} onClick={handleAddSubmit}>
               Kaydet
@@ -632,17 +632,17 @@ function MarginRulesTab() {
     mutationFn: ({ id, min_margin_pct }: { id: number; min_margin_pct: number }) =>
       pricingApi.updateMargin(id, min_margin_pct),
     onSuccess: () => {
-      toast.success('Marj kurali guncellendi');
+      toast.success('Marj kuralı guncellendi');
       queryClient.invalidateQueries({ queryKey: ['parts', 'all'] });
       setRowState({ editingId: null, editValue: '' });
     },
-    onError: () => toast.error('Marj kurali guncellenemedi'),
+    onError: () => toast.error('Marj kuralı guncellenemedi'),
   });
 
   const handleSaveMargin = (partId: number) => {
     const value = parseFloat(rowState.editValue);
     if (isNaN(value) || value < 0 || value > 100) {
-      toast.error('Gecerli bir marj yuzde degeri giriniz (0-100)');
+      toast.error('Geçerli bir marj yuzde degeri giriniz (0-100)');
       return;
     }
     updateMarginMutation.mutate({ id: partId, min_margin_pct: value });
@@ -660,7 +660,7 @@ function MarginRulesTab() {
             <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
               Honeywell Kodu
             </th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Parca Adi</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Parça Adi</th>
             <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Min. Marj %</th>
             <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500"></th>
           </tr>
@@ -669,13 +669,13 @@ function MarginRulesTab() {
           {isLoading ? (
             <tr>
               <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                Yukleniyor...
+                Yükleniyor...
               </td>
             </tr>
           ) : parts.length === 0 ? (
             <tr>
               <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                Parca bulunamadi
+                Parça bulunamadi
               </td>
             </tr>
           ) : (
@@ -729,7 +729,7 @@ function MarginRulesTab() {
                         <button
                           onClick={handleCancelEdit}
                           className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                          aria-label="Iptal"
+                          aria-label="İptal"
                         >
                           <X size={14} />
                         </button>
@@ -743,7 +743,7 @@ function MarginRulesTab() {
                           })
                         }
                         className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                        aria-label="Duzenle"
+                        aria-label="Düzenle"
                       >
                         <Pencil size={14} />
                       </button>
@@ -766,7 +766,7 @@ export default function PricingAdminPage() {
 
   return (
     <div>
-      <PageHeader title="Fiyatlama Yonetimi" />
+      <PageHeader title="Fiyatlama Yönetimi" />
 
       <Card title="">
         {/* Tab Bar */}
@@ -777,12 +777,12 @@ export default function PricingAdminPage() {
             onClick={() => setActiveTab('tiers')}
           />
           <TabButton
-            label="Musteri Ozel Fiyatlari"
+            label="Müşteri Özel Fiyatlari"
             active={activeTab === 'customer'}
             onClick={() => setActiveTab('customer')}
           />
           <TabButton
-            label="Marj Kurallari"
+            label="Marj Kuralları"
             active={activeTab === 'margin'}
             onClick={() => setActiveTab('margin')}
           />

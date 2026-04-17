@@ -169,20 +169,20 @@ export default function CustomerDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (payload: typeof form) => customersApi.updateCustomer(customerId, payload),
     onSuccess: () => {
-      toast.success('Musteri guncellendi');
+      toast.success('Müşteri guncellendi');
       setEditing(false);
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
     },
-    onError: () => toast.error('Guncelleme basarisiz'),
+    onError: () => toast.error('Güncelleme başarısız'),
   });
 
   const enrichMutation = useMutation({
     mutationFn: () => customersApi.enrich(customerId),
     onSuccess: () => {
-      toast.success('Musteri verileri zenginlestirildi');
+      toast.success('Müşteri verileri zenginlestirildi');
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
     },
-    onError: () => toast.error('Zenginlestirme basarisiz'),
+    onError: () => toast.error('Zenginlestirme başarısız'),
   });
 
   const updateField = (field: string, value: string) => {
@@ -198,7 +198,7 @@ export default function CustomerDetailPage() {
   }
 
   if (!customer) {
-    return <div className="py-16 text-center text-gray-500">Musteri bulunamadi</div>;
+    return <div className="py-16 text-center text-gray-500">Müşteri bulunamadi</div>;
   }
 
   const quotes = quotesData?.items || [];
@@ -274,7 +274,7 @@ export default function CustomerDetailPage() {
                 }
               }}
             >
-              Iptal
+              İptal
             </Button>
             <Button loading={updateMutation.isPending} onClick={() => updateMutation.mutate(form)}>
               Kaydet
@@ -290,24 +290,24 @@ export default function CustomerDetailPage() {
               <Sparkles size={14} className="mr-1" />
               Zenginlestir
             </Button>
-            <Button onClick={() => setEditing(true)}>Duzenle</Button>
+            <Button onClick={() => setEditing(true)}>Düzenle</Button>
           </>
         )}
       </PageHeader>
 
       <div className="space-y-6">
         {/* Customer Info */}
-        <Card title="Musteri Bilgileri">
+        <Card title="Müşteri Bilgileri">
           {editing ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
-                label="Isim"
+                label="İsim"
                 value={form.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 required
               />
               <Input
-                label="Sirket"
+                label="Şirket"
                 value={form.company}
                 onChange={(e) => updateField('company', e.target.value)}
               />
@@ -478,14 +478,14 @@ export default function CustomerDetailPage() {
         ) : null}
 
         {/* AI Customer Summary */}
-        <Card title="AI Musteri Ozeti">
+        <Card title="AI Müşteri Özeti">
           {aiSummaryLoading ? (
             <Skeleton variant="line" count={3} />
           ) : aiSummary ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={14} className="text-honeywell-red" />
-                <span className="text-xs text-gray-400">Claude AI tarafindan olusturuldu</span>
+                <span className="text-xs text-gray-400">Claude AI tarafindan oluşturuldu</span>
                 {aiSummary.cached && (
                   <Badge variant="default" size="sm">
                     Onbellek
@@ -497,7 +497,7 @@ export default function CustomerDetailPage() {
               </p>
             </div>
           ) : (
-            <p className="py-4 text-center text-sm text-gray-400">AI ozet bulunamadi</p>
+            <p className="py-4 text-center text-sm text-gray-400">AI özet bulunamadi</p>
           )}
         </Card>
 
@@ -534,10 +534,10 @@ export default function CustomerDetailPage() {
                     }
                   >
                     {churnPrediction.data.risk_level === 'high'
-                      ? 'Yuksek Risk'
+                      ? 'Yüksek Risk'
                       : churnPrediction.data.risk_level === 'medium'
                         ? 'Orta Risk'
-                        : 'Dusuk Risk'}
+                        : 'Düşük Risk'}
                   </Badge>
                   <p className="mt-1 text-xs text-gray-500">Kayip olasiligi tahmini</p>
                 </div>
@@ -587,7 +587,7 @@ export default function CustomerDetailPage() {
 
         {/* Inline Opportunities */}
         {oppsData?.items && oppsData.items.length > 0 && (
-          <Card title={`Firsatlar (${oppsData.items.length})`}>
+          <Card title={`Fırsatlar (${oppsData.items.length})`}>
             <div className="space-y-2">
               {oppsData.items.map((opp) => (
                 <button
@@ -643,7 +643,7 @@ export default function CustomerDetailPage() {
           <div className="rounded-xl border-l-4 border-l-red-500 border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Toplam Deger
+                Toplam Değer
               </span>
               <TrendingUp size={16} className="text-red-400" />
             </div>
@@ -659,13 +659,13 @@ export default function CustomerDetailPage() {
             columns={quoteColumns}
             data={quotes}
             loading={quotesLoading}
-            emptyMessage="Bu musteriye ait teklif bulunamadi"
+            emptyMessage="Bu müşteriye ait teklif bulunamadi"
             onRowClick={(row) => navigate(`/quotes/${(row as Quote).id}`)}
           />
         </Card>
 
         {/* Customer 360 Timeline */}
-        <Card title="Musteri Zaman Cizelgesi">
+        <Card title="Müşteri Zaman Cizelgesi">
           {timelineData?.events && timelineData.events.length > 0 ? (
             <div className="space-y-0 p-2">
               {timelineData.events.map((event, idx) => (
@@ -709,7 +709,7 @@ export default function CustomerDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-400">Henuz etkinlik yok</p>
+            <p className="py-8 text-center text-sm text-gray-400">Henüz etkinlik yok</p>
           )}
         </Card>
 
@@ -767,7 +767,7 @@ export default function CustomerDetailPage() {
               </h3>
               {hierarchy.parents.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1">Ust Hesaplar</p>
+                  <p className="text-xs font-medium text-gray-500 mb-1">Üst Hesaplar</p>
                   {hierarchy.parents.map((p) => (
                     <button
                       key={p.id}
@@ -799,7 +799,7 @@ export default function CustomerDetailPage() {
                         <p className="text-lg font-bold text-gray-900 dark:text-white">
                           {rollup.total_opportunities}
                         </p>
-                        <p className="text-[10px] text-gray-500">Toplam Firsat</p>
+                        <p className="text-[10px] text-gray-500">Toplam Fırsat</p>
                       </div>
                       <div className="text-center">
                         <p className="text-lg font-bold text-gray-900 dark:text-white">

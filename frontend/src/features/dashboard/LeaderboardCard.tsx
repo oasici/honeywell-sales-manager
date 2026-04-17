@@ -10,7 +10,7 @@ const METRIC_OPTIONS = [
   { value: 'revenue', label: 'Gelir' },
   { value: 'deals_won', label: 'Kazanilan' },
   { value: 'activities', label: 'Aktivite' },
-  { value: 'response_time', label: 'Cevap Suresi' },
+  { value: 'response_time', label: 'Cevap Süresi' },
 ];
 
 const PODIUM_COLORS = [
@@ -40,7 +40,7 @@ export function LeaderboardCard() {
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
           <Trophy size={16} />
-          Siralama
+          Sıralama
         </h3>
         <select
           value={metric}
@@ -57,7 +57,7 @@ export function LeaderboardCard() {
       </div>
 
       {topThree.length === 0 ? (
-        <p className="text-sm text-gray-400">Henuz veri yok</p>
+        <p className="text-sm text-gray-400">Henüz veri yok</p>
       ) : (
         <div className="space-y-2">
           {topThree.map((entry, idx) => (

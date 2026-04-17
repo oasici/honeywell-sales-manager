@@ -17,7 +17,7 @@ import { formatDateTime } from '../../lib/formatters';
 import type { RetentionPolicy } from '../../lib/types';
 
 const ENTITY_TYPE_OPTIONS = [
-  { value: 'customer', label: 'Musteri' },
+  { value: 'customer', label: 'Müşteri' },
   { value: 'email', label: 'E-posta' },
   { value: 'quote', label: 'Teklif' },
   { value: 'activity_log', label: 'Aktivite Loglari' },
@@ -52,12 +52,12 @@ export default function RetentionPoliciesPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => complianceApi.createRetentionPolicy(payload),
     onSuccess: () => {
-      toast.success('Saklama politikasi olusturuldu');
+      toast.success('Saklama politikasi oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['compliance', 'retentionPolicies'] });
     },
-    onError: () => toast.error('Politika olusturulamadi'),
+    onError: () => toast.error('Politika oluşturulamadı'),
   });
 
   const updateMutation = useMutation({
@@ -109,7 +109,7 @@ export default function RetentionPoliciesPage() {
   const columns = [
     {
       key: 'entity_type',
-      header: 'Varlik Tipi',
+      header: 'Varlık Tipi',
       sortable: true,
       render: (row: RetentionPolicy) => {
         if (editingId === row.id) {
@@ -195,7 +195,7 @@ export default function RetentionPoliciesPage() {
     },
     {
       key: 'actions',
-      header: 'Islemler',
+      header: 'İşlemler',
       render: (row: RetentionPolicy) => {
         if (editingId === row.id) {
           return (
@@ -211,7 +211,7 @@ export default function RetentionPoliciesPage() {
                   setForm(INITIAL_FORM);
                 }}
               >
-                Iptal
+                İptal
               </Button>
             </div>
           );
@@ -219,7 +219,7 @@ export default function RetentionPoliciesPage() {
         return (
           <div className="flex gap-2">
             <Button size="sm" variant="secondary" onClick={() => handleOpenEdit(row)}>
-              Duzenle
+              Düzenle
             </Button>
             <Button size="sm" variant="danger" onClick={() => setDeleteTarget(row.id)}>
               Sil
@@ -234,7 +234,7 @@ export default function RetentionPoliciesPage() {
     <div>
       <PageHeader
         title="Saklama Politikalari"
-        description="Veri saklama suresi politikalarini yonetin"
+        description="Veri saklama süresi politikalarini yonetin"
       >
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Politika</Button>
       </PageHeader>
@@ -257,13 +257,13 @@ export default function RetentionPoliciesPage() {
       >
         <div className="space-y-4">
           <Select
-            label="Varlik Tipi"
+            label="Varlık Tipi"
             options={ENTITY_TYPE_OPTIONS}
             value={form.entity_type}
             onChange={(e) => setForm({ ...form, entity_type: e.target.value })}
           />
           <Input
-            label="Saklama Suresi (Gun)"
+            label="Saklama Süresi (Gun)"
             type="number"
             value={String(form.retention_days)}
             onChange={(e) => setForm({ ...form, retention_days: parseInt(e.target.value, 10) || 0 })}
@@ -285,10 +285,10 @@ export default function RetentionPoliciesPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button onClick={handleSubmitCreate} loading={createMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>

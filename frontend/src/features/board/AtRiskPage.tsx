@@ -42,9 +42,9 @@ const RISK_COLORS: Record<string, string> = {
 
 const RISK_LABELS: Record<string, string> = {
   critical: 'Kritik',
-  high: 'Yuksek',
+  high: 'Yüksek',
   medium: 'Orta',
-  low: 'Dusuk',
+  low: 'Düşük',
 };
 
 function ScoreRing({ score }: { score: number }) {
@@ -89,7 +89,7 @@ export default function AtRiskPage() {
   if (isLoading) {
     return (
       <div>
-        <PageHeader title="Riskli Firsatlar" />
+        <PageHeader title="Riskli Fırsatlar" />
         <Skeleton variant="card" count={4} />
       </div>
     );
@@ -100,8 +100,8 @@ export default function AtRiskPage() {
   return (
     <div>
       <PageHeader
-        title="Riskli Firsatlar"
-        description={`Saglik skoru ${threshold} altindaki firsatlar`}
+        title="Riskli Fırsatlar"
+        description={`Saglik skoru ${threshold} altindaki fırsatlar`}
       >
         <div className="flex items-center gap-2">
           <label className="text-sm text-gray-500">Esik:</label>
@@ -127,7 +127,7 @@ export default function AtRiskPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{opps.length}</p>
-              <p className="text-xs text-gray-500">Riskli Firsat</p>
+              <p className="text-xs text-gray-500">Riskli Fırsat</p>
             </div>
           </div>
         </Card>
@@ -168,8 +168,8 @@ export default function AtRiskPage() {
         </Card>
       ) : opps.length === 0 ? (
         <EmptyState
-          title="Riskli firsat yok"
-          description={`Saglik skoru ${threshold} altinda firsat bulunamadi`}
+          title="Riskli fırsat yok"
+          description={`Saglik skoru ${threshold} altinda fırsat bulunamadi`}
         />
       ) : (
         <div className="space-y-3">

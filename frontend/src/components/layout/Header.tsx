@@ -207,7 +207,7 @@ export function Header() {
         {/* User info */}
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-700">{user?.full_name || 'Kullanici'}</p>
+            <p className="text-sm font-medium text-gray-700">{user?.full_name || 'Kullanıcı'}</p>
           </div>
           {roleLabel && (
             <Badge variant="info" size="sm">

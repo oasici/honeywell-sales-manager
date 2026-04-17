@@ -69,7 +69,7 @@ function TranscriptSignals({ opportunityId }: { opportunityId: number }) {
 
   const signals = signalsQuery.data?.signals ?? [];
   if (signalsQuery.isLoading) {
-    return <span className="text-xs text-gray-400">Sinyaller yukleniyor...</span>;
+    return <span className="text-xs text-gray-400">Sinyaller yükleniyor...</span>;
   }
   if (signals.length === 0) return null;
 
@@ -143,21 +143,21 @@ export default function TranscriptsPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => engagementApi.createTranscript(payload),
     onSuccess: () => {
-      toast.success('Transkript olusturuldu');
+      toast.success('Transkript oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['transcripts'] });
       setIsCreateOpen(false);
       resetForm();
     },
-    onError: () => toast.error('Transkript olusturulamadi'),
+    onError: () => toast.error('Transkript oluşturulamadı'),
   });
 
   const summarizeMutation = useMutation({
     mutationFn: (id: number) => engagementApi.summarizeTranscript(id),
     onSuccess: (res: { summary: string; sources: string[] }, id: number) => {
-      toast.success('Ozet olusturuldu');
+      toast.success('Özet oluşturuldu');
       setExpandedSummaries((prev) => ({ ...prev, [id]: res.summary }));
     },
-    onError: () => toast.error('Ozet olusturulamadi'),
+    onError: () => toast.error('Özet oluşturulamadı'),
   });
 
   function resetForm() {
@@ -173,7 +173,7 @@ export default function TranscriptsPage() {
 
   function handleCreate() {
     if (!form.title.trim() || !form.content.trim()) {
-      toast.error('Baslik ve icerik zorunludur');
+      toast.error('Baslik ve içerik zorunludur');
       return;
     }
     createMutation.mutate({
@@ -232,7 +232,7 @@ export default function TranscriptsPage() {
     },
     {
       key: 'duration_minutes',
-      header: 'Sure (dk)',
+      header: 'Süre (dk)',
       render: (row: Transcript) => <span className="text-sm">{row.duration_minutes ?? '-'}</span>,
     },
     {
@@ -250,7 +250,7 @@ export default function TranscriptsPage() {
     },
     {
       key: 'actions',
-      header: 'Islem',
+      header: 'İşlem',
       render: (row: Transcript) => (
         <Button
           variant="secondary"
@@ -270,7 +270,7 @@ export default function TranscriptsPage() {
 
   return (
     <div>
-      <PageHeader title="Transkriptler" description="Gorusme kayitlari ve ozetleri">
+      <PageHeader title="Transkriptler" description="Görüşme kayitlari ve ozetleri">
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={handleSearchToggle}>
             <Search size={16} className="mr-1" />
@@ -298,9 +298,9 @@ export default function TranscriptsPage() {
       ) : items.length === 0 ? (
         <EmptyState
           title="Transkript bulunamadi"
-          description="Henuz transkript eklenmemis"
+          description="Henüz transkript eklenmemis"
           icon={<FileText size={40} />}
-          action={<Button onClick={() => setIsCreateOpen(true)}>Ilk Transkripti Ekle</Button>}
+          action={<Button onClick={() => setIsCreateOpen(true)}>İlk Transkripti Ekle</Button>}
         />
       ) : (
         <>
@@ -332,7 +332,7 @@ export default function TranscriptsPage() {
                           onClick={() => navigate(`/opportunities/${transcript.opportunity_id}`)}
                         >
                           <ExternalLink size={12} />
-                          Firsat #{transcript.opportunity_id}
+                          Fırsat #{transcript.opportunity_id}
                         </button>
                       )}
                       {transcript.customer_id && (
@@ -342,7 +342,7 @@ export default function TranscriptsPage() {
                           onClick={() => navigate(`/customers/${transcript.customer_id}`)}
                         >
                           <ExternalLink size={12} />
-                          Musteri #{transcript.customer_id}
+                          Müşteri #{transcript.customer_id}
                         </button>
                       )}
                     </div>
@@ -351,7 +351,7 @@ export default function TranscriptsPage() {
                   {summary && (
                     <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
                       <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-700">
-                        Ozet
+                        Özet
                       </div>
                       <p className="text-sm leading-relaxed text-gray-700">{summary}</p>
                     </div>
@@ -359,7 +359,7 @@ export default function TranscriptsPage() {
 
                   <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
                     <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      Icerik
+                      İçerik
                     </div>
                     <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
                       {transcript.content
@@ -384,11 +384,11 @@ export default function TranscriptsPage() {
             <Input
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              placeholder="Gorusme basligi"
+              placeholder="Görüşme basligi"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Icerik</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">İçerik</label>
             <textarea
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               rows={6}
@@ -403,11 +403,11 @@ export default function TranscriptsPage() {
               <Input
                 value={form.source}
                 onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
-                placeholder="Ornegin: telefon, toplanti"
+                placeholder="Örneğin: telefon, toplanti"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Sure (dk)</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Süre (dk)</label>
               <Input
                 type="number"
                 value={form.duration_minutes}
@@ -418,7 +418,7 @@ export default function TranscriptsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Firsat ID</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Fırsat ID</label>
               <Input
                 type="number"
                 value={form.opportunity_id}
@@ -427,7 +427,7 @@ export default function TranscriptsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Musteri ID</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Müşteri ID</label>
               <Input
                 type="number"
                 value={form.customer_id}
@@ -438,10 +438,10 @@ export default function TranscriptsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button loading={createMutation.isPending} onClick={handleCreate}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>

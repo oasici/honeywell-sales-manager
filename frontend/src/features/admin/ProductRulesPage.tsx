@@ -53,23 +53,23 @@ export default function ProductRulesPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => productRulesApi.create(payload),
     onSuccess: () => {
-      toast.success('Urun kurali olusturuldu');
+      toast.success('Ürün kuralı oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['productRules'] });
     },
-    onError: () => toast.error('Urun kurali olusturulamadi'),
+    onError: () => toast.error('Ürün kuralı oluşturulamadı'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => productRulesApi.remove(id),
     onSuccess: () => {
-      toast.success('Urun kurali silindi');
+      toast.success('Ürün kuralı silindi');
       setDeleteTarget(null);
       queryClient.invalidateQueries({ queryKey: ['productRules'] });
     },
     onError: () => {
-      toast.error('Urun kurali silinemedi');
+      toast.error('Ürün kuralı silinemedi');
       setDeleteTarget(null);
     },
   });
@@ -80,7 +80,7 @@ export default function ProductRulesPage() {
       setEvaluateResults(result.actions);
       toast.success('Degerlendirme tamamlandi');
     },
-    onError: () => toast.error('Degerlendirme basarisiz'),
+    onError: () => toast.error('Degerlendirme başarısız'),
   });
 
   function handleCreate() {
@@ -97,7 +97,7 @@ export default function ProductRulesPage() {
         conditionParsed = JSON.parse(form.condition_json);
       }
     } catch {
-      toast.error('Kosul JSON formati gecersiz');
+      toast.error('Kosul JSON formati geçersiz');
       return;
     }
 
@@ -106,7 +106,7 @@ export default function ProductRulesPage() {
         actionParsed = JSON.parse(form.action_json);
       }
     } catch {
-      toast.error('Aksiyon JSON formati gecersiz');
+      toast.error('Aksiyon JSON formati geçersiz');
       return;
     }
 
@@ -154,8 +154,8 @@ export default function ProductRulesPage() {
   return (
     <div>
       <PageHeader
-        title="Urun Kurallari"
-        description="Urun fiyatlama ve is kurallarini yonetin"
+        title="Ürün Kuralları"
+        description="Ürün fiyatlama ve is kurallarini yonetin"
       >
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Kural</Button>
       </PageHeader>
@@ -164,8 +164,8 @@ export default function ProductRulesPage() {
 
       {!isLoading && rules.length === 0 && (
         <EmptyState
-          title="Urun kurali bulunamadi"
-          description="Yeni bir urun kurali olusturun"
+          title="Ürün kuralı bulunamadi"
+          description="Yeni bir ürün kuralı olusturun"
         />
       )}
 
@@ -212,7 +212,7 @@ export default function ProductRulesPage() {
       <Card title="Kural Test Et" className="mt-8">
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="Yedek Parca ID"
+            label="Yedek Parça ID"
             type="number"
             placeholder="Opsiyonel"
             value={evaluateForm.spare_part_id}
@@ -246,7 +246,7 @@ export default function ProductRulesPage() {
 
         {evaluateResults !== null && (
           <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-gray-700">Sonuclar:</p>
+            <p className="mb-2 text-sm font-medium text-gray-700">Sonuçlar:</p>
             {evaluateResults.length === 0 ? (
               <p className="text-sm text-gray-500">Eslesme bulunamadi</p>
             ) : (
@@ -266,13 +266,13 @@ export default function ProductRulesPage() {
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Yeni Urun Kurali"
+        title="Yeni Ürün Kuralı"
         size="lg"
       >
         <div className="space-y-4">
           <Input
             label="Kural Tipi"
-            placeholder="Ornegin: indirim_kurali"
+            placeholder="Örneğin: indirim_kurali"
             value={form.rule_type}
             onChange={(e) => setForm({ ...form, rule_type: e.target.value })}
           />
@@ -304,7 +304,7 @@ export default function ProductRulesPage() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="Yedek Parca ID"
+              label="Yedek Parça ID"
               type="number"
               placeholder="Opsiyonel"
               value={form.spare_part_id}
@@ -334,10 +334,10 @@ export default function ProductRulesPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button onClick={handleCreate} loading={createMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>
@@ -347,8 +347,8 @@ export default function ProductRulesPage() {
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget !== null && deleteMutation.mutate(deleteTarget)}
-        title="Urun Kurali Sil"
-        message="Bu urun kuralini silmek istediginizden emin misiniz?"
+        title="Ürün Kuralı Sil"
+        message="Bu ürün kuralini silmek istediginizden emin misiniz?"
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}

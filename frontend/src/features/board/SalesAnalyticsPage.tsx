@@ -66,11 +66,11 @@ const FUNNEL_COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#22c55e', '#
 const STAGE_LABELS: Record<string, string> = {
   draft: 'Taslak',
   pending_approval: 'Onay Bekliyor',
-  approved: 'Onaylandi',
-  sent: 'Gonderildi',
+  approved: 'Onaylandı',
+  sent: 'Gönderildi',
   accepted: 'Kabul',
   rejected: 'Reddedildi',
-  expired: 'Suresi Doldu',
+  expired: 'Süresi Doldu',
 };
 
 interface WoWWeek {
@@ -199,7 +199,7 @@ export default function SalesAnalyticsPage() {
   return (
     <div>
       <PageHeader
-        title="Satis Analitiği"
+        title="Satış Analitiği"
         description="Pipeline, performans ve operasyonel metrikler"
       />
 
@@ -497,7 +497,7 @@ export default function SalesAnalyticsPage() {
             </div>
           ) : (
             <p className="py-8 text-center text-sm text-gray-400">
-              Henuz kapanis nedeni girilmemis
+              Henüz kapanis nedeni girilmemis
             </p>
           )}
         </Card>
@@ -576,7 +576,7 @@ export default function SalesAnalyticsPage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Musteriler
+                    Müşteriler
                   </span>
                   <span className="text-sm font-bold text-gray-900 dark:text-white">
                     %{dataQuality.customers?.completeness_pct || 0}
@@ -624,7 +624,7 @@ export default function SalesAnalyticsPage() {
             <div className="space-y-3 p-2">
               <div className="flex items-center justify-between rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 dark:border-yellow-800 dark:bg-yellow-900/20">
                 <span className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Inceleme Bekleyen Email
+                  İnceleme Bekleyen Email
                 </span>
                 <Badge variant="warning">{queues.review_pending_count || 0}</Badge>
               </div>
@@ -636,7 +636,7 @@ export default function SalesAnalyticsPage() {
               </div>
               <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
                 <span className="text-sm text-red-800 dark:text-red-200">
-                  Suresi Dolacak Teklifler
+                  Süresi Dolacak Teklifler
                 </span>
                 <Badge variant="danger">{queues.expiring_count || 0}</Badge>
               </div>
@@ -650,7 +650,7 @@ export default function SalesAnalyticsPage() {
       {/* Row 5: Discount Outliers + SLA Breaches */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {discounts?.outliers && discounts.outliers.length > 0 && (
-          <Card title={`Yuksek Indirimli Teklifler (>${discounts.threshold_pct || 25}%)`}>
+          <Card title={`Yüksek Indirimli Teklifler (>${discounts.threshold_pct || 25}%)`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -687,7 +687,7 @@ export default function SalesAnalyticsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-2 px-3 text-left text-xs text-gray-500">Gonderen</th>
+                    <th className="py-2 px-3 text-left text-xs text-gray-500">Gönderen</th>
                     <th className="py-2 px-3 text-left text-xs text-gray-500">Konu</th>
                     <th className="py-2 px-3 text-right text-xs text-gray-500">Yanit (dk)</th>
                   </tr>
@@ -797,7 +797,7 @@ export default function SalesAnalyticsPage() {
                 {formatCurrency(leaks.total_leak_amount, 'TRY')}
               </span>
             </div>
-            <Badge variant="danger">{leaks.total_leaks} firsat</Badge>
+            <Badge variant="danger">{leaks.total_leaks} fırsat</Badge>
           </div>
           <div className="space-y-3">
             {leaks.items.map((item: RevenueLeakItem) => (

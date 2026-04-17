@@ -11,7 +11,7 @@ interface ConditionNodeData {
 const OPERATOR_LABELS: Record<string, string> = {
   eq: '=',
   neq: '!=',
-  contains: 'icerir',
+  contains: 'içerir',
   gte: '>=',
   lte: '<=',
 };

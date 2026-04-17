@@ -39,7 +39,7 @@ export default function BundleSelectorModal({
     mutationFn: (bundleId: number) => bundlesApi.toQuoteItems(bundleId),
     onSuccess: (result: { items: BundleQuoteItem[]; bundle_name: string }) => {
       if (result.items.length === 0) {
-        toast.error('Bu pakette gecerli urun bulunamadi');
+        toast.error('Bu pakette geçerli ürün bulunamadi');
         return;
       }
       onAddItems(result.items);
@@ -52,13 +52,13 @@ export default function BundleSelectorModal({
   const bundles = data?.bundles ?? [];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Paket Sec">
+    <Modal isOpen={isOpen} onClose={onClose} title="Paket Seç">
       <div className="space-y-4">
         {isLoading ? (
           <Skeleton variant="card" count={3} />
         ) : bundles.length === 0 ? (
           <p className="py-8 text-center text-sm text-gray-500">
-            Henuz tanimlanmis paket bulunmuyor.
+            Henüz tanimlanmis paket bulunmuyor.
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -73,7 +73,7 @@ export default function BundleSelectorModal({
                   )}
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="info" size="sm">
-                      {bundle.items.length} urun
+                      {bundle.items.length} ürün
                     </Badge>
                     {bundle.bundle_price != null && (
                       <Badge variant="success" size="sm">

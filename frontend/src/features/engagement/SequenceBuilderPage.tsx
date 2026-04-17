@@ -79,11 +79,11 @@ export default function SequenceBuilderPage() {
         ? engagementApi.updateSequence(sequenceId!, payload)
         : engagementApi.createSequence(payload),
     onSuccess: () => {
-      toast.success(isEdit ? 'Sekans guncellendi' : 'Sekans olusturuldu');
+      toast.success(isEdit ? 'Sekans guncellendi' : 'Sekans oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['sequences'] });
       navigate('/engagement/sequences');
     },
-    onError: () => toast.error('Kaydetme basarisiz'),
+    onError: () => toast.error('Kaydetme başarısız'),
   });
 
   const addStep = useCallback(() => {
@@ -107,7 +107,7 @@ export default function SequenceBuilderPage() {
       return;
     }
     if (steps.length === 0) {
-      toast.error('En az bir adim ekleyin');
+      toast.error('En az bir adım ekleyin');
       return;
     }
 
@@ -136,8 +136,8 @@ export default function SequenceBuilderPage() {
   return (
     <div>
       <PageHeader
-        title={isEdit ? 'Sekans Duzenle' : 'Yeni Sekans Olustur'}
-        description="Adim adim takip sekansini tanimlayin"
+        title={isEdit ? 'Sekans Düzenle' : 'Yeni Sekans Oluştur'}
+        description="Adım adım takip sekansini tanimlayin"
       >
         <Button variant="secondary" onClick={() => navigate('/engagement/sequences')}>
           Geri Don
@@ -155,10 +155,10 @@ export default function SequenceBuilderPage() {
               label="Sekans Adi"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ornegin: Teklif Takibi"
+              placeholder="Örneğin: Teklif Takibi"
             />
             <Input
-              label="Aciklama"
+              label="Açıklama"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Sekans aciklamasi"
@@ -167,7 +167,7 @@ export default function SequenceBuilderPage() {
         </Card>
 
         {/* Steps */}
-        <Card title="Adimlar">
+        <Card title="Adımlar">
           <div className="relative space-y-0">
             {steps.map((step, idx) => (
               <div key={idx} className="relative flex gap-4">
@@ -227,13 +227,13 @@ export default function SequenceBuilderPage() {
                   </div>
                   <div className="mt-3">
                     <label className="mb-1 block text-xs font-medium text-gray-600">
-                      Sablon / Icerik
+                      Şablon / İçerik
                     </label>
                     <textarea
                       rows={3}
                       value={step.template}
                       onChange={(e) => updateStep(idx, 'template', e.target.value)}
-                      placeholder="Email sablonu veya gorev aciklamasi..."
+                      placeholder="Email şablonu veya gorev aciklamasi..."
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                     />
                   </div>
@@ -244,13 +244,13 @@ export default function SequenceBuilderPage() {
 
           <div className="mt-4">
             <Button variant="secondary" onClick={addStep}>
-              Adim Ekle
+              Adım Ekle
             </Button>
           </div>
         </Card>
 
         {/* Auto-enroll */}
-        <Card title="Otomatik Kayit">
+        <Card title="Otomatik Kayıt">
           <div className="space-y-3">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -259,7 +259,7 @@ export default function SequenceBuilderPage() {
                 onChange={(e) => setIsAutoEnroll(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              Otomatik kayit kurallarini etkinlestir
+              Otomatik kayıt kurallarini etkinlestir
             </label>
             {isAutoEnroll && (
               <div className="max-w-xs">

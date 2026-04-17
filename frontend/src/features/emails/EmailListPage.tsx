@@ -45,7 +45,7 @@ const READ_TABS = [
 ];
 
 const CATEGORY_OPTIONS = [
-  { value: '', label: 'Tum Kategoriler' },
+  { value: '', label: 'Tüm Kategoriler' },
   ...Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
@@ -81,7 +81,7 @@ export default function EmailListPage() {
       queryClient.invalidateQueries({ queryKey: ['emails'] });
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, 'Email kontrolu basarisiz'));
+      toast.error(getErrorMessage(err, 'Email kontrolu başarısız'));
     },
   });
 
@@ -89,33 +89,33 @@ export default function EmailListPage() {
     mutationFn: (payload: { name: string; email: string; company?: string }) =>
       customersApi.createCustomer(payload),
     onSuccess: (customer) => {
-      toast.success(`Musteri olusturuldu: ${customer.name}`);
+      toast.success(`Müşteri oluşturuldu: ${customer.name}`);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: () => toast.error('Musteri olusturulamadi (zaten mevcut olabilir)'),
+    onError: () => toast.error('Müşteri oluşturulamadı (zaten mevcut olabilir)'),
   });
 
   const createQuoteMutation = useMutation({
     mutationFn: (emailId: number) => quotesApi.createQuoteFromEmail(emailId),
     onSuccess: (quote) => {
-      toast.success(`Taslak teklif olusturuldu: ${quote.quote_number}`);
+      toast.success(`Taslak teklif oluşturuldu: ${quote.quote_number}`);
       setDetailEmail(null);
       navigate(`/quotes/${quote.id}`);
     },
-    onError: () => toast.error('Teklif olusturulamadi'),
+    onError: () => toast.error('Teklif oluşturulamadı'),
   });
 
   const reparseMutation = useMutation({
     mutationFn: (emailId: number) => emailsApi.reparseEmail(emailId),
     onSuccess: (res) => {
-      toast.success(res.message || 'Email yeniden ayristirildi');
+      toast.success(res.message || 'Email yeniden ayrıştırıldı');
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       if (detailEmail) {
         queryClient.invalidateQueries({ queryKey: ['email-detail', detailEmail.id] });
       }
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, 'Ayristirma basarisiz'));
+      toast.error(getErrorMessage(err, 'Ayrıştırma başarısız'));
     },
   });
 
@@ -142,12 +142,12 @@ export default function EmailListPage() {
     mutationFn: ({ id, action }: { id: number; action: string }) =>
       emailsApi.reviewEmail(id, action),
     onSuccess: () => {
-      toast.success('Inceleme tamamlandi');
+      toast.success('İnceleme tamamlandi');
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       setDetailEmail(null);
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, 'Inceleme basarisiz'));
+      toast.error(getErrorMessage(err, 'İnceleme başarısız'));
     },
   });
 
@@ -190,7 +190,7 @@ export default function EmailListPage() {
   const handleCreateCustomer = (email: EmailRequest) => {
     const parsed = getParsedData(email);
     if (!parsed) {
-      toast.error('Email henuz ayristirilmamis');
+      toast.error('Email henüz ayristirilmamis');
       return;
     }
     const name = parsed.customer_name || email.from_address.split('@')[0];
@@ -215,7 +215,7 @@ export default function EmailListPage() {
     },
     {
       key: 'from_address',
-      header: 'Gonderen',
+      header: 'Gönderen',
       render: (row: EmailRequest) => (
         <span className="max-w-[200px] truncate block text-sm">{row.from_address}</span>
       ),
@@ -253,7 +253,7 @@ export default function EmailListPage() {
     },
     {
       key: 'review_status',
-      header: 'Inceleme',
+      header: 'İnceleme',
       render: (row: EmailRequest) => {
         const rs = row.review_status;
         if (!rs) return <span className="text-gray-400 text-sm">-</span>;
@@ -327,7 +327,7 @@ export default function EmailListPage() {
         columns={columns}
         data={data?.items || []}
         loading={isLoading}
-        emptyMessage="Henuz email bulunamadi"
+        emptyMessage="Henüz email bulunamadi"
         page={data?.page || page}
         totalPages={data?.pages || 1}
         onPageChange={setPage}
@@ -359,7 +359,7 @@ export default function EmailListPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{activeEmail.from_address}</p>
-                  <span className="text-xs text-gray-400">Gonderen</span>
+                  <span className="text-xs text-gray-400">Gönderen</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-right">
@@ -425,7 +425,7 @@ export default function EmailListPage() {
                 <p className="whitespace-pre-wrap">
                   {(() => {
                     let text = activeEmail.body_text || '';
-                    if (!text) return '(Icerik yok)';
+                    if (!text) return '(İçerik yok)';
                     if (text.includes('<')) {
                       text = text
                         .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
@@ -454,7 +454,7 @@ export default function EmailListPage() {
                   <div className="flex items-center gap-2">
                     <BarChart3 size={16} className="text-blue-600" />
                     <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700">
-                      AI Ayristirma Sonucu
+                      AI Ayrıştırma Sonucu
                     </h4>
                   </div>
                   <button
@@ -466,7 +466,7 @@ export default function EmailListPage() {
                       setEditingParse(!editingParse);
                     }}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-500 transition-colors hover:bg-blue-100 hover:text-blue-700"
-                    title={editingParse ? 'Iptal' : 'Duzenle'}
+                    title={editingParse ? 'İptal' : 'Düzenle'}
                   >
                     {editingParse ? <X size={16} /> : <Pencil size={14} />}
                   </button>
@@ -477,7 +477,7 @@ export default function EmailListPage() {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
                         <label className="mb-1.5 block text-xs font-semibold text-blue-700">
-                          Musteri
+                          Müşteri
                         </label>
                         <input
                           className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
@@ -492,7 +492,7 @@ export default function EmailListPage() {
                       </div>
                       <div>
                         <label className="mb-1.5 block text-xs font-semibold text-blue-700">
-                          Sirket
+                          Şirket
                         </label>
                         <input
                           className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
@@ -544,7 +544,7 @@ export default function EmailListPage() {
                           </div>
                           <div>
                             <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                              Musteri
+                              Müşteri
                             </span>
                             <span className="text-sm font-medium text-gray-900">
                               {detailParsed.customer_name}
@@ -559,7 +559,7 @@ export default function EmailListPage() {
                           </div>
                           <div>
                             <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                              Sirket
+                              Şirket
                             </span>
                             <span className="text-sm font-medium text-gray-900">
                               {detailParsed.customer_company}
@@ -575,7 +575,7 @@ export default function EmailListPage() {
                         <div className="mb-2 flex items-center gap-2">
                           <Package size={14} className="text-blue-600" />
                           <span className="text-xs font-bold uppercase tracking-wider text-blue-700">
-                            Talep Edilen Parcalar
+                            Talep Edilen Parçalar
                           </span>
                           <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-200 px-1.5 text-[10px] font-bold text-blue-800">
                             {detailParsed.parts.length}
@@ -650,7 +650,7 @@ export default function EmailListPage() {
                     loading={reparseMutation.isPending}
                     onClick={() => reparseMutation.mutate(activeEmail!.id)}
                   >
-                    Yeniden Ayristir
+                    Yeniden Ayrıştır
                   </Button>
                   {activeEmail.review_status === 'pending_review' && (
                     <>
@@ -693,7 +693,7 @@ export default function EmailListPage() {
                     onClick={() => handleCreateCustomer(activeEmail!)}
                     disabled={!detailParsed}
                   >
-                    Musteri Olustur
+                    Müşteri Oluştur
                   </Button>
                   <Button
                     variant="primary"
@@ -702,7 +702,7 @@ export default function EmailListPage() {
                     onClick={() => createQuoteMutation.mutate(activeEmail!.id)}
                     disabled={!detailParsed?.parts?.length}
                   >
-                    Teklif Olustur
+                    Teklif Oluştur
                   </Button>
                 </div>
               )}

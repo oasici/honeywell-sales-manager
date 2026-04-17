@@ -77,7 +77,7 @@ export default function DealRoomPage() {
       toast.success('Deal room kaydedildi');
       queryClient.invalidateQueries({ queryKey: ['deal-room', roomId] });
     },
-    onError: () => toast.error('Kaydetme basarisiz'),
+    onError: () => toast.error('Kaydetme başarısız'),
   });
 
   const handleCopyLink = () => {
@@ -166,7 +166,7 @@ export default function DealRoomPage() {
         <Card title="Paylasilan Ogeler">
           <div className="space-y-3">
             {currentSharedItems.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-400">Henuz oge eklenmemis</p>
+              <p className="py-4 text-center text-sm text-gray-400">Henüz oge eklenmemis</p>
             ) : (
               currentSharedItems.map((item, idx) => (
                 <div
@@ -245,7 +245,7 @@ export default function DealRoomPage() {
         <Card title="Karsilikli Aksiyon Plani">
           <div className="space-y-3">
             {currentActionPlan.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-400">Henuz madde eklenmemis</p>
+              <p className="py-4 text-center text-sm text-gray-400">Henüz madde eklenmemis</p>
             ) : (
               currentActionPlan.map((item, idx) => (
                 <div

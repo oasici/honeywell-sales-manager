@@ -9,8 +9,8 @@ import type { Subscription } from '../../lib/types';
 const STATUS_LABELS: Record<string, string> = {
   active: 'Aktif',
   paused: 'Duraklatildi',
-  cancelled: 'Iptal Edildi',
-  expired: 'Suresi Doldu',
+  cancelled: 'İptal Edildi',
+  expired: 'Süresi Doldu',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -60,7 +60,7 @@ export default function SubscriptionDetailPage() {
       toast.success('Abonelik iptal edildi');
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     },
-    onError: () => toast.error('Iptal islemi basarisiz'),
+    onError: () => toast.error('İptal işlemi başarısız'),
   });
 
   const renewMutation = useMutation({
@@ -69,13 +69,13 @@ export default function SubscriptionDetailPage() {
       toast.success('Abonelik yenilendi');
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     },
-    onError: () => toast.error('Yenileme islemi basarisiz'),
+    onError: () => toast.error('Yenileme işlemi başarısız'),
   });
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-400">Yukleniyor...</p>
+        <p className="text-gray-400">Yükleniyor...</p>
       </div>
     );
   }
@@ -112,7 +112,7 @@ export default function SubscriptionDetailPage() {
                 className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors cursor-pointer"
               >
                 <XCircle size={16} />
-                Iptal Et
+                İptal Et
               </button>
               <button
                 type="button"
@@ -220,7 +220,7 @@ export default function SubscriptionDetailPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left" style={{ borderColor: 'var(--border)' }}>
-                  <th className="px-4 py-2 font-medium text-gray-500">Aciklama</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">Açıklama</th>
                   <th className="px-4 py-2 font-medium text-gray-500">Adet</th>
                   <th className="px-4 py-2 font-medium text-gray-500">Birim Fiyat</th>
                   <th className="px-4 py-2 font-medium text-gray-500">Tekrar Eden Tutar</th>
@@ -230,7 +230,7 @@ export default function SubscriptionDetailPage() {
                 {items.map((item, idx) => (
                   <tr key={idx} className="border-b" style={{ borderColor: 'var(--border)' }}>
                     <td className="px-4 py-2" style={{ color: 'var(--text-primary)' }}>
-                      {item.description ?? `Parca #${item.spare_part_id ?? idx + 1}`}
+                      {item.description ?? `Parça #${item.spare_part_id ?? idx + 1}`}
                     </td>
                     <td className="px-4 py-2 text-gray-500">{item.quantity ?? '-'}</td>
                     <td className="px-4 py-2 text-gray-500">

@@ -49,30 +49,30 @@ export default function SequencesPage() {
   const enrollMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => engagementApi.enrollInSequence(payload),
     onSuccess: () => {
-      toast.success('Kayit basarili');
+      toast.success('Kayıt başarılı');
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
       setIsEnrollOpen(false);
       resetEnrollForm();
     },
-    onError: () => toast.error('Kayit basarisiz'),
+    onError: () => toast.error('Kayıt başarısız'),
   });
 
   const pauseMutation = useMutation({
     mutationFn: (enrollmentId: number) => engagementApi.pauseEnrollment(enrollmentId),
     onSuccess: () => {
-      toast.success('Kayit duraklatildi');
+      toast.success('Kayıt duraklatildi');
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
     },
-    onError: () => toast.error('Duraklatma basarisiz'),
+    onError: () => toast.error('Duraklatma başarısız'),
   });
 
   const resumeMutation = useMutation({
     mutationFn: (enrollmentId: number) => engagementApi.resumeEnrollment(enrollmentId),
     onSuccess: () => {
-      toast.success('Kayit devam ettiriliyor');
+      toast.success('Kayıt devam ettiriliyor');
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
     },
-    onError: () => toast.error('Devam ettirme basarisiz'),
+    onError: () => toast.error('Devam ettirme başarısız'),
   });
 
   function resetEnrollForm() {
@@ -82,7 +82,7 @@ export default function SequencesPage() {
   function handleEnroll() {
     if (!selectedSequenceId) return;
     if (!enrollForm.opportunity_id && !enrollForm.customer_id) {
-      toast.error('Firsat ID veya Musteri ID gereklidir');
+      toast.error('Fırsat ID veya Müşteri ID gereklidir');
       return;
     }
     enrollMutation.mutate({
@@ -129,11 +129,11 @@ export default function SequencesPage() {
   const EXIT_LABELS: Record<string, string> = {
     all_steps_completed: 'Tamamlandi',
     lead_converted: 'Lead Donusturuldu',
-    opp_closed: 'Firsat Kapandi',
+    opp_closed: 'Fırsat Kapandi',
     email_bounced: 'Email Bounce',
     dnc: 'DNC',
-    manual: 'Manuel Cikarildi',
-    global_exit: 'Global Cikis',
+    manual: 'Manuel Çıkarıldı',
+    global_exit: 'Global Çıkış',
   };
 
   const STATUS_CONFIG: Record<
@@ -146,9 +146,9 @@ export default function SequencesPage() {
   > = {
     active: { variant: 'success', label: 'Aktif', icon: Clock },
     completed: { variant: 'info', label: 'Tamamlandi', icon: CheckCircle },
-    exited: { variant: 'danger', label: 'Cikarildi', icon: XCircle },
+    exited: { variant: 'danger', label: 'Çıkarıldı', icon: XCircle },
     paused: { variant: 'warning', label: 'Duraklatildi', icon: AlertCircle },
-    cancelled: { variant: 'default', label: 'Iptal', icon: XCircle },
+    cancelled: { variant: 'default', label: 'İptal', icon: XCircle },
   };
 
   return (
@@ -162,11 +162,11 @@ export default function SequencesPage() {
       ) : sequences.length === 0 ? (
         <EmptyState
           title="Sekans bulunamadi"
-          description="Henuz sekans tanimlanmamis"
+          description="Henüz sekans tanimlanmamis"
           icon={<ListChecks size={40} />}
           action={
             <Button onClick={() => navigate('/engagement/sequences/builder')}>
-              Ilk Sekansi Ekle
+              İlk Sekansi Ekle
             </Button>
           }
         />
@@ -190,7 +190,7 @@ export default function SequencesPage() {
                           {seq.steps.length} adim
                         </Badge>
                         <Badge variant="default" size="sm">
-                          {enrollCount} kayit
+                          {enrollCount} kayıt
                         </Badge>
                         {hasVariants(seq.steps) && (
                           <Badge variant="warning" size="sm">
@@ -206,7 +206,7 @@ export default function SequencesPage() {
                         )}
                         {seq.auto_enroll_rules && (
                           <Badge variant="success" size="sm">
-                            Oto-Kayit
+                            Oto-Kayıt
                           </Badge>
                         )}
                         <span className="text-xs text-gray-500">
@@ -220,10 +220,10 @@ export default function SequencesPage() {
                         size="sm"
                         onClick={() => navigate(`/engagement/sequences/${seq.id}/edit`)}
                       >
-                        Duzenle
+                        Düzenle
                       </Button>
                       <Button variant="secondary" size="sm" onClick={() => openEnrollModal(seq.id)}>
-                        Kayit Ol
+                        Kayıt Ol
                       </Button>
                     </div>
                   </div>
@@ -231,7 +231,7 @@ export default function SequencesPage() {
                   {/* Enrollments list */}
                   {enrollments.length > 0 && (
                     <div className="border-t border-gray-100 pt-3">
-                      <p className="mb-2 text-xs font-medium text-gray-500">Kayitlar</p>
+                      <p className="mb-2 text-xs font-medium text-gray-500">Kayıtlar</p>
                       <div className="space-y-2">
                         {enrollments.map((enrollment) => {
                           const sc = STATUS_CONFIG[enrollment.status] || STATUS_CONFIG.active;
@@ -245,12 +245,12 @@ export default function SequencesPage() {
                                 <span className="font-mono text-gray-500">#{enrollment.id}</span>
                                 {enrollment.opportunity_id && (
                                   <span className="text-xs text-gray-500">
-                                    Firsat: {enrollment.opportunity_id}
+                                    Fırsat: {enrollment.opportunity_id}
                                   </span>
                                 )}
                                 {enrollment.customer_id && (
                                   <span className="text-xs text-gray-500">
-                                    Musteri: {enrollment.customer_id}
+                                    Müşteri: {enrollment.customer_id}
                                   </span>
                                 )}
                                 {enrollment.lead_id && (
@@ -315,7 +315,7 @@ export default function SequencesPage() {
       {/* V2 Analytics Summary */}
       {analyticsData && (
         <div className="mt-6">
-          <Card title="Dizi Analitigi (V2)">
+          <Card title="Dizi Analitiği (V2)">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-4">
               <div className="rounded-lg border p-3 text-center">
                 <div className="text-2xl font-bold text-blue-600">
@@ -341,7 +341,7 @@ export default function SequencesPage() {
             {analyticsData.exit_reason_distribution &&
               Object.keys(analyticsData.exit_reason_distribution).length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Cikis Nedeni Dagilimi</p>
+                  <p className="text-xs font-medium text-gray-500 mb-2">Çıkış Nedeni Dagilimi</p>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(analyticsData.exit_reason_distribution).map(
                       ([reason, count]) => (
@@ -372,11 +372,11 @@ export default function SequencesPage() {
                 <thead>
                   <tr className="border-b text-left text-xs text-gray-500">
                     <th className="pb-2 pr-4">Dizi</th>
-                    <th className="pb-2 pr-4">Adim</th>
+                    <th className="pb-2 pr-4">Adım</th>
                     <th className="pb-2 pr-4">Varyant</th>
                     <th className="pb-2 pr-4">Toplam</th>
                     <th className="pb-2 pr-4">Tamamlanan</th>
-                    <th className="pb-2">Basarisiz</th>
+                    <th className="pb-2">Başarısız</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -402,13 +402,13 @@ export default function SequencesPage() {
       )}
 
       {/* Enroll Modal */}
-      <Modal isOpen={isEnrollOpen} onClose={() => setIsEnrollOpen(false)} title="Sekansa Kayit">
+      <Modal isOpen={isEnrollOpen} onClose={() => setIsEnrollOpen(false)} title="Sekansa Kayıt">
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Firsat veya musteri bilgisi girerek sekansa kayit olun.
+            Fırsat veya müşteri bilgisi girerek sekansa kayıt olun.
           </p>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Firsat ID</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Fırsat ID</label>
             <Input
               type="number"
               value={enrollForm.opportunity_id}
@@ -417,7 +417,7 @@ export default function SequencesPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Musteri ID</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Müşteri ID</label>
             <Input
               type="number"
               value={enrollForm.customer_id}
@@ -427,10 +427,10 @@ export default function SequencesPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsEnrollOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button loading={enrollMutation.isPending} onClick={handleEnroll}>
-              Kayit Ol
+              Kayıt Ol
             </Button>
           </div>
         </div>

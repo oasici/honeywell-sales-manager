@@ -63,9 +63,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
 
     // Focus first input on open (not button/close)
     requestAnimationFrame(() => {
-      const firstInput = panelRef.current?.querySelector<HTMLElement>(
-        'input, select, textarea',
-      );
+      const firstInput = panelRef.current?.querySelector<HTMLElement>('input, select, textarea');
       if (firstInput) {
         firstInput.focus();
       }

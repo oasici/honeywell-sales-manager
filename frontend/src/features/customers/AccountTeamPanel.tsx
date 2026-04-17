@@ -19,7 +19,7 @@ interface AccountTeamPanelProps {
 
 const ROLE_OPTIONS = [
   { value: 'owner', label: 'Sahip' },
-  { value: 'member', label: 'Uye' },
+  { value: 'member', label: 'Üye' },
   { value: 'viewer', label: 'Izleyici' },
 ];
 
@@ -31,7 +31,7 @@ const ROLE_BADGE_CLASSES: Record<string, string> = {
 
 const ROLE_LABELS: Record<string, string> = {
   owner: 'Sahip',
-  member: 'Uye',
+  member: 'Üye',
   viewer: 'Izleyici',
 };
 
@@ -74,7 +74,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
   const removeMutation = useMutation({
     mutationFn: (userId: number) => teamsApi.removeMember(customerId, userId),
     onSuccess: () => {
-      toast.success('Ekip uyesi kaldirildi');
+      toast.success('Ekip uyesi kaldırıldı');
       queryClient.invalidateQueries({ queryKey: ['team-members', customerId] });
       setRemoveTarget(null);
     },
@@ -100,7 +100,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
           <div className="flex flex-col items-center py-8 text-center">
             <Users size={32} className="mb-2 text-gray-300 dark:text-gray-600" />
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Henuz ekip uyesi eklenmemis
+              Henüz ekip uyesi eklenmemis
             </p>
           </div>
         ) : (
@@ -116,7 +116,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {member.user_full_name || `Kullanici #${member.user_id}`}
+                      {member.user_full_name || `Kullanıcı #${member.user_id}`}
                     </p>
                     {member.user_email && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -155,11 +155,11 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
       >
         <div className="space-y-4">
           <Input
-            label="Kullanici ID"
+            label="Kullanıcı ID"
             type="number"
             value={form.user_id}
             onChange={(e) => setForm((prev) => ({ ...prev, user_id: e.target.value }))}
-            placeholder="Kullanici ID girin"
+            placeholder="Kullanıcı ID girin"
           />
           <Select
             label="Rol"
@@ -169,7 +169,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button
               onClick={() => addMutation.mutate()}
@@ -191,7 +191,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
           }
         }}
         title="Ekip Uyesini Kaldir"
-        message={`${removeTarget?.user_full_name || 'Bu kullanici'} ekipten kaldirilacak. Devam etmek istiyor musunuz?`}
+        message={`${removeTarget?.user_full_name || 'Bu kullanıcı'} ekipten kaldirilacak. Devam etmek istiyor musunuz?`}
         confirmLabel="Kaldir"
         confirmVariant="danger"
         isLoading={removeMutation.isPending}

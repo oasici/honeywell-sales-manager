@@ -106,7 +106,7 @@ function PartDetailModal({
         {(descriptionTr || descriptionEn) && (
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Aciklama
+              Açıklama
             </h4>
             <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
               {descriptionTr && (
@@ -183,14 +183,14 @@ export default function PartsPage() {
     onSuccess: (res) => {
       const parts = (res.parts_created || 0) + (res.parts_updated || 0);
       toast.success(
-        `${parts} parca (${res.parts_created || 0} yeni, ${res.parts_updated || 0} guncellendi)` +
+        `${parts} parça (${res.parts_created || 0} yeni, ${res.parts_updated || 0} guncellendi)` +
         (res.skipped ? `, ${res.skipped} atlandi` : '') +
-        ' ice aktarildi',
+        ' içe aktarıldı',
       );
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       queryClient.invalidateQueries({ queryKey: ['parts-categories'] });
     },
-    onError: () => toast.error('Katalog ice aktarimi basarisiz'),
+    onError: () => toast.error('Katalog içe aktarimi başarısız'),
   });
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,7 +204,7 @@ export default function PartsPage() {
   }, []);
 
   const categoryOptions = [
-    { value: '', label: 'Tum Kategoriler' },
+    { value: '', label: 'Tüm Kategoriler' },
     ...(categories || []).map((c) => ({ value: c, label: c })),
   ];
 
@@ -271,7 +271,7 @@ export default function PartsPage() {
 
   return (
     <div>
-      <PageHeader title="Yedek Parcalar" description="Honeywell yedek parca katalogu">
+      <PageHeader title="Yedek Parçalar" description="Honeywell yedek parça katalogu">
         <input
           type="file"
           ref={fileRef}
@@ -283,13 +283,13 @@ export default function PartsPage() {
           loading={importMutation.isPending}
           onClick={() => fileRef.current?.click()}
         >
-          Ice Aktar (Excel/CSV/PDF)
+          İçe Aktar (Excel/CSV/PDF)
         </Button>
       </PageHeader>
 
       {/* Info banner */}
       <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-        <strong>Excel Formati:</strong> Model No / Honeywell Code (zorunlu), aciklama, transfer price,
+        <strong>Excel Formati:</strong> Model No / Honeywell Code (zorunlu), açıklama, transfer price,
         supplier price sutunlarini iceren tek bir dosya yukleyin. Sutun eslestirme otomatik yapilir.
       </div>
 
@@ -322,7 +322,7 @@ export default function PartsPage() {
         columns={columns}
         data={data?.items || []}
         loading={isLoading}
-        emptyMessage="Henuz parca bulunamadi"
+        emptyMessage="Henüz parça bulunamadi"
         page={data?.page || page}
         totalPages={data?.pages || 1}
         onPageChange={setPage}

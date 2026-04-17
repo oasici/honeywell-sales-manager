@@ -18,28 +18,28 @@ import type { FieldPermission } from '../../lib/types';
 
 const ROLE_OPTIONS = [
   { value: '', label: 'Tumu' },
-  { value: 'sales_rep', label: 'Satis Temsilcisi' },
-  { value: 'sales_manager', label: 'Satis Muduru' },
+  { value: 'sales_rep', label: 'Satış Temsilcisi' },
+  { value: 'sales_manager', label: 'Satış Muduru' },
   { value: 'operations', label: 'Operasyon' },
 ];
 
 const ROLE_CREATE_OPTIONS = [
-  { value: 'sales_rep', label: 'Satis Temsilcisi' },
-  { value: 'sales_manager', label: 'Satis Muduru' },
+  { value: 'sales_rep', label: 'Satış Temsilcisi' },
+  { value: 'sales_manager', label: 'Satış Muduru' },
   { value: 'operations', label: 'Operasyon' },
 ];
 
 const ENTITY_TYPE_OPTIONS = [
   { value: '', label: 'Tumu' },
-  { value: 'customer', label: 'Musteri' },
-  { value: 'opportunity', label: 'Firsat' },
+  { value: 'customer', label: 'Müşteri' },
+  { value: 'opportunity', label: 'Fırsat' },
   { value: 'quote', label: 'Teklif' },
   { value: 'email', label: 'E-posta' },
 ];
 
 const ENTITY_TYPE_CREATE_OPTIONS = [
-  { value: 'customer', label: 'Musteri' },
-  { value: 'opportunity', label: 'Firsat' },
+  { value: 'customer', label: 'Müşteri' },
+  { value: 'opportunity', label: 'Fırsat' },
   { value: 'quote', label: 'Teklif' },
   { value: 'email', label: 'E-posta' },
 ];
@@ -86,12 +86,12 @@ export default function FieldPermissionsPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => fieldPermissionsApi.create(payload),
     onSuccess: () => {
-      toast.success('Alan izni olusturuldu');
+      toast.success('Alan izni oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['fieldPermissions'] });
     },
-    onError: () => toast.error('Alan izni olusturulamadi'),
+    onError: () => toast.error('Alan izni oluşturulamadı'),
   });
 
   const deleteMutation = useMutation({
@@ -137,7 +137,7 @@ export default function FieldPermissionsPage() {
     },
     {
       key: 'entity_type',
-      header: 'Varlik Tipi',
+      header: 'Varlık Tipi',
       sortable: true,
       render: (row: FieldPermission) => <span>{entityLabel(row.entity_type)}</span>,
     },
@@ -148,7 +148,7 @@ export default function FieldPermissionsPage() {
     },
     {
       key: 'access_level',
-      header: 'Erisim Seviyesi',
+      header: 'Erişim Seviyesi',
       render: (row: FieldPermission) => (
         <Badge variant={ACCESS_VARIANT[row.access_level] ?? 'default'}>
           {accessLabel(row.access_level)}
@@ -167,7 +167,7 @@ export default function FieldPermissionsPage() {
     },
     {
       key: 'actions',
-      header: 'Islemler',
+      header: 'İşlemler',
       render: (row: FieldPermission) => (
         <Button size="sm" variant="danger" onClick={() => setDeleteTarget(row.id)}>
           Sil
@@ -180,9 +180,9 @@ export default function FieldPermissionsPage() {
     <div>
       <PageHeader
         title="Alan Izinleri"
-        description="Rol bazinda alan erisim izinlerini yonetin"
+        description="Rol bazinda alan erişim izinlerini yonetin"
       >
-        <Button onClick={() => setIsCreateOpen(true)}>Yeni Izin</Button>
+        <Button onClick={() => setIsCreateOpen(true)}>Yeni İzin</Button>
       </PageHeader>
 
       {/* Filters */}
@@ -197,7 +197,7 @@ export default function FieldPermissionsPage() {
         </div>
         <div className="w-48">
           <Select
-            label="Varlik Tipi"
+            label="Varlık Tipi"
             options={ENTITY_TYPE_OPTIONS}
             value={entityTypeFilter}
             onChange={(e) => setEntityTypeFilter(e.target.value)}
@@ -229,29 +229,29 @@ export default function FieldPermissionsPage() {
             onChange={(e) => setForm({ ...form, role: e.target.value })}
           />
           <Select
-            label="Varlik Tipi"
+            label="Varlık Tipi"
             options={ENTITY_TYPE_CREATE_OPTIONS}
             value={form.entity_type}
             onChange={(e) => setForm({ ...form, entity_type: e.target.value })}
           />
           <Input
             label="Alan Adi"
-            placeholder="Ornegin: email"
+            placeholder="Örneğin: email"
             value={form.field_name}
             onChange={(e) => setForm({ ...form, field_name: e.target.value })}
           />
           <Select
-            label="Erisim Seviyesi"
+            label="Erişim Seviyesi"
             options={ACCESS_LEVEL_OPTIONS}
             value={form.access_level}
             onChange={(e) => setForm({ ...form, access_level: e.target.value })}
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button onClick={handleCreate} loading={createMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>

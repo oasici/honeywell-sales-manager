@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Clock, AlertTriangle, FileX, Eye, ShieldAlert } from 'lucide-react';
 
 const PAINS = [
-  { icon: Clock, stat: '4+ saat', text: 'E-postadan teklife ortalama sure', color: 'text-red-600' },
+  { icon: Clock, stat: '4+ saat', text: 'E-postadan teklife ortalama süre', color: 'text-red-600' },
   { icon: AlertTriangle, stat: '%15', text: 'Kacan talepler (okunmamis/unutulmus)', color: 'text-amber-600' },
   { icon: FileX, stat: '%22', text: 'Hatali fiyatlandirma ve indirim tutarsizligi', color: 'text-orange-600' },
   { icon: Eye, stat: 'Sifir', text: 'Pipeline gorunurlugu — kim ne asamada?', color: 'text-slate-600' },
@@ -22,7 +22,7 @@ export default function Problem() {
         >
           <p className="text-xs font-semibold uppercase tracking-widest text-red-600">Sorun</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            Yedek parca satis sureci neden hala 2005 modeli?
+            Yedek parça satış sureci neden hala 2005 modeli?
           </h2>
           <p className="mt-4 text-base text-slate-600">
             E-posta kutusundan Excel'e, Excel'den PDF'e, PDF'den tekrar e-postaya.
@@ -56,7 +56,7 @@ export default function Problem() {
           className="mx-auto mt-12 max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center"
         >
           <p className="text-sm font-semibold text-amber-900">
-            20 kisilik bir satis ekibi icin bu, yilda tahmini{' '}
+            20 kişilik bir satış ekibi icin bu, yilda tahmini{' '}
             <span className="text-lg font-bold">1.200+ saat</span> ve{' '}
             <span className="text-lg font-bold">%8-15 gelir kaybi</span> demek.
           </p>

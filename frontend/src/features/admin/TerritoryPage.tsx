@@ -26,7 +26,7 @@ import type { Territory, TerritoryAssignment, User } from '../../lib/types';
 // ── Schemas ──────────────────────────────────────────
 
 const territorySchema = z.object({
-  name: z.string().min(1, 'Bolge adi zorunlu'),
+  name: z.string().min(1, 'Bölge adi zorunlu'),
   parent_id: z.number().optional().nullable(),
   region: z.string().optional(),
   description: z.string().optional(),
@@ -35,7 +35,7 @@ const territorySchema = z.object({
 type TerritoryFormData = z.infer<typeof territorySchema>;
 
 const assignSchema = z.object({
-  user_id: z.number().min(1, 'Kullanici secin'),
+  user_id: z.number().min(1, 'Kullanıcı seçin'),
   role: z.string().min(1, 'Rol zorunlu'),
 });
 
@@ -43,8 +43,8 @@ type AssignFormData = z.infer<typeof assignSchema>;
 
 const ROLE_OPTIONS = [
   { value: 'owner', label: 'Sahip' },
-  { value: 'member', label: 'Uye' },
-  { value: 'viewer', label: 'Goruntuleyen' },
+  { value: 'member', label: 'Üye' },
+  { value: 'viewer', label: 'Görüntüleyen' },
 ];
 
 // ── Rule Row Type ─────────────────────────────────────
@@ -143,38 +143,38 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
         description: values.description,
       }),
     onSuccess: () => {
-      toast.success('Bolge olusturuldu');
+      toast.success('Bölge oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['territories-tree'] });
       onClose();
     },
-    onError: () => toast.error('Bolge olusturulamadi'),
+    onError: () => toast.error('Bölge oluşturulamadı'),
   });
 
   return (
-    <Modal isOpen onClose={onClose} title="Yeni Bolge" size="sm">
+    <Modal isOpen onClose={onClose} title="Yeni Bölge" size="sm">
       <form onSubmit={handleSubmit((v) => createMutation.mutate(v))}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Bolge Adi <span className="text-red-400">*</span>
+              Bölge Adi <span className="text-red-400">*</span>
             </label>
             <input
               {...register('name')}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="Ornegin: Marmara Bolgesi"
+              placeholder="Örneğin: Marmara Bolgesi"
             />
             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Ust Bolge
+              Üst Bölge
             </label>
             <select
               {...register('parent_id', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
-              <option value="">Yok (Kok Bolge)</option>
+              <option value="">Yok (Kök Bölge)</option>
               {territories.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
@@ -185,18 +185,18 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Bolge
+              Bölge
             </label>
             <input
               {...register('region')}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="Ornegin: TR-IST"
+              placeholder="Örneğin: TR-IST"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Aciklama
+              Açıklama
             </label>
             <textarea
               {...register('description')}
@@ -208,11 +208,11 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
 
         <div className="flex items-center justify-end gap-3 mt-6">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Iptal
+            İptal
           </Button>
           <Button type="submit" loading={createMutation.isPending}>
             <Check size={16} />
-            {createMutation.isPending ? 'Olusturuluyor...' : 'Olustur'}
+            {createMutation.isPending ? 'Oluşturuluyor...' : 'Oluştur'}
           </Button>
         </div>
       </form>
@@ -240,7 +240,7 @@ function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
     mutationFn: (values: AssignFormData) =>
       territoriesApi.addAssignment(territoryId, { user_id: values.user_id, role: values.role }),
     onSuccess: () => {
-      toast.success('Kullanici atandi');
+      toast.success('Kullanıcı atandi');
       queryClient.invalidateQueries({ queryKey: ['territory-detail', territoryId] });
       onClose();
     },
@@ -248,18 +248,18 @@ function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
   });
 
   return (
-    <Modal isOpen onClose={onClose} title="Kullanici Ata" size="sm">
+    <Modal isOpen onClose={onClose} title="Kullanıcı Ata" size="sm">
       <form onSubmit={handleSubmit((v) => assignMutation.mutate(v))}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Kullanici <span className="text-red-400">*</span>
+              Kullanıcı <span className="text-red-400">*</span>
             </label>
             <select
               {...register('user_id', { setValueAs: (v) => Number(v) })}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
-              <option value="">Kullanici secin...</option>
+              <option value="">Kullanıcı seçin...</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.full_name} ({u.email})
@@ -290,7 +290,7 @@ function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
 
         <div className="flex items-center justify-end gap-3 mt-6">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Iptal
+            İptal
           </Button>
           <Button type="submit" loading={assignMutation.isPending}>
             <Check size={16} />
@@ -345,9 +345,9 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
   const removeRule = (index: number) => setRules((prev) => prev.filter((_, i) => i !== index));
 
   return (
-    <Modal isOpen onClose={onClose} title={`Atama Kurallari — ${territory.name}`}>
+    <Modal isOpen onClose={onClose} title={`Atama Kuralları — ${territory.name}`}>
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-        Bu kurallara uyan musteriler ve firsatlar otomatik olarak bu bolgeye atanir.
+        Bu kurallara uyan müşteriler ve fırsatlar otomatik olarak bu bolgeye atanir.
       </p>
 
       <div className="space-y-3">
@@ -356,7 +356,7 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
             <input
               value={rule.field}
               onChange={(e) => updateRule(index, 'field', e.target.value)}
-              placeholder="alan (ornegin: city)"
+              placeholder="alan (örneğin: city)"
               className="flex-1 rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
             <select
@@ -365,14 +365,14 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
               className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
               <option value="eq">esit</option>
-              <option value="neq">esit degil</option>
-              <option value="contains">icerir</option>
+              <option value="neq">esit değil</option>
+              <option value="contains">içerir</option>
               <option value="starts_with">ile baslar</option>
             </select>
             <input
               value={rule.value}
               onChange={(e) => updateRule(index, 'value', e.target.value)}
-              placeholder="deger"
+              placeholder="değer"
               className="flex-1 rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
             <button
@@ -398,7 +398,7 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
 
       <div className="flex items-center justify-end gap-3 mt-6">
         <Button type="button" variant="secondary" onClick={onClose}>
-          Iptal
+          İptal
         </Button>
         <Button
           type="button"
@@ -436,7 +436,7 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
   const removeAssignmentMutation = useMutation({
     mutationFn: (userId: number) => territoriesApi.removeAssignment(territory.id, userId),
     onSuccess: () => {
-      toast.success('Atama kaldirildi');
+      toast.success('Atama kaldırıldı');
       queryClient.invalidateQueries({ queryKey: ['territory-detail', territory.id] });
     },
     onError: () => toast.error('Atama kaldirilamadi'),
@@ -466,7 +466,7 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
         </div>
         {territory.region && (
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            <span className="text-gray-500">Bolge:</span> {territory.region}
+            <span className="text-gray-500">Bölge:</span> {territory.region}
           </p>
         )}
         {territory.description && (
@@ -478,16 +478,16 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-400">
-            Atanan Kullanicilar
+            Atanan Kullanıcılar
           </h4>
           <Button variant="secondary" size="sm" onClick={() => setAssignModalOpen(true)}>
             <UserPlus size={13} />
-            Kullanici Ata
+            Kullanıcı Ata
           </Button>
         </div>
 
         {assignments.length === 0 ? (
-          <p className="text-xs text-gray-500 py-3 text-center">Bu bolgeye kullanici atanmamis</p>
+          <p className="text-xs text-gray-500 py-3 text-center">Bu bolgeye kullanıcı atanmamis</p>
         ) : (
           <div className="space-y-2">
             {assignments.map((a) => (
@@ -497,7 +497,7 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
               >
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                    {a.user?.full_name ?? `Kullanici #${a.user_id}`}
+                    {a.user?.full_name ?? `Kullanıcı #${a.user_id}`}
                   </p>
                   {a.user?.email && (
                     <p className="text-[10px] text-gray-500 truncate">{a.user.email}</p>
@@ -528,7 +528,7 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
         className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 dark:border-white/10 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-honeywell-red hover:text-honeywell-red dark:hover:border-white/20 dark:hover:text-white transition-colors"
       >
         <Code2 size={14} />
-        Atama Kurallarini Duzenle
+        Atama Kurallarini Düzenle
       </button>
 
       {assignModalOpen && (
@@ -590,7 +590,7 @@ export default function TerritoryPage() {
       toast.success('Otomatik atama tamamlandi');
       queryClient.invalidateQueries({ queryKey: ['territories-tree'] });
     },
-    onError: () => toast.error('Otomatik atama basarisiz'),
+    onError: () => toast.error('Otomatik atama başarısız'),
   });
 
   const flatTerritories = flattenTree(treeData);
@@ -600,13 +600,13 @@ export default function TerritoryPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Bolge Yonetimi"
-          description="Satis bolgelerini ve kullanici atamalarini yonetin"
+          title="Bölge Yönetimi"
+          description="Satış bolgelerini ve kullanıcı atamalarini yonetin"
         />
         <Card>
           <div className="p-8 text-center">
             <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata olustu. Lutfen sayfayi yenileyin.
+              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
             </p>
           </div>
         </Card>
@@ -617,8 +617,8 @@ export default function TerritoryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Bolge Yonetimi"
-        description="Satis bolgelerini ve kullanici atamalarini yonetin"
+        title="Bölge Yönetimi"
+        description="Satış bolgelerini ve kullanıcı atamalarini yonetin"
       >
         <div className="flex items-center gap-2">
           <button
@@ -631,7 +631,7 @@ export default function TerritoryPage() {
           </button>
           <Button onClick={() => setNewModalOpen(true)}>
             <Plus size={16} />
-            Yeni Bolge
+            Yeni Bölge
           </Button>
         </div>
       </PageHeader>
@@ -642,7 +642,7 @@ export default function TerritoryPage() {
           <Card>
             <div className="p-4">
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Bolge Agaci
+                Bölge Agaci
               </h3>
               {isLoading ? (
                 <div className="space-y-2">
@@ -656,7 +656,7 @@ export default function TerritoryPage() {
               ) : treeData.length === 0 ? (
                 <div className="py-8 text-center">
                   <Map className="mx-auto mb-2 text-gray-400" size={24} />
-                  <p className="text-xs text-gray-400">Henuz bolge yok</p>
+                  <p className="text-xs text-gray-400">Henüz bölge yok</p>
                 </div>
               ) : (
                 <div className="space-y-0.5">
@@ -688,10 +688,10 @@ export default function TerritoryPage() {
               <div className="text-center">
                 <Map className="mx-auto mb-3 text-gray-300 dark:text-gray-600" size={32} />
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Bir bolge secin
+                  Bir bölge seçin
                 </p>
                 <p className="mt-1 text-xs text-gray-400">
-                  Detaylar ve kullanici atamalarini goruntuleyin
+                  Detaylar ve kullanıcı atamalarini goruntuleyin
                 </p>
               </div>
             </div>

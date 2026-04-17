@@ -61,7 +61,7 @@ export default function PlaybookAnalyticsPage() {
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <KpiCard label="Toplam Yurutme" value={data.total_executions} />
+        <KpiCard label="Toplam Yürütme" value={data.total_executions} />
         <KpiCard label="Tamamlanan" value={data.total_completed} />
         <KpiCard label="Ort. Tamamlanma (Gun)" value={data.avg_completion_days.toFixed(1)} />
       </div>
@@ -99,7 +99,7 @@ export default function PlaybookAnalyticsPage() {
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="pb-2 font-medium text-gray-500">Playbook</th>
-                    <th className="pb-2 font-medium text-gray-500">Yurutme</th>
+                    <th className="pb-2 font-medium text-gray-500">Yürütme</th>
                     <th className="pb-2 font-medium text-gray-500">Tamamlanan</th>
                   </tr>
                 </thead>
@@ -125,7 +125,7 @@ export default function PlaybookAnalyticsPage() {
       <Card>
         <div className="p-4">
           <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
-            En Cok Tetiklenenler
+            En Çok Tetiklenenler
           </h2>
           {data.most_triggered.length === 0 ? (
             <p className="text-sm text-gray-500">Veri bulunmuyor.</p>

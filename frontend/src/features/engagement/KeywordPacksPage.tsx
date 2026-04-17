@@ -20,7 +20,7 @@ const CATEGORY_OPTIONS = [
   { value: 'objection', label: 'Itiraz' },
   { value: 'positive', label: 'Olumlu' },
   { value: 'technical', label: 'Teknik' },
-  { value: 'custom', label: 'Ozel' },
+  { value: 'custom', label: 'Özel' },
 ];
 
 type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'default';
@@ -57,12 +57,12 @@ export default function KeywordPacksPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => engagementApi.createKeywordPack(payload),
     onSuccess: () => {
-      toast.success('Anahtar kelime paketi olusturuldu');
+      toast.success('Anahtar kelime paketi oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['keyword-packs'] });
       setIsCreateOpen(false);
       resetForm();
     },
-    onError: () => toast.error('Paket olusturulamadi'),
+    onError: () => toast.error('Paket oluşturulamadı'),
   });
 
   function resetForm() {
@@ -93,7 +93,7 @@ export default function KeywordPacksPage() {
 
   return (
     <div>
-      <PageHeader title="Anahtar Kelime Paketleri" description="Gorusme analizi icin kelime gruplari">
+      <PageHeader title="Anahtar Kelime Paketleri" description="Görüşme analizi için kelime gruplari">
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Paket</Button>
       </PageHeader>
 
@@ -102,9 +102,9 @@ export default function KeywordPacksPage() {
       ) : packs.length === 0 ? (
         <EmptyState
           title="Paket bulunamadi"
-          description="Henuz anahtar kelime paketi eklenmemis"
+          description="Henüz anahtar kelime paketi eklenmemis"
           icon={<Tag size={40} />}
-          action={<Button onClick={() => setIsCreateOpen(true)}>Ilk Paketi Ekle</Button>}
+          action={<Button onClick={() => setIsCreateOpen(true)}>İlk Paketi Ekle</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -152,7 +152,7 @@ export default function KeywordPacksPage() {
             <Input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Ornegin: Fiyat Kelimeleri"
+              placeholder="Örneğin: Fiyat Kelimeleri"
             />
           </div>
           <div>
@@ -181,10 +181,10 @@ export default function KeywordPacksPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button loading={createMutation.isPending} onClick={handleCreate}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>

@@ -49,7 +49,7 @@ export default function SigningPage() {
     onSuccess: () => {
       setIsSigned(true);
     },
-    onError: () => toast.error('Imzalama islemi basarisiz oldu'),
+    onError: () => toast.error('Imzalama işlemi başarısız oldu'),
   });
 
   const declineMutation = useMutation({
@@ -57,7 +57,7 @@ export default function SigningPage() {
     onSuccess: () => {
       setIsDeclined(true);
     },
-    onError: () => toast.error('Reddetme islemi basarisiz oldu'),
+    onError: () => toast.error('Reddetme işlemi başarısız oldu'),
   });
 
   if (isLoading) {
@@ -65,7 +65,7 @@ export default function SigningPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-honeywell-red" />
-          <p className="text-sm text-gray-500">Yukleniyor...</p>
+          <p className="text-sm text-gray-500">Yükleniyor...</p>
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ export default function SigningPage() {
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <AlertCircle className="mx-auto mb-4 h-14 w-14 text-red-400" />
           <h1 className="mb-2 text-xl font-bold text-gray-900">Belge Bulunamadi</h1>
-          <p className="text-sm text-gray-500">Bu imza baglantisi gecersiz veya bulunamadi.</p>
+          <p className="text-sm text-gray-500">Bu imza baglantisi geçersiz veya bulunamadi.</p>
         </div>
       </div>
     );
@@ -88,7 +88,7 @@ export default function SigningPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <CheckCircle className="mx-auto mb-4 h-14 w-14 text-green-500" />
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">Belge Basariyla Imzalandi</h1>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">Belge Başarıyla Imzalandi</h1>
           <p className="text-sm text-gray-500">{signRequest.signer_email} icin imza kaydedildi.</p>
           {signRequest.signed_at && (
             <p className="mt-2 text-xs text-gray-400">
@@ -96,7 +96,7 @@ export default function SigningPage() {
             </p>
           )}
           <div className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">
-            Imzaniz basariyla alindi. Tesekkur ederiz.
+            Imzaniz başarıyla alindi. Tesekkur ederiz.
           </div>
         </div>
       </div>
@@ -109,7 +109,7 @@ export default function SigningPage() {
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <XCircle className="mx-auto mb-4 h-14 w-14 text-red-400" />
           <h1 className="mb-2 text-xl font-bold text-gray-900">Belge Reddedildi</h1>
-          <p className="text-sm text-gray-500">Bu belge icin imza talebi reddedildi.</p>
+          <p className="text-sm text-gray-500">Bu belge için imza talebi reddedildi.</p>
         </div>
       </div>
     );
@@ -120,10 +120,10 @@ export default function SigningPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <Clock className="mx-auto mb-4 h-14 w-14 text-amber-400" />
-          <h1 className="mb-2 text-xl font-bold text-gray-900">Bu Imza Suresi Dolmus</h1>
+          <h1 className="mb-2 text-xl font-bold text-gray-900">Bu Imza Süresi Dolmus</h1>
           <p className="text-sm text-gray-500">
             Bu imza baglantisi {new Date(signRequest.expires_at).toLocaleDateString('tr-TR')}{' '}
-            tarihinde suresi doldu. Yeni bir imza talebi icin lutfen gondericiye basvurun.
+            tarihinde suresi doldu. Yeni bir imza talebi icin lütfen gondericiye basvurun.
           </p>
         </div>
       </div>
@@ -208,7 +208,7 @@ export default function SigningPage() {
             />
             <span className="text-sm text-gray-600">
               Bu belgeyi okudum, anladin ve <strong className="text-gray-800">onayliyorum</strong>.
-              Dijital imzamın bu belge icin yasal olarak baglayici oldugunu kabul ediyorum.
+              Dijital imzamın bu belge için yasal olarak baglayici oldugunu kabul ediyorum.
             </span>
           </label>
 

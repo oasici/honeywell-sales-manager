@@ -28,8 +28,8 @@ const TYPE_LABELS: Record<string, string> = {
   event: 'Etkinlik',
   webinar: 'Webinar',
   social: 'Sosyal Medya',
-  content: 'Icerik',
-  other: 'Diger',
+  content: 'İçerik',
+  other: 'Diğer',
 };
 
 const CAMPAIGN_TYPES = [
@@ -37,8 +37,8 @@ const CAMPAIGN_TYPES = [
   { value: 'event', label: 'Etkinlik' },
   { value: 'webinar', label: 'Webinar' },
   { value: 'social', label: 'Sosyal Medya' },
-  { value: 'content', label: 'Icerik' },
-  { value: 'other', label: 'Diger' },
+  { value: 'content', label: 'İçerik' },
+  { value: 'other', label: 'Diğer' },
 ];
 
 interface CreateForm {
@@ -77,13 +77,13 @@ export default function CampaignListPage() {
     mutationFn: (payload: Parameters<typeof campaignsApi.create>[0]) =>
       campaignsApi.create(payload),
     onSuccess: (created: Campaign) => {
-      toast.success('Kampanya olusturuldu');
+      toast.success('Kampanya oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       navigate(`/campaigns/${created.id}`);
     },
-    onError: () => toast.error('Kampanya olusturulamadi'),
+    onError: () => toast.error('Kampanya oluşturulamadı'),
   });
 
   const handleCreate = useCallback(() => {
@@ -104,11 +104,11 @@ export default function CampaignListPage() {
   if (isError) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Kampanyalar" description="Kampanya yonetimi ve ROI takibi" />
+        <PageHeader title="Kampanyalar" description="Kampanya yönetimi ve ROI takibi" />
         <Card>
           <div className="p-8 text-center">
             <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata olustu. Lutfen sayfayi yenileyin.
+              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
             </p>
           </div>
         </Card>
@@ -118,7 +118,7 @@ export default function CampaignListPage() {
 
   return (
     <div>
-      <PageHeader title="Kampanyalar" description="Kampanya yonetimi ve ROI takibi">
+      <PageHeader title="Kampanyalar" description="Kampanya yönetimi ve ROI takibi">
         <Button onClick={() => setIsCreateOpen(true)}>
           <Megaphone className="mr-1.5 h-4 w-4" />
           Yeni Kampanya
@@ -168,7 +168,7 @@ export default function CampaignListPage() {
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
                     ROI %
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">Uye</th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">Üye</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,7 +262,7 @@ export default function CampaignListPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Aciklama
+              Açıklama
             </label>
             <textarea
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -304,10 +304,10 @@ export default function CampaignListPage() {
               setForm(INITIAL_FORM);
             }}
           >
-            Iptal
+            İptal
           </Button>
           <Button onClick={handleCreate} loading={createMutation.isPending}>
-            Olustur
+            Oluştur
           </Button>
         </div>
       </Modal>

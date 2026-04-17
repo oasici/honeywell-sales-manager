@@ -23,12 +23,12 @@ import { formatDateTime } from '../../lib/formatters';
 import type { WebhookSubscription, WebhookDelivery } from '../../lib/types';
 
 const AVAILABLE_EVENTS = [
-  { value: 'opportunity.created', label: 'Firsat Olusturuldu' },
-  { value: 'opportunity.stage_changed', label: 'Firsat Asama Degisti' },
-  { value: 'quote.approved', label: 'Teklif Onaylandi' },
-  { value: 'quote.sent', label: 'Teklif Gonderildi' },
+  { value: 'opportunity.created', label: 'Fırsat Oluşturuldu' },
+  { value: 'opportunity.stage_changed', label: 'Fırsat Aşama Değişti' },
+  { value: 'quote.approved', label: 'Teklif Onaylandı' },
+  { value: 'quote.sent', label: 'Teklif Gönderildi' },
   { value: 'lead.converted', label: 'Lead Donusturuldu' },
-  { value: 'customer.created', label: 'Musteri Olusturuldu' },
+  { value: 'customer.created', label: 'Müşteri Oluşturuldu' },
   { value: 'email.parsed', label: 'Email Ayristi' },
 ];
 
@@ -82,7 +82,7 @@ function DeliveryHistory({ webhookId }: { webhookId: number }) {
   if (deliveries.length === 0) {
     return (
       <p className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
-        Henuz teslimat yok
+        Henüz teslimat yok
       </p>
     );
   }
@@ -134,18 +134,18 @@ function WebhookCard({
       );
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
     },
-    onError: () => toast.error('Islem basarisiz'),
+    onError: () => toast.error('İşlem başarısız'),
   });
 
   const testMutation = useMutation({
     mutationFn: () => webhooksApi.test(webhook.id),
     onSuccess: () => {
-      toast.success('Test istegi gonderildi');
+      toast.success('Test istegi gönderildi');
       queryClient.invalidateQueries({
         queryKey: ['webhook-deliveries', webhook.id],
       });
     },
-    onError: () => toast.error('Test istegi basarisiz'),
+    onError: () => toast.error('Test istegi başarısız'),
   });
 
   return (
@@ -178,7 +178,7 @@ function WebhookCard({
           </div>
           {webhook.failure_count > 0 && (
             <p className="mt-1.5 text-xs text-red-500">
-              {webhook.failure_count} basarisiz teslimat
+              {webhook.failure_count} başarısız teslimat
             </p>
           )}
         </div>
@@ -254,12 +254,12 @@ export default function WebhookSettings() {
         secret: form.secret || undefined,
       }),
     onSuccess: () => {
-      toast.success('Webhook olusturuldu');
+      toast.success('Webhook oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
       setIsModalOpen(false);
       setForm(INITIAL_FORM);
     },
-    onError: () => toast.error('Webhook olusturulamadi'),
+    onError: () => toast.error('Webhook oluşturulamadı'),
   });
 
   const deleteMutation = useMutation({
@@ -291,7 +291,7 @@ export default function WebhookSettings() {
   return (
     <>
       <Card
-        title="Webhook Yonetimi"
+        title="Webhook Yönetimi"
         action={
           <Button size="sm" onClick={() => setIsModalOpen(true)}>
             <Plus size={14} className="mr-1.5" />
@@ -303,7 +303,7 @@ export default function WebhookSettings() {
           <div className="flex flex-col items-center py-8 text-center">
             <Webhook size={32} className="mb-2 text-gray-300 dark:text-gray-600" />
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Henuz webhook tanimlanmamis
+              Henüz webhook tanimlanmamis
             </p>
           </div>
         ) : (
@@ -330,7 +330,7 @@ export default function WebhookSettings() {
             label="Webhook Adi"
             value={form.name}
             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="ornek: Slack Bildirimi"
+            placeholder="örnek: Slack Bildirimi"
           />
           <Input
             label="URL"
@@ -371,14 +371,14 @@ export default function WebhookSettings() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button
               onClick={() => createMutation.mutate()}
               loading={createMutation.isPending}
               disabled={!form.name || !form.url || form.event_types.length === 0}
             >
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>

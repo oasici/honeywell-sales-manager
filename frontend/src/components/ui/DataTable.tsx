@@ -42,7 +42,7 @@ export function DataTable<T = any>({
   columns,
   data,
   loading = false,
-  emptyMessage = 'Kayit bulunamadi',
+  emptyMessage = 'Kayıt bulunamadi',
   page,
   totalPages,
   onPageChange,
@@ -170,7 +170,7 @@ export function DataTable<T = any>({
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
             >
-              Onceki
+              Önceki
             </Button>
             <Button
               variant="secondary"

@@ -16,7 +16,7 @@ const METRIC_OPTIONS = [
   { value: 'revenue', label: 'Gelir' },
   { value: 'deals_won', label: 'Kazanilan' },
   { value: 'activities', label: 'Aktivite' },
-  { value: 'response_time', label: 'Cevap Suresi' },
+  { value: 'response_time', label: 'Cevap Süresi' },
 ];
 
 const RANK_COLORS: Record<number, string> = {
@@ -51,7 +51,7 @@ export default function LeaderboardPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Trophy size={24} className="text-honeywell-red" />
-        <h1 className="text-2xl font-bold text-gray-900">Siralama</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Sıralama</h1>
       </div>
 
       {/* Filters */}
@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Sira</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Temsilci</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Deger</th>
+                <th className="px-4 py-3 text-right font-semibold text-gray-600">Değer</th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-600">Degisim</th>
                 <th className="px-4 py-3 text-center font-semibold text-gray-600">Rozetler</th>
               </tr>
@@ -109,13 +109,13 @@ export default function LeaderboardPage() {
               {isLoading ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                    Yukleniyor...
+                    Yükleniyor...
                   </td>
                 </tr>
               ) : rankings.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                    Henuz veri yok
+                    Henüz veri yok
                   </td>
                 </tr>
               ) : (
@@ -186,7 +186,7 @@ export default function LeaderboardPage() {
             <h2 className="text-lg font-semibold text-gray-900">Kazanilan Rozetler</h2>
           </div>
           {achievements.length === 0 ? (
-            <p className="text-sm text-gray-400">Henuz rozet kazanilmamis</p>
+            <p className="text-sm text-gray-400">Henüz rozet kazanilmamis</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {achievements.map((ach) => (

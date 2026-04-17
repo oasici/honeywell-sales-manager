@@ -83,44 +83,44 @@ const defaultEdgeOptions = {
 };
 
 const ENTITY_TYPE_OPTIONS = [
-  { value: 'opportunity', label: 'Firsat' },
+  { value: 'opportunity', label: 'Fırsat' },
   { value: 'quote', label: 'Teklif' },
   { value: 'email', label: 'E-posta' },
-  { value: 'customer', label: 'Musteri' },
+  { value: 'customer', label: 'Müşteri' },
 ];
 
 const TRIGGER_EVENT_OPTIONS: Record<string, { value: string; label: string }[]> = {
   opportunity: [
-    { value: 'stage_changed', label: 'Asama Degisti' },
-    { value: 'created', label: 'Olusturuldu' },
-    { value: 'amount_changed', label: 'Tutar Degisti' },
+    { value: 'stage_changed', label: 'Aşama Değişti' },
+    { value: 'created', label: 'Oluşturuldu' },
+    { value: 'amount_changed', label: 'Tutar Değişti' },
   ],
   quote: [
-    { value: 'approved', label: 'Onaylandi' },
-    { value: 'sent', label: 'Gonderildi' },
-    { value: 'created', label: 'Olusturuldu' },
+    { value: 'approved', label: 'Onaylandı' },
+    { value: 'sent', label: 'Gönderildi' },
+    { value: 'created', label: 'Oluşturuldu' },
   ],
   email: [
-    { value: 'parsed', label: 'Ayristirma Tamamlandi' },
+    { value: 'parsed', label: 'Ayrıştırma Tamamlandi' },
     { value: 'received', label: 'Alindi' },
   ],
   customer: [
-    { value: 'created', label: 'Olusturuldu' },
-    { value: 'updated', label: 'Guncellendi' },
+    { value: 'created', label: 'Oluşturuldu' },
+    { value: 'updated', label: 'Güncellendi' },
   ],
 };
 
 const ACTION_TYPE_OPTIONS = [
-  { value: 'send_notification', label: 'Bildirim Gonder' },
-  { value: 'create_task', label: 'Gorev Olustur' },
+  { value: 'send_notification', label: 'Bildirim Gönder' },
+  { value: 'create_task', label: 'Gorev Oluştur' },
   { value: 'emit_signal', label: 'Sinyal Yayinla' },
-  { value: 'field_update', label: 'Alan Guncelle' },
+  { value: 'field_update', label: 'Alan Güncelle' },
 ];
 
 const OPERATOR_OPTIONS = [
   { value: 'eq', label: 'Esit' },
-  { value: 'neq', label: 'Esit Degil' },
-  { value: 'contains', label: 'Icerir' },
+  { value: 'neq', label: 'Esit Değil' },
+  { value: 'contains', label: 'İçerir' },
   { value: 'gte', label: 'Buyuk Esit' },
   { value: 'lte', label: 'Kucuk Esit' },
 ];
@@ -540,7 +540,7 @@ export default function FlowBuilderPage() {
         navigate('/admin/workflow-rules');
       }
     },
-    onError: () => toast.error('Kaydetme basarisiz oldu'),
+    onError: () => toast.error('Kaydetme başarısız oldu'),
   });
 
   const currentTriggerOptions =
@@ -549,7 +549,7 @@ export default function FlowBuilderPage() {
   return (
     <div>
       <PageHeader
-        title="Gorsel Is Kurali Editoru"
+        title="Gorsel İş Kuralı Editoru"
         description="Surukle-birak ile is akisi olusturun"
       >
         <Button variant="secondary" onClick={() => navigate('/admin/workflow-rules')}>
@@ -667,7 +667,7 @@ export default function FlowBuilderPage() {
               {selectedNode.type === 'trigger' && (
                 <>
                   <Select
-                    label="Varlik Tipi"
+                    label="Varlık Tipi"
                     options={ENTITY_TYPE_OPTIONS}
                     value={(selectedNode.data.entity_type as string) || 'opportunity'}
                     onChange={(e) => updateNodeData('entity_type', e.target.value)}
@@ -696,7 +696,7 @@ export default function FlowBuilderPage() {
                     onChange={(e) => updateNodeData('operator', e.target.value)}
                   />
                   <Input
-                    label="Deger"
+                    label="Değer"
                     placeholder="negotiation"
                     value={(selectedNode.data.value as string) || ''}
                     onChange={(e) => updateNodeData('value', e.target.value)}
@@ -738,7 +738,7 @@ export default function FlowBuilderPage() {
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-4 text-center text-sm text-gray-400">
-              Bir dugum secin veya yeni dugum surukleyin
+              Bir dugum seçin veya yeni dugum surukleyin
             </div>
           )}
         </div>

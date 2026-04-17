@@ -20,12 +20,12 @@ const TYPE_LABELS: Record<string, string> = {
   event: 'Etkinlik',
   webinar: 'Webinar',
   social: 'Sosyal Medya',
-  content: 'Icerik',
-  other: 'Diger',
+  content: 'İçerik',
+  other: 'Diğer',
 };
 
 const MEMBER_STATUS_OPTIONS = [
-  { value: 'sent', label: 'Gonderildi' },
+  { value: 'sent', label: 'Gönderildi' },
   { value: 'opened', label: 'Acildi' },
   { value: 'clicked', label: 'Tiklandi' },
   { value: 'responded', label: 'Yanit Verdi' },
@@ -95,7 +95,7 @@ export default function CampaignDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
       setIsEditOpen(false);
     },
-    onError: () => toast.error('Guncelleme basarisiz'),
+    onError: () => toast.error('Güncelleme başarısız'),
   });
 
   const deleteMutation = useMutation({
@@ -104,29 +104,29 @@ export default function CampaignDetailPage() {
       toast.success('Kampanya silindi');
       navigate('/campaigns');
     },
-    onError: () => toast.error('Silme basarisiz'),
+    onError: () => toast.error('Silme başarısız'),
   });
 
   const addMembersMutation = useMutation({
     mutationFn: (members: Array<{ lead_id?: number; customer_id?: number }>) =>
       campaignsApi.addMembers(campaignId, members),
     onSuccess: () => {
-      toast.success('Uye eklendi');
+      toast.success('Üye eklendi');
       queryClient.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
       setIsAddMembersOpen(false);
       setMemberSearch('');
     },
-    onError: () => toast.error('Uye eklenemedi'),
+    onError: () => toast.error('Üye eklenemedi'),
   });
 
   const removeMemberMutation = useMutation({
     mutationFn: (memberId: number) => campaignsApi.removeMember(campaignId, memberId),
     onSuccess: () => {
-      toast.success('Uye kaldirildi');
+      toast.success('Üye kaldırıldı');
       queryClient.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
     },
-    onError: () => toast.error('Uye kaldirilmadi'),
+    onError: () => toast.error('Üye kaldirilmadi'),
   });
 
   const updateMemberStatusMutation = useMutation({
@@ -190,7 +190,7 @@ export default function CampaignDetailPage() {
         </Button>
         <Button variant="secondary" onClick={handleOpenEdit}>
           <Pencil className="mr-1.5 h-4 w-4" />
-          Duzenle
+          Düzenle
         </Button>
         <Button
           variant="danger"
@@ -267,7 +267,7 @@ export default function CampaignDetailPage() {
           </div>
           {campaign.description && (
             <div className="col-span-full">
-              <p className="text-xs text-gray-500">Aciklama</p>
+              <p className="text-xs text-gray-500">Açıklama</p>
               <p className="text-sm text-gray-700 dark:text-gray-300">{campaign.description}</p>
             </div>
           )}
@@ -279,14 +279,14 @@ export default function CampaignDetailPage() {
         <div className="mb-3 flex justify-end">
           <Button onClick={() => setIsAddMembersOpen(true)}>
             <UserPlus className="mr-1.5 h-4 w-4" />
-            Uye Ekle
+            Üye Ekle
           </Button>
         </div>
 
         {membersLoading && <Skeleton variant="table" count={3} />}
 
         {!membersLoading && members.length === 0 && (
-          <p className="py-6 text-center text-sm text-gray-400">Henuz uye eklenmedi</p>
+          <p className="py-6 text-center text-sm text-gray-400">Henüz üye eklenmedi</p>
         )}
 
         {!membersLoading && members.length > 0 && (
@@ -322,7 +322,7 @@ export default function CampaignDetailPage() {
                       </td>
                       <td className="px-3 py-2">
                         <Badge variant={isLead ? 'warning' : 'info'}>
-                          {isLead ? 'Lead' : 'Musteri'}
+                          {isLead ? 'Lead' : 'Müşteri'}
                         </Badge>
                       </td>
                       <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{email}</td>
@@ -366,7 +366,7 @@ export default function CampaignDetailPage() {
       </Card>
 
       {/* Edit Modal */}
-      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Kampanyayi Duzenle">
+      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Kampanyayi Düzenle">
         <div className="space-y-3">
           <Input
             label="Kampanya Adi"
@@ -391,7 +391,7 @@ export default function CampaignDetailPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Aciklama
+              Açıklama
             </label>
             <textarea
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -430,7 +430,7 @@ export default function CampaignDetailPage() {
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setIsEditOpen(false)}>
-            Iptal
+            İptal
           </Button>
           <Button
             onClick={() => updateMutation.mutate(editForm as Record<string, unknown>)}
@@ -448,7 +448,7 @@ export default function CampaignDetailPage() {
           setIsAddMembersOpen(false);
           setMemberSearch('');
         }}
-        title="Uye Ekle"
+        title="Üye Ekle"
         size="sm"
       >
         <div className="mb-3 flex gap-2">
@@ -461,7 +461,7 @@ export default function CampaignDetailPage() {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Musteri
+            Müşteri
           </button>
           <button
             type="button"
@@ -477,7 +477,7 @@ export default function CampaignDetailPage() {
         </div>
         <Input
           label="Ara"
-          placeholder={memberType === 'customer' ? 'Musteri ara...' : 'Lead ara...'}
+          placeholder={memberType === 'customer' ? 'Müşteri ara...' : 'Lead ara...'}
           value={memberSearch}
           onChange={(e) => setMemberSearch(e.target.value)}
         />
@@ -487,7 +487,7 @@ export default function CampaignDetailPage() {
           )}
           {memberSearch.length >= 2 &&
             (!customerResults?.items || customerResults.items.length === 0) && (
-              <p className="px-4 py-3 text-sm text-gray-400">Sonuc bulunamadi</p>
+              <p className="px-4 py-3 text-sm text-gray-400">Sonuç bulunamadi</p>
             )}
           {customerResults?.items?.map((item) => {
             const label =
@@ -528,12 +528,12 @@ export default function CampaignDetailPage() {
         size="sm"
       >
         <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          <strong>{campaign.name}</strong> kampanyasini silmek istediginize emin misiniz? Bu islem
+          <strong>{campaign.name}</strong> kampanyasini silmek istediginize emin misiniz? Bu işlem
           geri alinamaz.
         </p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setIsDeleteOpen(false)}>
-            Iptal
+            İptal
           </Button>
           <Button
             variant="danger"

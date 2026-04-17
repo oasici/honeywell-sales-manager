@@ -16,8 +16,8 @@ import { teamsApi } from '../../lib/api';
 import type { SharingRule } from '../../lib/types';
 
 const ENTITY_TYPE_OPTIONS = [
-  { value: 'customer', label: 'Musteri' },
-  { value: 'opportunity', label: 'Firsat' },
+  { value: 'customer', label: 'Müşteri' },
+  { value: 'opportunity', label: 'Fırsat' },
   { value: 'quote', label: 'Teklif' },
 ];
 
@@ -28,17 +28,17 @@ const ACCESS_LEVEL_OPTIONS = [
 
 const OPERATOR_OPTIONS = [
   { value: 'eq', label: 'Esit' },
-  { value: 'neq', label: 'Esit Degil' },
+  { value: 'neq', label: 'Esit Değil' },
   { value: 'gt', label: 'Buyuk' },
   { value: 'gte', label: 'Buyuk Esit' },
   { value: 'lt', label: 'Kucuk' },
   { value: 'lte', label: 'Kucuk Esit' },
-  { value: 'contains', label: 'Icerir' },
+  { value: 'contains', label: 'İçerir' },
 ];
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
-  customer: 'Musteri',
-  opportunity: 'Firsat',
+  customer: 'Müşteri',
+  opportunity: 'Fırsat',
   quote: 'Teklif',
 };
 
@@ -112,18 +112,18 @@ export default function SharingRulesSection() {
       });
     },
     onSuccess: () => {
-      toast.success('Paylasim kurali olusturuldu');
+      toast.success('Paylasim kuralı oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['sharing-rules'] });
       setIsModalOpen(false);
       setForm(INITIAL_FORM);
     },
-    onError: () => toast.error('Kural olusturulamadi'),
+    onError: () => toast.error('Kural oluşturulamadı'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => teamsApi.deleteSharingRule(id),
     onSuccess: () => {
-      toast.success('Paylasim kurali silindi');
+      toast.success('Paylasim kuralı silindi');
       queryClient.invalidateQueries({ queryKey: ['sharing-rules'] });
       setDeleteTarget(null);
     },
@@ -148,7 +148,7 @@ export default function SharingRulesSection() {
     },
     {
       key: 'entity_type',
-      header: 'Varlik Tipi',
+      header: 'Varlık Tipi',
       render: (row: SharingRule) => (
         <Badge variant="info">
           {ENTITY_TYPE_LABELS[row.entity_type] || row.entity_type}
@@ -176,7 +176,7 @@ export default function SharingRulesSection() {
     },
     {
       key: 'access_level',
-      header: 'Erisim',
+      header: 'Erişim',
       render: (row: SharingRule) => (
         <Badge variant={row.access_level === 'read_write' ? 'warning' : 'default'}>
           {ACCESS_LEVEL_LABELS[row.access_level] || row.access_level}
@@ -185,7 +185,7 @@ export default function SharingRulesSection() {
     },
     {
       key: 'actions',
-      header: 'Islemler',
+      header: 'İşlemler',
       render: (row: SharingRule) => (
         <button
           type="button"
@@ -205,7 +205,7 @@ export default function SharingRulesSection() {
   return (
     <>
       <Card
-        title="Paylasim Kurallari"
+        title="Paylasim Kuralları"
         action={
           <Button size="sm" onClick={() => setIsModalOpen(true)}>
             <Plus size={14} className="mr-1.5" />
@@ -217,7 +217,7 @@ export default function SharingRulesSection() {
           <div className="flex flex-col items-center py-8 text-center">
             <Shield size={32} className="mb-2 text-gray-300 dark:text-gray-600" />
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Henuz paylasim kurali tanimlanmamis
+              Henüz paylasim kuralı tanimlanmamis
             </p>
           </div>
         ) : (
@@ -228,7 +228,7 @@ export default function SharingRulesSection() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Yeni Paylasim Kurali"
+        title="Yeni Paylasim Kuralı"
         size="lg"
       >
         <div className="space-y-4">
@@ -236,10 +236,10 @@ export default function SharingRulesSection() {
             label="Kural Adi"
             value={form.name}
             onChange={(e) => updateField('name', e.target.value)}
-            placeholder="ornek: Butun Teklifleri Paylas"
+            placeholder="örnek: Butun Teklifleri Paylas"
           />
           <Select
-            label="Varlik Tipi"
+            label="Varlık Tipi"
             options={ENTITY_TYPE_OPTIONS}
             value={form.entity_type}
             onChange={(e) => updateField('entity_type', e.target.value)}
@@ -254,7 +254,7 @@ export default function SharingRulesSection() {
                 label="Alan"
                 value={form.criteria_field}
                 onChange={(e) => updateField('criteria_field', e.target.value)}
-                placeholder="ornek: amount"
+                placeholder="örnek: amount"
               />
               <Select
                 label="Operator"
@@ -263,10 +263,10 @@ export default function SharingRulesSection() {
                 onChange={(e) => updateField('criteria_operator', e.target.value)}
               />
               <Input
-                label="Deger"
+                label="Değer"
                 value={form.criteria_value}
                 onChange={(e) => updateField('criteria_value', e.target.value)}
-                placeholder="ornek: 10000"
+                placeholder="örnek: 10000"
               />
             </div>
           </div>
@@ -276,10 +276,10 @@ export default function SharingRulesSection() {
               label="Paylasilan Rol"
               value={form.share_with_role}
               onChange={(e) => updateField('share_with_role', e.target.value)}
-              placeholder="ornek: sales_rep"
+              placeholder="örnek: sales_rep"
             />
             <Input
-              label="Paylasilan Kullanici ID"
+              label="Paylasilan Kullanıcı ID"
               type="number"
               value={form.share_with_user_id}
               onChange={(e) => updateField('share_with_user_id', e.target.value)}
@@ -288,7 +288,7 @@ export default function SharingRulesSection() {
           </div>
 
           <Select
-            label="Erisim Seviyesi"
+            label="Erişim Seviyesi"
             options={ACCESS_LEVEL_OPTIONS}
             value={form.access_level}
             onChange={(e) => updateField('access_level', e.target.value)}
@@ -296,14 +296,14 @@ export default function SharingRulesSection() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button
               onClick={() => createMutation.mutate()}
               loading={createMutation.isPending}
               disabled={!form.name || !form.criteria_field}
             >
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>
@@ -318,7 +318,7 @@ export default function SharingRulesSection() {
           }
         }}
         title="Paylasim Kuralini Sil"
-        message={`"${deleteTarget?.name}" kurali silinecek. Devam etmek istiyor musunuz?`}
+        message={`"${deleteTarget?.name}" kuralı silinecek. Devam etmek istiyor musunuz?`}
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}

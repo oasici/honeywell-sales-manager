@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/Input';
 describe('Input', () => {
   it('renders with label', () => {
     const { container } = render(
-      <Input label="Email" placeholder="ornek@test.com" />,
+      <Input label="Email" placeholder="örnek@test.com" />,
     );
     expect(container.firstChild).toMatchSnapshot();
   });
@@ -19,7 +19,7 @@ describe('Input', () => {
 
   it('renders with error state', () => {
     const { container } = render(
-      <Input label="Email" error="Gecersiz email adresi" />,
+      <Input label="Email" error="Geçersiz email adresi" />,
     );
     expect(container.firstChild).toMatchSnapshot();
   });

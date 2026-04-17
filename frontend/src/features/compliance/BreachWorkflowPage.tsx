@@ -35,9 +35,9 @@ const STATUS_CHANGE_OPTIONS = [
 ];
 
 const SEVERITY_OPTIONS = [
-  { value: 'low', label: 'Dusuk' },
+  { value: 'low', label: 'Düşük' },
   { value: 'medium', label: 'Orta' },
-  { value: 'high', label: 'Yuksek' },
+  { value: 'high', label: 'Yüksek' },
   { value: 'critical', label: 'Kritik' },
 ];
 
@@ -76,12 +76,12 @@ export default function BreachWorkflowPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => complianceApi.createBreach(payload),
     onSuccess: () => {
-      toast.success('Ihlal bildirimi olusturuldu');
+      toast.success('Ihlal bildirimi oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['compliance', 'breaches'] });
     },
-    onError: () => toast.error('Ihlal bildirimi olusturulamadi'),
+    onError: () => toast.error('Ihlal bildirimi oluşturulamadı'),
   });
 
   const updateStatusMutation = useMutation({
@@ -138,7 +138,7 @@ export default function BreachWorkflowPage() {
       {!isLoading && breaches.length === 0 && (
         <EmptyState
           title="Ihlal bildirimi bulunamadi"
-          description="Secilen filtreye uygun ihlal bildirimi yok"
+          description="Seçilen filtreye uygun ihlal bildirimi yok"
         />
       )}
 
@@ -189,12 +189,12 @@ export default function BreachWorkflowPage() {
         <div className="space-y-4">
           <Input
             label="Ihlal Tipi"
-            placeholder="Ornegin: Yetkisiz erisim"
+            placeholder="Örneğin: Yetkisiz erişim"
             value={form.breach_type}
             onChange={(e) => setForm({ ...form, breach_type: e.target.value })}
           />
           <Input
-            label="Aciklama"
+            label="Açıklama"
             placeholder="Ihlal detaylarini giriniz"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -207,10 +207,10 @@ export default function BreachWorkflowPage() {
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button onClick={handleCreate} loading={createMutation.isPending}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>

@@ -5,27 +5,27 @@ import { ChevronDown } from 'lucide-react';
 const FAQS = [
   {
     q: 'E-postalarimiz guvende mi?',
-    a: 'Evet. Email sifreleri Fernet (AES-256) ile sifrelenir. IMAP baglantisi SSL/TLS uzerinden yapilir. Tum veriler PostgreSQL\'de saklanir, erisim RBAC ile kontrol edilir. Denetim izi (audit trail) her islemi kayit altina alir.',
+    a: 'Evet. Email sifreleri Fernet (AES-256) ile sifrelenir. IMAP baglantisi SSL/TLS uzerinden yapilir. Tüm veriler PostgreSQL\'de saklanir, erişim RBAC ile kontrol edilir. Denetim izi (audit trail) her işlemi kayıt altina alir.',
   },
   {
     q: 'AI yanlis yaparsa ne olur?',
-    a: 'AI (Claude) her ayristirma sonucunu bir guven skoru ile sunar. Dusuk guvenli sonuclar (<%75) otomatik olarak insan incelemesine yonlendirilir. Hicbir islem otomatik onaylanmaz — her zaman bir insan karar verir. Hatali sonuclari duzeltebilir ve sistem bu duzeltmelerden ogrenir.',
+    a: 'AI (Claude) her ayrıştırma sonucunu bir guven skoru ile sunar. Düşük guvenli sonuclar (<%75) otomatik olarak insan incelemesine yonlendirilir. Hicbir işlem otomatik onaylanmaz — her zaman bir insan karar verir. Hatali sonuclari duzeltebilir ve sistem bu duzeltmelerden ogrenir.',
   },
   {
     q: 'Kurulum ne kadar surer?',
-    a: 'Tipik kurulum 1 is gunu. Email baglantisi, parca katalogu ve fiyat listesi yuklendikten sonra sistem kullanima hazir. Ekibinize rehberli egitim dahil.',
+    a: 'Tipik kurulum 1 is gunu. Email baglantisi, parça katalogu ve fiyat listesi yuklendikten sonra sistem kullanima hazir. Ekibinize rehberli egitim dahil.',
   },
   {
     q: 'Mevcut surecimiz bozulur mu?',
-    a: 'Hayir. Sistem mevcut email akisinizin yanina eklenir — hicbir seyi degistirmez. Gelen kutunuz aynen calisir, sistem sadece kopyalari okur (readonly IMAP). Kademeli gecis icin feature-flag destegi vardir.',
+    a: 'Hayir. Sistem mevcut email akisinizin yanina eklenir — hicbir seyi degistirmez. Gelen kutunuz aynen calisir, sistem sadece kopyalari okur (readonly IMAP). Kademeli gecis için feature-flag destegi vardir.',
   },
   {
     q: 'Onay ve yetkilendirme nasil calisir?',
-    a: 'Uc rol vardir: Satis Temsilcisi (teklif olusturur), Satis Yoneticisi (onaylar/reddeder + tum verileri gorur), Operasyon (katalog/fiyat yonetimi). Her kullanici sadece yetkili oldugu verileri gorur ve islem yapabilir.',
+    a: 'Uc rol vardir: Satış Temsilcisi (teklif olusturur), Satış Yoneticisi (onaylar/reddeder + tüm verileri gorur), Operasyon (katalog/fiyat yönetimi). Her kullanıcı sadece yetkili oldugu verileri gorur ve işlem yapabilir.',
   },
   {
     q: 'Fiyat listesi ve katalog nasil yuklenir?',
-    a: 'Excel (.xlsx), CSV veya PDF formatlarinda toplu import destegi vardir. Sistem Honeywell parca kodlarini otomatik tanir. Fiyat gecerlilik tarihleri, para birimi ve indirim oranlari da yuklenir.',
+    a: 'Excel (.xlsx), CSV veya PDF formatlarinda toplu import destegi vardir. Sistem Honeywell parça kodlarini otomatik tanir. Fiyat gecerlilik tarihleri, para birimi ve indirim oranlari da yuklenir.',
   },
 ];
 

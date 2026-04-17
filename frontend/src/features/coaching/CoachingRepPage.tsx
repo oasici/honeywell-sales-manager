@@ -98,7 +98,7 @@ function formatSnapshotDate(dateStr: string): string {
 
 function TrendChart({ snapshots }: { snapshots: CoachingSnapshot[] }) {
   if (snapshots.length === 0) {
-    return <EmptyState title="Henuz trend verisi bulunmuyor" />;
+    return <EmptyState title="Henüz trend verisi bulunmuyor" />;
   }
 
   const chartData = snapshots.map((snap) => ({
@@ -199,7 +199,7 @@ export default function CoachingRepPage() {
     <div className="space-y-6">
       <PageHeader
         title={rep.user_name}
-        description="Temsilci performans detayi ve kocluk raporu"
+        description="Temsilci performans detayi ve koçluk raporu"
       >
         <Button variant="secondary" onClick={() => navigate('/coaching')}>
           Geri
@@ -272,7 +272,7 @@ export default function CoachingRepPage() {
         {/* Indicators Table */}
         <Card title="Gostergeler">
           {rep.indicators.length === 0 ? (
-            <EmptyState title="Gosterge verisi bulunmuyor" />
+            <EmptyState title="Gösterge verisi bulunmuyor" />
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {rep.indicators.map((indicator) => (
@@ -303,9 +303,9 @@ export default function CoachingRepPage() {
       </div>
 
       {/* Recommendations */}
-      <Card title="Oneriler">
+      <Card title="Öneriler">
         {rep.recommendations.length === 0 ? (
-          <EmptyState title="Henuz oneri bulunmuyor" />
+          <EmptyState title="Henüz öneri bulunmuyor" />
         ) : (
           <ul className="divide-y divide-gray-100 dark:divide-gray-700">
             {rep.recommendations.map((rec, idx) => (
@@ -348,7 +348,7 @@ export default function CoachingRepPage() {
                       {currentBenchmark.user_name} (Bu Temsilci)
                     </p>
                     <p className="text-xs text-blue-700 dark:text-blue-300">
-                      Skor: {currentBenchmark.score} | Siralama:{' '}
+                      Skor: {currentBenchmark.score} | Sıralama:{' '}
                       {currentBenchmark.rank} | Yuzdelik:{' '}
                       {formatPercent(currentBenchmark.percentile)}
                     </p>

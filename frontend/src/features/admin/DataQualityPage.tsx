@@ -23,7 +23,7 @@ function getBarColor(pct: number): string {
 function getScoreLabel(score: number): string {
   if (score >= SCORE_THRESHOLDS.good) return 'Iyi';
   if (score >= SCORE_THRESHOLDS.fair) return 'Orta';
-  return 'Dusuk';
+  return 'Düşük';
 }
 
 function getScoreTextClass(score: number): string {
@@ -119,8 +119,8 @@ export default function DataQualityPage() {
 
   const quoteFields: MissingFieldRow[] = quotes
     ? [
-        { label: 'Musteri Ataması', missing: quotes.missing_customer, total: quotes.total },
-        { label: 'Urun Kalemleri', missing: quotes.missing_items, total: quotes.total },
+        { label: 'Müşteri Ataması', missing: quotes.missing_customer, total: quotes.total },
+        { label: 'Ürün Kalemleri', missing: quotes.missing_items, total: quotes.total },
       ]
     : [];
 
@@ -132,14 +132,14 @@ export default function DataQualityPage() {
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-gray-400">Yukleniyor...</div>
+        <div className="py-12 text-center text-gray-400">Yükleniyor...</div>
       ) : !qualityData ? (
         <div className="py-12 text-center text-gray-400">Veri bulunamadi</div>
       ) : (
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <CompletenessCard label="Musteri Tamamlanma" pct={customerPct} />
+            <CompletenessCard label="Müşteri Tamamlanma" pct={customerPct} />
             <CompletenessCard label="Teklif Tamamlanma" pct={quotePct} />
             <CompletenessCard label="Genel Ortalama" pct={overallPct} />
           </div>
@@ -151,7 +151,7 @@ export default function DataQualityPage() {
             {customerFields.length > 0 && (
               <div className="mb-5">
                 <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                  Musteri Alanlari ({customers?.total ?? 0} kayit)
+                  Müşteri Alanları ({customers?.total ?? 0} kayıt)
                 </p>
                 <div className="space-y-3">
                   {customerFields.map((row) => (
@@ -164,7 +164,7 @@ export default function DataQualityPage() {
             {quoteFields.length > 0 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                  Teklif Alanlari ({quotes?.total ?? 0} kayit)
+                  Teklif Alanları ({quotes?.total ?? 0} kayıt)
                 </p>
                 <div className="space-y-3">
                   {quoteFields.map((row) => (
@@ -177,13 +177,13 @@ export default function DataQualityPage() {
 
           {/* Worst Records — not available from this API */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">En Eksik Kayitlar</h2>
+            <h2 className="mb-3 text-lg font-semibold text-gray-900">En Eksik Kayıtlar</h2>
             <div className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 p-4">
               <AlertCircle size={18} className="text-amber-500 mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm text-amber-800 font-medium">Detayli analiz mevcut degil</p>
+                <p className="text-sm text-amber-800 font-medium">Detayli analiz mevcut değil</p>
                 <p className="text-sm text-amber-700 mt-0.5">
-                  Kayit bazli veri kalitesi analizi icin{' '}
+                  Kayıt bazli veri kalitesi analizi icin{' '}
                   <a href="/reports" className="underline font-medium hover:text-amber-900">
                     rapor olusturun
                   </a>

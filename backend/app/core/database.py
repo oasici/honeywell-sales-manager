@@ -20,6 +20,7 @@ engine = create_async_engine(
     max_overflow=10,
     pool_pre_ping=True,
     pool_recycle=300,
+    connect_args={"server_settings": {"client_encoding": "utf8"}},
 )
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

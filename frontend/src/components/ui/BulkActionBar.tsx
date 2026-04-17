@@ -27,7 +27,7 @@ export function BulkActionBar({
         isVisible ? 'translate-y-0' : 'translate-y-full'
       }`}
       role="toolbar"
-      aria-label="Toplu islem araclari"
+      aria-label="Toplu işlem araclari"
       aria-hidden={!isVisible}
     >
       <div className="bg-gray-900 shadow-2xl border-t border-gray-700">
@@ -35,7 +35,7 @@ export function BulkActionBar({
           <div className="flex items-center justify-between py-3">
             {/* Left: Selection count */}
             <span className="text-sm font-medium text-white">
-              {selectedCount} kayit secili
+              {selectedCount} kayıt secili
             </span>
 
             {/* Center: Action buttons */}

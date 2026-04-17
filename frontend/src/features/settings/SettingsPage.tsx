@@ -122,10 +122,10 @@ export default function SettingsPage() {
               value={form.quote_prefix}
               onChange={(e) => updateField('quote_prefix', e.target.value)}
               placeholder="HW"
-              helperText="Teklif numaralarinin basina eklenir (ornek: HW-2026-001)"
+              helperText="Teklif numaralarinin basina eklenir (örnek: HW-2026-001)"
             />
             <Input
-              label="Varsayilan KDV Orani (%)"
+              label="Varsayılan KDV Orani (%)"
               type="number"
               min={0}
               max={100}
@@ -133,13 +133,13 @@ export default function SettingsPage() {
               onChange={(e) => updateField('default_tax_rate', Number(e.target.value))}
             />
             <Select
-              label="Varsayilan Para Birimi"
+              label="Varsayılan Para Birimi"
               options={CURRENCY_OPTIONS}
               value={form.default_currency}
               onChange={(e) => updateField('default_currency', e.target.value)}
             />
             <Input
-              label="Teklif Gecerlilik Suresi (gun)"
+              label="Teklif Gecerlilik Süresi (gun)"
               type="number"
               min={1}
               value={form.quote_validity_days}
@@ -386,7 +386,7 @@ function EmailSettingsSection() {
       else toast.error(result.message);
     },
     onError: () => {
-      setTestResult({ success: false, message: 'Baglanti testi basarisiz' });
+      setTestResult({ success: false, message: 'Baglanti testi başarısız' });
     },
   });
 
@@ -454,7 +454,7 @@ function EmailSettingsSection() {
               type="email"
               value={emailForm.email_address}
               onChange={(e) => handleEmailChange(e.target.value)}
-              placeholder="ornek@sirket.com"
+              placeholder="örnek@şirket.com"
             />
             <Input
               label="Email Sifresi / App Password"
@@ -465,7 +465,7 @@ function EmailSettingsSection() {
                 setTestResult(null);
               }}
               placeholder={
-                isConfigured ? '(degistirmek icin yeni sifre girin)' : 'Sifre veya App Password'
+                isConfigured ? '(degistirmek için yeni sifre girin)' : 'Sifre veya App Password'
               }
             />
           </div>
@@ -496,7 +496,7 @@ function EmailSettingsSection() {
                 onClick={() => setEditingServer(true)}
                 className="mt-2 text-xs text-gray-500 hover:text-honeywell-red transition-colors"
               >
-                Sunucu ayarlarini duzenle
+                Sunucu ayarlarini düzenle
               </button>
             </div>
           )}
@@ -583,7 +583,7 @@ function EmailSettingsSection() {
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={() => deleteMutation.mutate()}
         title="Email Baglantisini Sil"
-        message="Email baglantisi silinecek ve tum email ayarlari sifirlanacak. Bu islem geri alinamaz. Devam etmek istiyor musunuz?"
+        message="Email baglantisi silinecek ve tüm email ayarlari sifirlanacak. Bu işlem geri alinamaz. Devam etmek istiyor musunuz?"
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}
@@ -619,10 +619,10 @@ function StageConfigSection() {
       return settingsApi.updateStageConfig(payload);
     },
     onSuccess: () => {
-      toast.success('Asama ayarlari kaydedildi');
+      toast.success('Aşama ayarlari kaydedildi');
       queryClient.invalidateQueries({ queryKey: ['stage-config'] });
     },
-    onError: () => toast.error('Asama ayarlari kaydedilemedi'),
+    onError: () => toast.error('Aşama ayarlari kaydedilemedi'),
   });
 
   const updateStage = (index: number, field: keyof StageConfig, value: string | number) => {
@@ -636,16 +636,16 @@ function StageConfigSection() {
   if (isLoading) return <Skeleton variant="card" />;
 
   return (
-    <Card title="Asama Ayarlari">
+    <Card title="Aşama Ayarlari">
       <p className="mb-4 text-xs text-gray-500">
-        Firsat asamalarinin olasilik yuzdelerini ve rotting esiklerini yapilandirin.
+        Fırsat asamalarinin olasilik yuzdelerini ve rotting esiklerini yapilandirin.
       </p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left">
-              <th className="pb-2 pr-4 font-medium text-gray-600">Asama</th>
+              <th className="pb-2 pr-4 font-medium text-gray-600">Aşama</th>
               <th className="pb-2 pr-4 font-medium text-gray-600">Etiket</th>
               <th className="pb-2 pr-4 font-medium text-gray-600">Olasilik %</th>
               <th className="pb-2 font-medium text-gray-600">Rotting Esigi (gun)</th>
@@ -695,7 +695,7 @@ function StageConfigSection() {
       <div className="mt-4 flex justify-end">
         <Button onClick={() => saveMutation.mutate()} loading={saveMutation.isPending}>
           <Save size={14} className="mr-1" />
-          Asama Ayarlarini Kaydet
+          Aşama Ayarlarini Kaydet
         </Button>
       </div>
     </Card>
@@ -718,12 +718,12 @@ function NotificationChannelsSection() {
     onSuccess: (result) => {
       const results = result.data;
       if (results.slack === true) {
-        toast.success('Slack test bildirimi gonderildi');
+        toast.success('Slack test bildirimi gönderildi');
       } else if (results.slack === false) {
         toast.error('Slack test bildirimi gonderilemedi');
       }
       if (results.teams === true) {
-        toast.success('Teams test bildirimi gonderildi');
+        toast.success('Teams test bildirimi gönderildi');
       } else if (results.teams === false) {
         toast.error('Teams test bildirimi gonderilemedi');
       }
@@ -740,7 +740,7 @@ function NotificationChannelsSection() {
     <Card title="Bildirim Kanallari">
       <div className="space-y-6">
         <p className="text-xs text-gray-500">
-          Firsat ve teklif bildirimleri icin Slack ve Microsoft Teams entegrasyonu. Webhook
+          Fırsat ve teklif bildirimleri için Slack ve Microsoft Teams entegrasyonu. Webhook
           URL&apos;leri .env dosyasinda yapilandirilir.
         </p>
 
@@ -761,7 +761,7 @@ function NotificationChannelsSection() {
                   isSlackConfigured ? 'bg-green-500' : 'bg-gray-400'
                 }`}
               />
-              {isSlackConfigured ? 'Bagli' : 'Bagli Degil'}
+              {isSlackConfigured ? 'Bagli' : 'Bagli Değil'}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -800,7 +800,7 @@ function NotificationChannelsSection() {
                   isTeamsConfigured ? 'bg-green-500' : 'bg-gray-400'
                 }`}
               />
-              {isTeamsConfigured ? 'Bagli' : 'Bagli Degil'}
+              {isTeamsConfigured ? 'Bagli' : 'Bagli Değil'}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -852,11 +852,11 @@ function MeetingLinkSection() {
   const createMutation = useMutation({
     mutationFn: () => meetingsApi.createLink({ title, duration_minutes: Number(duration) }),
     onSuccess: () => {
-      toast.success('Toplanti linki olusturuldu');
+      toast.success('Toplanti linki oluşturuldu');
       setTitle('');
       queryClient.invalidateQueries({ queryKey: ['meeting-links'] });
     },
-    onError: () => toast.error('Toplanti linki olusturulamadi'),
+    onError: () => toast.error('Toplanti linki oluşturulamadı'),
   });
 
   const deactivateMutation = useMutation({
@@ -865,7 +865,7 @@ function MeetingLinkSection() {
       toast.success('Toplanti linki devre disi birakildi');
       queryClient.invalidateQueries({ queryKey: ['meeting-links'] });
     },
-    onError: () => toast.error('Islem basarisiz'),
+    onError: () => toast.error('İşlem başarısız'),
   });
 
   const links: MeetingLink[] = linksData?.data || [];
@@ -892,11 +892,11 @@ function MeetingLinkSection() {
               label="Toplanti Basligi"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Tanitim Gorusmesi"
+              placeholder="Tanitim Görüşmesi"
               className="flex-1"
             />
             <Select
-              label="Sure"
+              label="Süre"
               options={DURATION_OPTIONS}
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
@@ -907,7 +907,7 @@ function MeetingLinkSection() {
               disabled={!title.trim()}
               className="shrink-0"
             >
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>
@@ -980,7 +980,7 @@ function MeetingLinkSection() {
                         : 'bg-gray-100 text-gray-500'
                     }`}
                   >
-                    {b.status === 'confirmed' ? 'Onaylandi' : b.status}
+                    {b.status === 'confirmed' ? 'Onaylandı' : b.status}
                   </span>
                 </div>
               ))}

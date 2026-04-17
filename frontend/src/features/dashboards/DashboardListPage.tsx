@@ -30,13 +30,13 @@ export default function DashboardListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => dashboardsApi.create(payload),
     onSuccess: (result: { data: DashboardConfig }) => {
-      toast.success('Pano olusturuldu');
+      toast.success('Pano oluşturuldu');
       setModalOpen(false);
       setForm({ name: '', widgets_json: '[]', is_default: false });
       queryClient.invalidateQueries({ queryKey: ['dashboards'] });
       navigate(`/dashboards/${result.data.id}`);
     },
-    onError: () => toast.error('Pano olusturulamadi'),
+    onError: () => toast.error('Pano oluşturulamadı'),
   });
 
   const deleteMutation = useMutation({
@@ -52,7 +52,7 @@ export default function DashboardListPage() {
 
   return (
     <div>
-      <PageHeader title="Panolar" description="Ozel rapor panolari olusturun ve yonetin">
+      <PageHeader title="Panolar" description="Özel rapor panolari olusturun ve yonetin">
         <Button onClick={() => setModalOpen(true)}>
           <Plus size={16} className="mr-1" /> Yeni Pano
         </Button>
@@ -64,9 +64,9 @@ export default function DashboardListPage() {
         </div>
       ) : dashboards.length === 0 ? (
         <EmptyState
-          title="Henuz pano yok"
-          description="Raporlarinizi bir araya getirmek icin pano olusturun"
-          action={<Button onClick={() => setModalOpen(true)}>Pano Olustur</Button>}
+          title="Henüz pano yok"
+          description="Raporlarinizi bir araya getirmek için pano olusturun"
+          action={<Button onClick={() => setModalOpen(true)}>Pano Oluştur</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -83,7 +83,7 @@ export default function DashboardListPage() {
                   </div>
                   {d.is_default && (
                     <Badge variant="warning" size="sm">
-                      <Star size={10} className="mr-0.5" /> Varsayilan
+                      <Star size={10} className="mr-0.5" /> Varsayılan
                     </Badge>
                   )}
                 </div>
@@ -134,11 +134,11 @@ export default function DashboardListPage() {
               onChange={(e) => setForm({ ...form, is_default: e.target.checked })}
               className="rounded border-gray-300"
             />
-            Varsayilan pano olarak ayarla
+            Varsayılan pano olarak ayarla
           </label>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Iptal</Button>
-            <Button type="submit" loading={createMutation.isPending}>Olustur</Button>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>İptal</Button>
+            <Button type="submit" loading={createMutation.isPending}>Oluştur</Button>
           </div>
         </form>
       </Modal>

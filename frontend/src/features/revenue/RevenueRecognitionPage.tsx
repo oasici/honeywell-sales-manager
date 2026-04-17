@@ -193,7 +193,7 @@ function ScheduleCard({
                       Durum
                     </th>
                     <th className="py-2 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                      Islem
+                      İşlem
                     </th>
                   </tr>
                 </thead>
@@ -213,10 +213,10 @@ function ScheduleCard({
           ) : (
             <div className="p-6 text-center">
               <p className="text-sm text-gray-500 mb-3">
-                Kayit yok. Kayitlari olusturmak icin butona basin.
+                Kayıt yok. Kayıtları olusturmak için butona basin.
               </p>
               <Button onClick={() => onGenerateEntries(schedule.id)} loading={isGenerating}>
-                Kayitlari Olustur
+                Kayıtları Oluştur
               </Button>
             </div>
           )}
@@ -307,7 +307,7 @@ export default function RevenueRecognitionPage() {
         currency: form.currency,
       }),
     onSuccess: (created: RevenueSchedule) => {
-      toast.success('Takvim olusturuldu');
+      toast.success('Takvim oluşturuldu');
       setIsCreateOpen(false);
       setForm(EMPTY_FORM);
       setFormErrors({});
@@ -315,17 +315,17 @@ export default function RevenueRecognitionPage() {
       queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
       queryClient.invalidateQueries({ queryKey: ['revenue-dashboard'] });
     },
-    onError: () => toast.error('Takvim olusturulamadi'),
+    onError: () => toast.error('Takvim oluşturulamadı'),
   });
 
   const generateMutation = useMutation({
     mutationFn: (scheduleId: number) => revenueRecApi.generateEntries(scheduleId),
     onSuccess: () => {
-      toast.success('Kayitlar olusturuldu');
+      toast.success('Kayıtlar oluşturuldu');
       setNewScheduleId(null);
       queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
     },
-    onError: () => toast.error('Kayitlar olusturulamadi'),
+    onError: () => toast.error('Kayıtlar oluşturulamadı'),
   });
 
   const recognizeMutation = useMutation({
@@ -336,7 +336,7 @@ export default function RevenueRecognitionPage() {
       queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
       queryClient.invalidateQueries({ queryKey: ['revenue-dashboard'] });
     },
-    onError: () => toast.error('Tanıma basarisiz'),
+    onError: () => toast.error('Tanıma başarısız'),
   });
 
   function handleRecognizeEntry(scheduleId: number, entryId: number) {
@@ -349,11 +349,11 @@ export default function RevenueRecognitionPage() {
   if (isDashboardError || isSchedulesError) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Gelir Tanima" description="ASC 606 / IFRS 15 uyumlu gelir zamanlamasi" />
+        <PageHeader title="Gelir Tanıma" description="ASC 606 / IFRS 15 uyumlu gelir zamanlamasi" />
         <Card>
           <div className="p-8 text-center">
             <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata olustu. Lutfen sayfayi yenileyin.
+              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
             </p>
           </div>
         </Card>
@@ -363,7 +363,7 @@ export default function RevenueRecognitionPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Gelir Tanima" description="ASC 606 / IFRS 15 uyumlu gelir zamanlamasi">
+      <PageHeader title="Gelir Tanıma" description="ASC 606 / IFRS 15 uyumlu gelir zamanlamasi">
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus size={16} className="mr-1.5" />
           Yeni Takvim
@@ -402,14 +402,14 @@ export default function RevenueRecognitionPage() {
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20 px-4 py-3">
           <Zap size={18} className="text-yellow-600 dark:text-yellow-400 shrink-0" />
           <p className="flex-1 text-sm text-yellow-800 dark:text-yellow-200">
-            Takvim olusturuldu. Donem kayitlarini otomatik olusturmak ister misiniz?
+            Takvim oluşturuldu. Donem kayitlarini otomatik olusturmak ister misiniz?
           </p>
           <button
             onClick={() => generateMutation.mutate(newScheduleId)}
             disabled={generateMutation.isPending}
             className="rounded-lg px-3 py-1.5 text-xs font-medium bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50 transition-colors cursor-pointer"
           >
-            {generateMutation.isPending ? 'Olusturuluyor…' : 'Kayitlari Olustur'}
+            {generateMutation.isPending ? 'Oluşturuluyor…' : 'Kayıtları Oluştur'}
           </button>
           <button
             onClick={() => setNewScheduleId(null)}
@@ -428,7 +428,7 @@ export default function RevenueRecognitionPage() {
         ) : schedules.length === 0 ? (
           <Card className="py-16 text-center">
             <TrendingUp size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-            <p className="text-gray-500">Henuz gelir takvimi yok.</p>
+            <p className="text-gray-500">Henüz gelir takvimi yok.</p>
             <p className="text-sm text-gray-400 mt-1">
               Yeni bir takvim olusturmak icin "Yeni Takvim" dusinesine tiklayin.
             </p>
@@ -467,7 +467,7 @@ export default function RevenueRecognitionPage() {
               onChange={(e) => setForm((f) => ({ ...f, contractId: e.target.value }))}
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
-              <option value="">Kontrat secin…</option>
+              <option value="">Kontrat seçin…</option>
               {contracts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title}
@@ -589,7 +589,7 @@ export default function RevenueRecognitionPage() {
                 setFormErrors({});
               }}
             >
-              Iptal
+              İptal
             </Button>
             <Button
               onClick={() => {
@@ -603,7 +603,7 @@ export default function RevenueRecognitionPage() {
                 !form.totalAmount
               }
             >
-              {createMutation.isPending ? 'Kaydediliyor…' : 'Olustur'}
+              {createMutation.isPending ? 'Kaydediliyor…' : 'Oluştur'}
             </Button>
           </div>
         </div>

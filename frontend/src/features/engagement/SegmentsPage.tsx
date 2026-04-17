@@ -54,12 +54,12 @@ export default function SegmentsPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => engagementApi.createSegment(payload),
     onSuccess: () => {
-      toast.success('Segment olusturuldu');
+      toast.success('Segment oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['segments'] });
       setIsCreateOpen(false);
       resetForm();
     },
-    onError: () => toast.error('Segment olusturulamadi'),
+    onError: () => toast.error('Segment oluşturulamadı'),
   });
 
   function resetForm() {
@@ -75,7 +75,7 @@ export default function SegmentsPage() {
     try {
       rules = JSON.parse(form.rulesJson);
     } catch {
-      toast.error('Kurallar gecerli JSON formatinda olmali');
+      toast.error('Kurallar geçerli JSON formatinda olmali');
       return;
     }
     createMutation.mutate({
@@ -89,7 +89,7 @@ export default function SegmentsPage() {
 
   return (
     <div>
-      <PageHeader title="Segmentler" description="Musteri segmentasyonu ve gruplari">
+      <PageHeader title="Segmentler" description="Müşteri segmentasyonu ve gruplari">
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Segment</Button>
       </PageHeader>
 
@@ -98,9 +98,9 @@ export default function SegmentsPage() {
       ) : segments.length === 0 ? (
         <EmptyState
           title="Segment bulunamadi"
-          description="Henuz segment tanimlanmamis"
+          description="Henüz segment tanimlanmamis"
           icon={<Users size={40} />}
-          action={<Button onClick={() => setIsCreateOpen(true)}>Ilk Segmenti Ekle</Button>}
+          action={<Button onClick={() => setIsCreateOpen(true)}>İlk Segmenti Ekle</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,7 +119,7 @@ export default function SegmentsPage() {
                   )}
                   <div className="flex items-center gap-3">
                     <Badge variant="info" size="sm">
-                      {segment.customer_count} musteri
+                      {segment.customer_count} müşteri
                     </Badge>
                     <span className="text-xs text-gray-500">
                       {formatDateTime(segment.created_at)}
@@ -143,8 +143,8 @@ export default function SegmentsPage() {
           <Skeleton variant="table" />
         ) : !customersQuery.data?.customers?.length ? (
           <EmptyState
-            title="Musteri bulunamadi"
-            description="Bu segmentte musteri yok"
+            title="Müşteri bulunamadi"
+            description="Bu segmentte müşteri yok"
           />
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200">
@@ -155,7 +155,7 @@ export default function SegmentsPage() {
                     Ad
                   </th>
                   <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Sirket
+                    Şirket
                   </th>
                   <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Email
@@ -188,11 +188,11 @@ export default function SegmentsPage() {
             <Input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Ornegin: Yuksek Degerli Musteriler"
+              placeholder="Örneğin: Yüksek Degerli Müşteriler"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Aciklama</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Açıklama</label>
             <Input
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -213,10 +213,10 @@ export default function SegmentsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Iptal
+              İptal
             </Button>
             <Button loading={createMutation.isPending} onClick={handleCreate}>
-              Olustur
+              Oluştur
             </Button>
           </div>
         </div>

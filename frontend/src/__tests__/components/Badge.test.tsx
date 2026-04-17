@@ -9,7 +9,7 @@ describe('Badge', () => {
   });
 
   it('renders success variant', () => {
-    const { container } = render(<Badge variant="success">Onaylandi</Badge>);
+    const { container } = render(<Badge variant="success">Onaylandı</Badge>);
     expect(container.firstChild).toMatchSnapshot();
   });
 

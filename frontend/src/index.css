@@ -106,6 +106,8 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "locl" on, "kern" on;
   background-color: var(--surface-secondary);
   color: var(--text-primary);
 }

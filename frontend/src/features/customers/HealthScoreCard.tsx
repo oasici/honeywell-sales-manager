@@ -20,7 +20,7 @@ export function HealthScoreCard({ health }: { health: CustomerHealthReport }) {
   const offset = circumference - (health.score / 100) * circumference;
 
   return (
-    <Card title="Musteri Saglik Skoru">
+    <Card title="Müşteri Saglik Skoru">
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Score gauge */}
         <div className="flex flex-col items-center gap-2">
@@ -79,7 +79,7 @@ export function HealthScoreCard({ health }: { health: CustomerHealthReport }) {
         {health.recommendations.length > 0 && (
           <div className="lg:w-64 space-y-2">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Oneriler
+              Öneriler
             </h4>
             <ul className="space-y-2">
               {health.recommendations.map((rec, i) => (

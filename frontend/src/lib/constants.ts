@@ -57,11 +57,11 @@ export const CATEGORY_LABELS: Record<string, string> = {
 
 // ── Review Status ────────────────────────────────────
 export const REVIEW_STATUS_LABELS: Record<string, string> = {
-  pending_review: 'Inceleme Bekleniyor',
-  pending: 'Inceleme Bekleniyor',
-  approved: 'Onaylandi',
+  pending_review: 'İnceleme Bekleniyor',
+  pending: 'İnceleme Bekleniyor',
+  approved: 'Onaylandı',
   rejected: 'Reddedildi',
-  needs_edit: 'Duzenleme Gerekli',
+  needs_edit: 'Düzenleme Gerekli',
 };
 
 export const REVIEW_STATUS_COLORS: Record<string, string> = {
