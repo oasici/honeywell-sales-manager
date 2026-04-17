@@ -594,7 +594,7 @@ async def _run_seed(results: dict) -> dict:
         ct_count = (await db.execute(select(func.count(Contract.id)))).scalar() or 0
         if ct_count == 0 and all_customers:
             for title, cust_idx, val in [("Anadolu HVAC Bakim", 0, 250000), ("Ege Sensor Tedarikat", 1, 180000)]:
-                db.add(Contract(title=title, customer_id=all_customers[cust_idx].id if len(all_customers) > cust_idx else 1, value=val, currency="TRY", status="active", start_date=date.today() - timedelta(days=90), end_date=date.today() + timedelta(days=275), created_by=admin.id if admin else 1))
+                db.add(Contract(title=title, customer_id=all_customers[cust_idx].id if len(all_customers) > cust_idx else 1, value=val, status="active", start_date=date.today() - timedelta(days=90), end_date=date.today() + timedelta(days=275), created_by=admin.id if admin else 1))
             await db.flush()
             results["contracts"] = "created 2"
 
