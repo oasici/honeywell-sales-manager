@@ -413,7 +413,7 @@ async def seed_demo_data():
 
 async def _run_seed(results: dict) -> dict:
     import json as _json
-    from datetime import date, timedelta
+    from datetime import date, datetime, timedelta, timezone
     from sqlalchemy import select, func
 
     async with async_session() as db:
