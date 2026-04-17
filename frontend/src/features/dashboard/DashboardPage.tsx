@@ -350,7 +350,8 @@ export default function DashboardPage() {
           En Cok Talep Edilen Parcalar
         </h3>
         {topParts && topParts.length > 0 ? (
-          <ResponsiveContainer width="100%" height={350}>
+          <div style={{ width: '100%', minWidth: 200, height: 350 }}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={topParts} margin={{ top: 20, right: 10, left: 10, bottom: 60 }}>
               <defs>
                 <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
@@ -389,6 +390,7 @@ export default function DashboardPage() {
               />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         ) : (
           <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>
         )}
@@ -401,7 +403,8 @@ export default function DashboardPage() {
           Aylik Teklif & Gelir Trendi
         </h3>
         {trend && trend.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
+          <div style={{ width: '100%', minWidth: 200, height: 300 }}>
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={trend.map((t) => ({
                 ...t,
@@ -452,6 +455,7 @@ export default function DashboardPage() {
               />
             </AreaChart>
           </ResponsiveContainer>
+          </div>
         ) : (
           <p className="py-8 text-center text-sm text-gray-400">Henuz veri yok</p>
         )}
