@@ -105,8 +105,42 @@ async def register(
     return user
 
 
+# Known weak/default passwords that must be rotated before production.
+_WEAK_ADMIN_PASSWORDS = {
+    "",
+    "changeme",
+    "changeme!",
+    "changeme123",
+    "changeme123!",
+    "admin",
+    "admin123",
+    "admin123!",
+    "password",
+    "password123",
+    "honeywell",
+    "honeywell123",
+}
+
+
+def _check_admin_password_strength(password: str) -> None:
+    """Emit CRITICAL log if admin password is weak or a known default.
+
+    Intentionally non-blocking: we must allow dev/sandbox to boot even with a
+    weak default, but the operator must see the warning in logs.
+    """
+    lowered = (password or "").strip().lower()
+    if lowered in _WEAK_ADMIN_PASSWORDS or len(password) < 12:
+        logger.critical(
+            "SECURITY: DEFAULT_ADMIN_PASSWORD is weak or a known default — "
+            "ROTATE IMMEDIATELY. Use: python3 -c 'import secrets;"
+            "print(secrets.token_urlsafe(18))'"
+        )
+
+
 async def create_default_admin(db: AsyncSession) -> None:
     """Create the default admin user from settings if it does not already exist."""
+    _check_admin_password_strength(settings.DEFAULT_ADMIN_PASSWORD)
+
     result = await db.execute(
         select(User).where(User.email == settings.DEFAULT_ADMIN_EMAIL)
     )

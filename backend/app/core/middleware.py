@@ -9,7 +9,38 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
+
+
+def _build_csp() -> str:
+    """Build Content-Security-Policy from configured CORS origins.
+
+    Allows connect-src to hit the configured frontend/backend origins so that
+    the SPA can reach the API when deployed on a different subdomain (e.g.
+    Render where frontend is on onrender.com and backend is on another host).
+    """
+    # Extra origins from CORS config for connect-src
+    extra_origins = " ".join(o for o in settings.cors_origin_list if o.startswith("http"))
+    connect_src = f"connect-src 'self' {extra_origins}".strip()
+
+    return (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "img-src 'self' data: blob:; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        f"{connect_src}; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'none'"
+    )
+
+
+# Build once at import — CSP doesn't change per-request
+_CSP_VALUE = _build_csp()
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -23,15 +54,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
-            "font-src 'self'; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none'"
-        )
+        response.headers["Content-Security-Policy"] = _CSP_VALUE
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         return response

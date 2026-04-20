@@ -107,6 +107,11 @@ class Settings(BaseSettings):
     ALLOWED_UPLOAD_EXTENSIONS: str = ".csv,.xlsx,.xls"
     MAX_UPLOAD_SIZE_MB: int = 10
 
+    # ── Demo/Seed (non-production) ──
+    # If blank at seed time, a random password is generated and logged once.
+    DEMO_REP_PASSWORD: str = ""
+    DEMO_OPS_PASSWORD: str = ""
+
     # ── Error Tracking ──
     SENTRY_DSN: str = ""
 

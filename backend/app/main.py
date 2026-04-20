@@ -61,17 +61,29 @@ async def lifespan(app: FastAPI):
 
     # PostgreSQL-only extensions and indexes (silent fail on SQLite)
     # Auto-sync schema: add missing columns to existing tables
-    # This handles Render where tables were created by an older version
+    # This handles Render where tables were created by an older version.
+    # Note: identifiers are interpolated into DDL via f-strings. The inputs
+    # come from SQLAlchemy metadata (NOT user input), so injection is not a
+    # direct threat, but we still validate every identifier against a strict
+    # regex to prevent a future bug (e.g. a model name change injecting SQL)
+    # from opening an injection window.
+    import re as _re
+    _IDENTIFIER_RE = _re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]{0,63}$")
+
+    def _safe_ident(name: str) -> str:
+        if not _IDENTIFIER_RE.match(name):
+            raise ValueError(f"Unsafe SQL identifier: {name!r}")
+        return name
+
     if _is_postgres:
         try:
             async with engine.begin() as conn:
-                # Get all model tables and their columns from SQLAlchemy metadata
                 for table in Base.metadata.sorted_tables:
+                    table_name = _safe_ident(table.name)
                     for column in table.columns:
-                        col_name = column.name
-                        # Determine SQL type
+                        col_name = _safe_ident(column.name)
+                        # col_type comes from SQLAlchemy dialect compiler — safe.
                         col_type = column.type.compile(engine.dialect)
-                        nullable = "NULL" if column.nullable else "NOT NULL"
                         default = ""
                         if column.default is not None and column.default.arg is not None:
                             dval = column.default.arg
@@ -80,13 +92,21 @@ async def lifespan(app: FastAPI):
                             elif isinstance(dval, (int, float)):
                                 default = f" DEFAULT {dval}"
                             elif isinstance(dval, str):
-                                default = f" DEFAULT '{dval}'"
-                        sql = f"ALTER TABLE {table.name} ADD COLUMN IF NOT EXISTS {col_name} {col_type}{default}"
+                                # Escape single quotes in string defaults to block
+                                # injection if a model ever carries a malicious default.
+                                safe_dval = dval.replace("'", "''")
+                                default = f" DEFAULT '{safe_dval}'"
+                        sql = (
+                            f"ALTER TABLE {table_name} "
+                            f"ADD COLUMN IF NOT EXISTS {col_name} {col_type}{default}"
+                        )
                         try:
                             await conn.execute(sqlalchemy.text(sql))
                         except Exception:
                             pass  # Column exists or type conflict — safe to skip
             logger.info("Schema auto-sync completed")
+        except ValueError as ve:
+            logger.error("Schema auto-sync aborted — unsafe identifier: %s", ve)
         except Exception as e:
             logger.warning("Schema auto-sync failed: %s", str(e)[:200])
 
@@ -445,17 +465,26 @@ async def _run_seed(results: dict) -> dict:
         NOW = datetime.now(timezone.utc)
 
         # ── Users (rep, ops) ──
+        # Passwords come from env vars; fall back to random if not set.
+        # The generated password is logged ONCE so the operator can capture it.
+        import secrets as _secrets
         rep = (await db.execute(select(User).where(User.email == "rep@honeywell.com"))).scalar_one_or_none()
         if not rep:
-            rep = User(email="rep@honeywell.com", full_name="Elif Kaya", hashed_password=hash_password("Rep12345!"), role="sales_rep", is_active=True)
+            rep_pw = settings.DEMO_REP_PASSWORD or _secrets.token_urlsafe(18)
+            rep = User(email="rep@honeywell.com", full_name="Elif Kaya", hashed_password=hash_password(rep_pw), role="sales_rep", is_active=True)
             db.add(rep)
             await db.flush()
+            if not settings.DEMO_REP_PASSWORD:
+                logger.warning("Seed: generated temporary rep password (save it now): %s", rep_pw)
             results["rep"] = f"created id={rep.id}"
         ops = (await db.execute(select(User).where(User.email == "ops@honeywell.com"))).scalar_one_or_none()
         if not ops:
-            ops = User(email="ops@honeywell.com", full_name="Mehmet Demir", hashed_password=hash_password("Ops12345!"), role="operations", is_active=True)
+            ops_pw = settings.DEMO_OPS_PASSWORD or _secrets.token_urlsafe(18)
+            ops = User(email="ops@honeywell.com", full_name="Mehmet Demir", hashed_password=hash_password(ops_pw), role="operations", is_active=True)
             db.add(ops)
             await db.flush()
+            if not settings.DEMO_OPS_PASSWORD:
+                logger.warning("Seed: generated temporary ops password (save it now): %s", ops_pw)
             results["ops"] = f"created id={ops.id}"
         admin = (await db.execute(select(User).where(User.email == "admin@honeywell.com"))).scalar_one_or_none()
 
