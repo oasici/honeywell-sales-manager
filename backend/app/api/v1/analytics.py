@@ -1182,18 +1182,9 @@ async def get_activity_drought(
 
 
 # ── Data Quality ──────────────────────────────────────
-
-@router.get("/data-quality")
-async def get_data_quality(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Overall data quality report."""
-    from app.services.data_quality_service import DataQualityService
-
-    service = DataQualityService(db)
-    overview = await service.get_overview()
-    return {"data": overview}
+# NOTE: /data-quality list endpoint is defined earlier (~line 701) with
+# SALES_MANAGER role guard. The previous duplicate here was removed to
+# prevent privilege escalation via route-ordering bugs.
 
 
 @router.get("/data-quality/{entity_type}/{entity_id}")

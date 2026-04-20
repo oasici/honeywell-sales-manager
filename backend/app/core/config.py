@@ -318,6 +318,11 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.ENV == "production"
 
+    @property
+    def is_development(self) -> bool:
+        """True only in local dev/test. Staging/sandbox/production all return False."""
+        return self.ENV in ("development", "dev", "test", "local")
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 

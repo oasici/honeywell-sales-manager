@@ -6,7 +6,7 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
@@ -18,8 +18,11 @@ import sqlalchemy
 from app.api.v1.router import v1_router
 from app.core.config import settings
 from app.core.database import async_session, engine
+from app.core.dependencies import require_role
 from app.core.error_tracking import init_sentry
 from app.core.logging_config import setup_logging, request_id_var
+from app.models.enums import UserRole
+from app.models.user import User
 from app.tasks.scheduler import start_scheduler, stop_scheduler
 from app.core.exceptions import AppException, app_exception_handler, unhandled_exception_handler
 from app.core.middleware import (
@@ -396,19 +399,25 @@ app.include_router(v1_router, prefix="/api/v1")
 
 
 @app.post("/api/admin/seed-demo")
-async def seed_demo_data():
-    """One-time seed endpoint for Render deployment. Creates all demo data."""
-    import json as _json
+async def seed_demo_data(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+):
+    """One-time seed endpoint. Manager-only. Blocked in production."""
     import traceback
-    from datetime import date, timedelta
-    from sqlalchemy import select, func
+
+    if settings.is_production:
+        raise HTTPException(
+            status_code=404,
+            detail="Not found",
+        )
 
     results: dict[str, str] = {}
 
     try:
         return await _run_seed(results)
     except Exception as e:
-        return {"status": "error", "error": str(e), "trace": traceback.format_exc()[-1500:], "results": results}
+        logger.exception("Seed failed for user %s", current_user.id)
+        return {"status": "error", "error": "Seed failed", "results": results}
 
 
 async def _run_seed(results: dict) -> dict:
@@ -609,38 +618,6 @@ async def _run_seed(results: dict) -> dict:
         await db.commit()
 
     return {"status": "ok", "results": results}
-
-
-@app.get("/api/debug/login-test")
-async def debug_login_test():
-    """Debug endpoint to test login flow."""
-    import traceback
-    results: dict[str, str] = {}
-    try:
-        from app.services.auth_service import authenticate
-        results["auth_import"] = "ok"
-    except Exception as e:
-        results["auth_import"] = f"FAIL: {e}"
-    try:
-        async with async_session() as db:
-            from sqlalchemy import select
-            from app.models.user import User
-            r = await db.execute(select(User).limit(5))
-            users = r.scalars().all()
-            results["users"] = str([{"id": u.id, "email": u.email, "role": u.role} for u in users])
-    except Exception as e:
-        results["users_query"] = f"FAIL: {traceback.format_exc()[-500:]}"
-    try:
-        from app.core.security import verify_password, hash_password
-        results["security_import"] = "ok"
-    except Exception as e:
-        results["security_import"] = f"FAIL: {e}"
-    try:
-        from app.services import session_service
-        results["session_import"] = "ok"
-    except Exception as e:
-        results["session_import"] = f"FAIL: {e}"
-    return results
 
 
 @app.get("/api/health", tags=["health"])

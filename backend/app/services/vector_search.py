@@ -69,6 +69,41 @@ async def check_pgvector(db) -> bool:
     return _pgvector_available
 
 
+# Allowlist of (table, content_column, filter_columns) combinations. Identifiers
+# must be whitelisted because they are interpolated into raw SQL via f-strings.
+# DO NOT add entries that accept user-controlled column/table names.
+_SEARCH_SCHEMA: dict[str, dict] = {
+    "transcripts": {
+        "content_columns": {"content"},
+        "filter_columns": {"opportunity_id", "customer_id", "source"},
+    },
+    "notes": {
+        "content_columns": {"body", "content"},
+        "filter_columns": {"opportunity_id", "customer_id"},
+    },
+}
+
+
+def _validate_identifiers(
+    table: str, content_column: str, filters: dict | None
+) -> None:
+    """Raise ValueError if any identifier is outside the allowlist."""
+    schema = _SEARCH_SCHEMA.get(table)
+    if schema is None:
+        raise ValueError(f"Unsupported search table: {table!r}")
+    if content_column not in schema["content_columns"]:
+        raise ValueError(
+            f"Unsupported content column {content_column!r} for table {table!r}"
+        )
+    if filters:
+        allowed_filter_cols = schema["filter_columns"]
+        for col in filters.keys():
+            if col not in allowed_filter_cols:
+                raise ValueError(
+                    f"Unsupported filter column {col!r} for table {table!r}"
+                )
+
+
 async def semantic_search(
     db,
     query: str,
@@ -80,8 +115,13 @@ async def semantic_search(
     """Search using semantic similarity if pgvector available, else ILIKE.
 
     Returns list of {id, title, snippet, score} dicts.
+
+    Raises:
+        ValueError: if table/content_column/filter keys are not whitelisted.
     """
     from sqlalchemy import text
+
+    _validate_identifiers(table, content_column, filters)
 
     # Try semantic search first
     vec = embed_text(query)

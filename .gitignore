@@ -9,11 +9,10 @@ build/
 venv/
 .venv/
 
-# Environment
+# Environment — all .env files EXCEPT .env.example
 .env
-.env.local
-.env.*.local
-.env.production
+.env.*
+!.env.example
 docker-compose.override.yml
 
 # IDE

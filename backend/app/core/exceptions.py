@@ -61,7 +61,9 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
         traceback.format_exc(),
     )
 
-    detail = str(exc) if not settings.is_production else "Beklenmeyen bir hata olustu"
+    # Only leak exception details in local development. Staging/sandbox are
+    # internet-facing and must mask internals to avoid path/implementation leak.
+    detail = str(exc) if settings.is_development else "Beklenmeyen bir hata olustu"
 
     return JSONResponse(
         status_code=500,

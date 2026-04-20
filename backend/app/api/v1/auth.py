@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.rate_limit import enforce_login_rate_limit
 from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException, UnauthorizedException
 from app.core.security import (
@@ -38,12 +39,16 @@ class LogoutRequest(BaseModel):
     refresh_token: str | None = None
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(enforce_login_rate_limit)],
+)
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """OAuth2-compatible login with rate limiting (enforced via global middleware)."""
+    """OAuth2-compatible login with strict rate limit to prevent brute-force."""
     user = await auth_service.authenticate(db, form_data.username, form_data.password)
     if user is None:
         raise UnauthorizedException("Gecersiz e-posta veya sifre")
@@ -114,7 +119,11 @@ async def get_me(
     return UserResponse.model_validate(current_user)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    dependencies=[Depends(enforce_login_rate_limit)],
+)
 async def refresh_token_endpoint(
     body: RefreshRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -179,7 +188,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
-@router.post("/change-password")
+@router.post(
+    "/change-password",
+    dependencies=[Depends(enforce_login_rate_limit)],
+)
 async def change_password(
     body: ChangePasswordRequest,
     current_user: Annotated[User, Depends(get_current_user)],
