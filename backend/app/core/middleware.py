@@ -122,6 +122,78 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class CSRFProtectionMiddleware(BaseHTTPMiddleware):
+    """Enforce CSRF protection on cookie-authenticated state-changing requests.
+
+    Design (double-submit cookie):
+    - `csrf_token` cookie is set by /auth/login (NOT HttpOnly — JS can read)
+    - Frontend echoes the cookie value in `X-CSRF-Token` header on unsafe requests
+    - Middleware compares the two; mismatch → 403
+
+    Only enforced when the request uses cookie auth AND is state-changing.
+    Authorization-header-based clients (CLI/tests) bypass the check since they
+    are not vulnerable to CSRF (no ambient credential sent by the browser).
+    """
+
+    UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+    # Paths that must never enforce CSRF (pre-auth endpoints)
+    EXEMPT_PATHS = (
+        "/api/v1/auth/login",
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/logout",
+    )
+
+    async def dispatch(self, request: Request, call_next):
+        if request.method not in self.UNSAFE_METHODS:
+            return await call_next(request)
+
+        # Only enforce for API routes
+        if not request.url.path.startswith("/api/"):
+            return await call_next(request)
+
+        # Skip exempt paths
+        for exempt in self.EXEMPT_PATHS:
+            if request.url.path.startswith(exempt):
+                return await call_next(request)
+
+        # If the client presents an Authorization header, it's not using
+        # ambient cookie auth — CSRF does not apply.
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            return await call_next(request)
+
+        # Otherwise, the request is relying on the cookie. Verify CSRF.
+        cookie_token = request.cookies.get("csrf_token")
+        header_token = request.headers.get("x-csrf-token")
+
+        # If no cookie at all, the user isn't authenticated — let endpoint's
+        # normal auth check return 401 (don't double up with 403).
+        if not cookie_token:
+            return await call_next(request)
+
+        from app.core.security import verify_csrf_token
+        if not verify_csrf_token(header_token or "", cookie_token):
+            logger.warning(
+                "CSRF rejected: method=%s path=%s ip=%s",
+                request.method,
+                request.url.path,
+                request.client.host if request.client else "?",
+            )
+            return Response(
+                content=json.dumps({
+                    "error": {
+                        "code": "CSRF_INVALID",
+                        "message": "CSRF token gecersiz veya eksik.",
+                    }
+                }),
+                status_code=403,
+                media_type="application/json",
+            )
+
+        return await call_next(request)
+
+
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
     """Reject requests larger than MAX_UPLOAD_SIZE_MB."""
 

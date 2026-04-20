@@ -27,14 +27,37 @@ const BACKEND_URL = import.meta.env.VITE_API_URL || '/api/v1';
 const api = axios.create({
   baseURL: BACKEND_URL,
   headers: { 'Content-Type': 'application/json' },
+  // Send/receive cookies (HttpOnly access_token + readable csrf_token)
+  withCredentials: true,
 });
 
-// Request interceptor – attach JWT
+// Read a cookie by name (CSRF cookie is NOT HttpOnly).
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(
+    new RegExp('(^|; )' + name.replace(/[-.]/g, '\\$&') + '=([^;]*)'),
+  );
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+// Request interceptor — attach Authorization header (backward-compat) AND
+// CSRF header for state-changing cookie-auth requests.
 api.interceptors.request.use((config) => {
+  // Legacy header auth: only if a token exists in localStorage (pre-cookie users)
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // CSRF: for unsafe methods, echo the cookie value in the X-CSRF-Token header.
+  // Backend middleware skips CSRF when Authorization header is present.
+  const method = (config.method || 'get').toUpperCase();
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrf = getCookie('csrf_token');
+    if (csrf) {
+      config.headers['X-CSRF-Token'] = csrf;
+    }
+  }
+
   return config;
 });
 

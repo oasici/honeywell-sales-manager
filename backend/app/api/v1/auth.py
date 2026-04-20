@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,16 +39,77 @@ class LogoutRequest(BaseModel):
     refresh_token: str | None = None
 
 
+def _set_auth_cookies(
+    response: Response,
+    access_token: str,
+    refresh_token: str,
+) -> None:
+    """Set HttpOnly auth cookies + a readable CSRF token cookie.
+
+    - access_token: HttpOnly, Secure, SameSite=Lax (XSS cannot read it)
+    - refresh_token: HttpOnly, Secure, SameSite=Strict, scoped to /auth
+    - csrf_token: readable by JS (double-submit cookie pattern)
+    """
+    from app.core.security import generate_csrf_token
+
+    # Access cookie — 30 min (ACCESS_TOKEN_EXPIRE_MINUTES)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=True,
+        secure=not settings.is_development,  # require HTTPS outside local dev
+        samesite="lax",
+        path="/",
+    )
+    # Refresh cookie — 7 days, scoped so only /auth/* sees it
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=7 * 24 * 60 * 60,
+        httponly=True,
+        secure=not settings.is_development,
+        samesite="strict",
+        path="/api/v1/auth",
+    )
+    # CSRF token — NOT HttpOnly (JS must read to echo in X-CSRF-Token header)
+    response.set_cookie(
+        key="csrf_token",
+        value=generate_csrf_token(),
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=False,
+        secure=not settings.is_development,
+        samesite="strict",
+        path="/",
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    for name, path in (
+        ("access_token", "/"),
+        ("refresh_token", "/api/v1/auth"),
+        ("csrf_token", "/"),
+    ):
+        response.delete_cookie(key=name, path=path)
+
+
 @router.post(
     "/login",
     response_model=TokenResponse,
     dependencies=[Depends(enforce_login_rate_limit)],
 )
 async def login(
+    response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """OAuth2-compatible login with strict rate limit to prevent brute-force."""
+    """OAuth2-compatible login with strict rate limit to prevent brute-force.
+
+    Issues both:
+    - Response body tokens (for API clients / legacy SPAs)
+    - HttpOnly cookies (preferred for browser SPA; resistant to XSS token theft)
+    Frontend should progressively switch to cookie-based auth.
+    """
     user = await auth_service.authenticate(db, form_data.username, form_data.password)
     if user is None:
         raise UnauthorizedException("Gecersiz e-posta veya sifre")
@@ -76,6 +137,9 @@ async def login(
                 ip_address=ip_address,
                 expires_at=expires_at,
             )
+
+    # Set secure cookies alongside JSON response (hybrid during migration)
+    _set_auth_cookies(response, access_token, refresh_token)
 
     return TokenResponse(
         access_token=access_token,
@@ -160,26 +224,35 @@ async def refresh_token_endpoint(
 @router.post("/logout")
 async def logout(
     request: Request,
+    response: Response,
     body: LogoutRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
-    """Revoke both access and refresh tokens on logout."""
-    # Revoke access token from Authorization header
+    """Revoke tokens and clear auth cookies on logout."""
+    # Revoke access token from Authorization header OR cookie
+    token_to_revoke = None
     auth_header = request.headers.get("authorization", "")
     if auth_header.startswith("Bearer "):
-        access_token = auth_header[7:]
-        await revoke_token_async(access_token)
+        token_to_revoke = auth_header[7:]
+    elif request.cookies.get("access_token"):
+        token_to_revoke = request.cookies["access_token"]
 
-        # Invalidate session if session management is enabled
+    if token_to_revoke:
+        await revoke_token_async(token_to_revoke)
         if settings.FEATURE_SESSION_MANAGEMENT:
-            payload = decode_token(access_token)
+            payload = decode_token(token_to_revoke)
             if payload and payload.get("jti"):
                 await session_service.invalidate_session(db, payload["jti"])
 
-    # Revoke refresh token if provided
-    if body.refresh_token:
-        await revoke_token_async(body.refresh_token)
+    # Revoke refresh token if provided via body or cookie
+    refresh = body.refresh_token or request.cookies.get("refresh_token")
+    if refresh:
+        await revoke_token_async(refresh)
+
+    # Clear all auth cookies regardless of how token was supplied
+    _clear_auth_cookies(response)
+
     return {"message": "Basariyla cikis yapildi"}
 
 

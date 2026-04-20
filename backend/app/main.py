@@ -27,6 +27,7 @@ from app.tasks.scheduler import start_scheduler, stop_scheduler
 from app.core.exceptions import AppException, app_exception_handler, unhandled_exception_handler
 from app.core.middleware import (
     AuditLogMiddleware,
+    CSRFProtectionMiddleware,
     RequestSizeLimitMiddleware,
     SecurityHeadersMiddleware,
 )
@@ -394,10 +395,13 @@ app.add_middleware(RequestIDMiddleware)
 # 1. Security headers on all responses
 app.add_middleware(SecurityHeadersMiddleware)
 
-# 2. Audit logging for state-changing requests
+# 2. CSRF protection (cookie-authenticated requests only)
+app.add_middleware(CSRFProtectionMiddleware)
+
+# 3. Audit logging for state-changing requests
 app.add_middleware(AuditLogMiddleware)
 
-# 3. Request size limit
+# 4. Request size limit
 app.add_middleware(RequestSizeLimitMiddleware, max_size_mb=settings.MAX_UPLOAD_SIZE_MB)
 
 # 4. CORS — restricted origins
