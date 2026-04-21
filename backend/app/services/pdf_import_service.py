@@ -4,10 +4,37 @@ from __future__ import annotations
 
 import logging
 import re
+import asyncio
+from contextlib import asynccontextmanager
 
 import pdfplumber
 
 logger = logging.getLogger(__name__)
+
+# Hard safety limits (DoS mitigation). These can be tuned by callers.
+_PDF_MAX_PAGES = 12
+
+
+def set_pdf_limits(*, max_pages: int | None = None) -> None:
+    global _PDF_MAX_PAGES
+    if max_pages is not None and max_pages > 0:
+        _PDF_MAX_PAGES = int(max_pages)
+
+
+_semaphores: dict[int, asyncio.Semaphore] = {}
+
+
+@asynccontextmanager
+async def pdf_parse_semaphore(limit: int):
+    """Global concurrency limiter for CPU-heavy PDF parsing work."""
+    lim = max(int(limit or 1), 1)
+    sem = _semaphores.get(lim)
+    if sem is None:
+        sem = asyncio.Semaphore(lim)
+        _semaphores[lim] = sem
+    async with sem:
+        yield
+
 
 # Header keywords to identify parts table columns
 _HEADER_ALIASES = {
@@ -115,7 +142,7 @@ def extract_parts_from_pdf(file_path: str) -> list[dict]:
 
     try:
         with pdfplumber.open(file_path) as pdf:
-            for page_num, page in enumerate(pdf.pages):
+            for page_num, page in enumerate(pdf.pages[:_PDF_MAX_PAGES]):
                 tables = page.extract_tables()
                 if not tables:
                     continue

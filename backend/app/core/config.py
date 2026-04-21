@@ -107,10 +107,16 @@ class Settings(BaseSettings):
     ALLOWED_UPLOAD_EXTENSIONS: str = ".csv,.xlsx,.xls"
     MAX_UPLOAD_SIZE_MB: int = 10
 
+    # PDF parsing safety limits (DoS mitigation)
+    PDF_PARSE_TIMEOUT_SECONDS: int = 12
+    PDF_PARSE_MAX_PAGES: int = 12
+    PDF_PARSE_CONCURRENCY: int = 2
+
     # ── Demo/Seed (non-production) ──
-    # If blank at seed time, a random password is generated and logged once.
+    # If blank at seed time, a random password is generated and returned in response (never logged).
     DEMO_REP_PASSWORD: str = ""
     DEMO_OPS_PASSWORD: str = ""
+    ENABLE_DEMO_SEED: bool = False
 
     # ── Error Tracking ──
     SENTRY_DSN: str = ""
