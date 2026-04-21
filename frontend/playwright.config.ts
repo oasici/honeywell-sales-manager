@@ -33,8 +33,32 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'chromium',
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
+    {
+      name: 'admin',
       use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      storageState: 'e2e/.auth/admin.json',
+    },
+    {
+      name: 'sales_manager',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      storageState: 'e2e/.auth/sales_manager.json',
+    },
+    {
+      name: 'sales_rep',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      storageState: 'e2e/.auth/sales_rep.json',
+    },
+    {
+      name: 'operations',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      storageState: 'e2e/.auth/operations.json',
     },
   ],
 });

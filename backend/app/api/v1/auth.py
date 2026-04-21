@@ -189,11 +189,16 @@ async def get_me(
     dependencies=[Depends(enforce_login_rate_limit)],
 )
 async def refresh_token_endpoint(
+    request: Request,
     body: RefreshRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Exchange a refresh token for new tokens. Old refresh token is revoked."""
-    payload = decode_token(body.refresh_token)
+    refresh_token = body.refresh_token or request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise UnauthorizedException("Yenileme tokeni eksik")
+
+    payload = decode_token(refresh_token)
     if payload is None or payload.get("type") != "refresh":
         raise UnauthorizedException("Gecersiz veya suresi dolmus yenileme tokeni")
 
@@ -209,7 +214,7 @@ async def refresh_token_endpoint(
         raise UnauthorizedException("Kullanici bulunamadi veya aktif degil")
 
     # Revoke old refresh token (rotation)
-    revoke_token(body.refresh_token)
+    revoke_token(refresh_token)
 
     new_access = create_access_token(data={"sub": str(user.id)})
     new_refresh = create_refresh_token(data={"sub": str(user.id)})
