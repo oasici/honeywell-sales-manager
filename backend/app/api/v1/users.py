@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import require_role
 from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.security import hash_password, validate_password_strength
 from app.models.enums import UserRole
 from app.models.user import User
 
@@ -22,6 +23,10 @@ VALID_ROLES = {role.value for role in UserRole}
 
 class RoleUpdate(BaseModel):
     role: str
+
+
+class PasswordResetRequest(BaseModel):
+    new_password: str
 
 
 @router.get("/")
@@ -127,6 +132,30 @@ async def change_user_role(
     await db.refresh(user)
 
     return _user_to_dict(user)
+
+
+@router.patch("/{user_id}/reset-password")
+async def reset_user_password(
+    user_id: int,
+    data: PasswordResetRequest,
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin reset another user's password. Manager only."""
+    pw_error = validate_password_strength(data.new_password)
+    if pw_error:
+        raise BadRequestException(pw_error)
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise NotFoundException("Kullanici bulunamadi")
+
+    user.hashed_password = hash_password(data.new_password)
+    user.password_change_required = False
+    await db.flush()
+
+    return {"message": "Sifre sifirlandi", "user_id": user.id, "email": user.email}
 
 
 @router.post("/bulk-import")
