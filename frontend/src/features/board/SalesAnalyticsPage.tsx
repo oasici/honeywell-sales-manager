@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -29,6 +29,8 @@ import type {
   RevenueLeakResult,
   RevenueLeakItem,
 } from '../../lib/types';
+import type { TranslationKey } from '../../lib/i18n';
+import { useT } from '../../hooks/useT';
 
 const ACCURACY_RING_RADIUS = 36;
 const ACCURACY_RING_CIRCUMFERENCE = 2 * Math.PI * ACCURACY_RING_RADIUS;
@@ -63,14 +65,15 @@ function AccuracyRing({ score }: { score: number }) {
 }
 
 const FUNNEL_COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#22c55e', '#ef4444', '#94a3b8'];
-const STAGE_LABELS: Record<string, string> = {
-  draft: 'Taslak',
-  pending_approval: 'Onay Bekliyor',
-  approved: 'Onaylandı',
-  sent: 'Gönderildi',
-  accepted: 'Kabul',
-  rejected: 'Reddedildi',
-  expired: 'Süresi Doldu',
+
+const STAGE_T_KEYS: Record<string, TranslationKey> = {
+  draft: 'sales_analytics.stage_draft',
+  pending_approval: 'sales_analytics.stage_pending',
+  approved: 'sales_analytics.stage_approved',
+  sent: 'sales_analytics.stage_sent',
+  accepted: 'sales_analytics.stage_accepted',
+  rejected: 'sales_analytics.stage_rejected',
+  expired: 'sales_analytics.stage_expired',
 };
 
 interface WoWWeek {
@@ -101,7 +104,16 @@ export default function SalesAnalyticsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const t = useT();
   const isManager = user?.role === 'manager' || user?.role === 'admin';
+
+  const stageLabel = useCallback(
+    (stage: string) => {
+      const key = STAGE_T_KEYS[stage];
+      return key ? t(key) : stage;
+    },
+    [t],
+  );
 
   const { data: forecast, isLoading: fLoading } = useQuery({
     queryKey: ['forecast'],
@@ -122,7 +134,7 @@ export default function SalesAnalyticsPage() {
   const snapshotMutation = useMutation({
     mutationFn: () => forecastApi.takeSnapshot(),
     onSuccess: () => {
-      toast.success('Pipeline snapshot alindi');
+      toast.success(t('sales_analytics.toast_snapshot_ok'));
       queryClient.invalidateQueries({ queryKey: ['forecast-wow'] });
     },
   });
@@ -199,15 +211,17 @@ export default function SalesAnalyticsPage() {
   return (
     <div>
       <PageHeader
-        title="Satış Analitiği"
-        description="Pipeline, performans ve operasyonel metrikler"
+        title={t('sales_analytics.title')}
+        description={t('sales_analytics.description')}
       />
 
       {/* Row 1: Forecast + Pipeline KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-6">
         <Card>
           <div className="p-4">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Acik Pipeline</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+              {t('sales_analytics.kpi_open')}
+            </p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {formatCurrency(forecast?.open_quotes_total || 0, 'TRY')}
             </p>
@@ -216,31 +230,38 @@ export default function SalesAnalyticsPage() {
         <Card>
           <div className="p-4">
             <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              Forecast (30 gun)
+              {t('sales_analytics.kpi_forecast')}
             </p>
             <p className="text-2xl font-bold text-green-600">
               {formatCurrency(forecast?.forecast_total || 0, 'TRY')}
             </p>
             <p className="text-[10px] text-gray-400">
-              Kazanma orani: %{((forecast?.win_rate || 0) * 100).toFixed(0)}
+              {t('sales_analytics.win_rate')}%{((forecast?.win_rate || 0) * 100).toFixed(0)}
             </p>
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">SLA Medyan Yanit</p>
-            <p
-              className={`text-2xl font-bold ${(sla?.median_first_action_minutes || 0) > 480 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}
-            >
-              {sla?.median_first_action_minutes || 0} dk
-            </p>
-            <p className="text-[10px] text-gray-400">{sla?.breaches_count || 0} ihlal</p>
           </div>
         </Card>
         <Card>
           <div className="p-4">
             <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              Indirim p50 / p90
+              {t('sales_analytics.sla_median')}
+            </p>
+            <p
+              className={`text-2xl font-bold ${(sla?.median_first_action_minutes || 0) > 480 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}
+            >
+              {sla?.median_first_action_minutes || 0} {t('common.minutes_short')}
+            </p>
+            <p className="text-[10px] text-gray-400">
+              {t('sales_analytics.sla_breaches').replace(
+                '{count}',
+                String(sla?.breaches_count || 0),
+              )}
+            </p>
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4">
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+              {t('sales_analytics.discount_p')}
             </p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               %{discounts?.p50_discount_rate || 0} / %{discounts?.p90_discount_rate || 0}
@@ -252,7 +273,7 @@ export default function SalesAnalyticsPage() {
         <Card>
           <div className="p-4">
             <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              Haftalik Pipeline Degisimi
+              {t('sales_analytics.wow_title')}
             </p>
             {wow ? (
               <>
@@ -281,7 +302,7 @@ export default function SalesAnalyticsPage() {
                     loading={snapshotMutation.isPending}
                     onClick={() => snapshotMutation.mutate()}
                   >
-                    Snapshot Al
+                    {t('sales_analytics.snapshot')}
                   </Button>
                 )}
               </>
@@ -294,7 +315,7 @@ export default function SalesAnalyticsPage() {
 
       {/* WoW Bar Chart */}
       {wow?.weeks && wow.weeks.length > 0 && (
-        <Card title="Haftalik Pipeline Trend (Son 4 Hafta)" className="mb-6">
+        <Card title={t('sales_analytics.chart_wow')} className="mb-6">
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={wow.weeks}>
@@ -311,25 +332,25 @@ export default function SalesAnalyticsPage() {
 
       {/* Team Forecast Rollup (managers only) */}
       {isManager && teamRollup?.reps && teamRollup.reps.length > 0 && (
-        <Card title="Takim Tahmin Rollup" className="mb-6">
+        <Card title={t('sales_analytics.team_rollup')} className="mb-6">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Temsilci
+                    {t('sales_analytics.col_rep')}
                   </th>
                   <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                    Kesin
+                    {t('sales_analytics.col_commit')}
                   </th>
                   <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                    En Iyi Durum
+                    {t('sales_analytics.col_best')}
                   </th>
                   <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                    Pipeline
+                    {t('sales_analytics.col_pipeline')}
                   </th>
                   <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                    Toplam
+                    {t('sales_analytics.col_total')}
                   </th>
                 </tr>
               </thead>
@@ -360,7 +381,7 @@ export default function SalesAnalyticsPage() {
                 <tfoot>
                   <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50">
                     <td className="py-2.5 px-4 font-bold text-gray-900 dark:text-white">
-                      Genel Toplam
+                      {t('sales_analytics.grand_total')}
                     </td>
                     <td className="py-2.5 px-4 text-right font-bold">
                       {formatCurrency(teamRollup.grand_total.commit, 'TRY')}
@@ -384,25 +405,31 @@ export default function SalesAnalyticsPage() {
 
       {/* Forecast Accuracy (Modul 12) */}
       {isManager && forecastAccuracy && (
-        <Card title="Tahmin Dogrulugu" className="mb-6">
+        <Card title={t('sales_analytics.forecast_accuracy')} className="mb-6">
           <div className="flex items-start gap-6">
             <AccuracyRing score={Math.round(forecastAccuracy.accuracy_pct)} />
             <div className="flex-1 space-y-3">
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Donem</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('sales_analytics.period')}
+                  </span>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     {forecastAccuracy.period}
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Tahmin</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('sales_analytics.forecast')}
+                  </span>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     {formatCurrency(forecastAccuracy.commit_forecast, 'TRY')}
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Gerceklesen</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('sales_analytics.actual')}
+                  </span>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     {formatCurrency(forecastAccuracy.actual_won, 'TRY')}
                   </p>
@@ -413,10 +440,18 @@ export default function SalesAnalyticsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="py-2 px-3 text-left text-xs text-gray-500">Temsilci</th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">Tahmin</th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">Gerceklesen</th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">Dogruluk %</th>
+                        <th className="py-2 px-3 text-left text-xs text-gray-500">
+                          {t('sales_analytics.col_rep')}
+                        </th>
+                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                          {t('sales_analytics.forecast')}
+                        </th>
+                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                          {t('sales_analytics.actual')}
+                        </th>
+                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                          {t('sales_analytics.accuracy_pct')}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -454,13 +489,13 @@ export default function SalesAnalyticsPage() {
 
       {/* Row 2: Funnel + Win/Loss */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
-        <Card title="Teklif Donusum Hunisi">
+        <Card title={t('sales_analytics.funnel_title')}>
           {funnel?.funnel ? (
             <div className="space-y-2 p-2">
               {funnel.funnel.map((s: { stage: string; count: number; pct: number }, i: number) => (
                 <div key={s.stage} className="flex items-center gap-3">
                   <span className="w-24 text-xs text-gray-600 dark:text-gray-400 truncate">
-                    {STAGE_LABELS[s.stage] || s.stage}
+                    {stageLabel(s.stage)}
                   </span>
                   <div className="flex-1 h-6 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                     <div
@@ -478,11 +513,11 @@ export default function SalesAnalyticsPage() {
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-400">Veri yok</p>
+            <p className="py-8 text-center text-sm text-gray-400">{t('sales_analytics.no_data')}</p>
           )}
         </Card>
 
-        <Card title="Kazanma/Kaybetme Nedenleri">
+        <Card title={t('sales_analytics.win_loss')}>
           {winLoss?.reasons && winLoss.reasons.length > 0 ? (
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -497,39 +532,39 @@ export default function SalesAnalyticsPage() {
             </div>
           ) : (
             <p className="py-8 text-center text-sm text-gray-400">
-              Henüz kapanis nedeni girilmemis
+              {t('sales_analytics.no_close_reason')}
             </p>
           )}
         </Card>
       </div>
 
       {/* Row 3: Rep Scorecards */}
-      <Card title="Temsilci Performansi" className="mb-6">
+      <Card title={t('sales_analytics.rep_perf')} className="mb-6">
         {scorecards?.scorecards && scorecards.scorecards.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Temsilci
+                    {t('sales_analytics.col_rep')}
                   </th>
                   <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">
-                    Teklif
+                    {t('sales_analytics.col_quotes')}
                   </th>
                   <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">
-                    Gonderilen
+                    {t('sales_analytics.col_sent')}
                   </th>
                   <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">
-                    Kazanilan
+                    {t('sales_analytics.col_won')}
                   </th>
                   <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">
-                    Kazanma %
+                    {t('sales_analytics.col_win_pct')}
                   </th>
                   <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                    Gelir
+                    {t('sales_analytics.col_revenue')}
                   </th>
                   <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                    Ort. Indirim
+                    {t('sales_analytics.col_avg_disc')}
                   </th>
                 </tr>
               </thead>
@@ -564,19 +599,19 @@ export default function SalesAnalyticsPage() {
             </table>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Veri yok</p>
+          <p className="py-8 text-center text-sm text-gray-400">{t('sales_analytics.no_data')}</p>
         )}
       </Card>
 
       {/* Row 4: Data Quality + Ops Queues */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
-        <Card title="Veri Kalitesi">
+        <Card title={t('sales_analytics.dq_title')}>
           {dataQuality ? (
             <div className="space-y-4 p-2">
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Müşteriler
+                    {t('sales_analytics.dq_customers')}
                   </span>
                   <span className="text-sm font-bold text-gray-900 dark:text-white">
                     %{dataQuality.customers?.completeness_pct || 0}
@@ -589,14 +624,16 @@ export default function SalesAnalyticsPage() {
                   />
                 </div>
                 <p className="mt-1 text-[10px] text-gray-400">
-                  Eksik telefon: {dataQuality.customers?.missing_phone || 0} | Eksik firma:{' '}
+                  {t('sales_analytics.dq_missing_phone')}{' '}
+                  {dataQuality.customers?.missing_phone || 0} |{' '}
+                  {t('sales_analytics.dq_missing_company')}{' '}
                   {dataQuality.customers?.missing_company || 0}
                 </p>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Teklifler
+                    {t('sales_analytics.dq_quotes')}
                   </span>
                   <span className="text-sm font-bold text-gray-900 dark:text-white">
                     %{dataQuality.quotes?.completeness_pct || 0}
@@ -609,8 +646,8 @@ export default function SalesAnalyticsPage() {
                   />
                 </div>
                 <p className="mt-1 text-[10px] text-gray-400">
-                  Musterisiz: {dataQuality.quotes?.missing_customer || 0} | Kalemsiz:{' '}
-                  {dataQuality.quotes?.missing_items || 0}
+                  {t('sales_analytics.dq_no_customer')} {dataQuality.quotes?.missing_customer || 0}{' '}
+                  | {t('sales_analytics.dq_no_items')} {dataQuality.quotes?.missing_items || 0}
                 </p>
               </div>
             </div>
@@ -619,24 +656,24 @@ export default function SalesAnalyticsPage() {
           )}
         </Card>
 
-        <Card title="Operasyonel Kuyruklar">
+        <Card title={t('sales_analytics.ops_queues')}>
           {queues ? (
             <div className="space-y-3 p-2">
               <div className="flex items-center justify-between rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 dark:border-yellow-800 dark:bg-yellow-900/20">
                 <span className="text-sm text-yellow-800 dark:text-yellow-200">
-                  İnceleme Bekleyen Email
+                  {t('sales_analytics.queue_review_email')}
                 </span>
                 <Badge variant="warning">{queues.review_pending_count || 0}</Badge>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-900/20">
                 <span className="text-sm text-blue-800 dark:text-blue-200">
-                  Onay Bekleyen Teklif
+                  {t('sales_analytics.queue_pending_quote')}
                 </span>
                 <Badge variant="info">{queues.approval_pending_count || 0}</Badge>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
                 <span className="text-sm text-red-800 dark:text-red-200">
-                  Süresi Dolacak Teklifler
+                  {t('sales_analytics.queue_expiring')}
                 </span>
                 <Badge variant="danger">{queues.expiring_count || 0}</Badge>
               </div>
@@ -650,14 +687,25 @@ export default function SalesAnalyticsPage() {
       {/* Row 5: Discount Outliers + SLA Breaches */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {discounts?.outliers && discounts.outliers.length > 0 && (
-          <Card title={`Yüksek Indirimli Teklifler (>${discounts.threshold_pct || 25}%)`}>
+          <Card
+            title={t('sales_analytics.high_discount_title').replace(
+              '{pct}',
+              String(discounts.threshold_pct || 25),
+            )}
+          >
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-2 px-3 text-left text-xs text-gray-500">Teklif No</th>
-                    <th className="py-2 px-3 text-right text-xs text-gray-500">Indirim %</th>
-                    <th className="py-2 px-3 text-right text-xs text-gray-500">Toplam</th>
+                    <th className="py-2 px-3 text-left text-xs text-gray-500">
+                      {t('sales_analytics.col_quote_no')}
+                    </th>
+                    <th className="py-2 px-3 text-right text-xs text-gray-500">
+                      {t('sales_analytics.col_disc_pct')}
+                    </th>
+                    <th className="py-2 px-3 text-right text-xs text-gray-500">
+                      {t('sales_analytics.col_total')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -682,14 +730,20 @@ export default function SalesAnalyticsPage() {
         )}
 
         {sla?.breaches && sla.breaches.length > 0 && (
-          <Card title="SLA Ihlalleri">
+          <Card title={t('sales_analytics.sla_breaches_title')}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-2 px-3 text-left text-xs text-gray-500">Gönderen</th>
-                    <th className="py-2 px-3 text-left text-xs text-gray-500">Konu</th>
-                    <th className="py-2 px-3 text-right text-xs text-gray-500">Yanit (dk)</th>
+                    <th className="py-2 px-3 text-left text-xs text-gray-500">
+                      {t('sales_analytics.col_sender')}
+                    </th>
+                    <th className="py-2 px-3 text-left text-xs text-gray-500">
+                      {t('sales_analytics.col_subject')}
+                    </th>
+                    <th className="py-2 px-3 text-right text-xs text-gray-500">
+                      {t('sales_analytics.col_resp_min')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -713,7 +767,7 @@ export default function SalesAnalyticsPage() {
 
       {/* Revenue Waterfall (Modul 5) */}
       <Card
-        title="Gelir Selalesi"
+        title={t('sales_analytics.waterfall_title')}
         className="mb-6 mt-6"
         action={
           <select
@@ -721,9 +775,9 @@ export default function SalesAnalyticsPage() {
             onChange={(e) => setWaterfallPeriod(e.target.value)}
             className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="this_month">Bu Ay</option>
-            <option value="last_month">Gecen Ay</option>
-            <option value="this_quarter">Bu Ceyrek</option>
+            <option value="this_month">{t('sales_analytics.wf_this_month')}</option>
+            <option value="last_month">{t('sales_analytics.wf_last_month')}</option>
+            <option value="this_quarter">{t('sales_analytics.wf_quarter')}</option>
           </select>
         }
       >
@@ -764,13 +818,17 @@ export default function SalesAnalyticsPage() {
                     />
                     <span className="text-gray-600 dark:text-gray-400">{c.label}:</span>
                     <span className="font-semibold text-gray-900 dark:text-white">
-                      {c.count} adet - {formatCurrency(c.amount, 'TRY')}
+                      {t('sales_analytics.wf_count_amount')
+                        .replace('{count}', String(c.count))
+                        .replace('{amount}', formatCurrency(c.amount, 'TRY'))}
                     </span>
                   </div>
                 ))}
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Net Degisim</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('sales_analytics.net_change')}
+                </p>
                 <p
                   className={`text-xl font-bold ${waterfall.net_change >= 0 ? 'text-green-600' : 'text-red-600'}`}
                 >
@@ -787,17 +845,19 @@ export default function SalesAnalyticsPage() {
 
       {/* Revenue Leak Trend (Modul 10) */}
       {leaks && leaks.items.length > 0 && (
-        <Card title="Gelir Sizintisi Trendi" className="mb-6">
+        <Card title={t('sales_analytics.leak_trend')} className="mb-6">
           <div className="mb-4 flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Toplam Sizinti Tutari:
+                {t('sales_analytics.total_leak')}
               </span>
               <span className="text-lg font-bold text-red-600">
                 {formatCurrency(leaks.total_leak_amount, 'TRY')}
               </span>
             </div>
-            <Badge variant="danger">{leaks.total_leaks} fırsat</Badge>
+            <Badge variant="danger">
+              {t('sales_analytics.leak_opp_count').replace('{count}', String(leaks.total_leaks))}
+            </Badge>
           </div>
           <div className="space-y-3">
             {leaks.items.map((item: RevenueLeakItem) => (
@@ -812,7 +872,7 @@ export default function SalesAnalyticsPage() {
                     {item.title}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {item.owner_name} - {item.stage}
+                    {item.owner_name} - {stageLabel(item.stage)}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {item.factors.map((f) => (
@@ -827,7 +887,7 @@ export default function SalesAnalyticsPage() {
                     {formatCurrency(item.amount, 'TRY')}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500">Sizinti Skoru:</span>
+                    <span className="text-xs text-gray-500">{t('sales_analytics.leak_score')}</span>
                     <span
                       className={`text-sm font-bold ${item.leak_score >= 50 ? 'text-red-600' : 'text-amber-600'}`}
                     >

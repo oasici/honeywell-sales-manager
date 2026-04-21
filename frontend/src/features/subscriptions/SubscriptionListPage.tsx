@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter } from 'lucide-react';
@@ -6,13 +6,8 @@ import { toast } from 'sonner';
 import { subscriptionsApi, customersApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type { Subscription, MrrDashboard } from '../../lib/types';
-
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Aktif',
-  paused: 'Duraklatildi',
-  cancelled: 'İptal Edildi',
-  expired: 'Süresi Doldu',
-};
+import { useT } from '../../hooks/useT';
+import type { TranslationKey } from '../../lib/i18n';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -21,10 +16,17 @@ const STATUS_COLORS: Record<string, string> = {
   expired: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
 };
 
-const CYCLE_LABELS: Record<string, string> = {
-  monthly: 'Aylik',
-  quarterly: 'Ceyrektik',
-  annual: 'Yillik',
+const STATUS_KEYS: Record<string, TranslationKey> = {
+  active: 'subscription.status_active',
+  paused: 'subscription.status_paused',
+  cancelled: 'subscription.status_cancelled',
+  expired: 'subscription.status_expired',
+};
+
+const CYCLE_KEYS: Record<string, TranslationKey> = {
+  monthly: 'subscription.cycle_monthly',
+  quarterly: 'subscription.cycle_quarterly',
+  annual: 'subscription.cycle_annual',
 };
 
 interface CreateFormState {
@@ -50,6 +52,7 @@ const INITIAL_FORM: CreateFormState = {
 };
 
 export default function SubscriptionListPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -57,6 +60,16 @@ export default function SubscriptionListPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CreateFormState>(INITIAL_FORM);
   const [tab, setTab] = useState<'all' | 'renewals'>('all');
+
+  const statusLabel = (s: string) => {
+    const k = STATUS_KEYS[s];
+    return k ? t(k) : s;
+  };
+
+  const cycleLabel = (c: string) => {
+    const k = CYCLE_KEYS[c];
+    return k ? t(k) : c;
+  };
 
   const { data: subsData, isLoading } = useQuery({
     queryKey: ['subscriptions', statusFilter],
@@ -83,17 +96,17 @@ export default function SubscriptionListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => subscriptionsApi.create(payload),
     onSuccess: () => {
-      toast.success('Abonelik oluşturuldu');
+      toast.success(t('subscription.toast_created'));
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       setShowCreate(false);
       setForm(INITIAL_FORM);
     },
-    onError: () => toast.error('Abonelik oluşturulamadı'),
+    onError: () => toast.error(t('subscription.toast_create_fail')),
   });
 
   const handleCreate = () => {
     if (!form.name || !form.customer_id) {
-      toast.error('Ad ve müşteri alanlari zorunludur');
+      toast.error(t('subscription.err_name_customer'));
       return;
     }
     createMutation.mutate({
@@ -114,16 +127,27 @@ export default function SubscriptionListPage() {
 
   const filtered = displayList.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
+  const filterOptions = useMemo(
+    () =>
+      [
+        { value: '', label: t('subscription.filter_all_status') },
+        { value: 'active', label: t('subscription.status_active') },
+        { value: 'paused', label: t('subscription.status_paused') },
+        { value: 'cancelled', label: t('subscription.status_cancelled') },
+        { value: 'expired', label: t('subscription.status_expired') },
+      ] as const,
+    [t],
+  );
+
   return (
     <div className="space-y-6">
-      {/* MRR KPI bar */}
       {mrrData && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div
             className="rounded-xl border p-4"
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
-            <p className="text-xs text-gray-500">Toplam MRR</p>
+            <p className="text-xs text-gray-500">{t('subscription.kpi_total_mrr')}</p>
             <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(mrrData.total_mrr, 'TRY')}
             </p>
@@ -132,7 +156,7 @@ export default function SubscriptionListPage() {
             className="rounded-xl border p-4"
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
-            <p className="text-xs text-gray-500">Aktif Abonelik</p>
+            <p className="text-xs text-gray-500">{t('subscription.kpi_active_count')}</p>
             <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
               {mrrData.active_count}
             </p>
@@ -141,14 +165,14 @@ export default function SubscriptionListPage() {
             className="rounded-xl border p-4"
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
-            <p className="text-xs text-gray-500">Kayip (30 gun)</p>
+            <p className="text-xs text-gray-500">{t('subscription.kpi_churn_30')}</p>
             <p className="text-xl font-bold text-red-600">{mrrData.churn_count}</p>
           </div>
           <div
             className="rounded-xl border p-4"
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
-            <p className="text-xs text-gray-500">Kayip MRR</p>
+            <p className="text-xs text-gray-500">{t('subscription.kpi_churn_mrr')}</p>
             <p className="text-xl font-bold text-red-600">
               {formatCurrency(mrrData.churned_mrr, 'TRY')}
             </p>
@@ -156,10 +180,9 @@ export default function SubscriptionListPage() {
         </div>
       )}
 
-      {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-          Abonelikler
+          {t('subscription.title')}
         </h1>
         <button
           type="button"
@@ -167,11 +190,10 @@ export default function SubscriptionListPage() {
           className="flex items-center gap-2 rounded-lg bg-honeywell-red px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors cursor-pointer"
         >
           <Plus size={16} />
-          Yeni Abonelik
+          {t('subscription.new')}
         </button>
       </div>
 
-      {/* Tabs + search + filter */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div
           className="flex gap-1 rounded-lg p-1"
@@ -186,7 +208,7 @@ export default function SubscriptionListPage() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            Tumu
+            {t('subscription.tab_all')}
           </button>
           <button
             type="button"
@@ -197,7 +219,7 @@ export default function SubscriptionListPage() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            Yaklasan Yenilemeler
+            {t('subscription.tab_renewals')}
             {mrrData && mrrData.upcoming_renewals.length > 0 && (
               <span className="ml-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-honeywell-red px-1.5 text-[10px] font-bold text-white">
                 {mrrData.upcoming_renewals.length}
@@ -210,7 +232,7 @@ export default function SubscriptionListPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Abonelik ara..."
+            placeholder={t('subscription.search_ph')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border py-2 pl-9 pr-3 text-sm"
@@ -234,16 +256,15 @@ export default function SubscriptionListPage() {
               color: 'var(--text-primary)',
             }}
           >
-            <option value="">Tüm Durumlar</option>
-            <option value="active">Aktif</option>
-            <option value="paused">Duraklatildi</option>
-            <option value="cancelled">İptal Edildi</option>
-            <option value="expired">Süresi Doldu</option>
+            {filterOptions.map((o) => (
+              <option key={o.value || 'all'} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {/* Table */}
       <div
         className="overflow-x-auto rounded-xl border"
         style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
@@ -251,25 +272,31 @@ export default function SubscriptionListPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left" style={{ borderColor: 'var(--border)' }}>
-              <th className="px-4 py-3 font-medium text-gray-500">Ad</th>
-              <th className="px-4 py-3 font-medium text-gray-500">Durum</th>
-              <th className="px-4 py-3 font-medium text-gray-500">Donem</th>
-              <th className="px-4 py-3 font-medium text-gray-500">MRR</th>
-              <th className="px-4 py-3 font-medium text-gray-500">Sonraki Yenileme</th>
+              <th className="px-4 py-3 font-medium text-gray-500">{t('subscription.col_name')}</th>
+              <th className="px-4 py-3 font-medium text-gray-500">
+                {t('subscription.col_status')}
+              </th>
+              <th className="px-4 py-3 font-medium text-gray-500">
+                {t('subscription.col_period')}
+              </th>
+              <th className="px-4 py-3 font-medium text-gray-500">{t('subscription.col_mrr')}</th>
+              <th className="px-4 py-3 font-medium text-gray-500">
+                {t('subscription.col_next_renewal')}
+              </th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                  Yükleniyor...
+                  {t('subscription.loading')}
                 </td>
               </tr>
             )}
             {!isLoading && filtered.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                  Abonelik bulunamadi
+                  {t('subscription.empty')}
                 </td>
               </tr>
             )}
@@ -287,12 +314,10 @@ export default function SubscriptionListPage() {
                   <span
                     className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[sub.status] ?? ''}`}
                   >
-                    {STATUS_LABELS[sub.status] ?? sub.status}
+                    {statusLabel(sub.status)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-500">
-                  {CYCLE_LABELS[sub.billing_cycle] ?? sub.billing_cycle}
-                </td>
+                <td className="px-4 py-3 text-gray-500">{cycleLabel(sub.billing_cycle)}</td>
                 <td className="px-4 py-3 font-medium" style={{ color: 'var(--text-primary)' }}>
                   {formatCurrency(sub.mrr, sub.currency)}
                 </td>
@@ -303,7 +328,6 @@ export default function SubscriptionListPage() {
         </table>
       </div>
 
-      {/* Create Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div
@@ -311,12 +335,12 @@ export default function SubscriptionListPage() {
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
             <h2 className="mb-4 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-              Yeni Abonelik
+              {t('subscription.modal_new')}
             </h2>
             <div className="space-y-3">
               <div>
                 <label htmlFor="sub-name" className="mb-1 block text-sm text-gray-500">
-                  Ad
+                  {t('subscription.col_name')}
                 </label>
                 <input
                   id="sub-name"
@@ -333,7 +357,7 @@ export default function SubscriptionListPage() {
               </div>
               <div>
                 <label htmlFor="sub-customer" className="mb-1 block text-sm text-gray-500">
-                  Müşteri
+                  {t('subscription.lbl_customer')}
                 </label>
                 <select
                   id="sub-customer"
@@ -346,7 +370,7 @@ export default function SubscriptionListPage() {
                     color: 'var(--text-primary)',
                   }}
                 >
-                  <option value="">Müşteri seçin</option>
+                  <option value="">{t('subscription.select_customer')}</option>
                   {(customers?.items ?? []).map(
                     (c: { id: number; name: string; company: string }) => (
                       <option key={c.id} value={c.id}>
@@ -359,7 +383,7 @@ export default function SubscriptionListPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="sub-cycle" className="mb-1 block text-sm text-gray-500">
-                    Fatura Donemi
+                    {t('subscription.lbl_billing_cycle')}
                   </label>
                   <select
                     id="sub-cycle"
@@ -372,14 +396,14 @@ export default function SubscriptionListPage() {
                       color: 'var(--text-primary)',
                     }}
                   >
-                    <option value="monthly">Aylik</option>
-                    <option value="quarterly">Ceyrektik</option>
-                    <option value="annual">Yillik</option>
+                    <option value="monthly">{t('subscription.cycle_monthly')}</option>
+                    <option value="quarterly">{t('subscription.cycle_quarterly')}</option>
+                    <option value="annual">{t('subscription.cycle_annual')}</option>
                   </select>
                 </div>
                 <div>
                   <label htmlFor="sub-start" className="mb-1 block text-sm text-gray-500">
-                    Baslangic Tarihi
+                    {t('subscription.lbl_start_date')}
                   </label>
                   <input
                     id="sub-start"
@@ -398,7 +422,7 @@ export default function SubscriptionListPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="sub-mrr" className="mb-1 block text-sm text-gray-500">
-                    Aylik Gelir (MRR)
+                    {t('subscription.lbl_mrr')}
                   </label>
                   <input
                     id="sub-mrr"
@@ -417,7 +441,7 @@ export default function SubscriptionListPage() {
                 </div>
                 <div>
                   <label htmlFor="sub-currency" className="mb-1 block text-sm text-gray-500">
-                    Para Birimi
+                    {t('subscription.lbl_currency')}
                   </label>
                   <select
                     id="sub-currency"
@@ -445,7 +469,7 @@ export default function SubscriptionListPage() {
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 <label htmlFor="sub-autorenew" className="text-sm text-gray-500">
-                  Otomatik Yenile
+                  {t('subscription.lbl_auto_renew')}
                 </label>
               </div>
             </div>
@@ -456,7 +480,7 @@ export default function SubscriptionListPage() {
                 className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               >
-                Vazgec
+                {t('subscription.btn_discard')}
               </button>
               <button
                 type="button"
@@ -464,7 +488,7 @@ export default function SubscriptionListPage() {
                 disabled={createMutation.isPending}
                 className="rounded-lg bg-honeywell-red px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                {createMutation.isPending ? 'Oluşturuluyor...' : 'Oluştur'}
+                {createMutation.isPending ? t('subscription.btn_creating') : t('common.create')}
               </button>
             </div>
           </div>

@@ -23,8 +23,10 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { engagementApi, sequenceV2Api } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import type { Sequence, SequenceEnrollment } from '../../lib/types';
+import { useT } from '../../hooks/useT';
 
 export default function SequencesPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -49,30 +51,30 @@ export default function SequencesPage() {
   const enrollMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => engagementApi.enrollInSequence(payload),
     onSuccess: () => {
-      toast.success('Kayıt başarılı');
+      toast.success(t('sequences.toast_enroll_ok'));
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
       setIsEnrollOpen(false);
       resetEnrollForm();
     },
-    onError: () => toast.error('Kayıt başarısız'),
+    onError: () => toast.error(t('sequences.toast_enroll_fail')),
   });
 
   const pauseMutation = useMutation({
     mutationFn: (enrollmentId: number) => engagementApi.pauseEnrollment(enrollmentId),
     onSuccess: () => {
-      toast.success('Kayıt duraklatildi');
+      toast.success(t('sequences.toast_pause_ok'));
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
     },
-    onError: () => toast.error('Duraklatma başarısız'),
+    onError: () => toast.error(t('sequences.toast_pause_fail')),
   });
 
   const resumeMutation = useMutation({
     mutationFn: (enrollmentId: number) => engagementApi.resumeEnrollment(enrollmentId),
     onSuccess: () => {
-      toast.success('Kayıt devam ettiriliyor');
+      toast.success(t('sequences.toast_resume_ok'));
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
     },
-    onError: () => toast.error('Devam ettirme başarısız'),
+    onError: () => toast.error(t('sequences.toast_resume_fail')),
   });
 
   function resetEnrollForm() {
@@ -82,7 +84,7 @@ export default function SequencesPage() {
   function handleEnroll() {
     if (!selectedSequenceId) return;
     if (!enrollForm.opportunity_id && !enrollForm.customer_id) {
-      toast.error('Fırsat ID veya Müşteri ID gereklidir');
+      toast.error(t('sequences.err_need_id'));
       return;
     }
     enrollMutation.mutate({
@@ -127,13 +129,13 @@ export default function SequencesPage() {
     steps.some((s) => Array.isArray(s.branch_rules) && s.branch_rules.length > 0);
 
   const EXIT_LABELS: Record<string, string> = {
-    all_steps_completed: 'Tamamlandi',
-    lead_converted: 'Lead Donusturuldu',
-    opp_closed: 'Fırsat Kapandi',
+    all_steps_completed: t('sequences.status_completed'),
+    lead_converted: 'Lead converted',
+    opp_closed: t('sequences.exit_opp_closed'),
     email_bounced: 'Email Bounce',
     dnc: 'DNC',
-    manual: 'Manuel Çıkarıldı',
-    global_exit: 'Global Çıkış',
+    manual: t('sequences.exit_manual'),
+    global_exit: t('sequences.exit_global'),
   };
 
   const STATUS_CONFIG: Record<
@@ -144,29 +146,31 @@ export default function SequencesPage() {
       icon: typeof CheckCircle;
     }
   > = {
-    active: { variant: 'success', label: 'Aktif', icon: Clock },
-    completed: { variant: 'info', label: 'Tamamlandi', icon: CheckCircle },
-    exited: { variant: 'danger', label: 'Çıkarıldı', icon: XCircle },
-    paused: { variant: 'warning', label: 'Duraklatildi', icon: AlertCircle },
-    cancelled: { variant: 'default', label: 'İptal', icon: XCircle },
+    active: { variant: 'success', label: t('sequences.status_active'), icon: Clock },
+    completed: { variant: 'info', label: t('sequences.status_completed'), icon: CheckCircle },
+    exited: { variant: 'danger', label: t('sequences.status_exited'), icon: XCircle },
+    paused: { variant: 'warning', label: t('sequences.status_paused'), icon: AlertCircle },
+    cancelled: { variant: 'default', label: t('sequences.status_cancelled'), icon: XCircle },
   };
 
   return (
     <div>
-      <PageHeader title="Sekanslar" description="Otomatik takip adimlari">
-        <Button onClick={() => navigate('/engagement/sequences/builder')}>Yeni Sekans</Button>
+      <PageHeader title={t('sequences.title')} description={t('sequences.description')}>
+        <Button onClick={() => navigate('/engagement/sequences/builder')}>
+          {t('sequences.new')}
+        </Button>
       </PageHeader>
 
       {isLoading ? (
         <Skeleton variant="card" count={3} />
       ) : sequences.length === 0 ? (
         <EmptyState
-          title="Sekans bulunamadi"
-          description="Henüz sekans tanimlanmamis"
+          title={t('sequences.empty')}
+          description={t('sequences.empty')}
           icon={<ListChecks size={40} />}
           action={
             <Button onClick={() => navigate('/engagement/sequences/builder')}>
-              İlk Sekansi Ekle
+              {t('sequences.first_add')}
             </Button>
           }
         />
@@ -187,26 +191,26 @@ export default function SequencesPage() {
                       )}
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="info" size="sm">
-                          {seq.steps.length} adim
+                          {seq.steps.length}
                         </Badge>
                         <Badge variant="default" size="sm">
-                          {enrollCount} kayıt
+                          {t('sequences.enroll_count').replace('{count}', String(enrollCount))}
                         </Badge>
                         {hasVariants(seq.steps) && (
                           <Badge variant="warning" size="sm">
                             <FlaskConical size={12} className="mr-1 inline" />
-                            A/B Test
+                            {t('sequences.ab_test')}
                           </Badge>
                         )}
                         {hasBranching(seq.steps) && (
                           <Badge variant="info" size="sm">
                             <GitBranch size={12} className="mr-1 inline" />
-                            Dallanma
+                            {t('sequences.branching')}
                           </Badge>
                         )}
                         {seq.auto_enroll_rules && (
                           <Badge variant="success" size="sm">
-                            Oto-Kayıt
+                            {t('sequences.auto_enroll')}
                           </Badge>
                         )}
                         <span className="text-xs text-gray-500">
@@ -220,10 +224,10 @@ export default function SequencesPage() {
                         size="sm"
                         onClick={() => navigate(`/engagement/sequences/${seq.id}/edit`)}
                       >
-                        Düzenle
+                        {t('sequences.edit')}
                       </Button>
                       <Button variant="secondary" size="sm" onClick={() => openEnrollModal(seq.id)}>
-                        Kayıt Ol
+                        {t('sequences.enroll')}
                       </Button>
                     </div>
                   </div>
@@ -231,7 +235,9 @@ export default function SequencesPage() {
                   {/* Enrollments list */}
                   {enrollments.length > 0 && (
                     <div className="border-t border-gray-100 pt-3">
-                      <p className="mb-2 text-xs font-medium text-gray-500">Kayıtlar</p>
+                      <p className="mb-2 text-xs font-medium text-gray-500">
+                        {t('sequences.enrollments')}
+                      </p>
                       <div className="space-y-2">
                         {enrollments.map((enrollment) => {
                           const sc = STATUS_CONFIG[enrollment.status] || STATUS_CONFIG.active;
@@ -245,17 +251,26 @@ export default function SequencesPage() {
                                 <span className="font-mono text-gray-500">#{enrollment.id}</span>
                                 {enrollment.opportunity_id && (
                                   <span className="text-xs text-gray-500">
-                                    Fırsat: {enrollment.opportunity_id}
+                                    {t('sequences.opp_line').replace(
+                                      '{id}',
+                                      String(enrollment.opportunity_id),
+                                    )}
                                   </span>
                                 )}
                                 {enrollment.customer_id && (
                                   <span className="text-xs text-gray-500">
-                                    Müşteri: {enrollment.customer_id}
+                                    {t('sequences.cust_line').replace(
+                                      '{id}',
+                                      String(enrollment.customer_id),
+                                    )}
                                   </span>
                                 )}
                                 {enrollment.lead_id && (
                                   <span className="text-xs text-gray-500">
-                                    Lead: {enrollment.lead_id}
+                                    {t('sequences.lead_line').replace(
+                                      '{id}',
+                                      String(enrollment.lead_id),
+                                    )}
                                   </span>
                                 )}
                                 <Badge variant={sc.variant} size="sm">
@@ -263,7 +278,9 @@ export default function SequencesPage() {
                                   {sc.label}
                                 </Badge>
                                 <span className="text-xs text-gray-400">
-                                  Adim {enrollment.current_step}/{seq.steps.length}
+                                  {t('sequences.step_of')
+                                    .replace('{step}', String(enrollment.current_step))
+                                    .replace('{total}', String(seq.steps.length))}
                                 </span>
                                 {enrollment.exit_reason && (
                                   <Badge variant="default" size="sm">
@@ -284,7 +301,7 @@ export default function SequencesPage() {
                                     loading={resumeMutation.isPending}
                                     onClick={() => resumeMutation.mutate(enrollment.id)}
                                   >
-                                    Devam Et
+                                    {t('sequences.resume')}
                                   </Button>
                                 ) : (
                                   enrollment.status === 'active' && (
@@ -294,7 +311,7 @@ export default function SequencesPage() {
                                       loading={pauseMutation.isPending}
                                       onClick={() => pauseMutation.mutate(enrollment.id)}
                                     >
-                                      Duraklat
+                                      {t('sequences.pause')}
                                     </Button>
                                   )
                                 )}
@@ -315,19 +332,23 @@ export default function SequencesPage() {
       {/* V2 Analytics Summary */}
       {analyticsData && (
         <div className="mt-6">
-          <Card title="Dizi Analitiği (V2)">
+          <Card title={t('sequences.analytics_v2_title')}>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-4">
               <div className="rounded-lg border p-3 text-center">
                 <div className="text-2xl font-bold text-blue-600">
                   {analyticsData.avg_touches_per_target ?? 0}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">Ort. Temas / Hedef</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {t('sequences.analytics_avg_touches')}
+                </div>
               </div>
               <div className="rounded-lg border p-3 text-center">
                 <div className="text-2xl font-bold text-green-600">
                   {analyticsData.total_step_runs ?? 0}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">Toplam Step Run</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {t('sequences.analytics_total_step_runs')}
+                </div>
               </div>
               {Object.entries(analyticsData.status_distribution || {}).map(([status, count]) => (
                 <div key={status} className="rounded-lg border p-3 text-center">
@@ -341,7 +362,9 @@ export default function SequencesPage() {
             {analyticsData.exit_reason_distribution &&
               Object.keys(analyticsData.exit_reason_distribution).length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Çıkış Nedeni Dagilimi</p>
+                  <p className="text-xs font-medium text-gray-500 mb-2">
+                    {t('sequences.analytics_exit_reason_dist')}
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(analyticsData.exit_reason_distribution).map(
                       ([reason, count]) => (
@@ -366,24 +389,26 @@ export default function SequencesPage() {
       {/* A/B Variant Metrics */}
       {variantData?.variants && variantData.variants.length > 0 && (
         <div className="mt-4">
-          <Card title="A/B Varyant Performansi">
+          <Card title={t('sequences.analytics_ab_perf_title')}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs text-gray-500">
-                    <th className="pb-2 pr-4">Dizi</th>
-                    <th className="pb-2 pr-4">Adım</th>
-                    <th className="pb-2 pr-4">Varyant</th>
-                    <th className="pb-2 pr-4">Toplam</th>
-                    <th className="pb-2 pr-4">Tamamlanan</th>
-                    <th className="pb-2">Başarısız</th>
+                    <th className="pb-2 pr-4">{t('sequences.tbl_sequence')}</th>
+                    <th className="pb-2 pr-4">{t('sequences.tbl_step')}</th>
+                    <th className="pb-2 pr-4">{t('sequences.tbl_variant')}</th>
+                    <th className="pb-2 pr-4">{t('sequences.tbl_total')}</th>
+                    <th className="pb-2 pr-4">{t('sequences.tbl_completed')}</th>
+                    <th className="pb-2">{t('sequences.tbl_failed')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {variantData.variants.map((v: Record<string, unknown>, i: number) => (
                     <tr key={i} className="border-b border-gray-50">
                       <td className="py-2 pr-4">#{v.sequence_id as number}</td>
-                      <td className="py-2 pr-4">Adim {v.step_number as number}</td>
+                      <td className="py-2 pr-4">
+                        {t('sequences.tbl_step')} {v.step_number as number}
+                      </td>
                       <td className="py-2 pr-4">
                         <Badge variant={v.variant_key === 'A' ? 'info' : 'warning'} size="sm">
                           {v.variant_key as string}
@@ -402,13 +427,17 @@ export default function SequencesPage() {
       )}
 
       {/* Enroll Modal */}
-      <Modal isOpen={isEnrollOpen} onClose={() => setIsEnrollOpen(false)} title="Sekansa Kayıt">
+      <Modal
+        isOpen={isEnrollOpen}
+        onClose={() => setIsEnrollOpen(false)}
+        title={t('sequences.modal_enroll_title')}
+      >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Fırsat veya müşteri bilgisi girerek sekansa kayıt olun.
-          </p>
+          <p className="text-sm text-gray-600">{t('sequences.modal_enroll_help')}</p>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Fırsat ID</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('transcripts.lbl_opp_id')}
+            </label>
             <Input
               type="number"
               value={enrollForm.opportunity_id}
@@ -417,7 +446,9 @@ export default function SequencesPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Müşteri ID</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('transcripts.lbl_cust_id')}
+            </label>
             <Input
               type="number"
               value={enrollForm.customer_id}
@@ -427,10 +458,10 @@ export default function SequencesPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsEnrollOpen(false)}>
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button loading={enrollMutation.isPending} onClick={handleEnroll}>
-              Kayıt Ol
+              {t('sequences.enroll')}
             </Button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 import {
@@ -31,6 +31,7 @@ import {
 } from '../../lib/api';
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
+import { useT } from '../../hooks/useT';
 
 import type {
   CockpitKpis,
@@ -53,13 +54,6 @@ const SEVERITY_VARIANT: Record<string, BadgeVariant> = {
   low: 'default',
 };
 
-const SEVERITY_LABEL: Record<string, string> = {
-  critical: 'Kritik',
-  high: 'Yüksek',
-  medium: 'Orta',
-  low: 'Düşük',
-};
-
 const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
   urgent: 'danger',
   high: 'warning',
@@ -67,16 +61,47 @@ const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
   low: 'default',
 };
 
-const PRIORITY_LABEL: Record<string, string> = {
-  urgent: 'Acil',
-  high: 'Yüksek',
-  normal: 'Normal',
-  low: 'Düşük',
-};
-
 // ── KPI Strip ────────────────────────────────────────
 
 function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean }) {
+  const t = useT();
+
+  const kpis = useMemo(() => {
+    if (!data) return [];
+    return [
+      {
+        label: t('cockpit.kpi_pipeline'),
+        value: formatCurrency(data.pipeline_total, data.pipeline_currency),
+        icon: <TrendingUp size={18} className="text-blue-500" />,
+      },
+      {
+        label: t('cockpit.kpi_win_rate'),
+        value: `%${(data.win_rate * 100).toFixed(1)}`,
+        icon: <CheckCircle2 size={18} className="text-green-500" />,
+      },
+      {
+        label: t('cockpit.kpi_at_risk'),
+        value: String(data.at_risk_count),
+        icon: <AlertTriangle size={18} className="text-red-500" />,
+      },
+      {
+        label: t('cockpit.kpi_avg_velocity'),
+        value: String(data.avg_deal_velocity_days),
+        icon: <Clock size={18} className="text-amber-500" />,
+      },
+      {
+        label: t('cockpit.kpi_ai_tasks'),
+        value: String(data.open_ai_tasks),
+        icon: <Bot size={18} className="text-purple-500" />,
+      },
+      {
+        label: t('cockpit.kpi_signals'),
+        value: String(data.signal_stats.total),
+        icon: <Activity size={18} className="text-indigo-500" />,
+      },
+    ];
+  }, [data, t]);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
@@ -88,39 +113,6 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
   }
 
   if (!data) return null;
-
-  const kpis = [
-    {
-      label: 'Pipeline',
-      value: formatCurrency(data.pipeline_total, data.pipeline_currency),
-      icon: <TrendingUp size={18} className="text-blue-500" />,
-    },
-    {
-      label: 'Kazanma Orani',
-      value: `%${(data.win_rate * 100).toFixed(1)}`,
-      icon: <CheckCircle2 size={18} className="text-green-500" />,
-    },
-    {
-      label: 'Risk Altinda',
-      value: String(data.at_risk_count),
-      icon: <AlertTriangle size={18} className="text-red-500" />,
-    },
-    {
-      label: 'Ort. Hız (gun)',
-      value: String(data.avg_deal_velocity_days),
-      icon: <Clock size={18} className="text-amber-500" />,
-    },
-    {
-      label: 'AI Gorevler',
-      value: String(data.open_ai_tasks),
-      icon: <Bot size={18} className="text-purple-500" />,
-    },
-    {
-      label: 'Sinyaller',
-      value: String(data.signal_stats.total),
-      icon: <Activity size={18} className="text-indigo-500" />,
-    },
-  ];
 
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
@@ -140,6 +132,16 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
 // ── Signal Stream ────────────────────────────────────
 
 function SignalStream() {
+  const t = useT();
+  const severityLabel = useMemo(
+    () => ({
+      critical: t('cockpit.severity_critical'),
+      high: t('cockpit.severity_high'),
+      medium: t('cockpit.severity_medium'),
+      low: t('cockpit.severity_low'),
+    }),
+    [t],
+  );
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const queryClient = useQueryClient();
 
@@ -153,7 +155,7 @@ function SignalStream() {
   const resolveMutation = useMutation({
     mutationFn: cockpitApi.resolveSignal,
     onSuccess: () => {
-      toast.success('Sinyal cozumlendi');
+      toast.success(t('cockpit.toast_signal_resolved'));
       queryClient.invalidateQueries({ queryKey: ['cockpit'] });
     },
   });
@@ -162,25 +164,25 @@ function SignalStream() {
 
   return (
     <Card
-      title="Sinyal Akisi"
+      title={t('cockpit.signal_stream_title')}
       action={
         <select
           value={severityFilter}
           onChange={(e) => setSeverityFilter(e.target.value)}
           className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
         >
-          <option value="all">Tumu</option>
-          <option value="critical">Kritik</option>
-          <option value="high">Yüksek</option>
-          <option value="medium">Orta</option>
-          <option value="low">Düşük</option>
+          <option value="all">{t('cockpit.filter_all')}</option>
+          <option value="critical">{t('cockpit.severity_critical')}</option>
+          <option value="high">{t('cockpit.severity_high')}</option>
+          <option value="medium">{t('cockpit.severity_medium')}</option>
+          <option value="low">{t('cockpit.severity_low')}</option>
         </select>
       }
     >
       {isLoading ? (
         <Skeleton variant="line" count={5} />
       ) : signals.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">Sinyal bulunamadi</p>
+        <p className="py-8 text-center text-sm text-gray-400">{t('cockpit.signal_empty')}</p>
       ) : (
         <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
           {signals.map((signal) => (
@@ -191,7 +193,8 @@ function SignalStream() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <Badge variant={SEVERITY_VARIANT[signal.severity] ?? 'default'} size="sm">
-                    {SEVERITY_LABEL[signal.severity] ?? signal.severity}
+                    {severityLabel[signal.severity as keyof typeof severityLabel] ??
+                      signal.severity}
                   </Badge>
                   <span className="text-xs text-gray-400">{signal.signal_type}</span>
                 </div>
@@ -208,7 +211,7 @@ function SignalStream() {
                   size="sm"
                   onClick={() => resolveMutation.mutate(signal.id)}
                   loading={resolveMutation.isPending}
-                  title="Cozumle"
+                  title={t('cockpit.resolve_title')}
                 >
                   <CheckCircle2 size={16} />
                 </Button>
@@ -224,6 +227,16 @@ function SignalStream() {
 // ── Action Queue ─────────────────────────────────────
 
 function ActionQueue() {
+  const t = useT();
+  const priorityLabel = useMemo(
+    () => ({
+      urgent: t('cockpit.priority_urgent'),
+      high: t('cockpit.priority_high'),
+      normal: t('cockpit.priority_normal'),
+      low: t('cockpit.priority_low'),
+    }),
+    [t],
+  );
   const { data, isLoading } = useQuery({
     queryKey: ['cockpit', 'actions'],
     queryFn: cockpitApi.getActions,
@@ -233,11 +246,11 @@ function ActionQueue() {
   const actions: CockpitAction[] = data?.items ?? [];
 
   return (
-    <Card title="AI Önerilen Gorevler">
+    <Card title={t('cockpit.ai_tasks_card')}>
       {isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : actions.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">Bekleyen gorev yok</p>
+        <p className="py-8 text-center text-sm text-gray-400">{t('cockpit.no_pending_tasks')}</p>
       ) : (
         <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
           {actions.map((action) => (
@@ -247,7 +260,7 @@ function ActionQueue() {
             >
               <div className="flex items-center gap-2">
                 <Badge variant={PRIORITY_VARIANT[action.priority] ?? 'default'} size="sm">
-                  {PRIORITY_LABEL[action.priority] ?? action.priority}
+                  {priorityLabel[action.priority as keyof typeof priorityLabel] ?? action.priority}
                 </Badge>
               </div>
               <p className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -259,7 +272,9 @@ function ActionQueue() {
                 </p>
               )}
               {action.due_at && (
-                <p className="mt-1 text-xs text-gray-400">Son tarih: {formatDate(action.due_at)}</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {t('cockpit.due_prefix')} {formatDate(action.due_at)}
+                </p>
               )}
             </div>
           ))}
@@ -272,6 +287,7 @@ function ActionQueue() {
 // ── Trend Charts ─────────────────────────────────────
 
 function TrendCharts() {
+  const t = useT();
   const { data, isLoading } = useQuery({
     queryKey: ['cockpit', 'trends'],
     queryFn: cockpitApi.getTrends,
@@ -280,11 +296,11 @@ function TrendCharts() {
   const chartData: { week: string; signal_count: number }[] = data?.signal_volume ?? [];
 
   return (
-    <Card title="Sinyal Hacmi Trendi">
+    <Card title={t('cockpit.trend_title')}>
       {isLoading ? (
         <Skeleton className="h-64 rounded-xl" />
       ) : chartData.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">Trend verisi yok</p>
+        <p className="py-8 text-center text-sm text-gray-400">{t('cockpit.no_trend')}</p>
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData}>
@@ -298,7 +314,12 @@ function TrendCharts() {
                 border: '1px solid #e5e7eb',
               }}
             />
-            <Bar dataKey="signal_count" name="Sinyal Sayisi" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="signal_count"
+              name={t('cockpit.chart_signal_count')}
+              fill="#ef4444"
+              radius={[4, 4, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -317,6 +338,7 @@ interface PlaybookExecution {
 }
 
 function PlaybookPanel() {
+  const t = useT();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -328,7 +350,7 @@ function PlaybookPanel() {
   const cancelMutation = useMutation({
     mutationFn: playbookApi.cancelExecution,
     onSuccess: () => {
-      toast.success('Playbook iptal edildi');
+      toast.success(t('cockpit.toast_playbook_cancelled'));
       queryClient.invalidateQueries({ queryKey: ['playbook'] });
     },
   });
@@ -336,11 +358,11 @@ function PlaybookPanel() {
   const executions: PlaybookExecution[] = data?.items ?? data ?? [];
 
   return (
-    <Card title="Aktif Playbook Calismalari">
+    <Card title={t('cockpit.playbooks_active')}>
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : executions.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">Aktif calisma yok</p>
+        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_active_playbook')}</p>
       ) : (
         <div className="space-y-2">
           {executions.map((exec) => (
@@ -362,7 +384,7 @@ function PlaybookPanel() {
                 size="sm"
                 onClick={() => cancelMutation.mutate(exec.id)}
                 loading={cancelMutation.isPending}
-                title="İptal Et"
+                title={t('cockpit.cancel_title')}
               >
                 <XCircle size={16} className="text-red-400" />
               </Button>
@@ -377,6 +399,7 @@ function PlaybookPanel() {
 // ── Coaching Panel (manager only) ────────────────────
 
 function CoachingPanel() {
+  const t = useT();
   const { data, isLoading } = useQuery<CoachingOverview>({
     queryKey: ['coaching', 'overview'],
     queryFn: coachingApi.getOverview,
@@ -390,20 +413,28 @@ function CoachingPanel() {
   };
 
   return (
-    <Card title="Temsilci Koocluk Skorlari">
+    <Card title={t('cockpit.coaching_title')}>
       {isLoading ? (
         <Skeleton variant="table" />
       ) : !data || data.reps.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">Veri bulunamadi</p>
+        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.data_not_found')}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Temsilci</th>
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Skor</th>
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Risk</th>
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">Öneriler</th>
+                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">
+                  {t('cockpit.col_rep')}
+                </th>
+                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">
+                  {t('cockpit.col_score')}
+                </th>
+                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">
+                  {t('cockpit.col_risk')}
+                </th>
+                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">
+                  {t('cockpit.col_recommendations')}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -437,6 +468,7 @@ function CoachingPanel() {
 // ── Competitive Intel Panel ─────────────────────────
 
 function CompetitiveIntelPanel() {
+  const t = useT();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -448,11 +480,11 @@ function CompetitiveIntelPanel() {
   const crawlMutation = useMutation({
     mutationFn: aiApi.crawlCompetitors,
     onSuccess: () => {
-      toast.success('Rakip tarama tamamlandi');
+      toast.success(t('cockpit.toast_crawl_ok'));
       queryClient.invalidateQueries({ queryKey: ['ai-competitive-intel'] });
     },
     onError: () => {
-      toast.error('Rakip tarama başarısız oldu');
+      toast.error(t('cockpit.toast_crawl_fail'));
     },
   });
 
@@ -460,7 +492,7 @@ function CompetitiveIntelPanel() {
 
   return (
     <Card
-      title="Rekabet Istihbarati"
+      title={t('cockpit.competitive_title')}
       action={
         <Button
           variant="secondary"
@@ -468,16 +500,14 @@ function CompetitiveIntelPanel() {
           onClick={() => crawlMutation.mutate()}
           loading={crawlMutation.isPending}
         >
-          Rakip Tara
+          {t('cockpit.crawl_btn')}
         </Button>
       }
     >
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : competitors.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">
-          Son 90 gunde rakip bahsi bulunamadi
-        </p>
+        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_comp_mentions')}</p>
       ) : (
         <div className="space-y-3">
           {competitors
@@ -490,7 +520,7 @@ function CompetitiveIntelPanel() {
                 sentiment_avg?: number;
                 recent_mentions?: { source_type: string; context_snippet: string }[];
               }) => {
-                const compName = comp.name ?? comp.competitor ?? 'Bilinmiyor';
+                const compName = comp.name ?? comp.competitor ?? t('cockpit.unknown');
                 return (
                   <div
                     key={compName}
@@ -504,17 +534,17 @@ function CompetitiveIntelPanel() {
                         </span>
                       </div>
                       <Badge variant={comp.mention_count > 5 ? 'danger' : 'info'} size="sm">
-                        {comp.mention_count} bahsetme
+                        {t('cockpit.mentions_count').replace('{count}', String(comp.mention_count))}
                       </Badge>
                     </div>
                     {comp.sentiment_avg != null && (
                       <p className="text-xs text-gray-500 mb-1">
-                        Duygu:{' '}
+                        {t('cockpit.sentiment')}{' '}
                         {comp.sentiment_avg > 0
-                          ? 'Pozitif'
+                          ? t('cockpit.sentiment_positive')
                           : comp.sentiment_avg < 0
-                            ? 'Negatif'
-                            : 'Notr'}
+                            ? t('cockpit.sentiment_negative')
+                            : t('cockpit.sentiment_neutral')}
                       </p>
                     )}
                     {comp.recent_mentions?.slice(0, 1).map((m, i) => (
@@ -535,6 +565,7 @@ function CompetitiveIntelPanel() {
 // ── At-Risk Deals Panel ─────────────────────────────
 
 function AtRiskDealsPanel() {
+  const t = useT();
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ['deal-health-at-risk-cockpit'],
@@ -545,11 +576,11 @@ function AtRiskDealsPanel() {
   const deals = data?.opportunities ?? data?.deals ?? data?.items ?? [];
 
   return (
-    <Card title="Riskli Fırsatlar">
+    <Card title={t('cockpit.at_risk_title')}>
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : deals.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">Risk altinda fırsat yok</p>
+        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_at_risk')}</p>
       ) : (
         <div className="space-y-2">
           {deals
@@ -586,7 +617,9 @@ function AtRiskDealsPanel() {
                       variant={deal.risk_level === 'critical' ? 'danger' : 'warning'}
                       size="sm"
                     >
-                      {deal.risk_level === 'critical' ? 'Kritik' : 'Risk'}
+                      {deal.risk_level === 'critical'
+                        ? t('cockpit.badge_critical')
+                        : t('cockpit.badge_risk')}
                     </Badge>
                   </div>
                 </button>
@@ -601,6 +634,7 @@ function AtRiskDealsPanel() {
 // ── Activity Drought Panel (Modul 6) ──────────────────
 
 function ActivityDroughtPanel() {
+  const t = useT();
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ['activity-drought'],
@@ -610,19 +644,22 @@ function ActivityDroughtPanel() {
 
   const items: ActivityDroughtItem[] = data?.items ?? [];
 
-  const STAGE_LABELS: Record<string, string> = {
-    prospecting: 'Arastirma',
-    qualified: 'Nitelenmis',
-    proposal: 'Teklif',
-    negotiation: 'Muzakere',
-  };
+  const stageLabels = useMemo(
+    () => ({
+      prospecting: t('opp_detail.stage_prospecting'),
+      qualified: t('opp_detail.stage_qualified'),
+      proposal: t('opp_detail.stage_proposal'),
+      negotiation: t('opp_detail.stage_negotiation'),
+    }),
+    [t],
+  );
 
   return (
-    <Card title="Aktivite Kurugu">
+    <Card title={t('cockpit.activity_drought')}>
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : items.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">Son 7 gunde aktivitesiz fırsat yok</p>
+        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_drought')}</p>
       ) : (
         <div className="space-y-2">
           {items.slice(0, 7).map((item) => (
@@ -642,12 +679,13 @@ function ActivityDroughtPanel() {
                     {item.title}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {item.owner_name} - {STAGE_LABELS[item.stage] || item.stage}
+                    {item.owner_name} -{' '}
+                    {stageLabels[item.stage as keyof typeof stageLabels] || item.stage}
                   </span>
                 </div>
               </div>
               <Badge variant={item.days_since_last > 14 ? 'danger' : 'warning'} size="sm">
-                {item.days_since_last} gun
+                {t('cockpit.days_count').replace('{days}', String(item.days_since_last))}
               </Badge>
             </button>
           ))}
@@ -660,6 +698,7 @@ function ActivityDroughtPanel() {
 // ── Revenue Leak Panel (Modul 10) ───────────────────
 
 function RevenueLeakPanel() {
+  const t = useT();
   const navigate = useNavigate();
   const { data: leaksRaw, isLoading } = useQuery({
     queryKey: ['revenue-leaks-cockpit'],
@@ -669,26 +708,31 @@ function RevenueLeakPanel() {
 
   const leaks: RevenueLeakResult | undefined = leaksRaw?.data;
 
-  const STAGE_LABELS: Record<string, string> = {
-    prospecting: 'Arastirma',
-    qualified: 'Nitelenmis',
-    proposal: 'Teklif',
-    negotiation: 'Muzakere',
-  };
+  const stageLabels = useMemo(
+    () => ({
+      prospecting: t('opp_detail.stage_prospecting'),
+      qualified: t('opp_detail.stage_qualified'),
+      proposal: t('opp_detail.stage_proposal'),
+      negotiation: t('opp_detail.stage_negotiation'),
+    }),
+    [t],
+  );
 
   return (
-    <Card title="Gelir Sizintisi">
+    <Card title={t('cockpit.revenue_leak')}>
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : !leaks || leaks.items.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">Sizinti tespit edilmedi</p>
+        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_leak')}</p>
       ) : (
         <div>
           <div className="mb-3 flex items-center gap-3">
             <span className="text-2xl font-bold text-red-600">
               {formatCurrency(leaks.total_leak_amount, 'TRY')}
             </span>
-            <Badge variant="danger">{leaks.total_leaks} fırsat</Badge>
+            <Badge variant="danger">
+              {t('cockpit.leak_total_opps').replace('{count}', String(leaks.total_leaks))}
+            </Badge>
           </div>
           <div className="space-y-2">
             {leaks.items.slice(0, 5).map((item: RevenueLeakItem) => (
@@ -703,7 +747,8 @@ function RevenueLeakPanel() {
                     {item.title}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {item.owner_name} - {STAGE_LABELS[item.stage] || item.stage}
+                    {item.owner_name} -{' '}
+                    {stageLabels[item.stage as keyof typeof stageLabels] || item.stage}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {item.factors.map((f) => (
@@ -736,15 +781,10 @@ function RevenueLeakPanel() {
 
 // ── Work Hub Tabs ──────────────────────────────────
 
-const WORK_HUB_TABS = [
-  { key: 'sequences', label: 'Diziler', icon: Play },
-  { key: 'feed', label: 'Sinyal Akisi', icon: Activity },
-  { key: 'todo', label: 'Gorevler', icon: CheckCircle2 },
-] as const;
-
-type WorkHubTab = (typeof WORK_HUB_TABS)[number]['key'];
+type WorkHubTab = 'sequences' | 'feed' | 'todo';
 
 function SequencesTab() {
+  const t = useT();
   const { data, isLoading } = useQuery({
     queryKey: ['cockpit', 'sequence-analytics'],
     queryFn: async () => {
@@ -775,11 +815,11 @@ function SequencesTab() {
       {/* Analytics KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">Ort. Temas/Hedef</div>
+          <div className="text-xs text-gray-500">{t('cockpit.seq_avg_touch')}</div>
           <div className="text-xl font-semibold">{analytics.avg_touches_per_target ?? '-'}</div>
         </div>
         <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">Toplam Step Run</div>
+          <div className="text-xs text-gray-500">{t('cockpit.seq_total_runs')}</div>
           <div className="text-xl font-semibold">{analytics.total_step_runs ?? 0}</div>
         </div>
         {Object.entries(analytics.status_distribution || {}).map(([status, count]) => (
@@ -793,7 +833,7 @@ function SequencesTab() {
       {/* Exit Reason Distribution */}
       {analytics.exit_reason_distribution &&
         Object.keys(analytics.exit_reason_distribution).length > 0 && (
-          <Card title="Tamamlama Nedeni Dagilimi">
+          <Card title={t('cockpit.seq_exit_dist')}>
             <div className="flex flex-wrap gap-2">
               {Object.entries(analytics.exit_reason_distribution).map(([reason, count]) => (
                 <Badge key={reason} variant="default">
@@ -805,9 +845,11 @@ function SequencesTab() {
         )}
 
       {/* Active Enrollments (next actions) */}
-      <Card title={`Aktif Diziler (${activeEnrollments.length})`}>
+      <Card
+        title={t('cockpit.seq_active_title').replace('{count}', String(activeEnrollments.length))}
+      >
         {activeEnrollments.length === 0 ? (
-          <p className="text-sm text-gray-400">Aktif dizi kaydi yok</p>
+          <p className="text-sm text-gray-400">{t('cockpit.seq_no_enrollment')}</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {activeEnrollments.slice(0, 15).map((e: Record<string, unknown>) => (
@@ -816,11 +858,15 @@ function SequencesTab() {
                 className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
               >
                 <div>
-                  <span className="font-medium">Enrollment #{e.id as number}</span>
-                  <span className="text-gray-500 ml-2">Adim {e.current_step as number}</span>
+                  <span className="font-medium">
+                    {t('cockpit.seq_enrollment').replace('{id}', String(e.id as number))}
+                  </span>
+                  <span className="text-gray-500 ml-2">
+                    {t('cockpit.seq_step').replace('{step}', String(e.current_step as number))}
+                  </span>
                 </div>
                 <Badge variant={e.is_paused ? 'warning' : 'info'}>
-                  {e.is_paused ? 'Duraklatildi' : 'Aktif'}
+                  {e.is_paused ? t('cockpit.seq_paused') : t('cockpit.seq_active')}
                 </Badge>
               </div>
             ))}
@@ -832,9 +878,20 @@ function SequencesTab() {
 }
 
 export default function CockpitPage() {
+  const t = useT();
   const user = useAuthStore((state) => state.user);
   const isManager = user?.role === 'sales_manager';
   const [activeTab, setActiveTab] = useState<WorkHubTab>('feed');
+
+  const workHubTabs = useMemo(
+    () =>
+      [
+        { key: 'sequences' as const, label: t('cockpit.tab_sequences'), icon: Play },
+        { key: 'feed' as const, label: t('cockpit.tab_feed'), icon: Activity },
+        { key: 'todo' as const, label: t('cockpit.tab_todo'), icon: CheckCircle2 },
+      ] as const,
+    [t],
+  );
 
   const { data: kpis, isLoading: isKpisLoading } = useQuery<CockpitKpis>({
     queryKey: ['cockpit', 'kpis'],
@@ -844,10 +901,7 @@ export default function CockpitPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Gelir Kokpiti"
-        description="Pipeline, sinyaller ve AI destekli gorev yönetimi"
-      />
+      <PageHeader title={t('cockpit.title')} description={t('cockpit.description')} />
 
       {/* KPI Strip */}
       <KpiStrip data={kpis} isLoading={isKpisLoading} />
@@ -855,7 +909,7 @@ export default function CockpitPage() {
       {/* Work Hub — 3 Tab Layout */}
       <div>
         <div className="flex border-b mb-4">
-          {WORK_HUB_TABS.map((tab) => {
+          {workHubTabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button

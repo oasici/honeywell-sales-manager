@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -13,15 +13,9 @@ import { formatCurrency } from '../../lib/formatters';
 import { Modal } from '../../components/ui/Modal';
 import type { Campaign } from '../../lib/types';
 import { Megaphone } from 'lucide-react';
-import { STATUS_LABELS, STATUS_VARIANTS } from './campaignConstants';
-
-const STATUS_TABS = [
-  { value: '', label: 'Tumu' },
-  { value: 'draft', label: 'Taslak' },
-  { value: 'active', label: 'Aktif' },
-  { value: 'paused', label: 'Durduruldu' },
-  { value: 'completed', label: 'Tamamlandi' },
-];
+import { STATUS_VARIANTS } from './campaignConstants';
+import { useT } from '../../hooks/useT';
+import { CAMPAIGN_STATUS_VALUES, translateCampaignStatus } from '../../lib/labelTranslations';
 
 const TYPE_LABELS: Record<string, string> = {
   email: 'E-posta',
@@ -60,6 +54,7 @@ const INITIAL_FORM: CreateForm = {
 };
 
 export default function CampaignListPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
@@ -85,6 +80,17 @@ export default function CampaignListPage() {
     },
     onError: () => toast.error('Kampanya oluşturulamadı'),
   });
+
+  const statusTabs = useMemo(
+    () => [
+      { value: '', label: t('labels.all') },
+      ...CAMPAIGN_STATUS_VALUES.map((value) => ({
+        value,
+        label: translateCampaignStatus(value, t),
+      })),
+    ],
+    [t],
+  );
 
   const handleCreate = useCallback(() => {
     if (!form.name || !form.type) {
@@ -127,7 +133,7 @@ export default function CampaignListPage() {
 
       {/* Status filter tabs */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {STATUS_TABS.map((tab) => (
+        {statusTabs.map((tab) => (
           <button
             key={tab.value}
             type="button"
@@ -197,7 +203,7 @@ export default function CampaignListPage() {
                       </td>
                       <td className="px-3 py-2">
                         <Badge variant={STATUS_VARIANTS[campaign.status] || 'default'}>
-                          {STATUS_LABELS[campaign.status] || campaign.status}
+                          {translateCampaignStatus(campaign.status, t)}
                         </Badge>
                       </td>
                       <td className="px-3 py-2 text-gray-600 dark:text-gray-400">

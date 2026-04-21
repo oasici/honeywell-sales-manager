@@ -11,6 +11,8 @@ import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { leadsApi, sequenceV2Api } from '../../lib/api';
 import { formatDate } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
+import { translateLeadStatus } from '../../lib/labelTranslations';
 import {
   ArrowLeft,
   UserCheck,
@@ -23,14 +25,6 @@ import {
   TrendingDown,
 } from 'lucide-react';
 
-const STATUS_LABELS: Record<string, string> = {
-  new: 'Yeni',
-  contacted: 'Iletisime Gecildi',
-  qualified: 'Nitelikli',
-  unqualified: 'Niteliksiz',
-  converted: 'Donusturuldu',
-};
-
 const STATUS_COLORS: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
   new: 'default',
   contacted: 'info',
@@ -39,21 +33,8 @@ const STATUS_COLORS: Record<string, 'default' | 'info' | 'warning' | 'success' |
   converted: 'success',
 };
 
-const SCORE_REASON_LABELS: Record<string, string> = {
-  email_replied: 'Email yanit',
-  email_bounced: 'Email bounce',
-  meeting_booked: 'Toplanti',
-  quote_sent: 'Teklif gönderildi',
-  quote_approved: 'Teklif onaylandı',
-  call_connected: 'Arama baglandi',
-  sequence_step_completed: 'Dizi adimi',
-  positive_keyword: 'Pozitif anahtar kelime',
-  dnc_flagged: 'DNC isaretlendi',
-  sequence_exited_unresponsive: 'Yanitsiz çıkış',
-  workflow_rule: 'İş kuralı',
-};
-
 function ScoreHistory({ leadId }: { leadId: number }) {
+  const t = useT();
   const { data } = useQuery({
     queryKey: ['score-history', leadId],
     queryFn: () => sequenceV2Api.getDomainEvents('lead.score_changed', 20),
@@ -66,9 +47,23 @@ function ScoreHistory({ leadId }: { leadId: number }) {
 
   if (events.length === 0) return null;
 
+  const SCORE_REASON_LABELS: Record<string, string> = {
+    email_replied: t('lead_score_reason.email_replied'),
+    email_bounced: t('lead_score_reason.email_bounced'),
+    meeting_booked: t('lead_score_reason.meeting_booked'),
+    quote_sent: t('lead_score_reason.quote_sent'),
+    quote_approved: t('lead_score_reason.quote_approved'),
+    call_connected: t('lead_score_reason.call_connected'),
+    sequence_step_completed: t('lead_score_reason.sequence_step_completed'),
+    positive_keyword: t('lead_score_reason.positive_keyword'),
+    dnc_flagged: t('lead_score_reason.dnc_flagged'),
+    sequence_exited_unresponsive: t('lead_score_reason.sequence_exited_unresponsive'),
+    workflow_rule: t('lead_score_reason.workflow_rule'),
+  };
+
   return (
     <div className="border-t mt-3 pt-3">
-      <p className="text-xs font-medium text-gray-500 mb-2">Skor Gecmisi</p>
+      <p className="text-xs font-medium text-gray-500 mb-2">{t('lead_detail.score_history')}</p>
       <div className="space-y-1.5 max-h-40 overflow-y-auto">
         {events.map((e: Record<string, unknown>) => {
           const payload = e.payload as Record<string, number | string>;
@@ -132,6 +127,7 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 export default function LeadDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -153,7 +149,7 @@ export default function LeadDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => leadsApi.update(leadId, payload),
     onSuccess: () => {
-      toast.success('Lead guncellendi');
+      toast.success(t('leads.toast_updated'));
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
     },
   });
@@ -161,7 +157,7 @@ export default function LeadDetailPage() {
   const convertMutation = useMutation({
     mutationFn: () => leadsApi.convert(leadId, convertForm),
     onSuccess: (data: { customer_id?: number; opportunity_id?: number }) => {
-      toast.success('Lead başarıyla donusturuldu!');
+      toast.success(t('leads.toast_converted'));
       setShowConvert(false);
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
       if (data.customer_id) {
@@ -171,20 +167,20 @@ export default function LeadDetailPage() {
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Donusum hatasi',
+          t('lead_detail.convert_error'),
       ),
   });
 
   const rescoreMutation = useMutation({
     mutationFn: () => leadsApi.rescore(leadId),
     onSuccess: () => {
-      toast.success('Skor guncellendi');
+      toast.success(t('leads.toast_rescored'));
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
     },
   });
 
   if (isLoading) return <Skeleton variant="card" count={3} />;
-  if (!lead) return <p className="p-8 text-center text-gray-500">Lead bulunamadi</p>;
+  if (!lead) return <p className="p-8 text-center text-gray-500">{t('lead_detail.not_found')}</p>;
 
   const canConvert = ['qualified', 'contacted'].includes(lead.status);
   const isConverted = lead.status === 'converted';
@@ -197,7 +193,7 @@ export default function LeadDetailPage() {
       >
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => navigate('/leads')}>
-            <ArrowLeft className="mr-1 h-4 w-4" /> Geri
+            <ArrowLeft className="mr-1 h-4 w-4" /> {t('lead_detail.back')}
           </Button>
           {!isConverted && (
             <>
@@ -206,11 +202,11 @@ export default function LeadDetailPage() {
                 onClick={() => rescoreMutation.mutate()}
                 loading={rescoreMutation.isPending}
               >
-                <RefreshCw className="mr-1 h-4 w-4" /> Yeniden Skorla
+                <RefreshCw className="mr-1 h-4 w-4" /> {t('lead_detail.rescore')}
               </Button>
               {canConvert && (
                 <Button onClick={() => setShowConvert(true)}>
-                  <UserCheck className="mr-1 h-4 w-4" /> Donustur
+                  <UserCheck className="mr-1 h-4 w-4" /> {t('lead_detail.convert')}
                 </Button>
               )}
             </>
@@ -220,31 +216,33 @@ export default function LeadDetailPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Score Card + History */}
-        <Card title="Lead Skoru">
+        <Card title={t('lead_detail.score_title')}>
           <div className="flex flex-col items-center gap-3 py-4">
             <ScoreRing score={lead.lead_score} />
             <Badge variant={STATUS_COLORS[lead.status] || 'default'} size="md">
-              {STATUS_LABELS[lead.status] || lead.status}
+              {translateLeadStatus(lead.status, t)}
             </Badge>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Kaynak: {lead.source}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t('lead_detail.source_prefix')}: {lead.source}
+            </p>
           </div>
           <ScoreHistory leadId={lead.id} />
         </Card>
 
         {/* Info Card */}
-        <Card title="Iletisim Bilgileri" className="lg:col-span-2">
+        <Card title={t('lead_detail.contact_title')} className="lg:col-span-2">
           <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
             <div className="flex items-center gap-3">
               <Mail className="h-4 w-4 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('lead_detail.email')}</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{lead.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Phone className="h-4 w-4 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Telefon</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('leads.phone')}</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {lead.phone || '-'}
                 </p>
@@ -253,7 +251,7 @@ export default function LeadDetailPage() {
             <div className="flex items-center gap-3">
               <Building2 className="h-4 w-4 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Firma</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('leads.company')}</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {lead.company || '-'}
                 </p>
@@ -262,7 +260,7 @@ export default function LeadDetailPage() {
             <div className="flex items-center gap-3">
               <Briefcase className="h-4 w-4 text-gray-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Unvan</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('leads.job_title')}</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {lead.title || '-'}
                 </p>
@@ -272,7 +270,7 @@ export default function LeadDetailPage() {
           {lead.owner_name && (
             <div className="border-t border-gray-100 px-4 py-3 dark:border-gray-700">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Atanan:{' '}
+                {t('lead_detail.assigned_to')}:{' '}
                 <span className="font-medium text-gray-900 dark:text-white">{lead.owner_name}</span>
               </p>
             </div>
@@ -281,7 +279,7 @@ export default function LeadDetailPage() {
 
         {/* Status Management */}
         {!isConverted && (
-          <Card title="Durum Yönetimi" className="lg:col-span-3">
+          <Card title={t('lead_detail.status_mgmt')} className="lg:col-span-3">
             <div className="flex flex-wrap gap-2 p-4">
               {['new', 'contacted', 'qualified', 'unqualified'].map((s) => (
                 <Button
@@ -291,7 +289,7 @@ export default function LeadDetailPage() {
                   onClick={() => updateMutation.mutate({ status: s })}
                   loading={updateMutation.isPending}
                 >
-                  {STATUS_LABELS[s]}
+                  {translateLeadStatus(s, t)}
                 </Button>
               ))}
             </div>
@@ -300,35 +298,35 @@ export default function LeadDetailPage() {
 
         {/* Conversion Info */}
         {isConverted && (
-          <Card title="Donusum Bilgileri" className="lg:col-span-3">
+          <Card title={t('lead_detail.conversion_info')} className="lg:col-span-3">
             <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
               <div>
-                <p className="text-xs text-gray-500">Donusum Tarihi</p>
+                <p className="text-xs text-gray-500">{t('lead_detail.conversion_date')}</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {formatDate(lead.converted_at)}
                 </p>
               </div>
               {lead.converted_customer_id && (
                 <div>
-                  <p className="text-xs text-gray-500">Müşteri</p>
+                  <p className="text-xs text-gray-500">{t('lead_detail.customer')}</p>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate(`/customers/${lead.converted_customer_id}`)}
                   >
-                    Müşteri #{lead.converted_customer_id}
+                    {t('lead_detail.customer')} #{lead.converted_customer_id}
                   </Button>
                 </div>
               )}
               {lead.converted_opportunity_id && (
                 <div>
-                  <p className="text-xs text-gray-500">Fırsat</p>
+                  <p className="text-xs text-gray-500">{t('lead_detail.opportunity')}</p>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate(`/opportunities/${lead.converted_opportunity_id}`)}
                   >
-                    Fırsat #{lead.converted_opportunity_id}
+                    {t('lead_detail.opportunity')} #{lead.converted_opportunity_id}
                   </Button>
                 </div>
               )}
@@ -338,7 +336,7 @@ export default function LeadDetailPage() {
 
         {/* Notes */}
         {lead.notes && (
-          <Card title="Notlar" className="lg:col-span-3">
+          <Card title={t('lead_detail.notes')} className="lg:col-span-3">
             <p className="p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
               {lead.notes}
             </p>
@@ -347,7 +345,11 @@ export default function LeadDetailPage() {
       </div>
 
       {/* Convert Modal */}
-      <Modal isOpen={showConvert} onClose={() => setShowConvert(false)} title="Lead Donustir">
+      <Modal
+        isOpen={showConvert}
+        onClose={() => setShowConvert(false)}
+        title={t('lead_detail.convert_modal_title')}
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -359,7 +361,7 @@ export default function LeadDetailPage() {
             <strong>
               {lead.first_name} {lead.last_name}
             </strong>{' '}
-            müşteri olarak kaydedilecek.
+            {t('lead_detail.convert_modal_body_suffix')}
           </p>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -371,21 +373,24 @@ export default function LeadDetailPage() {
               className="rounded border-gray-300"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              Ayni zamanda fırsat oluştur
+              {t('lead_detail.create_opportunity')}
             </span>
           </label>
           {convertForm.create_opportunity && (
             <div className="space-y-3 border-l-2 border-blue-200 pl-4 dark:border-blue-800">
               <Input
-                label="Fırsat Basligi"
+                label={t('lead_detail.opp_title')}
                 value={convertForm.opportunity_title}
                 onChange={(e) =>
                   setConvertForm({ ...convertForm, opportunity_title: e.target.value })
                 }
-                placeholder={`${lead.company || lead.last_name} - Yeni Fırsat`}
+                placeholder={t('lead_detail.opp_title_placeholder').replace(
+                  '{company}',
+                  lead.company || lead.last_name,
+                )}
               />
               <Input
-                label="Tahmini Tutar (TRY)"
+                label={t('lead_detail.opp_amount_try')}
                 type="number"
                 value={convertForm.opportunity_amount || ''}
                 onChange={(e) =>
@@ -396,10 +401,10 @@ export default function LeadDetailPage() {
           )}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setShowConvert(false)} type="button">
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={convertMutation.isPending}>
-              Donustur
+              {t('lead_detail.convert')}
             </Button>
           </div>
         </form>

@@ -27,9 +27,10 @@ import { settingsApi, meetingsApi } from '../../lib/api';
 import { usePreferencesStore } from '../../stores/preferencesStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
-import { LANGUAGE_OPTIONS } from '../../lib/i18n';
+import { LANGUAGE_OPTIONS, type TranslationKey } from '../../lib/i18n';
 import SharingRulesSection from './SharingRulesSection';
 import WebhookSettings from './WebhookSettings';
+import { currentLocale } from '../../lib/formatters';
 
 import type { StageConfig, MeetingLink, MeetingBooking } from '../../lib/types';
 
@@ -40,11 +41,13 @@ interface SettingsData {
   quote_validity_days: number;
 }
 
-const CURRENCY_OPTIONS = [
-  { value: 'TRY', label: 'TRY - Turk Lirasi' },
-  { value: 'USD', label: 'USD - Amerikan Dolari' },
-  { value: 'EUR', label: 'EUR - Euro' },
-];
+function currencyOptions(t: (key: TranslationKey) => string) {
+  return [
+    { value: 'TRY', label: `TRY - ${t('currency.try')}` },
+    { value: 'USD', label: `USD - ${t('currency.usd')}` },
+    { value: 'EUR', label: `EUR - ${t('currency.eur')}` },
+  ];
+}
 
 const DEFAULTS: SettingsData = {
   quote_prefix: 'HW',
@@ -54,6 +57,7 @@ const DEFAULTS: SettingsData = {
 };
 
 export default function SettingsPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const [form, setForm] = useState<SettingsData>(DEFAULTS);
@@ -81,10 +85,10 @@ export default function SettingsPage() {
     mutationFn: (payload: SettingsData) =>
       settingsApi.updateSettings(payload as unknown as Record<string, unknown>),
     onSuccess: () => {
-      toast.success('Ayarlar kaydedildi');
+      toast.success(t('settings.toast_saved'));
       queryClient.invalidateQueries({ queryKey: ['settings'] });
     },
-    onError: () => toast.error('Ayarlar kaydedilemedi'),
+    onError: () => toast.error(t('settings.toast_save_failed')),
   });
 
   const updateField = (field: keyof SettingsData, value: string | number) => {
@@ -101,9 +105,9 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Ayarlar" description="Sistem yapilandirmasi">
+      <PageHeader title={t('settings.title')} description={t('settings.description')}>
         <Button loading={saveMutation.isPending} onClick={() => saveMutation.mutate(form)}>
-          Kaydet
+          {t('settings.save')}
         </Button>
       </PageHeader>
 
@@ -115,17 +119,17 @@ export default function SettingsPage() {
         <EmailSettingsSection />
 
         {/* Quote Settings */}
-        <Card title="Teklif Ayarlari">
+        <Card title={t('settings.quote_settings')}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
-              label="Teklif On Eki"
+              label={t('settings.quote_prefix')}
               value={form.quote_prefix}
               onChange={(e) => updateField('quote_prefix', e.target.value)}
               placeholder="HW"
-              helperText="Teklif numaralarinin basina eklenir (örnek: HW-2026-001)"
+              helperText={t('settings.quote_prefix_help')}
             />
             <Input
-              label="Varsayılan KDV Orani (%)"
+              label={t('settings.default_tax_rate')}
               type="number"
               min={0}
               max={100}
@@ -133,13 +137,13 @@ export default function SettingsPage() {
               onChange={(e) => updateField('default_tax_rate', Number(e.target.value))}
             />
             <Select
-              label="Varsayılan Para Birimi"
-              options={CURRENCY_OPTIONS}
+              label={t('settings.default_currency')}
+              options={currencyOptions(t)}
               value={form.default_currency}
               onChange={(e) => updateField('default_currency', e.target.value)}
             />
             <Input
-              label="Teklif Gecerlilik Süresi (gun)"
+              label={t('settings.quote_validity_days')}
               type="number"
               min={1}
               value={form.quote_validity_days}
@@ -279,6 +283,7 @@ function DisplaySettingsSection() {
 
 /* ── Email Settings Section ── */
 function EmailSettingsSection() {
+  const t = useT();
   const queryClient = useQueryClient();
 
   const [emailForm, setEmailForm] = useState({
@@ -362,10 +367,10 @@ function EmailSettingsSection() {
       return settingsApi.saveEmailCredentials(payload);
     },
     onSuccess: () => {
-      toast.success('Email ayarlari kaydedildi');
+      toast.success(t('settings.email_toast_saved'));
       queryClient.invalidateQueries({ queryKey: ['email-credentials'] });
     },
-    onError: () => toast.error('Email ayarlari kaydedilemedi'),
+    onError: () => toast.error(t('settings.email_toast_save_failed')),
   });
 
   const testMutation = useMutation({
@@ -386,7 +391,7 @@ function EmailSettingsSection() {
       else toast.error(result.message);
     },
     onError: () => {
-      setTestResult({ success: false, message: 'Baglanti testi başarısız' });
+      setTestResult({ success: false, message: t('settings.email_test_failed') });
     },
   });
 
@@ -401,7 +406,7 @@ function EmailSettingsSection() {
         smtp_port: '',
       }),
     onSuccess: () => {
-      toast.success('Email baglantisi silindi');
+      toast.success(t('settings.email_toast_deleted'));
       setEmailForm({
         email_address: '',
         email_password: '',
@@ -414,7 +419,7 @@ function EmailSettingsSection() {
       setShowDeleteConfirm(false);
       queryClient.invalidateQueries({ queryKey: ['email-credentials'] });
     },
-    onError: () => toast.error('Email baglantisi silinemedi'),
+    onError: () => toast.error(t('settings.email_toast_delete_failed')),
   });
 
   if (isLoading) return <Skeleton variant="card" />;
@@ -425,7 +430,7 @@ function EmailSettingsSection() {
 
   return (
     <>
-      <Card title="Email Ayarlari">
+      <Card title={t('settings.email_card_title')}>
         <div className="space-y-4">
           {/* Connection status */}
           {isConfigured && (
@@ -433,7 +438,8 @@ function EmailSettingsSection() {
               <div className="flex items-center gap-2 text-sm text-green-700">
                 <CheckCircle size={16} className="shrink-0" />
                 <span>
-                  Bagli: <strong>{creds.email_address}</strong> ({creds.imap_host})
+                  {t('settings.email_connected_prefix')}: <strong>{creds.email_address}</strong> (
+                  {creds.imap_host})
                 </span>
               </div>
               <button
@@ -442,7 +448,7 @@ function EmailSettingsSection() {
                 className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 transition-colors"
               >
                 <Trash2 size={14} />
-                Baglantiyi Sil
+                {t('settings.email_delete_connection')}
               </button>
             </div>
           )}
@@ -450,14 +456,14 @@ function EmailSettingsSection() {
           {/* Email + Password */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
-              label="Email Adresi"
+              label={t('settings.email_address')}
               type="email"
               value={emailForm.email_address}
               onChange={(e) => handleEmailChange(e.target.value)}
-              placeholder="örnek@şirket.com"
+              placeholder={t('settings.email_address_placeholder')}
             />
             <Input
-              label="Email Sifresi / App Password"
+              label={t('settings.email_password')}
               type="password"
               value={emailForm.email_password}
               onChange={(e) => {
@@ -465,7 +471,9 @@ function EmailSettingsSection() {
                 setTestResult(null);
               }}
               placeholder={
-                isConfigured ? '(degistirmek için yeni sifre girin)' : 'Sifre veya App Password'
+                isConfigured
+                  ? t('settings.email_password_placeholder_change')
+                  : t('settings.email_password_placeholder_new')
               }
             />
           </div>
@@ -479,7 +487,9 @@ function EmailSettingsSection() {
                   <p className="text-sm text-gray-800 font-mono">{emailForm.imap_host}</p>
                 </div>
                 <div>
-                  <span className="text-xs font-medium text-gray-500">IMAP Port</span>
+                  <span className="text-xs font-medium text-gray-500">
+                    {t('settings.email_imap_port')}
+                  </span>
                   <p className="text-sm text-gray-800 font-mono">{emailForm.imap_port}</p>
                 </div>
                 <div>
@@ -487,7 +497,9 @@ function EmailSettingsSection() {
                   <p className="text-sm text-gray-800 font-mono">{emailForm.smtp_host}</p>
                 </div>
                 <div>
-                  <span className="text-xs font-medium text-gray-500">SMTP Port</span>
+                  <span className="text-xs font-medium text-gray-500">
+                    {t('settings.email_smtp_port')}
+                  </span>
                   <p className="text-sm text-gray-800 font-mono">{emailForm.smtp_port}</p>
                 </div>
               </div>
@@ -496,7 +508,7 @@ function EmailSettingsSection() {
                 onClick={() => setEditingServer(true)}
                 className="mt-2 text-xs text-gray-500 hover:text-honeywell-red transition-colors"
               >
-                Sunucu ayarlarini düzenle
+                {t('settings.email_server_edit')}
               </button>
             </div>
           )}
@@ -506,12 +518,12 @@ function EmailSettingsSection() {
             <div>
               <div className="grid grid-cols-1 gap-4 rounded-lg border border-honeywell-light bg-red-50/30 p-4 sm:grid-cols-2">
                 <Input
-                  label="IMAP Sunucusu"
+                  label={t('settings.email_imap_server')}
                   value={emailForm.imap_host}
                   onChange={(e) => setEmailForm((p) => ({ ...p, imap_host: e.target.value }))}
                 />
                 <Input
-                  label="IMAP Port"
+                  label={t('settings.email_imap_port')}
                   type="number"
                   value={String(emailForm.imap_port)}
                   onChange={(e) =>
@@ -519,12 +531,12 @@ function EmailSettingsSection() {
                   }
                 />
                 <Input
-                  label="SMTP Sunucusu"
+                  label={t('settings.email_smtp_server')}
                   value={emailForm.smtp_host}
                   onChange={(e) => setEmailForm((p) => ({ ...p, smtp_host: e.target.value }))}
                 />
                 <Input
-                  label="SMTP Port"
+                  label={t('settings.email_smtp_port')}
                   type="number"
                   value={String(emailForm.smtp_port)}
                   onChange={(e) =>
@@ -537,7 +549,7 @@ function EmailSettingsSection() {
                 onClick={() => setEditingServer(false)}
                 className="mt-2 text-xs text-gray-500 hover:text-honeywell-red transition-colors"
               >
-                Duzenlemeyi kapat
+                {t('settings.email_server_edit_close')}
               </button>
             </div>
           )}
@@ -564,14 +576,14 @@ function EmailSettingsSection() {
               loading={testMutation.isPending}
               disabled={!canSave}
             >
-              Baglantiyi Test Et
+              {t('settings.email_test_connection')}
             </Button>
             <Button
               onClick={() => saveMutation.mutate()}
               loading={saveMutation.isPending}
               disabled={!canSave}
             >
-              Email Ayarlarini Kaydet
+              {t('settings.email_save')}
             </Button>
           </div>
         </div>
@@ -582,9 +594,9 @@ function EmailSettingsSection() {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={() => deleteMutation.mutate()}
-        title="Email Baglantisini Sil"
-        message="Email baglantisi silinecek ve tüm email ayarlari sifirlanacak. Bu işlem geri alinamaz. Devam etmek istiyor musunuz?"
-        confirmLabel="Sil"
+        title={t('settings.email_delete_title')}
+        message={t('settings.email_delete_message')}
+        confirmLabel={t('common.delete')}
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}
       />
@@ -594,6 +606,7 @@ function EmailSettingsSection() {
 
 /* ── Stage Configuration Section ── */
 function StageConfigSection() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [stages, setStages] = useState<StageConfig[]>([]);
 
@@ -619,10 +632,10 @@ function StageConfigSection() {
       return settingsApi.updateStageConfig(payload);
     },
     onSuccess: () => {
-      toast.success('Aşama ayarlari kaydedildi');
+      toast.success(t('settings.stage_toast_saved'));
       queryClient.invalidateQueries({ queryKey: ['stage-config'] });
     },
-    onError: () => toast.error('Aşama ayarlari kaydedilemedi'),
+    onError: () => toast.error(t('settings.stage_toast_failed')),
   });
 
   const updateStage = (index: number, field: keyof StageConfig, value: string | number) => {
@@ -636,19 +649,23 @@ function StageConfigSection() {
   if (isLoading) return <Skeleton variant="card" />;
 
   return (
-    <Card title="Aşama Ayarlari">
-      <p className="mb-4 text-xs text-gray-500">
-        Fırsat asamalarinin olasilik yuzdelerini ve rotting esiklerini yapilandirin.
-      </p>
+    <Card title={t('settings.stage_card_title')}>
+      <p className="mb-4 text-xs text-gray-500">{t('settings.stage_card_description')}</p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left">
-              <th className="pb-2 pr-4 font-medium text-gray-600">Aşama</th>
-              <th className="pb-2 pr-4 font-medium text-gray-600">Etiket</th>
-              <th className="pb-2 pr-4 font-medium text-gray-600">Olasilik %</th>
-              <th className="pb-2 font-medium text-gray-600">Rotting Esigi (gun)</th>
+              <th className="pb-2 pr-4 font-medium text-gray-600">
+                {t('settings.stage_col_stage')}
+              </th>
+              <th className="pb-2 pr-4 font-medium text-gray-600">
+                {t('settings.stage_col_label')}
+              </th>
+              <th className="pb-2 pr-4 font-medium text-gray-600">
+                {t('settings.stage_col_probability')}
+              </th>
+              <th className="pb-2 font-medium text-gray-600">{t('settings.stage_col_rotting')}</th>
             </tr>
           </thead>
           <tbody>
@@ -695,7 +712,7 @@ function StageConfigSection() {
       <div className="mt-4 flex justify-end">
         <Button onClick={() => saveMutation.mutate()} loading={saveMutation.isPending}>
           <Save size={14} className="mr-1" />
-          Aşama Ayarlarini Kaydet
+          {t('settings.stage_save')}
         </Button>
       </div>
     </Card>
@@ -704,6 +721,7 @@ function StageConfigSection() {
 
 /* ── Notification Channels Section ── */
 function NotificationChannelsSection() {
+  const t = useT();
   const [slackUrl, setSlackUrl] = useState('');
   const [teamsUrl, setTeamsUrl] = useState('');
 
@@ -718,17 +736,17 @@ function NotificationChannelsSection() {
     onSuccess: (result) => {
       const results = result.data;
       if (results.slack === true) {
-        toast.success('Slack test bildirimi gönderildi');
+        toast.success(t('settings.slack_test_ok'));
       } else if (results.slack === false) {
-        toast.error('Slack test bildirimi gonderilemedi');
+        toast.error(t('settings.slack_test_fail'));
       }
       if (results.teams === true) {
-        toast.success('Teams test bildirimi gönderildi');
+        toast.success(t('settings.teams_test_ok'));
       } else if (results.teams === false) {
-        toast.error('Teams test bildirimi gonderilemedi');
+        toast.error(t('settings.teams_test_fail'));
       }
     },
-    onError: () => toast.error('Test bildirimi gonderilemedi'),
+    onError: () => toast.error(t('settings.notif_test_fail')),
   });
 
   if (isLoading) return <Skeleton variant="card" />;
@@ -737,19 +755,16 @@ function NotificationChannelsSection() {
   const isTeamsConfigured = channelsData?.data?.teams_configured ?? false;
 
   return (
-    <Card title="Bildirim Kanallari">
+    <Card title={t('settings.notif_channels_title')}>
       <div className="space-y-6">
-        <p className="text-xs text-gray-500">
-          Fırsat ve teklif bildirimleri için Slack ve Microsoft Teams entegrasyonu. Webhook
-          URL&apos;leri .env dosyasinda yapilandirilir.
-        </p>
+        <p className="text-xs text-gray-500">{t('settings.notif_channels_desc')}</p>
 
         {/* Slack */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Slack</span>
+              <span className="text-sm font-medium text-gray-700">{t('settings.slack_label')}</span>
             </div>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -761,12 +776,12 @@ function NotificationChannelsSection() {
                   isSlackConfigured ? 'bg-green-500' : 'bg-gray-400'
                 }`}
               />
-              {isSlackConfigured ? 'Bagli' : 'Bagli Değil'}
+              {isSlackConfigured ? t('settings.connected') : t('settings.not_connected')}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <Input
-              label="Slack Webhook URL"
+              label={t('settings.slack_webhook')}
               value={slackUrl}
               onChange={(e) => setSlackUrl(e.target.value)}
               placeholder="https://hooks.slack.com/services/..."
@@ -778,7 +793,7 @@ function NotificationChannelsSection() {
               onClick={() => testMutation.mutate({ slack_url: slackUrl })}
               className="mt-5 shrink-0"
             >
-              Test Et
+              {t('settings.test')}
             </Button>
           </div>
         </div>
@@ -788,7 +803,7 @@ function NotificationChannelsSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Microsoft Teams</span>
+              <span className="text-sm font-medium text-gray-700">{t('settings.teams_label')}</span>
             </div>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -800,12 +815,12 @@ function NotificationChannelsSection() {
                   isTeamsConfigured ? 'bg-green-500' : 'bg-gray-400'
                 }`}
               />
-              {isTeamsConfigured ? 'Bagli' : 'Bagli Değil'}
+              {isTeamsConfigured ? t('settings.connected') : t('settings.not_connected')}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <Input
-              label="Teams Webhook URL"
+              label={t('settings.teams_webhook')}
               value={teamsUrl}
               onChange={(e) => setTeamsUrl(e.target.value)}
               placeholder="https://outlook.office.com/webhook/..."
@@ -817,7 +832,7 @@ function NotificationChannelsSection() {
               onClick={() => testMutation.mutate({ teams_url: teamsUrl })}
               className="mt-5 shrink-0"
             >
-              Test Et
+              {t('settings.test')}
             </Button>
           </div>
         </div>
@@ -827,14 +842,14 @@ function NotificationChannelsSection() {
 }
 
 /* ── Meeting Link Section ── */
-const DURATION_OPTIONS = [
-  { value: '15', label: '15 dakika' },
-  { value: '30', label: '30 dakika' },
-  { value: '45', label: '45 dakika' },
-  { value: '60', label: '60 dakika' },
-];
-
 function MeetingLinkSection() {
+  const t = useT();
+  const durationOptions = [
+    { value: '15', label: t('settings.duration_min_15') },
+    { value: '30', label: t('settings.duration_min_30') },
+    { value: '45', label: t('settings.duration_min_45') },
+    { value: '60', label: t('settings.duration_min_60') },
+  ];
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState('30');
@@ -852,20 +867,20 @@ function MeetingLinkSection() {
   const createMutation = useMutation({
     mutationFn: () => meetingsApi.createLink({ title, duration_minutes: Number(duration) }),
     onSuccess: () => {
-      toast.success('Toplanti linki oluşturuldu');
+      toast.success(t('settings.meeting_toast_created'));
       setTitle('');
       queryClient.invalidateQueries({ queryKey: ['meeting-links'] });
     },
-    onError: () => toast.error('Toplanti linki oluşturulamadı'),
+    onError: () => toast.error(t('settings.meeting_toast_create_failed')),
   });
 
   const deactivateMutation = useMutation({
     mutationFn: (id: number) => meetingsApi.deactivateLink(id),
     onSuccess: () => {
-      toast.success('Toplanti linki devre disi birakildi');
+      toast.success(t('settings.meeting_toast_deactivated'));
       queryClient.invalidateQueries({ queryKey: ['meeting-links'] });
     },
-    onError: () => toast.error('İşlem başarısız'),
+    onError: () => toast.error(t('settings.operation_failed')),
   });
 
   const links: MeetingLink[] = linksData?.data || [];
@@ -874,30 +889,28 @@ function MeetingLinkSection() {
   const copyUrl = (slug: string) => {
     const url = `${window.location.origin}/api/v1/meetings/book/${slug}`;
     navigator.clipboard.writeText(url);
-    toast.success('Link kopyalandi');
+    toast.success(t('settings.link_copied'));
   };
 
   if (linksLoading) return <Skeleton variant="card" />;
 
   return (
-    <Card title="Toplanti Linkim">
+    <Card title={t('settings.meeting_card_title')}>
       <div className="space-y-6">
         {/* Create form */}
         <div className="space-y-3">
-          <p className="text-xs text-gray-500">
-            Musterilerinizin sizinle toplanti planlamasini kolaylastirin.
-          </p>
+          <p className="text-xs text-gray-500">{t('settings.meeting_card_desc')}</p>
           <div className="flex items-end gap-3">
             <Input
-              label="Toplanti Basligi"
+              label={t('settings.meeting_title_field')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Tanitim Görüşmesi"
+              placeholder={t('settings.meeting_title_ph')}
               className="flex-1"
             />
             <Select
-              label="Süre"
-              options={DURATION_OPTIONS}
+              label={t('settings.duration')}
+              options={durationOptions}
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
             />
@@ -907,7 +920,7 @@ function MeetingLinkSection() {
               disabled={!title.trim()}
               className="shrink-0"
             >
-              Oluştur
+              {t('settings.create')}
             </Button>
           </div>
         </div>
@@ -915,13 +928,15 @@ function MeetingLinkSection() {
         {/* Active links */}
         {links.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Aktif Linkler</h4>
+            <h4 className="text-sm font-medium text-gray-700">{t('settings.active_links')}</h4>
             <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
               {links.map((lnk) => (
                 <div key={lnk.id} className="flex items-center justify-between px-4 py-3">
                   <div>
                     <span className="text-sm font-medium text-gray-800">{lnk.title}</span>
-                    <span className="ml-2 text-xs text-gray-400">{lnk.duration_minutes} dk</span>
+                    <span className="ml-2 text-xs text-gray-400">
+                      {lnk.duration_minutes} {t('common.minutes_short')}
+                    </span>
                     <div className="mt-0.5 flex items-center gap-1.5">
                       <Link2 size={12} className="text-gray-400" />
                       <span className="text-xs font-mono text-gray-500">
@@ -936,7 +951,7 @@ function MeetingLinkSection() {
                       className="flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
                     >
                       <Copy size={12} />
-                      Kopyala
+                      {t('settings.copy')}
                     </button>
                     {lnk.is_active && (
                       <button
@@ -945,7 +960,7 @@ function MeetingLinkSection() {
                         className="flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <Trash2 size={12} />
-                        Kapat
+                        {t('settings.close_link')}
                       </button>
                     )}
                   </div>
@@ -958,7 +973,7 @@ function MeetingLinkSection() {
         {/* Active bookings */}
         {bookings.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Aktif Rezervasyonlar</h4>
+            <h4 className="text-sm font-medium text-gray-700">{t('settings.active_bookings')}</h4>
             <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
               {bookings.map((b) => (
                 <div key={b.id} className="flex items-center justify-between px-4 py-3">
@@ -968,7 +983,7 @@ function MeetingLinkSection() {
                       <span className="text-sm font-medium text-gray-800">{b.booker_name}</span>
                       <span className="ml-2 text-xs text-gray-400">{b.booker_email}</span>
                       <div className="mt-0.5 text-xs text-gray-500">
-                        {new Date(b.scheduled_at).toLocaleString('tr-TR')}
+                        {new Date(b.scheduled_at).toLocaleString(currentLocale())}
                       </div>
                       {b.notes && <p className="mt-0.5 text-xs text-gray-400 italic">{b.notes}</p>}
                     </div>
@@ -980,7 +995,7 @@ function MeetingLinkSection() {
                         : 'bg-gray-100 text-gray-500'
                     }`}
                   >
-                    {b.status === 'confirmed' ? 'Onaylandı' : b.status}
+                    {b.status === 'confirmed' ? t('settings.booking_status_confirmed') : b.status}
                   </span>
                 </div>
               ))}

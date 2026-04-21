@@ -7,7 +7,9 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { bundlesApi } from '../../lib/api';
+import { formatCurrency } from '../../lib/formatters';
 import type { ProductBundle } from '../../lib/types';
+import { useT } from '../../hooks/useT';
 
 interface BundleQuoteItem {
   spare_part_id: number;
@@ -29,6 +31,7 @@ export default function BundleSelectorModal({
   onClose,
   onAddItems,
 }: BundleSelectorModalProps) {
+  const t = useT();
   const { data, isLoading } = useQuery<{ bundles: ProductBundle[] }>({
     queryKey: ['bundles'],
     queryFn: () => bundlesApi.list(),
@@ -39,50 +42,50 @@ export default function BundleSelectorModal({
     mutationFn: (bundleId: number) => bundlesApi.toQuoteItems(bundleId),
     onSuccess: (result: { items: BundleQuoteItem[]; bundle_name: string }) => {
       if (result.items.length === 0) {
-        toast.error('Bu pakette geçerli ürün bulunamadi');
+        toast.error(t('quotes.bundle_no_items'));
         return;
       }
       onAddItems(result.items);
-      toast.success(`${result.bundle_name} paketi eklendi`);
+      toast.success(t('quotes.bundle_added').replace('{name}', result.bundle_name));
       onClose();
     },
-    onError: () => toast.error('Paket genisletilemedi'),
+    onError: () => toast.error(t('quotes.bundle_expand_fail')),
   });
 
   const bundles = data?.bundles ?? [];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Paket Seç">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('quotes.bundle_title')}>
       <div className="space-y-4">
         {isLoading ? (
           <Skeleton variant="card" count={3} />
         ) : bundles.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500">
-            Henüz tanimlanmis paket bulunmuyor.
-          </p>
+          <p className="py-8 text-center text-sm text-gray-500">{t('quotes.bundle_empty')}</p>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {bundles.map((bundle) => (
               <Card key={bundle.id}>
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-gray-900">
-                    {bundle.name}
-                  </h4>
+                  <h4 className="text-sm font-semibold text-gray-900">{bundle.name}</h4>
                   {bundle.description && (
                     <p className="text-xs text-gray-500">{bundle.description}</p>
                   )}
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="info" size="sm">
-                      {bundle.items.length} ürün
+                      {t('quotes.bundle_item_count').replace(
+                        '{count}',
+                        String(bundle.items.length),
+                      )}
                     </Badge>
                     {bundle.bundle_price != null && (
                       <Badge variant="success" size="sm">
-                        Paket Fiyat: {bundle.bundle_price.toLocaleString('tr-TR')}
+                        {t('quotes.bundle_price_prefix')}{' '}
+                        {formatCurrency(bundle.bundle_price, 'TRY')}
                       </Badge>
                     )}
                     {bundle.discount_pct > 0 && (
                       <Badge variant="warning" size="sm">
-                        Indirim: %{bundle.discount_pct}
+                        {t('quotes.bundle_discount_prefix')} %{bundle.discount_pct}
                       </Badge>
                     )}
                   </div>
@@ -92,7 +95,7 @@ export default function BundleSelectorModal({
                       loading={expandMutation.isPending}
                       onClick={() => expandMutation.mutate(bundle.id)}
                     >
-                      Ekle
+                      {t('quotes.bundle_add')}
                     </Button>
                   </div>
                 </div>

@@ -3,15 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, XCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionsApi } from '../../lib/api';
-import { formatCurrency } from '../../lib/formatters';
+import { formatCurrency, formatDate } from '../../lib/formatters';
 import type { Subscription } from '../../lib/types';
-
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Aktif',
-  paused: 'Duraklatildi',
-  cancelled: 'İptal Edildi',
-  expired: 'Süresi Doldu',
-};
+import { useT } from '../../hooks/useT';
+import type { TranslationKey } from '../../lib/i18n';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -20,10 +15,17 @@ const STATUS_COLORS: Record<string, string> = {
   expired: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
 };
 
-const CYCLE_LABELS: Record<string, string> = {
-  monthly: 'Aylik',
-  quarterly: 'Ceyrektik',
-  annual: 'Yillik',
+const STATUS_KEYS: Record<string, TranslationKey> = {
+  active: 'subscription.status_active',
+  paused: 'subscription.status_paused',
+  cancelled: 'subscription.status_cancelled',
+  expired: 'subscription.status_expired',
+};
+
+const CYCLE_KEYS: Record<string, TranslationKey> = {
+  monthly: 'subscription.cycle_monthly',
+  quarterly: 'subscription.cycle_quarterly',
+  annual: 'subscription.cycle_annual',
 };
 
 interface ParsedItem {
@@ -44,9 +46,20 @@ function parseItems(json: string | null): ParsedItem[] {
 }
 
 export default function SubscriptionDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const statusLabel = (s: string) => {
+    const k = STATUS_KEYS[s];
+    return k ? t(k) : s;
+  };
+
+  const cycleLabel = (c: string) => {
+    const k = CYCLE_KEYS[c];
+    return k ? t(k) : c;
+  };
 
   const { data: sub, isLoading } = useQuery<Subscription>({
     queryKey: ['subscriptions', id],
@@ -57,25 +70,25 @@ export default function SubscriptionDetailPage() {
   const cancelMutation = useMutation({
     mutationFn: () => subscriptionsApi.cancel(Number(id)),
     onSuccess: () => {
-      toast.success('Abonelik iptal edildi');
+      toast.success(t('subscription.toast_cancelled'));
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     },
-    onError: () => toast.error('İptal işlemi başarısız'),
+    onError: () => toast.error(t('subscription.toast_cancel_fail')),
   });
 
   const renewMutation = useMutation({
     mutationFn: () => subscriptionsApi.renew(Number(id)),
     onSuccess: () => {
-      toast.success('Abonelik yenilendi');
+      toast.success(t('subscription.toast_renewed'));
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     },
-    onError: () => toast.error('Yenileme işlemi başarısız'),
+    onError: () => toast.error(t('subscription.toast_renew_fail')),
   });
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-400">Yükleniyor...</p>
+        <p className="text-gray-400">{t('subscription.loading')}</p>
       </div>
     );
   }
@@ -83,7 +96,7 @@ export default function SubscriptionDetailPage() {
   if (!sub) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-400">Abonelik bulunamadi</p>
+        <p className="text-gray-400">{t('subscription.not_found')}</p>
       </div>
     );
   }
@@ -92,7 +105,6 @@ export default function SubscriptionDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Back button + actions */}
       <div className="flex items-center justify-between">
         <button
           type="button"
@@ -100,7 +112,7 @@ export default function SubscriptionDetailPage() {
           className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
         >
           <ArrowLeft size={16} />
-          Aboneliklere Don
+          {t('subscription.back_list')}
         </button>
         <div className="flex gap-2">
           {sub.status === 'active' && (
@@ -112,7 +124,7 @@ export default function SubscriptionDetailPage() {
                 className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors cursor-pointer"
               >
                 <XCircle size={16} />
-                İptal Et
+                {t('subscription.cancel')}
               </button>
               <button
                 type="button"
@@ -121,7 +133,7 @@ export default function SubscriptionDetailPage() {
                 className="flex items-center gap-2 rounded-lg bg-honeywell-red px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
               >
                 <RefreshCw size={16} />
-                Yenile
+                {t('subscription.renew')}
               </button>
             </>
           )}
@@ -133,13 +145,12 @@ export default function SubscriptionDetailPage() {
               className="flex items-center gap-2 rounded-lg bg-honeywell-red px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
             >
               <RefreshCw size={16} />
-              Yeniden Baslat
+              {t('subscription.restart')}
             </button>
           )}
         </div>
       </div>
 
-      {/* Info card */}
       <div
         className="rounded-xl border p-6"
         style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
@@ -151,86 +162,97 @@ export default function SubscriptionDetailPage() {
           <span
             className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[sub.status] ?? ''}`}
           >
-            {STATUS_LABELS[sub.status] ?? sub.status}
+            {statusLabel(sub.status)}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
-            <p className="text-xs text-gray-500">Fatura Donemi</p>
+            <p className="text-xs text-gray-500">{t('subscription.lbl_billing_period')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-              {CYCLE_LABELS[sub.billing_cycle] ?? sub.billing_cycle}
+              {cycleLabel(sub.billing_cycle)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Aylik Gelir (MRR)</p>
+            <p className="text-xs text-gray-500">{t('subscription.lbl_mrr_short')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(sub.mrr, sub.currency)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Baslangic Tarihi</p>
+            <p className="text-xs text-gray-500">{t('subscription.lbl_start_date')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.start_date}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Bitis Tarihi</p>
+            <p className="text-xs text-gray-500">{t('subscription.lbl_end_date')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.end_date ?? '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Sonraki Yenileme</p>
+            <p className="text-xs text-gray-500">{t('subscription.lbl_next_renewal')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.next_renewal_date ?? '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Otomatik Yenileme</p>
+            <p className="text-xs text-gray-500">{t('subscription.lbl_auto_renew_long')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-              {sub.auto_renew ? 'Evet' : 'Hayir'}
+              {sub.auto_renew ? t('subscription.yes') : t('subscription.no')}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Para Birimi</p>
+            <p className="text-xs text-gray-500">{t('subscription.lbl_currency_short')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.currency}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Olusturulma</p>
+            <p className="text-xs text-gray-500">{t('subscription.lbl_created')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-              {sub.created_at ? new Date(sub.created_at).toLocaleDateString('tr-TR') : '-'}
+              {sub.created_at ? formatDate(sub.created_at) : '-'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Items */}
       {items.length > 0 && (
         <div
           className="rounded-xl border p-6"
           style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
         >
           <h2 className="mb-4 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-            Abonelik Kalemleri
+            {t('subscription.items_title')}
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left" style={{ borderColor: 'var(--border)' }}>
-                  <th className="px-4 py-2 font-medium text-gray-500">Açıklama</th>
-                  <th className="px-4 py-2 font-medium text-gray-500">Adet</th>
-                  <th className="px-4 py-2 font-medium text-gray-500">Birim Fiyat</th>
-                  <th className="px-4 py-2 font-medium text-gray-500">Tekrar Eden Tutar</th>
+                  <th className="px-4 py-2 font-medium text-gray-500">
+                    {t('subscription.lbl_description')}
+                  </th>
+                  <th className="px-4 py-2 font-medium text-gray-500">
+                    {t('subscription.col_qty')}
+                  </th>
+                  <th className="px-4 py-2 font-medium text-gray-500">
+                    {t('subscription.col_unit_price')}
+                  </th>
+                  <th className="px-4 py-2 font-medium text-gray-500">
+                    {t('subscription.col_recurring')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item, idx) => (
                   <tr key={idx} className="border-b" style={{ borderColor: 'var(--border)' }}>
                     <td className="px-4 py-2" style={{ color: 'var(--text-primary)' }}>
-                      {item.description ?? `Parça #${item.spare_part_id ?? idx + 1}`}
+                      {item.description ??
+                        t('subscription.line_part').replace(
+                          '{id}',
+                          String(item.spare_part_id ?? idx + 1),
+                        )}
                     </td>
                     <td className="px-4 py-2 text-gray-500">{item.quantity ?? '-'}</td>
                     <td className="px-4 py-2 text-gray-500">

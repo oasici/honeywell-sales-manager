@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { useT } from '../../hooks/useT';
 
 interface BulkAction {
   key: string;
@@ -19,6 +20,7 @@ export function BulkActionBar({
   onAction,
   onClearSelection,
 }: BulkActionBarProps) {
+  const t = useT();
   const isVisible = selectedCount > 0;
 
   return (
@@ -27,7 +29,7 @@ export function BulkActionBar({
         isVisible ? 'translate-y-0' : 'translate-y-full'
       }`}
       role="toolbar"
-      aria-label="Toplu işlem araclari"
+      aria-label={t('bulk.aria_toolbar')}
       aria-hidden={!isVisible}
     >
       <div className="bg-gray-900 shadow-2xl border-t border-gray-700">
@@ -35,7 +37,7 @@ export function BulkActionBar({
           <div className="flex items-center justify-between py-3">
             {/* Left: Selection count */}
             <span className="text-sm font-medium text-white">
-              {selectedCount} kayıt secili
+              {t('bulk.selected').replace('{count}', String(selectedCount))}
             </span>
 
             {/* Center: Action buttons */}
@@ -63,10 +65,10 @@ export function BulkActionBar({
               type="button"
               onClick={onClearSelection}
               className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
-              aria-label="Secimi temizle"
+              aria-label={t('bulk.clear_aria')}
             >
               <X size={16} />
-              Temizle
+              {t('bulk.clear')}
             </button>
           </div>
         </div>

@@ -7,8 +7,10 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { QuickAddFAB } from './QuickAddFAB';
 import { ChatWidget } from '../../features/chat/ChatWidget';
 import { InstallPrompt } from '../InstallPrompt';
+import { useT } from '../../hooks/useT';
 
 export function Layout() {
+  const t = useT();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -46,7 +48,7 @@ export function Layout() {
             type="button"
             onClick={() => setMobileMenuOpen(true)}
             className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-            aria-label="Menuyu ac"
+            aria-label={t('layout.mobile_open_menu')}
           >
             <Menu size={22} />
           </button>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -24,13 +24,14 @@ import { Modal } from '../../components/ui/Modal';
 import { emailsApi, customersApi, quotesApi } from '../../lib/api';
 import { getErrorMessage } from '../../lib/utils';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
+import { REVIEW_STATUS_COLORS, STATUS_COLORS } from '../../lib/constants';
 import {
-  CATEGORY_LABELS,
-  REVIEW_STATUS_LABELS,
-  REVIEW_STATUS_COLORS,
-  STATUS_LABELS,
-  STATUS_COLORS,
-} from '../../lib/constants';
+  EMAIL_CATEGORY_VALUES,
+  translateEmailCategory,
+  translateReviewStatus,
+  translateStatus,
+} from '../../lib/labelTranslations';
 import type { EmailRequest, PaginatedResponse } from '../../lib/types';
 
 interface ParsedPart {
@@ -39,17 +40,8 @@ interface ParsedPart {
   quantity?: number;
 }
 
-const READ_TABS = [
-  { value: '', label: 'Okunmamis' },
-  { value: 'read', label: 'Okunmus' },
-];
-
-const CATEGORY_OPTIONS = [
-  { value: '', label: 'Tüm Kategoriler' },
-  ...Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label })),
-];
-
 export default function EmailListPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -77,11 +69,11 @@ export default function EmailListPage() {
   const pollMutation = useMutation({
     mutationFn: emailsApi.pollEmails,
     onSuccess: (res) => {
-      toast.success(res.message || 'Email kontrolu tamamlandi');
+      toast.success(res.message || t('emails.toast_poll_done'));
       queryClient.invalidateQueries({ queryKey: ['emails'] });
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, 'Email kontrolu başarısız'));
+      toast.error(getErrorMessage(err, t('emails.toast_poll_failed')));
     },
   });
 
@@ -89,33 +81,33 @@ export default function EmailListPage() {
     mutationFn: (payload: { name: string; email: string; company?: string }) =>
       customersApi.createCustomer(payload),
     onSuccess: (customer) => {
-      toast.success(`Müşteri oluşturuldu: ${customer.name}`);
+      toast.success(`${t('emails.toast_customer_created_prefix')}: ${customer.name}`);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: () => toast.error('Müşteri oluşturulamadı (zaten mevcut olabilir)'),
+    onError: () => toast.error(t('emails.toast_customer_create_failed')),
   });
 
   const createQuoteMutation = useMutation({
     mutationFn: (emailId: number) => quotesApi.createQuoteFromEmail(emailId),
     onSuccess: (quote) => {
-      toast.success(`Taslak teklif oluşturuldu: ${quote.quote_number}`);
+      toast.success(`${t('emails.toast_draft_quote_created_prefix')}: ${quote.quote_number}`);
       setDetailEmail(null);
       navigate(`/quotes/${quote.id}`);
     },
-    onError: () => toast.error('Teklif oluşturulamadı'),
+    onError: () => toast.error(t('emails.toast_quote_create_failed')),
   });
 
   const reparseMutation = useMutation({
     mutationFn: (emailId: number) => emailsApi.reparseEmail(emailId),
     onSuccess: (res) => {
-      toast.success(res.message || 'Email yeniden ayrıştırıldı');
+      toast.success(res.message || t('emails.toast_reparse_done'));
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       if (detailEmail) {
         queryClient.invalidateQueries({ queryKey: ['email-detail', detailEmail.id] });
       }
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, 'Ayrıştırma başarısız'));
+      toast.error(getErrorMessage(err, t('emails.toast_reparse_failed')));
     },
   });
 
@@ -134,7 +126,7 @@ export default function EmailListPage() {
       }
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, 'Duzeltme kaydedilemedi'));
+      toast.error(getErrorMessage(err, t('emails.toast_correction_failed')));
     },
   });
 
@@ -142,12 +134,12 @@ export default function EmailListPage() {
     mutationFn: ({ id, action }: { id: number; action: string }) =>
       emailsApi.reviewEmail(id, action),
     onSuccess: () => {
-      toast.success('İnceleme tamamlandi');
+      toast.success(t('emails.toast_review_done'));
       queryClient.invalidateQueries({ queryKey: ['emails'] });
       setDetailEmail(null);
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, 'İnceleme başarısız'));
+      toast.error(getErrorMessage(err, t('emails.toast_review_failed')));
     },
   });
 
@@ -190,7 +182,7 @@ export default function EmailListPage() {
   const handleCreateCustomer = (email: EmailRequest) => {
     const parsed = getParsedData(email);
     if (!parsed) {
-      toast.error('Email henüz ayristirilmamis');
+      toast.error(t('emails.toast_not_parsed_yet'));
       return;
     }
     const name = parsed.customer_name || email.from_address.split('@')[0];
@@ -202,10 +194,26 @@ export default function EmailListPage() {
     });
   };
 
+  const readTabs = [
+    { value: '', label: t('emails.list_tab_unread') },
+    { value: 'read', label: t('emails.list_tab_read') },
+  ];
+
+  const categoryOptions = useMemo(
+    () => [
+      { value: '', label: t('emails.list_categories_all') },
+      ...EMAIL_CATEGORY_VALUES.map((value) => ({
+        value,
+        label: translateEmailCategory(value, t),
+      })),
+    ],
+    [t],
+  );
+
   const columns = [
     {
       key: 'received_at',
-      header: 'Tarih',
+      header: t('emails.list_date'),
       sortable: true,
       render: (row: EmailRequest) => (
         <span className="whitespace-nowrap text-sm">
@@ -215,14 +223,14 @@ export default function EmailListPage() {
     },
     {
       key: 'from_address',
-      header: 'Gönderen',
+      header: t('emails.list_sender'),
       render: (row: EmailRequest) => (
         <span className="max-w-[200px] truncate block text-sm">{row.from_address}</span>
       ),
     },
     {
       key: 'subject',
-      header: 'Konu',
+      header: t('emails.subject'),
       render: (row: EmailRequest) => (
         <span className="max-w-[260px] truncate block text-sm font-medium text-honeywell-red">
           {row.subject || '(Konu yok)'}
@@ -231,29 +239,29 @@ export default function EmailListPage() {
     },
     {
       key: 'category',
-      header: 'Kategori',
+      header: t('emails.category'),
       render: (row: EmailRequest) => (
         <span className="text-sm">
-          {row.category ? CATEGORY_LABELS[row.category] || row.category : '-'}
+          {row.category ? translateEmailCategory(row.category, t) : '-'}
         </span>
       ),
     },
     {
       key: 'status',
-      header: 'Durum',
+      header: t('common.status'),
       render: (row: EmailRequest) => (
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
             STATUS_COLORS[row.status] || 'bg-gray-100 text-gray-700'
           }`}
         >
-          {STATUS_LABELS[row.status] || row.status}
+          {translateStatus(row.status, t)}
         </span>
       ),
     },
     {
       key: 'review_status',
-      header: 'İnceleme',
+      header: t('emails.review'),
       render: (row: EmailRequest) => {
         const rs = row.review_status;
         if (!rs) return <span className="text-gray-400 text-sm">-</span>;
@@ -263,7 +271,7 @@ export default function EmailListPage() {
               REVIEW_STATUS_COLORS[rs] || 'bg-gray-100 text-gray-700'
             }`}
           >
-            {REVIEW_STATUS_LABELS[rs] || rs}
+            {translateReviewStatus(rs, t)}
           </span>
         );
       },
@@ -274,15 +282,15 @@ export default function EmailListPage() {
 
   return (
     <div>
-      <PageHeader title="Emailler" description="Gelen email talepleri">
+      <PageHeader title={t('emails.title')} description={t('emails.description')}>
         <Button loading={pollMutation.isPending} onClick={() => pollMutation.mutate()}>
-          Email Kontrol
+          {t('emails.list_poll')}
         </Button>
       </PageHeader>
 
       {/* Tabs */}
       <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1">
-        {READ_TABS.map((tab) => (
+        {readTabs.map((tab) => (
           <button
             key={tab.value}
             type="button"
@@ -302,7 +310,7 @@ export default function EmailListPage() {
       <div className="mb-4 flex flex-wrap items-end gap-4">
         <div className="w-64">
           <Input
-            placeholder="Email veya konu ara..."
+            placeholder={t('emails.list_search_ph')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -312,7 +320,7 @@ export default function EmailListPage() {
         </div>
         <div className="w-48">
           <Select
-            options={CATEGORY_OPTIONS}
+            options={categoryOptions}
             value={category}
             onChange={(e) => {
               setCategory(e.target.value);
@@ -327,7 +335,7 @@ export default function EmailListPage() {
         columns={columns}
         data={data?.items || []}
         loading={isLoading}
-        emptyMessage="Henüz email bulunamadi"
+        emptyMessage={t('emails.list_empty')}
         page={data?.page || page}
         totalPages={data?.pages || 1}
         onPageChange={setPage}
@@ -346,7 +354,7 @@ export default function EmailListPage() {
       <Modal
         isOpen={!!detailEmail}
         onClose={() => setDetailEmail(null)}
-        title="Email Detayi"
+        title={t('emails.detail')}
         size="lg"
       >
         {activeEmail && (
@@ -359,7 +367,7 @@ export default function EmailListPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{activeEmail.from_address}</p>
-                  <span className="text-xs text-gray-400">Gönderen</span>
+                  <span className="text-xs text-gray-400">{t('emails.list_sender')}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-right">
@@ -367,7 +375,7 @@ export default function EmailListPage() {
                   <p className="text-sm text-gray-700">
                     {formatDateTime(activeEmail.received_at || activeEmail.created_at)}
                   </p>
-                  <span className="text-xs text-gray-400">Tarih</span>
+                  <span className="text-xs text-gray-400">{t('emails.list_date')}</span>
                 </div>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
                   <Clock size={16} className="text-slate-500" />
@@ -387,7 +395,7 @@ export default function EmailListPage() {
               {activeEmail.category && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
                   <Tag size={12} />
-                  {CATEGORY_LABELS[activeEmail.category] || activeEmail.category}
+                  {translateEmailCategory(activeEmail.category, t)}
                 </span>
               )}
               {activeEmail.status && (
@@ -398,7 +406,7 @@ export default function EmailListPage() {
                       : 'bg-gray-100 text-gray-600'
                   }`}
                 >
-                  {STATUS_LABELS[activeEmail.status] || activeEmail.status}
+                  {translateStatus(activeEmail.status, t)}
                 </span>
               )}
               {activeEmail.review_status && (
@@ -411,7 +419,7 @@ export default function EmailListPage() {
                         : 'bg-amber-100 text-amber-700'
                   }`}
                 >
-                  {REVIEW_STATUS_LABELS[activeEmail.review_status] || activeEmail.review_status}
+                  {translateReviewStatus(activeEmail.review_status, t)}
                 </span>
               )}
             </div>
@@ -419,13 +427,13 @@ export default function EmailListPage() {
             {/* Email body */}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
               <span className="mb-3 block text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Email Icerigi
+                {t('emails.list_body')}
               </span>
               <div className="max-h-48 overflow-y-auto text-sm leading-relaxed text-gray-700">
                 <p className="whitespace-pre-wrap">
                   {(() => {
                     let text = activeEmail.body_text || '';
-                    if (!text) return '(İçerik yok)';
+                    if (!text) return t('emails.no_content');
                     if (text.includes('<')) {
                       text = text
                         .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
@@ -454,7 +462,7 @@ export default function EmailListPage() {
                   <div className="flex items-center gap-2">
                     <BarChart3 size={16} className="text-blue-600" />
                     <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700">
-                      AI Ayrıştırma Sonucu
+                      {t('emails.list_ai_parse_title')}
                     </h4>
                   </div>
                   <button
@@ -466,7 +474,7 @@ export default function EmailListPage() {
                       setEditingParse(!editingParse);
                     }}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-500 transition-colors hover:bg-blue-100 hover:text-blue-700"
-                    title={editingParse ? 'İptal' : 'Düzenle'}
+                    title={editingParse ? t('emails.list_edit_cancel') : t('emails.list_edit')}
                   >
                     {editingParse ? <X size={16} /> : <Pencil size={14} />}
                   </button>

@@ -11,12 +11,8 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { playbookApi } from '../../lib/api';
 
 import type { PlaybookTemplate } from '../../lib/types';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  retention: 'Elde Tutma',
-  growth: 'Buyume',
-  pipeline: 'Pipeline',
-};
+import { useT } from '../../hooks/useT';
+import { translatePlaybookCategory } from '../../lib/labelTranslations';
 
 const CATEGORY_COLORS: Record<string, 'info' | 'success' | 'warning'> = {
   retention: 'info',
@@ -25,6 +21,7 @@ const CATEGORY_COLORS: Record<string, 'info' | 'success' | 'warning'> = {
 };
 
 export default function PlaybookTemplatesPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -95,7 +92,7 @@ export default function PlaybookTemplatesPage() {
                 {template.category && (
                   <div>
                     <Badge variant={CATEGORY_COLORS[template.category] ?? 'default'}>
-                      {CATEGORY_LABELS[template.category] ?? template.category}
+                      {translatePlaybookCategory(template.category, t)}
                     </Badge>
                   </div>
                 )}

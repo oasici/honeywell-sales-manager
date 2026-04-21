@@ -1,40 +1,30 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Search, FileCheck, Shield, Bell, BarChart3 } from 'lucide-react';
+import { Mail, Search, FileCheck, Shield, Bell, BarChart3, type LucideIcon } from 'lucide-react';
+import { useT } from '../../hooks/useT';
+import type { TranslationKey } from '../../lib/i18n';
 
-const FEATURES = [
-  {
-    icon: Mail,
-    title: 'Email → Teklif Otomasyonu',
-    desc: 'IMAP ile gelen kutusunu tarayin. AI, her e-postadan müşteri adini, parça kodlarini ve miktarlari cikarir. Manuel kopyala-yapistir tarih oldu.',
-  },
-  {
-    icon: Search,
-    title: 'Akilli Parça Eslestirme',
-    desc: '5 stratejiyle (tam kod, prefix, fuzzy, isim, semantik) katalogunuzdaki 4000+ parcayi saniyede eslestirir. Guven skoru ile sunar.',
-  },
-  {
-    icon: FileCheck,
-    title: 'Onay Akisi + PDF Üretim',
-    desc: 'Manager tek tikla onaylar, profesyonel PDF otomatik olusur, müşteri e-postasi ek ile gonderilir. Tüm surecler denetim izinde.',
-  },
-  {
-    icon: Shield,
-    title: 'Denetim Izi (Audit Trail)',
-    desc: 'Her işlem — oluşturma, guncelleme, onay, gonderim — kimin, ne zaman, ne yaptigi ile kayıt altindadir. Uyumluluk için hazir.',
-  },
-  {
-    icon: Bell,
-    title: 'Bildirimler + İş Kuyrugu',
-    desc: 'Yeni talepler, onay bekleyen teklifler, süresi dolan fırsatlar anlik bildirimlerle takip edilir. Hicbir sey gozden kacar kacirilmaz.',
-  },
-  {
-    icon: BarChart3,
-    title: 'Raporlar + Müşteri Sagligi',
-    desc: 'Donusum orani, yanit süresi, temsilci performansi, indirim analizi, müşteri saglik skoru. Yoneticiler için tek ekranda.',
-  },
-];
+type Feature = {
+  icon: LucideIcon;
+  titleKey: TranslationKey;
+  descKey: TranslationKey;
+};
 
 export default function Features() {
+  const t = useT();
+
+  const features: Feature[] = useMemo(
+    () => [
+      { icon: Mail, titleKey: 'landing.feat_1_title', descKey: 'landing.feat_1_desc' },
+      { icon: Search, titleKey: 'landing.feat_2_title', descKey: 'landing.feat_2_desc' },
+      { icon: FileCheck, titleKey: 'landing.feat_3_title', descKey: 'landing.feat_3_desc' },
+      { icon: Shield, titleKey: 'landing.feat_4_title', descKey: 'landing.feat_4_desc' },
+      { icon: Bell, titleKey: 'landing.feat_5_title', descKey: 'landing.feat_5_desc' },
+      { icon: BarChart3, titleKey: 'landing.feat_6_title', descKey: 'landing.feat_6_desc' },
+    ],
+    [],
+  );
+
   return (
     <section id="features" className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6">
@@ -44,16 +34,18 @@ export default function Features() {
           viewport={{ once: true, margin: '-100px' }}
           className="mx-auto max-w-2xl text-center"
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-red-600">Ozellikler</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-red-600">
+            {t('landing.features_label')}
+          </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            Satış surecinin her adiminida kapsayan tek platform
+            {t('landing.features_title')}
           </h2>
         </motion.div>
 
         <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
+          {features.map((f, i) => (
             <motion.div
-              key={i}
+              key={f.titleKey}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -63,8 +55,8 @@ export default function Features() {
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white transition-colors duration-200 group-hover:bg-red-600">
                 <f.icon size={18} />
               </div>
-              <h3 className="mb-2 text-base font-bold text-slate-900">{f.title}</h3>
-              <p className="text-sm leading-relaxed text-slate-600">{f.desc}</p>
+              <h3 className="mb-2 text-base font-bold text-slate-900">{t(f.titleKey)}</h3>
+              <p className="text-sm leading-relaxed text-slate-600">{t(f.descKey)}</p>
             </motion.div>
           ))}
         </div>

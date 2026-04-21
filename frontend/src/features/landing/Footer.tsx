@@ -1,4 +1,9 @@
+import { useT } from '../../hooks/useT';
+
 export default function Footer() {
+  const t = useT();
+  const year = new Date().getFullYear();
+
   return (
     <footer className="border-t border-slate-200 bg-white py-12">
       <div className="mx-auto max-w-7xl px-6">
@@ -11,44 +16,72 @@ export default function Footer() {
               </div>
               <span className="text-base font-bold tracking-tight text-slate-900">Sales Suite</span>
             </div>
-            <p className="mt-3 text-sm text-slate-500">
-              Honeywell Turkiye yedek parça satış sureci için tasarlandi.
-            </p>
+            <p className="mt-3 text-sm text-slate-500">{t('landing.footer_tagline')}</p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Ürün</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              {t('landing.footer_product')}
+            </h4>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li><a href="#features" className="transition-colors hover:text-slate-900">Ozellikler</a></li>
-              <li><a href="#pricing" className="transition-colors hover:text-slate-900">Fiyatlar</a></li>
-              <li><a href="#solution" className="transition-colors hover:text-slate-900">Nasil Calisir</a></li>
-              <li><a href="#faq" className="transition-colors hover:text-slate-900">SSS</a></li>
+              <li>
+                <a href="#features" className="transition-colors hover:text-slate-900">
+                  {t('landing.nav_features')}
+                </a>
+              </li>
+              <li>
+                <a href="#pricing" className="transition-colors hover:text-slate-900">
+                  {t('landing.nav_pricing')}
+                </a>
+              </li>
+              <li>
+                <a href="#solution" className="transition-colors hover:text-slate-900">
+                  {t('landing.nav_how')}
+                </a>
+              </li>
+              <li>
+                <a href="#faq" className="transition-colors hover:text-slate-900">
+                  {t('landing.nav_faq')}
+                </a>
+              </li>
             </ul>
           </div>
 
           {/* Company */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Şirket</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              {t('landing.footer_company')}
+            </h4>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li><a href="/login" className="transition-colors hover:text-slate-900">Giris Yap</a></li>
-              <li><a href="#demo" className="transition-colors hover:text-slate-900">Demo Planla</a></li>
+              <li>
+                <a href="/login" className="transition-colors hover:text-slate-900">
+                  {t('landing.login')}
+                </a>
+              </li>
+              <li>
+                <a href="#demo" className="transition-colors hover:text-slate-900">
+                  {t('landing.demo')}
+                </a>
+              </li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Guvenlik</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              {t('landing.footer_security')}
+            </h4>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li>RBAC + Audit Trail</li>
-              <li>AES-256 Sifreleme</li>
-              <li>KVKK Uyumlu</li>
+              <li>{t('landing.footer_sec_rbac')}</li>
+              <li>{t('landing.footer_sec_aes')}</li>
+              <li>{t('landing.footer_sec_kvkk')}</li>
             </ul>
           </div>
         </div>
 
         <div className="mt-10 border-t border-slate-100 pt-6 text-center text-xs text-slate-400">
-          &copy; {new Date().getFullYear()} Honeywell Sales Suite. Tum haklari saklidir.
+          © {year} Honeywell Sales Suite. {t('landing.footer_rights')}
         </div>
       </div>
     </footer>

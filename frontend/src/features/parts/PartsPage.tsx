@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -8,6 +8,7 @@ import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { partsApi } from '../../lib/api';
+import { useT } from '../../hooks/useT';
 import type { SparePart, PaginatedResponse } from '../../lib/types';
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat('tr-TR', {
@@ -29,13 +30,8 @@ interface PartsImportResponse {
   skipped?: number;
 }
 
-function PartDetailModal({
-  part,
-  onClose,
-}: {
-  part: SparePart | null;
-  onClose: () => void;
-}) {
+function PartDetailModal({ part, onClose }: { part: SparePart | null; onClose: () => void }) {
+  const t = useT();
   if (!part) return null;
 
   const hasPriceInfo = part.transfer_price != null || part.supplier_price != null;
@@ -48,18 +44,14 @@ function PartDetailModal({
       <div className="space-y-5">
         {/* Gradient header banner */}
         <div className="-mx-6 -mt-6 rounded-t-2xl bg-gradient-to-r from-red-700 to-red-500 px-6 py-6">
-          <h3 className="text-2xl font-bold tracking-tight text-white">
-            {part.honeywell_code}
-          </h3>
-          {part.model_number && (
-            <p className="mt-1 text-sm text-red-100">{part.model_number}</p>
-          )}
+          <h3 className="text-2xl font-bold tracking-tight text-white">{part.honeywell_code}</h3>
+          {part.model_number && <p className="mt-1 text-sm text-red-100">{part.model_number}</p>}
         </div>
 
         {/* Info highlight box */}
         {part.info && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
-            <span className="font-semibold">Bilgi: </span>
+            <span className="font-semibold">{t('parts.modal_info')} </span>
             {part.info}
           </div>
         )}
@@ -71,7 +63,7 @@ function PartDetailModal({
               {part.transfer_price != null && (
                 <div>
                   <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    T.P. (Transfer Price)
+                    {t('parts.tp_label')}
                   </span>
                   <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
                     {formatPrice(part.transfer_price)}
@@ -81,7 +73,7 @@ function PartDetailModal({
               {part.supplier_price != null && (
                 <div>
                   <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    L.P. (List Price)
+                    {t('parts.lp_label')}
                   </span>
                   <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
                     {formatPrice(part.supplier_price)}
@@ -95,7 +87,7 @@ function PartDetailModal({
               )}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic">Fiyat bilgisi yok</p>
+            <p className="text-sm text-gray-400 italic">{t('parts.no_price')}</p>
           )}
         </div>
 
@@ -106,7 +98,7 @@ function PartDetailModal({
         {(descriptionTr || descriptionEn) && (
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Açıklama
+              {t('parts.description_heading')}
             </h4>
             <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
               {descriptionTr && (
@@ -146,7 +138,7 @@ function PartDetailModal({
         {/* Created date footer */}
         {createdDate && (
           <p className="text-xs text-gray-400">
-            Olusturma: {createdDate}
+            {t('parts.created_label')} {createdDate}
           </p>
         )}
       </div>
@@ -155,6 +147,7 @@ function PartDetailModal({
 }
 
 export default function PartsPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -182,15 +175,20 @@ export default function PartsPage() {
     mutationFn: (file: File) => partsApi.importParts(file) as Promise<PartsImportResponse>,
     onSuccess: (res) => {
       const parts = (res.parts_created || 0) + (res.parts_updated || 0);
+      const skipped = res.skipped
+        ? t('parts.import_skipped').replace('{n}', String(res.skipped))
+        : '';
       toast.success(
-        `${parts} parça (${res.parts_created || 0} yeni, ${res.parts_updated || 0} guncellendi)` +
-        (res.skipped ? `, ${res.skipped} atlandi` : '') +
-        ' içe aktarıldı',
+        t('parts.import_success')
+          .replace('{total}', String(parts))
+          .replace('{created}', String(res.parts_created || 0))
+          .replace('{updated}', String(res.parts_updated || 0))
+          .replace('{skipped}', skipped),
       );
       queryClient.invalidateQueries({ queryKey: ['parts'] });
       queryClient.invalidateQueries({ queryKey: ['parts-categories'] });
     },
-    onError: () => toast.error('Katalog içe aktarimi başarısız'),
+    onError: () => toast.error(t('parts.import_failed')),
   });
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,75 +201,77 @@ export default function PartsPage() {
     setSelectedPart(part);
   }, []);
 
-  const categoryOptions = [
-    { value: '', label: 'Tüm Kategoriler' },
-    ...(categories || []).map((c) => ({ value: c, label: c })),
-  ];
+  const categoryOptions = useMemo(
+    () => [
+      { value: '', label: t('parts.all_categories') },
+      ...(categories || []).map((c) => ({ value: c, label: c })),
+    ],
+    [categories, t],
+  );
 
-  const columns = [
-    {
-      key: 'model_number',
-      header: 'Model No',
-      sortable: true,
-      render: (row: SparePart) => (
-        <span className="font-mono text-sm font-semibold text-gray-900">
-          {row.model_number || row.honeywell_code}
-        </span>
-      ),
-    },
-    {
-      key: 'honeywell_code',
-      header: 'Honeywell Kodu',
-      sortable: true,
-      render: (row: SparePart) => (
-        <span className="font-mono text-xs text-gray-600">
-          {row.honeywell_code}
-        </span>
-      ),
-    },
-    {
-      key: 'name_tr',
-      header: 'Tanim',
-      render: (row: SparePart) => (
-        <span className="text-sm" title={row.description_tr || row.name_tr || ''}>
-          {row.name_tr || row.name_en || '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'category',
-      header: 'Kategori',
-      render: (row: SparePart) => (
-        <span className="text-sm">{row.category || '-'}</span>
-      ),
-    },
-    {
-      key: 'transfer_price',
-      header: 'T.P.',
-      render: (row: SparePart) => (
-        <span className="text-sm font-medium text-gray-900">
-          {row.transfer_price != null
-            ? `${formatPrice(row.transfer_price)} ${row.price_currency || ''}`
-            : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'supplier_price',
-      header: 'L.P.',
-      render: (row: SparePart) => (
-        <span className="text-sm text-gray-700">
-          {row.supplier_price != null
-            ? `${formatPrice(row.supplier_price)} ${row.price_currency || ''}`
-            : '-'}
-        </span>
-      ),
-    },
-  ];
+  const columns = useMemo(
+    () => [
+      {
+        key: 'model_number',
+        header: t('parts.col_model'),
+        sortable: true,
+        render: (row: SparePart) => (
+          <span className="font-mono text-sm font-semibold text-gray-900">
+            {row.model_number || row.honeywell_code}
+          </span>
+        ),
+      },
+      {
+        key: 'honeywell_code',
+        header: t('parts.col_hw_code'),
+        sortable: true,
+        render: (row: SparePart) => (
+          <span className="font-mono text-xs text-gray-600">{row.honeywell_code}</span>
+        ),
+      },
+      {
+        key: 'name_tr',
+        header: t('parts.col_name'),
+        render: (row: SparePart) => (
+          <span className="text-sm" title={row.description_tr || row.name_tr || ''}>
+            {row.name_tr || row.name_en || '-'}
+          </span>
+        ),
+      },
+      {
+        key: 'category',
+        header: t('parts.col_category'),
+        render: (row: SparePart) => <span className="text-sm">{row.category || '-'}</span>,
+      },
+      {
+        key: 'transfer_price',
+        header: t('parts.col_tp'),
+        render: (row: SparePart) => (
+          <span className="text-sm font-medium text-gray-900">
+            {row.transfer_price != null
+              ? `${formatPrice(row.transfer_price)} ${row.price_currency || ''}`
+              : '-'}
+          </span>
+        ),
+      },
+      {
+        key: 'supplier_price',
+        header: t('parts.col_lp'),
+        render: (row: SparePart) => (
+          <span className="text-sm text-gray-700">
+            {row.supplier_price != null
+              ? `${formatPrice(row.supplier_price)} ${row.price_currency || ''}`
+              : '-'}
+          </span>
+        ),
+      },
+    ],
+    [t],
+  );
 
   return (
     <div>
-      <PageHeader title="Yedek Parçalar" description="Honeywell yedek parça katalogu">
+      <PageHeader title={t('parts.catalog_title')} description={t('parts.catalog_subtitle')}>
         <input
           type="file"
           ref={fileRef}
@@ -279,25 +279,21 @@ export default function PartsPage() {
           accept=".xlsx,.xls,.csv,.json,.pdf"
           className="hidden"
         />
-        <Button
-          loading={importMutation.isPending}
-          onClick={() => fileRef.current?.click()}
-        >
-          İçe Aktar (Excel/CSV/PDF)
+        <Button loading={importMutation.isPending} onClick={() => fileRef.current?.click()}>
+          {t('parts.import_btn')}
         </Button>
       </PageHeader>
 
       {/* Info banner */}
       <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-        <strong>Excel Formati:</strong> Model No / Honeywell Code (zorunlu), açıklama, transfer price,
-        supplier price sutunlarini iceren tek bir dosya yukleyin. Sutun eslestirme otomatik yapilir.
+        {t('parts.excel_format_banner')}
       </div>
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-end gap-4">
         <div className="w-72">
           <Input
-            placeholder="Kod veya isim ile ara..."
+            placeholder={t('parts.search_ph')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -322,7 +318,7 @@ export default function PartsPage() {
         columns={columns}
         data={data?.items || []}
         loading={isLoading}
-        emptyMessage="Henüz parça bulunamadi"
+        emptyMessage={t('parts.empty')}
         page={data?.page || page}
         totalPages={data?.pages || 1}
         onPageChange={setPage}
@@ -330,10 +326,7 @@ export default function PartsPage() {
       />
 
       {/* Product detail modal */}
-      <PartDetailModal
-        part={selectedPart}
-        onClose={() => setSelectedPart(null)}
-      />
+      <PartDetailModal part={selectedPart} onClose={() => setSelectedPart(null)} />
     </div>
   );
 }

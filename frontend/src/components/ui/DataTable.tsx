@@ -2,6 +2,7 @@ import { useState, useMemo, type ReactNode } from 'react';
 import { EmptyState } from './EmptyState';
 import { Button } from './Button';
 import { ArrowUp, ArrowDown } from 'lucide-react';
+import { useT } from '../../hooks/useT';
 
 interface Column<T> {
   key: string;
@@ -42,12 +43,14 @@ export function DataTable<T = any>({
   columns,
   data,
   loading = false,
-  emptyMessage = 'Kayıt bulunamadi',
+  emptyMessage,
   page,
   totalPages,
   onPageChange,
   onRowClick,
 }: DataTableProps<T>) {
+  const t = useT();
+  const resolvedEmpty = emptyMessage ?? t('table.empty');
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -127,7 +130,7 @@ export function DataTable<T = any>({
             ) : sortedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length}>
-                  <EmptyState title={emptyMessage} />
+                  <EmptyState title={resolvedEmpty} />
                 </td>
               </tr>
             ) : (
@@ -161,7 +164,9 @@ export function DataTable<T = any>({
           style={{ borderColor: 'var(--border)' }}
         >
           <span className="text-caption">
-            Sayfa {page} / {totalPages}
+            {t('table.page_of')
+              .replace('{page}', String(page))
+              .replace('{totalPages}', String(totalPages))}
           </span>
           <div className="flex gap-2">
             <Button
@@ -170,7 +175,7 @@ export function DataTable<T = any>({
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
             >
-              Önceki
+              {t('table.prev')}
             </Button>
             <Button
               variant="secondary"
@@ -178,7 +183,7 @@ export function DataTable<T = any>({
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}
             >
-              Sonraki
+              {t('table.next')}
             </Button>
           </div>
         </div>

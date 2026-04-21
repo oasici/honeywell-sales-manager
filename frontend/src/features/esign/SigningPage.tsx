@@ -4,7 +4,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, AlertCircle, PenLine, Clock } from 'lucide-react';
 import { signaturesApi } from '../../lib/api';
+import { formatDate, formatDateTime } from '../../lib/formatters';
 import type { SignatureRequest } from '../../lib/types';
+import type { TranslationKey } from '../../lib/i18n';
+import { useT } from '../../hooks/useT';
 
 interface PublicSignResponse {
   request: SignatureRequest;
@@ -19,6 +22,7 @@ function isExpired(expiresAt: string): boolean {
 
 export default function SigningPage() {
   const { token } = useParams<{ token: string }>();
+  const t = useT();
   const [signerName, setSignerName] = useState('');
   const [isAgreed, setIsAgreed] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
@@ -49,7 +53,7 @@ export default function SigningPage() {
     onSuccess: () => {
       setIsSigned(true);
     },
-    onError: () => toast.error('Imzalama işlemi başarısız oldu'),
+    onError: () => toast.error(t('esign.toast_sign_fail')),
   });
 
   const declineMutation = useMutation({
@@ -57,7 +61,7 @@ export default function SigningPage() {
     onSuccess: () => {
       setIsDeclined(true);
     },
-    onError: () => toast.error('Reddetme işlemi başarısız oldu'),
+    onError: () => toast.error(t('esign.toast_reject_fail')),
   });
 
   if (isLoading) {
@@ -65,7 +69,7 @@ export default function SigningPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-honeywell-red" />
-          <p className="text-sm text-gray-500">Yükleniyor...</p>
+          <p className="text-sm text-gray-500">{t('esign.loading')}</p>
         </div>
       </div>
     );
@@ -76,8 +80,8 @@ export default function SigningPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <AlertCircle className="mx-auto mb-4 h-14 w-14 text-red-400" />
-          <h1 className="mb-2 text-xl font-bold text-gray-900">Belge Bulunamadi</h1>
-          <p className="text-sm text-gray-500">Bu imza baglantisi geçersiz veya bulunamadi.</p>
+          <h1 className="mb-2 text-xl font-bold text-gray-900">{t('esign.not_found_title')}</h1>
+          <p className="text-sm text-gray-500">{t('esign.invalid_link')}</p>
         </div>
       </div>
     );
@@ -88,15 +92,17 @@ export default function SigningPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <CheckCircle className="mx-auto mb-4 h-14 w-14 text-green-500" />
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">Belge Başarıyla Imzalandi</h1>
-          <p className="text-sm text-gray-500">{signRequest.signer_email} icin imza kaydedildi.</p>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">{t('esign.signed_title')}</h1>
+          <p className="text-sm text-gray-500">
+            {t('esign.signed_for').replace('{email}', signRequest.signer_email)}
+          </p>
           {signRequest.signed_at && (
             <p className="mt-2 text-xs text-gray-400">
-              Imzalanma tarihi: {new Date(signRequest.signed_at).toLocaleString('tr-TR')}
+              {t('esign.signed_at').replace('{datetime}', formatDateTime(signRequest.signed_at))}
             </p>
           )}
           <div className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">
-            Imzaniz başarıyla alindi. Tesekkur ederiz.
+            {t('esign.signed_thanks')}
           </div>
         </div>
       </div>
@@ -108,8 +114,8 @@ export default function SigningPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <XCircle className="mx-auto mb-4 h-14 w-14 text-red-400" />
-          <h1 className="mb-2 text-xl font-bold text-gray-900">Belge Reddedildi</h1>
-          <p className="text-sm text-gray-500">Bu belge için imza talebi reddedildi.</p>
+          <h1 className="mb-2 text-xl font-bold text-gray-900">{t('esign.rejected_title')}</h1>
+          <p className="text-sm text-gray-500">{t('esign.rejected')}</p>
         </div>
       </div>
     );
@@ -120,24 +126,23 @@ export default function SigningPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <Clock className="mx-auto mb-4 h-14 w-14 text-amber-400" />
-          <h1 className="mb-2 text-xl font-bold text-gray-900">Bu Imza Süresi Dolmus</h1>
+          <h1 className="mb-2 text-xl font-bold text-gray-900">{t('esign.expired_title')}</h1>
           <p className="text-sm text-gray-500">
-            Bu imza baglantisi {new Date(signRequest.expires_at).toLocaleDateString('tr-TR')}{' '}
-            tarihinde suresi doldu. Yeni bir imza talebi icin lütfen gondericiye basvurun.
+            {t('esign.expired_body').replace('{date}', formatDate(signRequest.expires_at))}
           </p>
         </div>
       </div>
     );
   }
 
-  const documentTypeLabel =
+  const documentTypeKey: TranslationKey =
     data?.document_type === 'invoice'
-      ? 'Fatura'
+      ? 'esign.doc_type_invoice'
       : data?.document_type === 'contract'
-        ? 'Kontrat'
+        ? 'esign.doc_type_contract'
         : data?.document_type === 'quote'
-          ? 'Teklif'
-          : (data?.document_type ?? 'Belge');
+          ? 'esign.doc_type_quote'
+          : 'esign.doc_type_document';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
@@ -147,10 +152,8 @@ export default function SigningPage() {
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-honeywell-red/10">
             <PenLine className="h-6 w-6 text-honeywell-red" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Belge Imzalama</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Asagidaki belgeyi inceleyip imzalayabilirsiniz
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('esign.signing_title')}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t('esign.signing_subtitle')}</p>
         </div>
 
         {/* Document Summary Card */}
@@ -158,17 +161,17 @@ export default function SigningPage() {
           <div className="mb-4 flex items-start justify-between">
             <div>
               <span className="inline-block rounded-lg bg-honeywell-red/10 px-3 py-1 text-xs font-semibold text-honeywell-red">
-                {documentTypeLabel}
+                {t(documentTypeKey)}
               </span>
               {data?.document_id && (
-                <p className="mt-1 text-sm text-gray-500">Belge #{data.document_id}</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  {t('esign.document_id').replace('{id}', String(data.document_id))}
+                </p>
               )}
             </div>
             <div className="text-right text-xs text-gray-400">
-              <p>Son gecerlilik</p>
-              <p className="font-medium text-gray-600">
-                {new Date(signRequest.expires_at).toLocaleDateString('tr-TR')}
-              </p>
+              <p>{t('esign.last_valid')}</p>
+              <p className="font-medium text-gray-600">{formatDate(signRequest.expires_at)}</p>
             </div>
           </div>
 
@@ -179,21 +182,23 @@ export default function SigningPage() {
           )}
 
           <div className="mt-4 border-t border-gray-100 pt-4">
-            <p className="text-xs text-gray-500">Imzalayan</p>
+            <p className="text-xs text-gray-500">{t('esign.signer')}</p>
             <p className="text-sm font-medium text-gray-900">{signRequest.signer_email}</p>
           </div>
         </div>
 
         {/* Signing Form */}
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">Imzala</h2>
+          <h2 className="mb-4 text-base font-semibold text-gray-900">{t('esign.sign_title')}</h2>
 
           <div className="mb-4">
-            <label className="mb-1 block text-sm font-medium text-gray-700">Adiniz Soyadiniz</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('esign.name_label')}
+            </label>
             <input
               type="text"
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-red/20"
-              placeholder="Ad Soyad"
+              placeholder={t('esign.name_ph')}
               value={signerName}
               onChange={(e) => setSignerName(e.target.value)}
             />
@@ -207,8 +212,9 @@ export default function SigningPage() {
               onChange={(e) => setIsAgreed(e.target.checked)}
             />
             <span className="text-sm text-gray-600">
-              Bu belgeyi okudum, anladin ve <strong className="text-gray-800">onayliyorum</strong>.
-              Dijital imzamın bu belge için yasal olarak baglayici oldugunu kabul ediyorum.
+              {t('esign.agree_prefix')}{' '}
+              <strong className="text-gray-800">{t('esign.agree_bold')}</strong>.{' '}
+              {t('esign.legal_ack')}
             </span>
           </label>
 
@@ -222,12 +228,12 @@ export default function SigningPage() {
               {signMutation.isPending ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Imzalaniyor...
+                  {t('esign.signing')}
                 </>
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4" />
-                  Imzala
+                  {t('esign.sign')}
                 </>
               )}
             </button>
@@ -240,12 +246,12 @@ export default function SigningPage() {
               {declineMutation.isPending ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-400 border-t-transparent" />
-                  Reddediliyor...
+                  {t('esign.declining')}
                 </>
               ) : (
                 <>
                   <XCircle className="h-4 w-4" />
-                  Reddet
+                  {t('esign.decline')}
                 </>
               )}
             </button>
@@ -253,7 +259,7 @@ export default function SigningPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-gray-400">
-          Bu imza baglantisi yalnizca {signRequest.signer_email} icin gonderilmistir.
+          {t('esign.link_only_for').replace('{email}', signRequest.signer_email)}
         </p>
       </div>
     </div>

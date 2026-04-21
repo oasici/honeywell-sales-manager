@@ -9,29 +9,19 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { campaignsApi, leadsApi, customersApi } from '../../lib/api';
-import { formatCurrency } from '../../lib/formatters';
+import { formatCurrency, formatDate, currentLocale } from '../../lib/formatters';
 import { Modal } from '../../components/ui/Modal';
 import type { Campaign, CampaignMember, CampaignROI, Customer } from '../../lib/types';
 import { Pencil, Trash2, UserPlus } from 'lucide-react';
-import { STATUS_LABELS, STATUS_VARIANTS } from './campaignConstants';
-
-const TYPE_LABELS: Record<string, string> = {
-  email: 'E-posta',
-  event: 'Etkinlik',
-  webinar: 'Webinar',
-  social: 'Sosyal Medya',
-  content: 'İçerik',
-  other: 'Diğer',
-};
-
-const MEMBER_STATUS_OPTIONS = [
-  { value: 'sent', label: 'Gönderildi' },
-  { value: 'opened', label: 'Acildi' },
-  { value: 'clicked', label: 'Tiklandi' },
-  { value: 'responded', label: 'Yanit Verdi' },
-  { value: 'converted', label: 'Donusturuldu' },
-  { value: 'unsubscribed', label: 'Abonelik Iptali' },
-];
+import { STATUS_VARIANTS } from './campaignConstants';
+import { useT } from '../../hooks/useT';
+import {
+  CAMPAIGN_MEMBER_STATUS_VALUES,
+  CAMPAIGN_STATUS_VALUES,
+  translateCampaignMemberStatus,
+  translateCampaignStatus,
+  translateCampaignType,
+} from '../../lib/labelTranslations';
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -44,6 +34,8 @@ function KpiCard({ label, value, sub }: { label: string; value: string | number;
 }
 
 export default function CampaignDetailPage() {
+  const t = useT();
+  const locale = currentLocale();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -91,42 +83,42 @@ export default function CampaignDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => campaignsApi.update(campaignId, payload),
     onSuccess: () => {
-      toast.success('Kampanya guncellendi');
+      toast.success(t('campaigns.toast_updated'));
       queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
       setIsEditOpen(false);
     },
-    onError: () => toast.error('Güncelleme başarısız'),
+    onError: () => toast.error(t('campaigns.toast_update_failed')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => campaignsApi.delete(campaignId),
     onSuccess: () => {
-      toast.success('Kampanya silindi');
+      toast.success(t('campaigns.toast_deleted'));
       navigate('/campaigns');
     },
-    onError: () => toast.error('Silme başarısız'),
+    onError: () => toast.error(t('campaigns.toast_delete_failed')),
   });
 
   const addMembersMutation = useMutation({
     mutationFn: (members: Array<{ lead_id?: number; customer_id?: number }>) =>
       campaignsApi.addMembers(campaignId, members),
     onSuccess: () => {
-      toast.success('Üye eklendi');
+      toast.success(t('campaigns.toast_member_added'));
       queryClient.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
       setIsAddMembersOpen(false);
       setMemberSearch('');
     },
-    onError: () => toast.error('Üye eklenemedi'),
+    onError: () => toast.error(t('campaigns.toast_member_add_failed')),
   });
 
   const removeMemberMutation = useMutation({
     mutationFn: (memberId: number) => campaignsApi.removeMember(campaignId, memberId),
     onSuccess: () => {
-      toast.success('Üye kaldırıldı');
+      toast.success(t('campaigns.toast_member_removed'));
       queryClient.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
     },
-    onError: () => toast.error('Üye kaldirilmadi'),
+    onError: () => toast.error(t('campaigns.toast_member_remove_failed')),
   });
 
   const updateMemberStatusMutation = useMutation({
@@ -135,7 +127,7 @@ export default function CampaignDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
     },
-    onError: () => toast.error('Durum guncellenemedi'),
+    onError: () => toast.error(t('campaigns.toast_member_status_failed')),
   });
 
   const handleOpenEdit = useCallback(() => {
@@ -171,9 +163,9 @@ export default function CampaignDetailPage() {
   if (!campaign) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-gray-500">Kampanya bulunamadi</p>
+        <p className="text-sm text-gray-500">{t('campaigns.detail_not_found')}</p>
         <Button variant="secondary" onClick={() => navigate('/campaigns')} className="mt-4">
-          Geri Don
+          {t('common.back')}
         </Button>
       </div>
     );
@@ -181,16 +173,16 @@ export default function CampaignDetailPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={campaign.name} description="Kampanya detaylari ve analitik">
+      <PageHeader title={campaign.name} description={t('campaigns.detail_description')}>
         <Badge variant={STATUS_VARIANTS[campaign.status] || 'default'}>
-          {STATUS_LABELS[campaign.status] || campaign.status}
+          {translateCampaignStatus(campaign.status, t)}
         </Badge>
         <Button variant="secondary" onClick={() => navigate('/campaigns')}>
-          Geri Don
+          {t('common.back')}
         </Button>
         <Button variant="secondary" onClick={handleOpenEdit}>
           <Pencil className="mr-1.5 h-4 w-4" />
-          Düzenle
+          {t('campaigns.edit')}
         </Button>
         <Button
           variant="danger"
@@ -198,76 +190,82 @@ export default function CampaignDetailPage() {
           loading={deleteMutation.isPending}
         >
           <Trash2 className="mr-1.5 h-4 w-4" />
-          Sil
+          {t('campaigns.delete')}
         </Button>
       </PageHeader>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <KpiCard
-          label="Gercek Maliyet"
+          label={t('campaigns.kpi_actual_cost')}
           value={formatCurrency(roi?.actual_cost ?? campaign.actual_cost)}
         />
         <KpiCard
-          label="Gercek Gelir"
+          label={t('campaigns.kpi_actual_revenue')}
           value={formatCurrency(roi?.actual_revenue ?? campaign.actual_revenue)}
         />
         <KpiCard
-          label="ROI"
+          label={t('campaigns.kpi_roi')}
           value={roi ? `${roi.roi_pct.toFixed(1)}%` : '-'}
-          sub={roi ? `${roi.member_count} uye` : undefined}
+          sub={
+            roi
+              ? t('campaigns.kpi_roi_sub').replace('{count}', String(roi.member_count))
+              : undefined
+          }
         />
         <KpiCard
-          label="Donusum Orani"
+          label={t('campaigns.kpi_conversion')}
           value={roi ? `${roi.conversion_rate.toFixed(1)}%` : '-'}
-          sub={roi ? `${roi.responded_count} yanit` : undefined}
+          sub={
+            roi
+              ? t('campaigns.kpi_conversion_sub').replace('{count}', String(roi.responded_count))
+              : undefined
+          }
         />
       </div>
 
       {/* Campaign Info */}
-      <Card title="Kampanya Bilgileri">
+      <Card title={t('campaigns.card_info')}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <p className="text-xs text-gray-500">Tip</p>
+            <p className="text-xs text-gray-500">{t('campaigns.field_type')}</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {TYPE_LABELS[campaign.type] || campaign.type}
+              {translateCampaignType(campaign.type, t)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Durum</p>
+            <p className="text-xs text-gray-500">{t('campaigns.field_status')}</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {STATUS_LABELS[campaign.status] || campaign.status}
+              {translateCampaignStatus(campaign.status, t)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Baslangic</p>
+            <p className="text-xs text-gray-500">{t('campaigns.field_start')}</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {campaign.start_date
-                ? new Date(campaign.start_date).toLocaleDateString('tr-TR')
-                : '-'}
+              {campaign.start_date ? formatDate(campaign.start_date, locale) : '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Bitis</p>
+            <p className="text-xs text-gray-500">{t('campaigns.field_end')}</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('tr-TR') : '-'}
+              {campaign.end_date ? formatDate(campaign.end_date, locale) : '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Butce</p>
+            <p className="text-xs text-gray-500">{t('campaigns.field_budget')}</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
               {formatCurrency(campaign.budget)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Beklenen Gelir</p>
+            <p className="text-xs text-gray-500">{t('campaigns.field_expected_revenue')}</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white">
               {formatCurrency(campaign.expected_revenue)}
             </p>
           </div>
           {campaign.description && (
             <div className="col-span-full">
-              <p className="text-xs text-gray-500">Açıklama</p>
+              <p className="text-xs text-gray-500">{t('campaigns.field_description')}</p>
               <p className="text-sm text-gray-700 dark:text-gray-300">{campaign.description}</p>
             </div>
           )}
@@ -275,18 +273,18 @@ export default function CampaignDetailPage() {
       </Card>
 
       {/* Members Section */}
-      <Card title={`Uyeler (${members.length})`}>
+      <Card title={t('campaigns.members_title').replace('{count}', String(members.length))}>
         <div className="mb-3 flex justify-end">
           <Button onClick={() => setIsAddMembersOpen(true)}>
             <UserPlus className="mr-1.5 h-4 w-4" />
-            Üye Ekle
+            {t('campaigns.add_member')}
           </Button>
         </div>
 
         {membersLoading && <Skeleton variant="table" count={3} />}
 
         {!membersLoading && members.length === 0 && (
-          <p className="py-6 text-center text-sm text-gray-400">Henüz üye eklenmedi</p>
+          <p className="py-6 text-center text-sm text-gray-400">{t('campaigns.members_empty')}</p>
         )}
 
         {!membersLoading && members.length > 0 && (
@@ -294,11 +292,21 @@ export default function CampaignDetailPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Ad / Firma</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Tip</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Email</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Durum</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Eklendi</th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('campaigns.col_name_company')}
+                  </th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('campaigns.col_type')}
+                  </th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('campaigns.col_email')}
+                  </th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('campaigns.col_status')}
+                  </th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('campaigns.col_added')}
+                  </th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500" />
                 </tr>
               </thead>
@@ -322,7 +330,7 @@ export default function CampaignDetailPage() {
                       </td>
                       <td className="px-3 py-2">
                         <Badge variant={isLead ? 'warning' : 'info'}>
-                          {isLead ? 'Lead' : 'Müşteri'}
+                          {isLead ? t('campaigns.badge_lead') : t('campaigns.badge_customer')}
                         </Badge>
                       </td>
                       <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{email}</td>
@@ -337,15 +345,15 @@ export default function CampaignDetailPage() {
                             })
                           }
                         >
-                          {MEMBER_STATUS_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
+                          {CAMPAIGN_MEMBER_STATUS_VALUES.map((v) => (
+                            <option key={v} value={v}>
+                              {translateCampaignMemberStatus(v, t)}
                             </option>
                           ))}
                         </select>
                       </td>
                       <td className="px-3 py-2 text-xs text-gray-400">
-                        {new Date(member.created_at).toLocaleDateString('tr-TR')}
+                        {formatDate(member.created_at, locale)}
                       </td>
                       <td className="px-3 py-2 text-right">
                         <button
@@ -353,7 +361,7 @@ export default function CampaignDetailPage() {
                           onClick={() => removeMemberMutation.mutate(member.id)}
                           className="text-xs text-red-500 hover:text-red-700 transition-colors"
                         >
-                          Kaldir
+                          {t('campaigns.remove_member')}
                         </button>
                       </td>
                     </tr>
@@ -366,32 +374,36 @@ export default function CampaignDetailPage() {
       </Card>
 
       {/* Edit Modal */}
-      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Kampanyayi Düzenle">
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title={t('campaigns.modal_edit_title')}
+      >
         <div className="space-y-3">
           <Input
-            label="Kampanya Adi"
+            label={t('campaigns.label_name')}
             value={editForm.name ?? ''}
             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
           />
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Durum
+              {t('campaigns.field_status')}
             </label>
             <select
               className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               value={editForm.status ?? ''}
               onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
             >
-              {Object.entries(STATUS_LABELS).map(([k, v]) => (
+              {CAMPAIGN_STATUS_VALUES.map((k) => (
                 <option key={k} value={k}>
-                  {v}
+                  {translateCampaignStatus(k, t)}
                 </option>
               ))}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Açıklama
+              {t('campaigns.field_description')}
             </label>
             <textarea
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -402,20 +414,20 @@ export default function CampaignDetailPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="Baslangic Tarihi"
+              label={t('campaigns.label_start_date')}
               type="date"
               value={editForm.start_date ?? ''}
               onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })}
             />
             <Input
-              label="Bitis Tarihi"
+              label={t('campaigns.label_end_date')}
               type="date"
               value={editForm.end_date ?? ''}
               onChange={(e) => setEditForm({ ...editForm, end_date: e.target.value })}
             />
           </div>
           <Input
-            label="Butce"
+            label={t('campaigns.label_budget')}
             type="number"
             min={0}
             step={0.01}
@@ -430,13 +442,13 @@ export default function CampaignDetailPage() {
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setIsEditOpen(false)}>
-            İptal
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={() => updateMutation.mutate(editForm as Record<string, unknown>)}
             loading={updateMutation.isPending}
           >
-            Kaydet
+            {t('common.save')}
           </Button>
         </div>
       </Modal>
@@ -448,7 +460,7 @@ export default function CampaignDetailPage() {
           setIsAddMembersOpen(false);
           setMemberSearch('');
         }}
-        title="Üye Ekle"
+        title={t('campaigns.modal_add_member_title')}
         size="sm"
       >
         <div className="mb-3 flex gap-2">
@@ -461,7 +473,7 @@ export default function CampaignDetailPage() {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Müşteri
+            {t('campaigns.badge_customer')}
           </button>
           <button
             type="button"
@@ -472,22 +484,26 @@ export default function CampaignDetailPage() {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Lead
+            {t('campaigns.badge_lead')}
           </button>
         </div>
         <Input
-          label="Ara"
-          placeholder={memberType === 'customer' ? 'Müşteri ara...' : 'Lead ara...'}
+          label={t('campaigns.search')}
+          placeholder={
+            memberType === 'customer'
+              ? t('campaigns.search_customer_ph')
+              : t('campaigns.search_lead_ph')
+          }
           value={memberSearch}
           onChange={(e) => setMemberSearch(e.target.value)}
         />
         <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
           {memberSearch.length < 2 && (
-            <p className="px-4 py-3 text-sm text-gray-400">En az 2 karakter girin</p>
+            <p className="px-4 py-3 text-sm text-gray-400">{t('campaigns.search_min_chars')}</p>
           )}
           {memberSearch.length >= 2 &&
             (!customerResults?.items || customerResults.items.length === 0) && (
-              <p className="px-4 py-3 text-sm text-gray-400">Sonuç bulunamadi</p>
+              <p className="px-4 py-3 text-sm text-gray-400">{t('campaigns.no_results')}</p>
             )}
           {customerResults?.items?.map((item) => {
             const label =
@@ -515,7 +531,7 @@ export default function CampaignDetailPage() {
               setMemberSearch('');
             }}
           >
-            Kapat
+            {t('campaigns.close')}
           </Button>
         </div>
       </Modal>
@@ -524,23 +540,22 @@ export default function CampaignDetailPage() {
       <Modal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
-        title="Kampanyayi Sil"
+        title={t('campaigns.delete_title')}
         size="sm"
       >
         <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          <strong>{campaign.name}</strong> kampanyasini silmek istediginize emin misiniz? Bu işlem
-          geri alinamaz.
+          {t('campaigns.delete_confirm').replace('{name}', campaign.name)}
         </p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setIsDeleteOpen(false)}>
-            İptal
+            {t('common.cancel')}
           </Button>
           <Button
             variant="danger"
             onClick={() => deleteMutation.mutate()}
             loading={deleteMutation.isPending}
           >
-            Sil
+            {t('campaigns.delete')}
           </Button>
         </div>
       </Modal>

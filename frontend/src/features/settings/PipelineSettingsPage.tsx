@@ -10,24 +10,27 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Modal } from '../../components/ui/Modal';
+import { useT } from '../../hooks/useT';
 import type { Pipeline } from '../../lib/types';
 
 // ── Schemas ──────────────────────────────────────────
 
-const stageSchema = z.object({
-  key: z.string().min(1, 'Anahtar zorunlu'),
-  label: z.string().min(1, 'Etiket zorunlu'),
-  probability: z.number().min(0).max(100),
-});
+type PipelineFormData = z.infer<ReturnType<typeof buildPipelineSchema>>;
 
-const pipelineSchema = z.object({
-  name: z.string().min(1, 'Pipeline adi zorunlu'),
-  description: z.string().optional(),
-  is_default: z.boolean().optional(),
-  stages: z.array(stageSchema),
-});
+function buildPipelineSchema(t: ReturnType<typeof useT>) {
+  const stageSchema = z.object({
+    key: z.string().min(1, t('pipelines.validation_key_required')),
+    label: z.string().min(1, t('pipelines.validation_label_required')),
+    probability: z.number().min(0).max(100),
+  });
 
-type PipelineFormData = z.infer<typeof pipelineSchema>;
+  return z.object({
+    name: z.string().min(1, t('pipelines.validation_name_required')),
+    description: z.string().optional(),
+    is_default: z.boolean().optional(),
+    stages: z.array(stageSchema),
+  });
+}
 
 // ── Stage Count Helper ────────────────────────────────
 
@@ -61,8 +64,10 @@ interface PipelineModalProps {
 }
 
 function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
+  const t = useT();
   const queryClient = useQueryClient();
   const isEdit = !!pipeline;
+  const pipelineSchema = buildPipelineSchema(t);
 
   const {
     register,
@@ -93,11 +98,11 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
         stages_json: JSON.stringify(values.stages),
       }),
     onSuccess: () => {
-      toast.success('Pipeline oluşturuldu');
+      toast.success(t('pipelines.toast_created'));
       queryClient.invalidateQueries({ queryKey: ['pipelines'] });
       onClose();
     },
-    onError: () => toast.error('Pipeline oluşturulamadı'),
+    onError: () => toast.error(t('pipelines.toast_create_failed')),
   });
 
   const updateMutation = useMutation({
@@ -109,11 +114,11 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
         stages_json: JSON.stringify(values.stages),
       }),
     onSuccess: () => {
-      toast.success('Pipeline guncellendi');
+      toast.success(t('pipelines.toast_updated'));
       queryClient.invalidateQueries({ queryKey: ['pipelines'] });
       onClose();
     },
-    onError: () => toast.error('Pipeline guncellenemedi'),
+    onError: () => toast.error(t('pipelines.toast_update_failed')),
   });
 
   const onSubmit = (values: PipelineFormData) => {
@@ -127,18 +132,23 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Modal isOpen onClose={onClose} title={isEdit ? 'Pipeline Düzenle' : 'Yeni Pipeline'} size="lg">
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={isEdit ? t('pipelines.modal_edit_title') : t('pipelines.modal_create_title')}
+      size="lg"
+    >
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
           {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Pipeline Adi <span className="text-red-400">*</span>
+              {t('pipelines.name_label')} <span className="text-red-400">*</span>
             </label>
             <input
               {...register('name')}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="Örneğin: Standart Satış Pipeline"
+              placeholder={t('pipelines.name_placeholder')}
             />
             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
           </div>
@@ -146,13 +156,13 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Açıklama
+              {t('pipelines.description_label')}
             </label>
             <textarea
               {...register('description')}
               rows={2}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-red resize-none dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="Bu pipeline hakkinda kısa bir açıklama..."
+              placeholder={t('pipelines.description_placeholder')}
             />
           </div>
 
@@ -164,7 +174,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
               className="rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              Varsayılan Pipeline olarak ayarla
+              {t('pipelines.default_label')}
             </span>
           </label>
 
@@ -172,7 +182,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Aşamalar
+                {t('pipelines.stages')}
               </label>
               <button
                 type="button"
@@ -180,7 +190,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
                 className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10 transition-colors"
               >
                 <Plus size={14} />
-                Aşama Ekle
+                {t('pipelines.add_stage')}
               </button>
             </div>
 
@@ -194,7 +204,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
                     <div>
                       <input
                         {...register(`stages.${index}.key`)}
-                        placeholder="anahtar"
+                        placeholder={t('pipelines.stage_key_placeholder')}
                         className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                       />
                       {errors.stages?.[index]?.key && (
@@ -206,7 +216,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
                     <div>
                       <input
                         {...register(`stages.${index}.label`)}
-                        placeholder="Etiket"
+                        placeholder={t('pipelines.stage_label_placeholder')}
                         className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                       />
                       {errors.stages?.[index]?.label && (
@@ -219,7 +229,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
                       <input
                         type="number"
                         {...register(`stages.${index}.probability`, { valueAsNumber: true })}
-                        placeholder="%"
+                        placeholder={t('pipelines.stage_probability_placeholder')}
                         min={0}
                         max={100}
                         className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -239,20 +249,22 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
               ))}
             </div>
 
-            <p className="mt-1.5 text-[11px] text-gray-500">
-              Her aşama için benzersiz bir anahtar, goruntulenen etiket ve kapanma olasiligi girin.
-            </p>
+            <p className="mt-1.5 text-[11px] text-gray-500">{t('pipelines.stage_help')}</p>
           </div>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 mt-6">
           <Button type="button" variant="secondary" onClick={onClose}>
-            İptal
+            {t('common.cancel')}
           </Button>
           <Button type="submit" loading={isPending}>
             <Check size={16} />
-            {isPending ? 'Kaydediliyor...' : isEdit ? 'Güncelle' : 'Oluştur'}
+            {isPending
+              ? t('pipelines.saving')
+              : isEdit
+                ? t('pipelines.update')
+                : t('common.create')}
           </Button>
         </div>
       </form>
@@ -270,6 +282,7 @@ interface PipelineCardProps {
 }
 
 function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCardProps) {
+  const t = useT();
   const stageCount = parseStageCount(pipeline.stages_json);
 
   return (
@@ -292,7 +305,7 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
                 {pipeline.is_default && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                     <Star size={10} />
-                    Varsayılan
+                    {t('pipelines.default_badge')}
                   </span>
                 )}
               </div>
@@ -301,7 +314,9 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
                   {pipeline.description}
                 </p>
               )}
-              <p className="mt-1 text-xs text-gray-400">{stageCount} aşama</p>
+              <p className="mt-1 text-xs text-gray-400">
+                {stageCount} {t('pipelines.stage_count_suffix')}
+              </p>
             </div>
           </button>
 
@@ -309,16 +324,16 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
             {!pipeline.is_default && (
               <button
                 onClick={onSetDefault}
-                title="Varsayılan Yap"
+                title={t('pipelines.set_default')}
                 className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-amber-500/10 hover:text-amber-500 dark:text-gray-400 transition-colors"
               >
                 <Star size={14} />
-                Varsayılan Yap
+                {t('pipelines.set_default')}
               </button>
             )}
             <button
               onClick={onEdit}
-              title="Düzenle"
+              title={t('common.edit')}
               className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-800 dark:hover:text-white transition-colors"
             >
               <Pencil size={15} />
@@ -326,7 +341,7 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
             {!pipeline.is_default && (
               <button
                 onClick={onDelete}
-                title="Sil"
+                title={t('common.delete')}
                 className="rounded-lg p-1.5 text-gray-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-colors"
               >
                 <Trash2 size={15} />
@@ -342,6 +357,7 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
 // ── Page ──────────────────────────────────────────────
 
 export default function PipelineSettingsPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Pipeline | null>(null);
@@ -361,19 +377,19 @@ export default function PipelineSettingsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => pipelinesApi.delete(id),
     onSuccess: () => {
-      toast.success('Pipeline silindi');
+      toast.success(t('pipelines.toast_deleted'));
       queryClient.invalidateQueries({ queryKey: ['pipelines'] });
     },
-    onError: () => toast.error('Pipeline silinemedi'),
+    onError: () => toast.error(t('pipelines.toast_delete_failed')),
   });
 
   const setDefaultMutation = useMutation({
     mutationFn: (id: number) => pipelinesApi.setDefault(id),
     onSuccess: () => {
-      toast.success('Varsayılan pipeline guncellendi');
+      toast.success(t('pipelines.toast_default_updated'));
       queryClient.invalidateQueries({ queryKey: ['pipelines'] });
     },
-    onError: () => toast.error('İşlem başarısız'),
+    onError: () => toast.error(t('settings.operation_failed')),
   });
 
   const handleEdit = (pipeline: Pipeline) => {
@@ -394,15 +410,10 @@ export default function PipelineSettingsPage() {
   if (isError) {
     return (
       <div className="space-y-6">
-        <PageHeader
-          title="Pipeline Ayarlari"
-          description="Satış pipeline'larinizi ve asamalarini yonetin"
-        />
+        <PageHeader title={t('pipelines.title')} description={t('pipelines.description')} />
         <Card>
           <div className="p-8 text-center">
-            <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
-            </p>
+            <p className="text-sm text-red-500">{t('pipelines.load_error')}</p>
           </div>
         </Card>
       </div>
@@ -411,13 +422,10 @@ export default function PipelineSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Pipeline Ayarlari"
-        description="Satış pipeline'larinizi ve asamalarini yonetin"
-      >
+      <PageHeader title={t('pipelines.title')} description={t('pipelines.description')}>
         <Button onClick={handleNew}>
           <Plus size={16} />
-          Yeni Pipeline
+          {t('pipelines.new')}
         </Button>
       </PageHeader>
 
@@ -430,13 +438,14 @@ export default function PipelineSettingsPage() {
       ) : pipelines.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 py-16 text-center">
           <GitBranch className="mx-auto mb-3 text-gray-300 dark:text-gray-600" size={32} />
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Henüz pipeline yok</p>
-          <p className="mt-1 text-xs text-gray-400">
-            Satış sureclerinizi yonetmek için yeni bir pipeline olusturun.
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            {t('pipelines.empty_title')}
           </p>
+          <p className="mt-1 text-xs text-gray-400">{t('pipelines.empty_body')}</p>
           <Button onClick={handleNew} className="mt-4">
             <Plus size={14} />
-            Ilk Pipeline'i Oluştur'          </Button>
+            {t('pipelines.empty_cta')}
+          </Button>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">

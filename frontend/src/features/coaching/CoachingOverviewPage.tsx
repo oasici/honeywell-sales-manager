@@ -15,24 +15,13 @@ import { coachingApi } from '../../lib/api';
 import { formatDateTime, formatPercent } from '../../lib/formatters';
 
 import type { CoachingOverview, CoachingPlan } from '../../lib/types';
+import { useT } from '../../hooks/useT';
+import { translateCoachingPlanStatus, translateCoachingRisk } from '../../lib/labelTranslations';
 
 const RISK_COLORS: Record<string, string> = {
   healthy: 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400',
   needs_improvement: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400',
   at_risk: 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400',
-};
-
-const RISK_LABELS: Record<string, string> = {
-  healthy: 'Saglikli',
-  needs_improvement: 'Gelistirilmeli',
-  at_risk: 'Risk Altinda',
-};
-
-const PLAN_STATUS_LABELS: Record<string, string> = {
-  active: 'Aktif',
-  completed: 'Tamamlandi',
-  cancelled: 'İptal Edildi',
-  draft: 'Taslak',
 };
 
 function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
@@ -59,6 +48,7 @@ const INITIAL_PLAN_FORM = {
 };
 
 export default function CoachingOverviewPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreatePlan, setShowCreatePlan] = useState(false);
@@ -92,7 +82,7 @@ export default function CoachingOverviewPage() {
       start_date: string;
     }) => coachingApi.createPlan(payload),
     onSuccess: () => {
-      toast.success('Koçluk plani oluşturuldu');
+      toast.success(t('coaching.toast_plan_created'));
       queryClient.invalidateQueries({ queryKey: ['coaching', 'plans'] });
       setShowCreatePlan(false);
       setPlanForm(INITIAL_PLAN_FORM);
@@ -101,7 +91,7 @@ export default function CoachingOverviewPage() {
     onError: (err: unknown) =>
       toast.error(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Plan olusturulurken hata oluştu',
+          t('coaching.toast_plan_error'),
       ),
   });
 
@@ -123,12 +113,12 @@ export default function CoachingOverviewPage() {
     e.preventDefault();
     const userId = Number(planForm.user_id);
     if (!userId) {
-      toast.error('Geçerli bir temsilci seçin');
+      toast.error(t('coaching.err_select_rep'));
       return;
     }
     const validGoals = goalRows.filter((r) => r.goal.trim() !== '');
     if (validGoals.length === 0) {
-      toast.error('En az bir hedef ekleyin');
+      toast.error(t('coaching.err_goals_required'));
       return;
     }
     const goalsJson = JSON.stringify(validGoals.map((r) => ({ goal: r.goal, target: r.target })));
@@ -149,10 +139,10 @@ export default function CoachingOverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Koçluk Paneli"
-        description="Satış temsilcilerinin performans takibi ve koçluk planlari"
+        title={t('coaching.overview_title')}
+        description={t('coaching.overview_description')}
       >
-        <Button onClick={() => setShowCreatePlan(true)}>Yeni Koçluk Plani</Button>
+        <Button onClick={() => setShowCreatePlan(true)}>{t('coaching.new_plan')}</Button>
       </PageHeader>
 
       {/* KPI Strip */}
@@ -160,7 +150,9 @@ export default function CoachingOverviewPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card>
             <div className="p-4 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Toplam Temsilci</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('coaching.kpi_total_reps')}
+              </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {summary.total_reps}
               </p>
@@ -168,7 +160,9 @@ export default function CoachingOverviewPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Ortalama Skor</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('coaching.kpi_avg_score')}
+              </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {formatPercent(summary.avg_score)}
               </p>
@@ -176,7 +170,9 @@ export default function CoachingOverviewPage() {
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Düşük Performans</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('coaching.kpi_low_perf')}
+              </p>
               <p className="text-3xl font-bold text-red-600 dark:text-red-400">
                 {summary.low_performers}
               </p>
@@ -187,9 +183,11 @@ export default function CoachingOverviewPage() {
 
       {/* Rep Cards */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Temsilciler</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+          {t('coaching.section_reps')}
+        </h2>
         {reps.length === 0 ? (
-          <EmptyState title="Henüz temsilci verisi bulunmuyor" />
+          <EmptyState title={t('coaching.reps_empty')} />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {reps.map((rep) => (
@@ -206,7 +204,7 @@ export default function CoachingOverviewPage() {
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISK_COLORS[rep.risk_level] || RISK_COLORS.healthy}`}
                       >
-                        {RISK_LABELS[rep.risk_level] || rep.risk_level}
+                        {translateCoachingRisk(rep.risk_level, t)}
                       </span>
                     </div>
 
@@ -237,7 +235,7 @@ export default function CoachingOverviewPage() {
                     {rep.recommendations.length > 0 && (
                       <div className="border-t border-gray-100 pt-2 dark:border-gray-700">
                         <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                          Öneriler
+                          {t('coaching.recommendations')}
                         </p>
                         <ul className="space-y-1">
                           {rep.recommendations.slice(0, 2).map((rec, idx) => (
@@ -259,12 +257,12 @@ export default function CoachingOverviewPage() {
       {/* Plans List */}
       <div>
         <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
-          Koçluk Planlari
+          {t('coaching.section_plans')}
         </h2>
         {isPlansLoading ? (
           <Skeleton variant="card" count={2} />
         ) : plans.length === 0 ? (
-          <EmptyState title="Henüz koçluk plani olusturulmamis" />
+          <EmptyState title={t('coaching.plans_empty')} />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {plans.map((plan) => {
@@ -305,24 +303,36 @@ export default function CoachingOverviewPage() {
                     <div className="flex items-center justify-between">
                       <p className="font-medium text-gray-900 dark:text-white">{plan.user_name}</p>
                       <Badge variant={statusVariant}>
-                        {PLAN_STATUS_LABELS[plan.status] || plan.status}
+                        {translateCoachingPlanStatus(plan.status, t)}
                       </Badge>
                     </div>
 
                     {/* Meta */}
                     <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                      <span>{plan.weeks} hafta</span>
-                      {plan.start_date && <span>Baslangic: {formatDateTime(plan.start_date)}</span>}
+                      <span>{t('coaching.weeks_short').replace('{n}', String(plan.weeks))}</span>
+                      {plan.start_date && (
+                        <span>
+                          {t('coaching.start_prefix').replace(
+                            '{date}',
+                            formatDateTime(plan.start_date),
+                          )}
+                        </span>
+                      )}
                     </div>
 
                     {/* Progress */}
                     {currentWeek !== null && (
                       <div>
                         <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                          <span>İlerleme</span>
+                          <span>{t('coaching.progress')}</span>
                           <span>
-                            {currentWeek} / {plan.weeks} hafta (
-                            {Math.round((currentWeek / plan.weeks) * 100)}%)
+                            {t('coaching.progress_weeks')
+                              .replace('{current}', String(currentWeek))
+                              .replace('{total}', String(plan.weeks))
+                              .replace(
+                                '{pct}',
+                                String(Math.round((currentWeek / plan.weeks) * 100)),
+                              )}
                           </span>
                         </div>
                         <ProgressBar value={currentWeek} max={plan.weeks} />
@@ -333,7 +343,7 @@ export default function CoachingOverviewPage() {
                     {parsedGoals.length > 0 && (
                       <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
                         <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                          Hedefler
+                          {t('coaching.goals')}
                         </p>
                         <ul className="space-y-1">
                           {parsedGoals.slice(0, 3).map((g, idx) => (
@@ -353,7 +363,10 @@ export default function CoachingOverviewPage() {
                           ))}
                           {parsedGoals.length > 3 && (
                             <li className="text-xs text-gray-400">
-                              +{parsedGoals.length - 3} hedef daha
+                              {t('coaching.goals_more').replace(
+                                '{n}',
+                                String(parsedGoals.length - 3),
+                              )}
                             </li>
                           )}
                         </ul>
@@ -361,7 +374,10 @@ export default function CoachingOverviewPage() {
                     )}
 
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      Olusturulma: {formatDateTime(plan.created_at)}
+                      {t('coaching.created_prefix').replace(
+                        '{date}',
+                        formatDateTime(plan.created_at),
+                      )}
                     </p>
                   </div>
                 </Card>
@@ -375,12 +391,12 @@ export default function CoachingOverviewPage() {
       <Modal
         isOpen={showCreatePlan}
         onClose={() => setShowCreatePlan(false)}
-        title="Yeni Koçluk Plani Oluştur"
+        title={t('coaching.modal_create_title')}
       >
         <form onSubmit={handleCreatePlan} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Temsilci
+              {t('coaching.label_rep')}
             </label>
             <select
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -388,7 +404,7 @@ export default function CoachingOverviewPage() {
               onChange={(e) => setPlanForm({ ...planForm, user_id: e.target.value })}
               required
             >
-              <option value="">Temsilci seçin</option>
+              <option value="">{t('coaching.select_rep')}</option>
               {reps.map((rep) => (
                 <option key={rep.user_id} value={rep.user_id}>
                   {rep.user_name}
@@ -398,18 +414,18 @@ export default function CoachingOverviewPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Hedefler
+              {t('coaching.label_goals')}
             </label>
             <div className="space-y-2">
               {goalRows.map((row, idx) => (
                 <div key={idx} className="flex items-center gap-2">
                   <Input
-                    placeholder="Hedef aciklamasi"
+                    placeholder={t('coaching.goal_placeholder')}
                     value={row.goal}
                     onChange={(e) => handleGoalRowChange(idx, 'goal', e.target.value)}
                   />
                   <Input
-                    placeholder="Hedef degeri"
+                    placeholder={t('coaching.target_placeholder')}
                     value={row.target}
                     onChange={(e) => handleGoalRowChange(idx, 'target', e.target.value)}
                     className="w-32"
@@ -420,7 +436,7 @@ export default function CoachingOverviewPage() {
                       onClick={() => handleRemoveGoalRow(idx)}
                       className="shrink-0 text-sm text-red-500 hover:text-red-700"
                     >
-                      Sil
+                      {t('common.delete')}
                     </button>
                   )}
                 </div>
@@ -433,28 +449,28 @@ export default function CoachingOverviewPage() {
               className="mt-2"
               onClick={handleAddGoalRow}
             >
-              Hedef Ekle
+              {t('coaching.add_goal')}
             </Button>
           </div>
           <Input
-            label="Süre (Hafta)"
+            label={t('coaching.label_duration_weeks')}
             type="number"
             value={planForm.weeks}
             onChange={(e) => setPlanForm({ ...planForm, weeks: Number(e.target.value) })}
             required
           />
           <Input
-            label="Baslangic Tarihi"
+            label={t('coaching.label_start_date')}
             type="date"
             value={planForm.start_date}
             onChange={(e) => setPlanForm({ ...planForm, start_date: e.target.value })}
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setShowCreatePlan(false)} type="button">
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={createPlanMutation.isPending}>
-              Oluştur
+              {t('common.create')}
             </Button>
           </div>
         </form>

@@ -9,23 +9,9 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { emailTemplatesApi } from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { useT } from '../../hooks/useT';
 
 import type { EmailTemplate } from '../../lib/types';
-
-const CATEGORY_OPTIONS = [
-  { value: '', label: 'Tumu' },
-  { value: 'followup', label: 'Takip' },
-  { value: 'intro', label: 'Tanitim' },
-  { value: 'quote', label: 'Teklif' },
-  { value: 'general', label: 'Genel' },
-];
-
-const CATEGORY_LABELS: Record<string, string> = {
-  followup: 'Takip',
-  intro: 'Tanitim',
-  quote: 'Teklif',
-  general: 'Genel',
-};
 
 const CATEGORY_COLORS: Record<string, string> = {
   followup: 'bg-blue-100 text-blue-700',
@@ -53,6 +39,7 @@ const EMPTY_FORM: TemplateFormState = {
 };
 
 export default function EmailTemplatesPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const [search, setSearch] = useState('');
@@ -80,44 +67,52 @@ export default function EmailTemplatesPage() {
 
   const templates: EmailTemplate[] = data?.items ?? [];
 
-  const filtered = templates.filter((t) => {
+  const CATEGORY_OPTIONS = [
+    { value: '', label: t('email_templates.category_all') },
+    { value: 'followup', label: t('email_templates.category_followup') },
+    { value: 'intro', label: t('email_templates.category_intro') },
+    { value: 'quote', label: t('email_templates.category_quote') },
+    { value: 'general', label: t('email_templates.category_general') },
+  ];
+
+  const filtered = templates.filter((tpl) => {
     const matchesSearch =
       !search ||
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.subject.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !categoryFilter || t.category === categoryFilter;
+      tpl.name.toLowerCase().includes(search.toLowerCase()) ||
+      tpl.subject.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = !categoryFilter || tpl.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => emailTemplatesApi.create(payload),
     onSuccess: () => {
-      toast.success('Şablon oluşturuldu');
+      toast.success(t('email_templates.toast_created'));
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       closeModal();
     },
-    onError: () => toast.error('Şablon oluşturulamadı'),
+    onError: () => toast.error(t('email_templates.toast_create_failed')),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
       emailTemplatesApi.update(id, payload),
     onSuccess: () => {
-      toast.success('Şablon guncellendi');
+      toast.success(t('email_templates.toast_updated'));
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       closeModal();
     },
-    onError: () => toast.error('Şablon guncellenemedi'),
+    onError: () => toast.error(t('email_templates.toast_update_failed')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => emailTemplatesApi.remove(id),
     onSuccess: () => {
-      toast.success('Şablon silindi');
+      toast.success(t('email_templates.toast_deleted'));
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       setDeleteId(null);
     },
-    onError: () => toast.error('Şablon silinemedi'),
+    onError: () => toast.error(t('email_templates.toast_delete_failed')),
   });
 
   const sendMutation = useMutation({
@@ -129,10 +124,10 @@ export default function EmailTemplatesPage() {
       payload: { to_email: string; context: Record<string, string> };
     }) => emailTemplatesApi.send(id, payload),
     onSuccess: () => {
-      toast.success('Email gönderildi');
+      toast.success(t('email_templates.toast_sent'));
       closeSendModal();
     },
-    onError: () => toast.error('Email gonderilemedi'),
+    onError: () => toast.error(t('email_templates.toast_send_failed')),
   });
 
   const closeModal = () => {
@@ -236,13 +231,10 @@ export default function EmailTemplatesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Email Şablonları"
-        description="Hazir email şablonları olusturun ve gonderin"
-      >
+      <PageHeader title={t('email_templates.title')} description={t('email_templates.description')}>
         <Button onClick={openCreate}>
           <Plus size={16} className="mr-1" />
-          Yeni Şablon
+          {t('email_templates.new')}
         </Button>
       </PageHeader>
 
@@ -252,7 +244,7 @@ export default function EmailTemplatesPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Şablon ara..."
+            placeholder={t('email_templates.search_placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-honeywell-red focus:outline-none"
@@ -274,64 +266,67 @@ export default function EmailTemplatesPage() {
       {/* Template Grid */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 py-16">
-          <p className="text-gray-500 text-sm">Henüz şablon bulunmuyor</p>
+          <p className="text-gray-500 text-sm">{t('email_templates.empty')}</p>
           <Button variant="secondary" className="mt-3" onClick={openCreate}>
             <Plus size={16} className="mr-1" />
-            İlk Şablonu Oluştur
+            {t('email_templates.empty_cta')}
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((t) => (
+          {filtered.map((template) => (
             <div
-              key={t.id}
+              key={template.id}
               className="group rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md"
             >
               <div className="mb-3 flex items-start justify-between">
-                <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">{t.name}</h3>
+                <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
+                  {template.name}
+                </h3>
                 <div className="flex items-center gap-1">
-                  {t.is_shared && (
-                    <span title="Paylasilan">
+                  {template.is_shared && (
+                    <span title={t('email_templates.shared')}>
                       <Share2 size={14} className="text-blue-500" />
                     </span>
                   )}
-                  {t.category && (
+                  {template.category && (
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        CATEGORY_COLORS[t.category] || 'bg-gray-100 text-gray-600'
+                        CATEGORY_COLORS[template.category] || 'bg-gray-100 text-gray-600'
                       }`}
                     >
                       <Tag size={10} />
-                      {CATEGORY_LABELS[t.category] || t.category}
+                      {CATEGORY_OPTIONS.find((o) => o.value === template.category)?.label ??
+                        template.category}
                     </span>
                   )}
                 </div>
               </div>
 
-              <p className="mb-4 text-xs text-gray-500 line-clamp-2">{t.subject}</p>
+              <p className="mb-4 text-xs text-gray-500 line-clamp-2">{template.subject}</p>
 
               <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => openSendModal(t)}
+                  onClick={() => openSendModal(template)}
                   className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-honeywell-red hover:bg-red-50 transition-colors"
                 >
                   <Send size={12} />
-                  Gönder
+                  {t('email_templates.send')}
                 </button>
-                {t.created_by === user?.id && (
+                {template.created_by === user?.id && (
                   <>
                     <button
                       type="button"
-                      onClick={() => openEdit(t)}
+                      onClick={() => openEdit(template)}
                       className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
                     >
                       <Pencil size={12} />
-                      Düzenle
+                      {t('email_templates.edit')}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setDeleteId(t.id)}
+                      onClick={() => setDeleteId(template.id)}
                       className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <Trash2 size={12} />
@@ -350,7 +345,7 @@ export default function EmailTemplatesPage() {
           <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
-                {editingId ? 'Şablonu Düzenle' : 'Yeni Şablon'}
+                {editingId ? t('email_templates.modal_edit') : t('email_templates.modal_create')}
               </h2>
               <button
                 type="button"
@@ -363,22 +358,22 @@ export default function EmailTemplatesPage() {
 
             <div className="space-y-4">
               <Input
-                label="Şablon Adi"
+                label={t('email_templates.name')}
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Örnek: Teklif Takip Maili"
+                placeholder={t('email_templates.name_placeholder')}
               />
 
               <Input
-                label="Konu"
+                label={t('email_templates.subject')}
                 value={form.subject}
                 onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-                placeholder="Örnek: {{company}} için Teklif #{{quote_number}}"
+                placeholder={t('email_templates.subject_placeholder')}
               />
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  İçerik (HTML)
+                  {t('email_templates.body_html')}
                 </label>
                 <textarea
                   ref={bodyRef}
@@ -386,13 +381,15 @@ export default function EmailTemplatesPage() {
                   onChange={(e) => setForm((p) => ({ ...p, body_html: e.target.value }))}
                   rows={8}
                   className="w-full rounded-lg border border-gray-200 p-3 text-sm font-mono focus:border-honeywell-red focus:outline-none"
-                  placeholder="Merhaba {{customer_name}},&#10;&#10;Teklifiniz hazir..."
+                  placeholder={t('email_templates.body_placeholder')}
                 />
               </div>
 
               {/* Variable picker */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Degiskenler</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  {t('email_templates.variables')}
+                </label>
                 <div className="flex flex-wrap gap-1.5">
                   {variables.map((v) => (
                     <button
@@ -409,17 +406,19 @@ export default function EmailTemplatesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Kategori</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    {t('email_templates.category')}
+                  </label>
                   <select
                     value={form.category}
                     onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none"
                   >
-                    <option value="">Seçin...</option>
-                    <option value="followup">Takip</option>
-                    <option value="intro">Tanitim</option>
-                    <option value="quote">Teklif</option>
-                    <option value="general">Genel</option>
+                    <option value="">{t('email_templates.category_pick')}</option>
+                    <option value="followup">{t('email_templates.category_followup')}</option>
+                    <option value="intro">{t('email_templates.category_intro')}</option>
+                    <option value="quote">{t('email_templates.category_quote')}</option>
+                    <option value="general">{t('email_templates.category_general')}</option>
                   </select>
                 </div>
 
@@ -431,7 +430,7 @@ export default function EmailTemplatesPage() {
                       onChange={(e) => setForm((p) => ({ ...p, is_shared: e.target.checked }))}
                       className="h-4 w-4 rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
                     />
-                    Tüm ekiple paylas
+                    {t('email_templates.share_team')}
                   </label>
                 </div>
               </div>
@@ -439,14 +438,14 @@ export default function EmailTemplatesPage() {
 
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="secondary" onClick={closeModal}>
-                İptal
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleSave}
                 loading={createMutation.isPending || updateMutation.isPending}
                 disabled={!form.name || !form.subject || !form.body_html}
               >
-                {editingId ? 'Güncelle' : 'Oluştur'}
+                {editingId ? t('email_templates.update') : t('common.create')}
               </Button>
             </div>
           </div>
@@ -458,7 +457,7 @@ export default function EmailTemplatesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Email Gönder</h2>
+              <h2 className="text-lg font-bold text-gray-900">{t('email_templates.send_title')}</h2>
               <button
                 type="button"
                 onClick={closeSendModal}
@@ -470,16 +469,16 @@ export default function EmailTemplatesPage() {
 
             <div className="space-y-4">
               <Input
-                label="Alici Email"
+                label={t('email_templates.to_email')}
                 type="email"
                 value={sendEmail}
                 onChange={(e) => setSendEmail(e.target.value)}
-                placeholder="müşteri@şirket.com"
+                placeholder={t('email_templates.to_email_placeholder')}
               />
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Degisken Degerleri
+                  {t('email_templates.variable_values')}
                 </label>
                 <div className="space-y-2">
                   {variables.map((v) => (
@@ -502,11 +501,11 @@ export default function EmailTemplatesPage() {
 
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="secondary" onClick={closeSendModal}>
-                İptal
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleSend} loading={sendMutation.isPending} disabled={!sendEmail}>
                 <Send size={14} className="mr-1" />
-                Gönder
+                {t('email_templates.send')}
               </Button>
             </div>
           </div>
@@ -518,9 +517,9 @@ export default function EmailTemplatesPage() {
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="Şablonu Sil"
-        message="Bu email şablonu kalici olarak silinecek. Devam etmek istiyor musunuz?"
-        confirmLabel="Sil"
+        title={t('email_templates.delete_title')}
+        message={t('email_templates.delete_message')}
+        confirmLabel={t('common.delete')}
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}
       />

@@ -10,13 +10,13 @@ import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { emailsApi, quotesApi, aiApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
+import { REVIEW_STATUS_COLORS, STATUS_COLORS } from '../../lib/constants';
 import {
-  CATEGORY_LABELS,
-  REVIEW_STATUS_LABELS,
-  REVIEW_STATUS_COLORS,
-  STATUS_LABELS,
-  STATUS_COLORS,
-} from '../../lib/constants';
+  translateEmailCategory,
+  translateReviewStatus,
+  translateStatus,
+} from '../../lib/labelTranslations';
 import type { EmailRequest, MatchResult } from '../../lib/types';
 
 function ScoreBadge({ score }: { score: number }) {
@@ -98,6 +98,7 @@ const URGENCY_COLORS: Record<string, string> = {
 };
 
 export default function EmailDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -121,29 +122,29 @@ export default function EmailDetailPage() {
   const reparseMutation = useMutation({
     mutationFn: () => emailsApi.reparseEmail(emailId),
     onSuccess: () => {
-      toast.success('Email yeniden ayrıştırıldı');
+      toast.success(t('emails.detail_toast_reparse'));
       queryClient.invalidateQueries({ queryKey: ['email', emailId] });
       queryClient.invalidateQueries({ queryKey: ['email-matches', emailId] });
     },
-    onError: () => toast.error('Yeniden ayrıştırma başarısız'),
+    onError: () => toast.error(t('emails.detail_toast_reparse_failed')),
   });
 
   const reviewMutation = useMutation({
     mutationFn: (action: string) => emailsApi.reviewEmail(emailId, action),
     onSuccess: () => {
-      toast.success('İnceleme durumu guncellendi');
+      toast.success(t('emails.detail_toast_review_updated'));
       queryClient.invalidateQueries({ queryKey: ['email', emailId] });
     },
-    onError: () => toast.error('İnceleme guncellenemedi'),
+    onError: () => toast.error(t('emails.detail_toast_review_failed')),
   });
 
   const createQuoteMutation = useMutation({
     mutationFn: () => quotesApi.createQuoteFromEmail(emailId),
     onSuccess: (quote) => {
-      toast.success('Teklif oluşturuldu');
+      toast.success(t('emails.detail_toast_quote_created'));
       navigate(`/quotes/${quote.id}`);
     },
-    onError: () => toast.error('Teklif oluşturulamadı'),
+    onError: () => toast.error(t('emails.detail_toast_quote_failed')),
   });
 
   const draftReplyMutation = useMutation({
@@ -154,7 +155,7 @@ export default function EmailDetailPage() {
       setDraftText(text);
       setDraftModalOpen(true);
     },
-    onError: () => toast.error('AI yanit onerisi oluşturulamadı'),
+    onError: () => toast.error(t('emails.detail_toast_ai_failed')),
   });
 
   if (isLoading) {
@@ -166,7 +167,7 @@ export default function EmailDetailPage() {
   }
 
   if (!email) {
-    return <div className="py-16 text-center text-gray-500">Email bulunamadi</div>;
+    return <div className="py-16 text-center text-gray-500">{t('emails.detail_not_found')}</div>;
   }
 
   const parsed = email.parsed_data;
@@ -191,27 +192,27 @@ export default function EmailDetailPage() {
             }`}
           />
           <span className="py-3 text-sm font-medium">
-            Inceleme Durumu: {REVIEW_STATUS_LABELS[rs] || rs}
+            {t('emails.detail_review_prefix')}: {translateReviewStatus(rs, t)}
           </span>
         </div>
       )}
 
       <PageHeader title={email.subject || '(Konu yok)'}>
         <Button variant="secondary" onClick={() => navigate('/emails')}>
-          Geri Don
+          {t('emails.detail_back')}
         </Button>
         <Button
           variant="secondary"
           loading={reparseMutation.isPending}
           onClick={() => reparseMutation.mutate()}
         >
-          Yeniden Parse Et
+          {t('emails.detail_reparse')}
         </Button>
         <Button
           loading={createQuoteMutation.isPending}
           onClick={() => createQuoteMutation.mutate()}
         >
-          Teklif Oluştur
+          {t('emails.detail_create_quote')}
         </Button>
         <Button
           variant="secondary"
@@ -220,7 +221,7 @@ export default function EmailDetailPage() {
           className="inline-flex items-center gap-1.5"
         >
           <Sparkles size={15} />
-          AI Yanit Onerisi
+          {t('emails.detail_ai_draft')}
         </Button>
         {rs !== 'approved' && (
           <Button
@@ -229,7 +230,7 @@ export default function EmailDetailPage() {
             onClick={() => reviewMutation.mutate('approved')}
             className="!bg-green-600 !text-white hover:!bg-green-700"
           >
-            Onayla
+            {t('emails.detail_approve')}
           </Button>
         )}
         {rs !== 'rejected' && (
@@ -238,7 +239,7 @@ export default function EmailDetailPage() {
             loading={reviewMutation.isPending}
             onClick={() => reviewMutation.mutate('rejected')}
           >
-            Reddet
+            {t('emails.detail_reject')}
           </Button>
         )}
       </PageHeader>
@@ -246,43 +247,43 @@ export default function EmailDetailPage() {
       {/* Two-column layout */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left: Original Email */}
-        <Card title="Orijinal Email">
+        <Card title={t('emails.detail_original')}>
           <div className="space-y-3">
             <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
-              <span className="font-medium text-gray-500">Gönderen:</span>
+              <span className="font-medium text-gray-500">{t('emails.sender')}:</span>
               <span className="text-gray-900">{email.from_address}</span>
-              <span className="font-medium text-gray-500">Konu:</span>
+              <span className="font-medium text-gray-500">{t('emails.subject')}:</span>
               <span className="text-gray-900">{email.subject}</span>
-              <span className="font-medium text-gray-500">Tarih:</span>
+              <span className="font-medium text-gray-500">{t('emails.date')}:</span>
               <span className="text-gray-900">
                 {formatDateTime(email.received_at || email.created_at)}
               </span>
-              <span className="font-medium text-gray-500">Durum:</span>
+              <span className="font-medium text-gray-500">{t('common.status')}:</span>
               <span>
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                     STATUS_COLORS[email.status] || 'bg-gray-100 text-gray-700'
                   }`}
                 >
-                  {STATUS_LABELS[email.status] || email.status}
+                  {translateStatus(email.status, t)}
                 </span>
               </span>
             </div>
             <hr className="border-gray-200" />
             <div className="max-h-96 overflow-y-auto whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
-              {email.body_text || '(İçerik yok)'}
+              {email.body_text || t('emails.no_content')}
             </div>
           </div>
         </Card>
 
         {/* Right: AI Parse Results */}
-        <Card title="AI Ayrıştırma Sonuclari">
+        <Card title={t('emails.detail_parse_results')}>
           {parsed ? (
             <div className="space-y-4">
               <div className="grid grid-cols-[120px_1fr] gap-2 text-sm">
                 <span className="font-medium text-gray-500">Kategori:</span>
                 <span className="text-gray-900">
-                  {CATEGORY_LABELS[parsed.category] || parsed.category || '-'}
+                  {parsed.category ? translateEmailCategory(parsed.category, t) : '-'}
                 </span>
                 <span className="font-medium text-gray-500">Guven Skoru:</span>
                 <span>
@@ -347,8 +348,8 @@ export default function EmailDetailPage() {
           ) : (
             <p className="py-8 text-center text-sm text-gray-500">
               {email.status === 'parsing'
-                ? 'Ayrıştırma devam ediyor...'
-                : 'Ayrıştırma sonucu bulunamadi'}
+                ? t('emails.detail_parsing_in_progress')
+                : t('emails.detail_parse_none')}
             </p>
           )}
         </Card>
@@ -358,13 +359,11 @@ export default function EmailDetailPage() {
       <Modal
         isOpen={draftModalOpen}
         onClose={() => setDraftModalOpen(false)}
-        title="AI Yanit Onerisi"
+        title={t('emails.detail_draft_modal_title')}
         size="lg"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">
-            Asagidaki taslagi duzenleyebilir, ardından kopyalayabilirsiniz.
-          </p>
+          <p className="text-sm text-gray-500">{t('emails.detail_draft_modal_help')}</p>
           <textarea
             rows={10}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 resize-y"
@@ -373,17 +372,17 @@ export default function EmailDetailPage() {
           />
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setDraftModalOpen(false)}>
-              Kapat
+              {t('common.close')}
             </Button>
             <Button
               onClick={() => {
                 navigator.clipboard
                   .writeText(draftText)
-                  .then(() => toast.success('Metin panoya kopyalandi'))
-                  .catch(() => toast.error('Kopyalama başarısız'));
+                  .then(() => toast.success(t('emails.detail_copy_success')))
+                  .catch(() => toast.error(t('emails.detail_copy_failed')));
               }}
             >
-              Kopyala
+              {t('common.copy')}
             </Button>
           </div>
         </div>
@@ -391,7 +390,7 @@ export default function EmailDetailPage() {
 
       {/* Part Matching Results */}
       <div className="mt-6">
-        <Card title="Parça Eslestirme Sonuclari">
+        <Card title={t('emails.detail_match_results')}>
           {matchesLoading ? (
             <Skeleton variant="table" />
           ) : matches && matches.length > 0 ? (
@@ -435,7 +434,9 @@ export default function EmailDetailPage() {
               </table>
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-500">Eslestirme sonucu bulunamadi</p>
+            <p className="py-8 text-center text-sm text-gray-500">
+              {t('emails.detail_match_none')}
+            </p>
           )}
         </Card>
       </div>

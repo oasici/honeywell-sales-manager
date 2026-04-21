@@ -4,7 +4,9 @@ import { toast } from 'sonner';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { guidedSellingApi } from '../../lib/api';
+import { formatCurrency } from '../../lib/formatters';
 import type { SellingGuide, SellingGuideStep, GuidedSellingSuggestion } from '../../lib/types';
+import { useT } from '../../hooks/useT';
 
 interface GuidedSellingWizardProps {
   isOpen: boolean;
@@ -23,11 +25,19 @@ interface GuidedSellingWizardProps {
 
 type WizardPhase = 'select-guide' | 'answering' | 'results';
 
+function tx(template: string, vars: Record<string, string | number>): string {
+  return Object.entries(vars).reduce(
+    (acc, [k, v]) => acc.replaceAll(`{${k}}`, String(v)),
+    template,
+  );
+}
+
 export default function GuidedSellingWizard({
   isOpen,
   onClose,
   onComplete,
 }: GuidedSellingWizardProps) {
+  const t = useT();
   const [phase, setPhase] = useState<WizardPhase>('select-guide');
   const [selectedGuideId, setSelectedGuideId] = useState<number | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -117,9 +127,9 @@ export default function GuidedSellingWizard({
       discount_pct: 0,
     }));
     onComplete(items);
-    toast.success(`${items.length} kalem teklif'e eklendi`);
+    toast.success(t('quotes.guided_added_to_quote').replace('{count}', String(items.length)));
     onClose();
-  }, [suggestions, onComplete, onClose]);
+  }, [suggestions, onComplete, onClose, t]);
 
   if (!isOpen) return null;
 
@@ -128,12 +138,12 @@ export default function GuidedSellingWizard({
       <div className="w-full max-w-4xl rounded-xl bg-white shadow-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Rehberli Satış Sihirbazi</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('quotes.guided_title')}</h2>
           <button
             type="button"
             onClick={onClose}
             className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-            aria-label="Kapat"
+            aria-label={t('quotes.guided_close')}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -150,13 +160,15 @@ export default function GuidedSellingWizard({
         <div className="flex-1 overflow-y-auto p-6">
           {phase === 'select-guide' && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">Bir satış rehberi seçin:</p>
+              <p className="text-sm text-gray-600">{t('quotes.guided_pick')}</p>
               {isLoadingGuides && (
-                <div className="py-8 text-center text-sm text-gray-400">Yükleniyor...</div>
+                <div className="py-8 text-center text-sm text-gray-400">
+                  {t('quotes.guided_loading')}
+                </div>
               )}
               {!isLoadingGuides && guides.length === 0 && (
                 <div className="py-8 text-center text-sm text-gray-400">
-                  Henüz rehber tanimlanmamis
+                  {t('quotes.guided_no_guides')}
                 </div>
               )}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -172,7 +184,7 @@ export default function GuidedSellingWizard({
                       <p className="mt-1 text-sm text-gray-500">{guide.description}</p>
                     )}
                     <span className="mt-2 inline-block text-xs text-gray-400">
-                      {guide.steps.length} adim
+                      {guide.steps.length}
                     </span>
                   </button>
                 ))}
@@ -187,7 +199,10 @@ export default function GuidedSellingWizard({
                 {/* Progress */}
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <span>
-                    Adim {currentStepIndex + 1} / {steps.length}
+                    {tx(t('quotes.guided_step_of'), {
+                      step: currentStepIndex + 1,
+                      total: steps.length,
+                    })}
                   </span>
                   <div className="flex-1 h-1.5 rounded-full bg-gray-100">
                     <div
@@ -229,27 +244,29 @@ export default function GuidedSellingWizard({
 
                 <div className="flex gap-2">
                   <Button variant="secondary" onClick={handlePrevStep}>
-                    Geri
+                    {t('quotes.guided_back')}
                   </Button>
                   <Button
                     onClick={handleNextStep}
                     disabled={!currentStep || !answers[currentStep.field]}
                   >
-                    {isLastStep ? 'Sonuclari Gor' : 'İleri'}
+                    {isLastStep ? t('quotes.guided_see_results') : t('quotes.guided_next')}
                   </Button>
                 </div>
               </div>
 
               {/* Right: Live suggestions */}
               <div className="w-72 shrink-0 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-700">Önerilen Ürünler</h4>
+                <h4 className="text-sm font-semibold text-gray-700">
+                  {t('quotes.guided_suggested_products')}
+                </h4>
                 {evaluateMutation.isPending && (
-                  <p className="text-xs text-gray-400">Hesaplaniyor...</p>
+                  <p className="text-xs text-gray-400">{t('quotes.guided_loading')}</p>
                 )}
                 {suggestions &&
                   suggestions.suggested_parts.length === 0 &&
                   suggestions.suggested_bundles.length === 0 && (
-                    <p className="text-xs text-gray-400">Henüz öneri yok</p>
+                    <p className="text-xs text-gray-400">{t('quotes.guided_no_suggestions')}</p>
                   )}
                 {suggestions?.suggested_parts.map((part) => (
                   <div key={part.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
@@ -258,13 +275,13 @@ export default function GuidedSellingWizard({
                     </p>
                     <p className="text-xs text-gray-500">{part.name}</p>
                     <p className="mt-1 text-xs font-medium text-gray-900">
-                      {part.unit_price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(part.unit_price, 'TRY')}
                     </p>
                   </div>
                 ))}
                 {suggestions?.suggested_bundles.map((bundle) => (
                   <div key={bundle.id} className="rounded-lg border border-blue-100 bg-blue-50 p-3">
-                    <p className="text-xs font-semibold text-blue-700">Paket: {bundle.name}</p>
+                    <p className="text-xs font-semibold text-blue-700">{bundle.name}</p>
                     {bundle.description && (
                       <p className="text-xs text-blue-500">{bundle.description}</p>
                     )}
@@ -276,20 +293,27 @@ export default function GuidedSellingWizard({
 
           {phase === 'results' && (
             <div className="space-y-4">
-              <h3 className="text-base font-semibold text-gray-900">Sonuçlar</h3>
+              <h3 className="text-base font-semibold text-gray-900">
+                {t('quotes.guided_results')}
+              </h3>
               <p className="text-sm text-gray-500">
-                Secimlerinize gore {suggestions?.match_count || 0} ürün önerildi.
+                {t('quotes.guided_match_line').replace(
+                  '{count}',
+                  String(suggestions?.match_count || 0),
+                )}
               </p>
 
               {suggestions && suggestions.suggested_parts.length > 0 && (
-                <Card title="Önerilen Parçalar">
+                <Card title={t('quotes.guided_suggested_parts')}>
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 bg-gray-50">
                         <th className="px-3 py-2 text-xs font-semibold text-gray-500">Kod</th>
-                        <th className="px-3 py-2 text-xs font-semibold text-gray-500">Açıklama</th>
+                        <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                          {t('quotes.guided_desc')}
+                        </th>
                         <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
-                          Birim Fiyat
+                          {t('quotes.editor_col_unit_price')}
                         </th>
                       </tr>
                     </thead>
@@ -299,7 +323,7 @@ export default function GuidedSellingWizard({
                           <td className="px-3 py-2 font-mono text-xs">{part.honeywell_code}</td>
                           <td className="px-3 py-2 text-sm text-gray-700">{part.name}</td>
                           <td className="px-3 py-2 text-right text-sm font-medium">
-                            {part.unit_price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                            {formatCurrency(part.unit_price, 'TRY')}
                           </td>
                         </tr>
                       ))}
@@ -309,7 +333,7 @@ export default function GuidedSellingWizard({
               )}
 
               {suggestions && suggestions.suggested_bundles.length > 0 && (
-                <Card title="Önerilen Paketler">
+                <Card title={t('quotes.guided_suggested_bundles')}>
                   <div className="space-y-2">
                     {suggestions.suggested_bundles.map((bundle) => (
                       <div
@@ -328,13 +352,13 @@ export default function GuidedSellingWizard({
 
               <div className="flex gap-2 pt-2">
                 <Button variant="secondary" onClick={() => setPhase('answering')}>
-                  Geri Don
+                  {t('common.back')}
                 </Button>
                 <Button
                   onClick={handleComplete}
                   disabled={!suggestions || suggestions.suggested_parts.length === 0}
                 >
-                  Teklif Oluştur
+                  {t('quotes.guided_create_quote')}
                 </Button>
               </div>
             </div>

@@ -10,7 +10,9 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { customersApi, quotesApi, customerHealthApi, aiApi, opportunitiesApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
-import { STATUS_LABELS, STATUS_COLORS } from '../../lib/constants';
+import { STATUS_COLORS } from '../../lib/constants';
+import { translateStatus } from '../../lib/labelTranslations';
+import { useT } from '../../hooks/useT';
 import {
   Mail,
   Phone,
@@ -39,6 +41,7 @@ import type {
 } from '../../lib/types';
 
 export default function CustomerDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -169,20 +172,20 @@ export default function CustomerDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (payload: typeof form) => customersApi.updateCustomer(customerId, payload),
     onSuccess: () => {
-      toast.success('Müşteri guncellendi');
+      toast.success(t('customer_detail.toast_updated'));
       setEditing(false);
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
     },
-    onError: () => toast.error('Güncelleme başarısız'),
+    onError: () => toast.error(t('customer_detail.toast_update_failed')),
   });
 
   const enrichMutation = useMutation({
     mutationFn: () => customersApi.enrich(customerId),
     onSuccess: () => {
-      toast.success('Müşteri verileri zenginlestirildi');
+      toast.success(t('customer_detail.toast_enriched'));
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
     },
-    onError: () => toast.error('Zenginlestirme başarısız'),
+    onError: () => toast.error(t('customer_detail.toast_enrich_failed')),
   });
 
   const updateField = (field: string, value: string) => {
@@ -198,7 +201,7 @@ export default function CustomerDetailPage() {
   }
 
   if (!customer) {
-    return <div className="py-16 text-center text-gray-500">Müşteri bulunamadi</div>;
+    return <div className="py-16 text-center text-gray-500">{t('customer_detail.not_found')}</div>;
   }
 
   const quotes = quotesData?.items || [];
@@ -207,7 +210,7 @@ export default function CustomerDetailPage() {
   const quoteColumns = [
     {
       key: 'quote_number',
-      header: 'Teklif No',
+      header: t('customer_detail.quote_no'),
       render: (row: Quote) => (
         <button
           type="button"
@@ -220,27 +223,27 @@ export default function CustomerDetailPage() {
     },
     {
       key: 'status',
-      header: 'Durum',
+      header: t('customer_detail.status'),
       render: (row: Quote) => (
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
             STATUS_COLORS[row.status] || 'bg-gray-100 text-gray-700'
           }`}
         >
-          {STATUS_LABELS[row.status] || row.status}
+          {translateStatus(row.status, t)}
         </span>
       ),
     },
     {
       key: 'grand_total',
-      header: 'Toplam',
+      header: t('customer_detail.total'),
       render: (row: Quote) => (
         <span className="font-medium text-sm">{formatCurrency(row.grand_total, row.currency)}</span>
       ),
     },
     {
       key: 'created_at',
-      header: 'Tarih',
+      header: t('customer_detail.date'),
       render: (row: Quote) => <span className="text-sm">{formatDate(row.created_at)}</span>,
     },
   ];
@@ -252,7 +255,7 @@ export default function CustomerDetailPage() {
         description={customer.company ? customer.name : undefined}
       >
         <Button variant="secondary" onClick={() => navigate('/customers')}>
-          Geri Don
+          {t('customer_detail.back')}
         </Button>
         {editing ? (
           <>
@@ -274,10 +277,10 @@ export default function CustomerDetailPage() {
                 }
               }}
             >
-              İptal
+              {t('customer_detail.cancel')}
             </Button>
             <Button loading={updateMutation.isPending} onClick={() => updateMutation.mutate(form)}>
-              Kaydet
+              {t('customer_detail.save')}
             </Button>
           </>
         ) : (
@@ -288,55 +291,55 @@ export default function CustomerDetailPage() {
               onClick={() => enrichMutation.mutate()}
             >
               <Sparkles size={14} className="mr-1" />
-              Zenginlestir
+              {t('customer_detail.enrich')}
             </Button>
-            <Button onClick={() => setEditing(true)}>Düzenle</Button>
+            <Button onClick={() => setEditing(true)}>{t('customer_detail.edit')}</Button>
           </>
         )}
       </PageHeader>
 
       <div className="space-y-6">
         {/* Customer Info */}
-        <Card title="Müşteri Bilgileri">
+        <Card title={t('customer_detail.info_title')}>
           {editing ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
-                label="İsim"
+                label={t('customers.name')}
                 value={form.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 required
               />
               <Input
-                label="Şirket"
+                label={t('customers.company')}
                 value={form.company}
                 onChange={(e) => updateField('company', e.target.value)}
               />
               <Input
-                label="Email"
+                label={t('customers.email')}
                 type="email"
                 value={form.email}
                 onChange={(e) => updateField('email', e.target.value)}
                 required
               />
               <Input
-                label="Telefon"
+                label={t('customers.phone')}
                 value={form.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
               />
               <Input
-                label="Vergi No"
+                label={t('customers.tax_id')}
                 value={form.tax_id}
                 onChange={(e) => updateField('tax_id', e.target.value)}
               />
               <Input
-                label="Tercih Edilen Dil"
+                label={t('customers.preferred_lang')}
                 value={form.preferred_lang}
                 onChange={(e) => updateField('preferred_lang', e.target.value)}
-                placeholder="tr / en"
+                placeholder={t('customers.preferred_lang_placeholder')}
               />
               <div className="sm:col-span-2">
                 <Input
-                  label="Adres"
+                  label={t('customers.address')}
                   value={form.address}
                   onChange={(e) => updateField('address', e.target.value)}
                 />
@@ -406,7 +409,7 @@ export default function CustomerDetailPage() {
                   <div className="flex items-center gap-2">
                     <Sparkles size={14} className="text-honeywell-red" />
                     <Badge variant="info" size="sm">
-                      AI Zenginlestirildi
+                      {t('customer_detail.ai_enriched')}
                     </Badge>
                     <span className="text-[10px] text-gray-400">
                       {formatDate(customer.enriched_at)}
@@ -425,7 +428,8 @@ export default function CustomerDetailPage() {
                       <div className="flex items-center gap-2.5">
                         <Users size={14} className="shrink-0 text-gray-400" />
                         <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {customer.employee_count.toLocaleString()} calisan
+                          {customer.employee_count.toLocaleString()}{' '}
+                          {t('customer_detail.employees_suffix')}
                         </span>
                       </div>
                     )}
@@ -459,7 +463,7 @@ export default function CustomerDetailPage() {
                           rel="noopener noreferrer"
                           className="text-sm text-honeywell-red hover:underline"
                         >
-                          LinkedIn
+                          {t('customer_detail.linkedin')}
                         </a>
                       </div>
                     )}
@@ -478,17 +482,19 @@ export default function CustomerDetailPage() {
         ) : null}
 
         {/* AI Customer Summary */}
-        <Card title="AI Müşteri Özeti">
+        <Card title={t('customer_detail.ai_summary_title')}>
           {aiSummaryLoading ? (
             <Skeleton variant="line" count={3} />
           ) : aiSummary ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={14} className="text-honeywell-red" />
-                <span className="text-xs text-gray-400">Claude AI tarafindan oluşturuldu</span>
+                <span className="text-xs text-gray-400">
+                  {t('customer_detail.ai_generated_by_claude')}
+                </span>
                 {aiSummary.cached && (
                   <Badge variant="default" size="sm">
-                    Onbellek
+                    {t('customer_detail.cached')}
                   </Badge>
                 )}
               </div>
@@ -497,12 +503,14 @@ export default function CustomerDetailPage() {
               </p>
             </div>
           ) : (
-            <p className="py-4 text-center text-sm text-gray-400">AI özet bulunamadi</p>
+            <p className="py-4 text-center text-sm text-gray-400">
+              {t('customer_detail.ai_summary_empty')}
+            </p>
           )}
         </Card>
 
         {/* Churn Risk Analysis */}
-        <Card title="Kayip Risk Analizi">
+        <Card title={t('customer_detail.churn_title')}>
           {churnLoading ? (
             <Skeleton variant="line" count={3} />
           ) : churnPrediction?.data ? (
@@ -534,12 +542,12 @@ export default function CustomerDetailPage() {
                     }
                   >
                     {churnPrediction.data.risk_level === 'high'
-                      ? 'Yüksek Risk'
+                      ? t('customer_detail.risk_high')
                       : churnPrediction.data.risk_level === 'medium'
-                        ? 'Orta Risk'
-                        : 'Düşük Risk'}
+                        ? t('customer_detail.risk_medium')
+                        : t('customer_detail.risk_low')}
                   </Badge>
-                  <p className="mt-1 text-xs text-gray-500">Kayip olasiligi tahmini</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('customer_detail.churn_hint')}</p>
                 </div>
               </div>
 
@@ -547,7 +555,7 @@ export default function CustomerDetailPage() {
                 churnPrediction.data.risk_factors.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-xs font-semibold text-gray-500 uppercase">
-                      Risk Faktorleri
+                      {t('customer_detail.risk_factors')}
                     </h4>
                     {churnPrediction.data.risk_factors.map((rf, i) => (
                       <div key={i} className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
@@ -564,7 +572,7 @@ export default function CustomerDetailPage() {
                 churnPrediction.data.retention_actions.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                      Elde Tutma Aksiyonlari
+                      {t('customer_detail.retention_actions')}
                     </h4>
                     <ul className="space-y-1">
                       {churnPrediction.data.retention_actions.map((action, i) => (
@@ -581,13 +589,20 @@ export default function CustomerDetailPage() {
                 )}
             </div>
           ) : (
-            <p className="py-4 text-center text-sm text-gray-400">Kayip risk verisi bulunamadi</p>
+            <p className="py-4 text-center text-sm text-gray-400">
+              {t('customer_detail.churn_empty')}
+            </p>
           )}
         </Card>
 
         {/* Inline Opportunities */}
         {oppsData?.items && oppsData.items.length > 0 && (
-          <Card title={`Fırsatlar (${oppsData.items.length})`}>
+          <Card
+            title={t('customer_detail.opps_title').replace(
+              '{count}',
+              String(oppsData.items.length),
+            )}
+          >
             <div className="space-y-2">
               {oppsData.items.map((opp) => (
                 <button
@@ -634,7 +649,7 @@ export default function CustomerDetailPage() {
           <div className="rounded-xl border-l-4 border-l-blue-500 border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Toplam Teklif
+                {t('customer_detail.total_quotes')}
               </span>
               <TrendingUp size={16} className="text-blue-400" />
             </div>
@@ -643,7 +658,7 @@ export default function CustomerDetailPage() {
           <div className="rounded-xl border-l-4 border-l-red-500 border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Toplam Değer
+                {t('customer_detail.total_value')}
               </span>
               <TrendingUp size={16} className="text-red-400" />
             </div>
@@ -654,18 +669,18 @@ export default function CustomerDetailPage() {
         </div>
 
         {/* Quote History */}
-        <Card title="Teklif Gecmisi">
+        <Card title={t('customer_detail.quote_history')}>
           <DataTable
             columns={quoteColumns}
             data={quotes}
             loading={quotesLoading}
-            emptyMessage="Bu müşteriye ait teklif bulunamadi"
+            emptyMessage={t('customer_detail.quotes_empty')}
             onRowClick={(row) => navigate(`/quotes/${(row as Quote).id}`)}
           />
         </Card>
 
         {/* Customer 360 Timeline */}
-        <Card title="Müşteri Zaman Cizelgesi">
+        <Card title={t('customer_detail.timeline_card_title')}>
           {timelineData?.events && timelineData.events.length > 0 ? (
             <div className="space-y-0 p-2">
               {timelineData.events.map((event, idx) => (
@@ -692,7 +707,9 @@ export default function CustomerDetailPage() {
                             : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300'
                         }`}
                       >
-                        {event.type === 'email' ? 'Email' : 'Teklif'}
+                        {event.type === 'email'
+                          ? t('customer_detail.timeline_email')
+                          : t('customer_detail.timeline_quote')}
                       </span>
                       <span className="text-[10px] text-gray-400">
                         {formatDate(event.timestamp)}
@@ -709,13 +726,15 @@ export default function CustomerDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-400">Henüz etkinlik yok</p>
+            <p className="py-8 text-center text-sm text-gray-400">
+              {t('customer_detail.timeline_empty')}
+            </p>
           )}
         </Card>
 
         {/* Activity Auto-Log Timeline */}
         {activityData?.activities && activityData.activities.length > 0 && (
-          <Card title="Aktivite Gecmisi (Otomatik)">
+          <Card title={t('customer_detail.activity_auto_title')}>
             <div className="space-y-0 p-2">
               {activityData.activities.map((activity, idx) => {
                 const colorMap: Record<string, string> = {
@@ -767,7 +786,9 @@ export default function CustomerDetailPage() {
               </h3>
               {hierarchy.parents.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1">Üst Hesaplar</p>
+                  <p className="text-xs font-medium text-gray-500 mb-1">
+                    {t('customer_detail.parent_accounts')}
+                  </p>
                   {hierarchy.parents.map((p) => (
                     <button
                       key={p.id}
@@ -799,13 +820,17 @@ export default function CustomerDetailPage() {
                         <p className="text-lg font-bold text-gray-900 dark:text-white">
                           {rollup.total_opportunities}
                         </p>
-                        <p className="text-[10px] text-gray-500">Toplam Fırsat</p>
+                        <p className="text-[10px] text-gray-500">
+                          {t('customer_detail.total_opps')}
+                        </p>
                       </div>
                       <div className="text-center">
                         <p className="text-lg font-bold text-gray-900 dark:text-white">
                           {formatCurrency(rollup.total_quote_value)}
                         </p>
-                        <p className="text-[10px] text-gray-500">Toplam Teklif</p>
+                        <p className="text-[10px] text-gray-500">
+                          {t('customer_detail.total_quotes')}
+                        </p>
                       </div>
                     </div>
                   )}

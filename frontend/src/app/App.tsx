@@ -5,6 +5,7 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { Layout } from '../components/layout/Layout';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
+import { usePreferencesStore } from '../stores/preferencesStore';
 
 const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'));
 const EmailListPage = lazy(() => import('../features/emails/EmailListPage'));
@@ -131,6 +132,10 @@ const AgentChatPage = lazy(() => import('../features/chat/AgentChatPage'));
 const LandingPage = lazy(() => import('../features/landing/LandingPage'));
 
 export default function App() {
+  // Force a top-level rerender on language changes so non-hook consumers
+  // (formatters, option lists, etc.) update consistently.
+  usePreferencesStore((s) => s.language);
+
   const navigate = useNavigate();
 
   useEffect(() => {

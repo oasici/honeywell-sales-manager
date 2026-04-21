@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -10,26 +10,11 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { invoicesApi, customersApi } from '../../lib/api';
-import { formatCurrency } from '../../lib/formatters';
+import { formatCurrency, currentLocale } from '../../lib/formatters';
 import { Modal } from '../../components/ui/Modal';
+import { useT } from '../../hooks/useT';
+import { translateInvoiceStatus } from '../../lib/labelTranslations';
 import type { Invoice, Customer } from '../../lib/types';
-
-const STATUS_TABS = [
-  { value: '', label: 'Tumu' },
-  { value: 'draft', label: 'Taslak' },
-  { value: 'sent', label: 'Gönderildi' },
-  { value: 'paid', label: 'Ödendi' },
-  { value: 'overdue', label: 'Gecikti' },
-  { value: 'voided', label: 'İptal' },
-];
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Taslak',
-  sent: 'Gönderildi',
-  paid: 'Ödendi',
-  overdue: 'Gecikti',
-  voided: 'İptal',
-};
 
 const STATUS_VARIANTS: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
   draft: 'default',
@@ -56,12 +41,25 @@ const INITIAL_FORM: CreateForm = {
 };
 
 export default function InvoiceListPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState<CreateForm>(INITIAL_FORM);
   const [customerSearch, setCustomerSearch] = useState('');
+
+  const STATUS_TABS = useMemo(
+    () => [
+      { value: '', label: t('invoices.status_all') },
+      { value: 'draft', label: t('invoices.status_draft') },
+      { value: 'sent', label: t('invoices.status_sent') },
+      { value: 'paid', label: t('invoices.status_paid') },
+      { value: 'overdue', label: t('invoices.status_overdue') },
+      { value: 'voided', label: t('invoices.status_voided') },
+    ],
+    [t],
+  );
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['invoices', statusFilter],
@@ -79,38 +77,38 @@ export default function InvoiceListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Parameters<typeof invoicesApi.create>[0]) => invoicesApi.create(payload),
     onSuccess: (created: Invoice) => {
-      toast.success('Fatura oluşturuldu');
+      toast.success(t('invoices.toast_created'));
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       navigate(`/invoices/${created.id}`);
     },
-    onError: () => toast.error('Fatura oluşturulamadı'),
+    onError: () => toast.error(t('invoices.toast_failed')),
   });
 
   const createFromQuoteMutation = useMutation({
     mutationFn: (quoteId: number) => invoicesApi.createFromQuote(quoteId),
     onSuccess: (created: Invoice) => {
-      toast.success('Fatura tekliften oluşturuldu');
+      toast.success(t('invoices.toast_from_quote'));
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       navigate(`/invoices/${created.id}`);
     },
-    onError: () => toast.error('Fatura oluşturulamadı'),
+    onError: () => toast.error(t('invoices.toast_failed')),
   });
 
   const handleCreate = useCallback(() => {
     if (form.fromQuote) {
       if (!form.quote_id) {
-        toast.error('Teklif ID zorunludur');
+        toast.error(t('invoices.err_quote_id'));
         return;
       }
       createFromQuoteMutation.mutate(parseInt(form.quote_id));
       return;
     }
     if (!form.customer_id) {
-      toast.error('Müşteri secimi zorunludur');
+      toast.error(t('invoices.err_customer'));
       return;
     }
     createMutation.mutate({
@@ -119,19 +117,19 @@ export default function InvoiceListPage() {
       notes: form.notes || undefined,
       tax_rate: form.tax_rate ? parseFloat(form.tax_rate) : undefined,
     });
-  }, [form, createMutation, createFromQuoteMutation]);
+  }, [form, createMutation, createFromQuoteMutation, t]);
 
   const isPending = createMutation.isPending || createFromQuoteMutation.isPending;
+
+  const locale = currentLocale();
 
   if (isError) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Faturalar" description="Fatura yönetimi ve takibi" />
+        <PageHeader title={t('invoices.title')} description={t('invoices.description')} />
         <Card>
           <div className="p-8 text-center">
-            <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
-            </p>
+            <p className="text-sm text-red-500">{t('invoices.load_error')}</p>
           </div>
         </Card>
       </div>
@@ -140,10 +138,10 @@ export default function InvoiceListPage() {
 
   return (
     <div>
-      <PageHeader title="Faturalar" description="Fatura yönetimi ve takibi">
+      <PageHeader title={t('invoices.title')} description={t('invoices.description')}>
         <Button onClick={() => setIsCreateOpen(true)}>
           <ReceiptText className="mr-1.5 h-4 w-4" />
-          Yeni Fatura
+          {t('invoices.new')}
         </Button>
       </PageHeader>
 
@@ -169,7 +167,7 @@ export default function InvoiceListPage() {
 
       {!isLoading && invoices.length === 0 && (
         <Card>
-          <p className="py-8 text-center text-sm text-gray-500">Fatura bulunamadi</p>
+          <p className="py-8 text-center text-sm text-gray-500">{t('invoices.empty')}</p>
         </Card>
       )}
 
@@ -179,13 +177,23 @@ export default function InvoiceListPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Fatura No</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Müşteri</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Durum</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Düzenleme</th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Vade</th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('invoices.col_number')}
+                  </th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('invoices.col_customer')}
+                  </th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('invoices.col_status')}
+                  </th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('invoices.col_issue')}
+                  </th>
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    {t('invoices.col_due')}
+                  </th>
                   <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
-                    Toplam
+                    {t('invoices.col_total')}
                   </th>
                 </tr>
               </thead>
@@ -211,17 +219,17 @@ export default function InvoiceListPage() {
                     </td>
                     <td className="px-3 py-2">
                       <Badge variant={STATUS_VARIANTS[invoice.status] ?? 'default'}>
-                        {STATUS_LABELS[invoice.status] ?? invoice.status}
+                        {translateInvoiceStatus(invoice.status, t)}
                       </Badge>
                     </td>
                     <td className="px-3 py-2 text-gray-600 dark:text-gray-400">
                       {invoice.issue_date
-                        ? new Date(invoice.issue_date).toLocaleDateString('tr-TR')
+                        ? new Date(invoice.issue_date).toLocaleDateString(locale)
                         : '-'}
                     </td>
                     <td className="px-3 py-2 text-gray-600 dark:text-gray-400">
                       {invoice.due_date
-                        ? new Date(invoice.due_date).toLocaleDateString('tr-TR')
+                        ? new Date(invoice.due_date).toLocaleDateString(locale)
                         : '-'}
                     </td>
                     <td className="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">
@@ -243,7 +251,7 @@ export default function InvoiceListPage() {
           setForm(INITIAL_FORM);
           setCustomerSearch('');
         }}
-        title="Yeni Fatura"
+        title={t('invoices.modal_new')}
       >
         {/* Mode toggle */}
         <div className="mb-4 flex gap-2">
@@ -256,7 +264,7 @@ export default function InvoiceListPage() {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'
             }`}
           >
-            Manuel Oluştur
+            {t('invoices.mode_manual')}
           </button>
           <button
             type="button"
@@ -267,36 +275,36 @@ export default function InvoiceListPage() {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'
             }`}
           >
-            Tekliften Oluştur
+            {t('invoices.mode_from_quote')}
           </button>
         </div>
 
         <div className="space-y-3">
           {form.fromQuote ? (
             <Input
-              label="Teklif ID"
+              label={t('invoices.quote_id')}
               type="number"
               value={form.quote_id}
               onChange={(e) => setForm({ ...form, quote_id: e.target.value })}
-              placeholder="Teklif numarasi giriniz"
+              placeholder={t('invoices.quote_id_ph')}
             />
           ) : (
             <>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Müşteri Ara
+                  {t('invoices.search_customer')}
                 </label>
                 <input
                   type="text"
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                  placeholder="Müşteri adi ile ara..."
+                  placeholder={t('invoices.search_customer_ph')}
                   value={customerSearch}
                   onChange={(e) => setCustomerSearch(e.target.value)}
                 />
                 {customerSearch.length >= 2 && (
                   <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-800">
                     {!customerResults?.items?.length && (
-                      <p className="px-3 py-2 text-sm text-gray-400">Müşteri bulunamadi</p>
+                      <p className="px-3 py-2 text-sm text-gray-400">{t('invoices.no_customer')}</p>
                     )}
                     {customerResults?.items?.map((c) => (
                       <button
@@ -315,18 +323,20 @@ export default function InvoiceListPage() {
                   </div>
                 )}
                 {form.customer_id && (
-                  <p className="mt-1 text-xs text-green-600">Seçilen ID: {form.customer_id}</p>
+                  <p className="mt-1 text-xs text-green-600">
+                    {t('invoices.selected_id')}: {form.customer_id}
+                  </p>
                 )}
               </div>
               <Input
-                label="Teklif ID (isteğe bagli)"
+                label={t('invoices.quote_optional')}
                 type="number"
                 value={form.quote_id}
                 onChange={(e) => setForm({ ...form, quote_id: e.target.value })}
-                placeholder="Bagli teklif varsa ID giriniz"
+                placeholder={t('invoices.quote_optional_ph')}
               />
               <Input
-                label="KDV Orani (%)"
+                label={t('invoices.tax_rate')}
                 type="number"
                 min={0}
                 max={100}
@@ -336,14 +346,14 @@ export default function InvoiceListPage() {
               />
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Notlar
+                  {t('invoices.notes')}
                 </label>
                 <textarea
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                   rows={2}
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Fatura notlari (isteğe bagli)"
+                  placeholder={t('invoices.notes_ph')}
                 />
               </div>
             </>
@@ -359,10 +369,10 @@ export default function InvoiceListPage() {
               setCustomerSearch('');
             }}
           >
-            İptal
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleCreate} loading={isPending}>
-            Oluştur
+            {t('common.create')}
           </Button>
         </div>
       </Modal>

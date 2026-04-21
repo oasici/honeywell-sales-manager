@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { partsApi, customersApi, pricingApi, pricesApi } from '../../lib/api';
 import type { SparePart, Customer, PriceTier, CustomerPricing, PriceEntry } from '../../lib/types';
+import { useT } from '../../hooks/useT';
 
 // ── Tab types ──────────────────────────────────────────
 
@@ -55,6 +56,7 @@ const EMPTY_TIER_FORM: TierFormState = {
 };
 
 function PriceTiersTab() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -93,21 +95,21 @@ function PriceTiersTab() {
       discount_pct?: number;
     }) => pricingApi.createTier(payload),
     onSuccess: () => {
-      toast.success('Kademe eklendi');
+      toast.success(t('pricing_admin.toast_tier_added'));
       queryClient.invalidateQueries({ queryKey: ['pricing-tiers', priceEntry?.id] });
       setShowAddForm(false);
       setTierForm(EMPTY_TIER_FORM);
     },
-    onError: () => toast.error('Kademe eklenemedi'),
+    onError: () => toast.error(t('pricing_admin.toast_tier_add_fail')),
   });
 
   const deleteTierMutation = useMutation({
     mutationFn: (tierId: number) => pricingApi.deleteTier(tierId),
     onSuccess: () => {
-      toast.success('Kademe silindi');
+      toast.success(t('pricing_admin.toast_tier_deleted'));
       queryClient.invalidateQueries({ queryKey: ['pricing-tiers', priceEntry?.id] });
     },
-    onError: () => toast.error('Kademe silinemedi'),
+    onError: () => toast.error(t('pricing_admin.toast_tier_delete_fail')),
   });
 
   const handleAddTier = () => {
@@ -115,7 +117,7 @@ function PriceTiersTab() {
     const minQty = parseInt(tierForm.min_qty, 10);
     const unitPrice = parseFloat(tierForm.unit_price);
     if (isNaN(minQty) || isNaN(unitPrice)) {
-      toast.error('Min. adet ve birim fiyat zorunludur');
+      toast.error(t('pricing_admin.err_min_unit'));
       return;
     }
     const maxQty = tierForm.max_qty ? parseInt(tierForm.max_qty, 10) : undefined;
@@ -133,7 +135,7 @@ function PriceTiersTab() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-          Yedek Parça:
+          {t('pricing_admin.spare_part_label')}
         </label>
         <select
           className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
@@ -143,7 +145,7 @@ function PriceTiersTab() {
             setShowAddForm(false);
           }}
         >
-          <option value="">-- Parça seçiniz --</option>
+          <option value="">{t('pricing_admin.select_part')}</option>
           {parts.map((p) => (
             <option key={p.id} value={p.id}>
               {p.honeywell_code} — {p.name_tr || p.name_en}
@@ -154,7 +156,7 @@ function PriceTiersTab() {
 
       {selectedPartId && !priceEntry && !tiersLoading && (
         <p className="text-sm text-yellow-600 dark:text-yellow-400">
-          Bu parça için fiyat girisi bulunamadi. Önce Fiyatlar sayfasinda fiyat ekleyiniz.
+          {t('pricing_admin.no_price_entry')}
         </p>
       )}
 
@@ -165,16 +167,16 @@ function PriceTiersTab() {
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-                    Min. Adet
+                    {t('pricing_admin.col_min_qty')}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-                    Max. Adet
+                    {t('pricing_admin.col_max_qty')}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-                    Birim Fiyat
+                    {t('pricing_admin.col_unit_price')}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-                    Indirim %
+                    {t('pricing_admin.col_discount_pct')}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500"></th>
                 </tr>
@@ -183,13 +185,13 @@ function PriceTiersTab() {
                 {tiersLoading ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                      Yükleniyor...
+                      {t('subscription.loading')}
                     </td>
                   </tr>
                 ) : tiers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                      Kademe bulunamadi
+                      {t('pricing_admin.tiers_empty')}
                     </td>
                   </tr>
                 ) : (
@@ -207,7 +209,7 @@ function PriceTiersTab() {
                           onClick={() => deleteTierMutation.mutate(tier.id)}
                           disabled={deleteTierMutation.isPending}
                           className="rounded p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
-                          aria-label="Sil"
+                          aria-label={t('common.delete')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -221,11 +223,13 @@ function PriceTiersTab() {
 
           {showAddForm ? (
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900/10 space-y-3">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Yeni Kademe</p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                {t('pricing_admin.new_tier')}
+              </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">
-                    Min. Adet *
+                    {t('pricing_admin.lbl_min_qty_req')}
                   </label>
                   <input
                     type="number"
@@ -236,7 +240,9 @@ function PriceTiersTab() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">Max. Adet</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                    {t('pricing_admin.lbl_max_qty')}
+                  </label>
                   <input
                     type="number"
                     min={1}
@@ -247,7 +253,7 @@ function PriceTiersTab() {
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">
-                    Birim Fiyat *
+                    {t('pricing_admin.lbl_unit_price_req')}
                   </label>
                   <input
                     type="number"
@@ -259,7 +265,9 @@ function PriceTiersTab() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">Indirim %</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                    {t('pricing_admin.lbl_discount_pct')}
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -273,7 +281,7 @@ function PriceTiersTab() {
               </div>
               <div className="flex gap-2">
                 <Button loading={createTierMutation.isPending} onClick={handleAddTier}>
-                  Kaydet
+                  {t('common.save')}
                 </Button>
                 <Button
                   variant="secondary"
@@ -282,7 +290,7 @@ function PriceTiersTab() {
                     setTierForm(EMPTY_TIER_FORM);
                   }}
                 >
-                  İptal
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>
@@ -293,7 +301,7 @@ function PriceTiersTab() {
               className="inline-flex items-center gap-1.5"
             >
               <Plus size={15} />
-              Kademe Ekle
+              {t('pricing_admin.add_tier')}
             </Button>
           )}
         </>
@@ -325,6 +333,7 @@ const EMPTY_CP_FORM: CustomerPricingFormState = {
 };
 
 function CustomerPricingTab() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [isCreateOpen, setAddModalOpen] = useState(false);
@@ -365,27 +374,27 @@ function CustomerPricingTab() {
         ...(payload.notes && { notes: payload.notes }),
       }),
     onSuccess: () => {
-      toast.success('Müşteri fiyati eklendi');
+      toast.success(t('pricing_admin.toast_cp_added'));
       queryClient.invalidateQueries({ queryKey: ['customer-pricing', selectedCustomerId] });
       setAddModalOpen(false);
       setCpForm(EMPTY_CP_FORM);
     },
-    onError: () => toast.error('Müşteri fiyati eklenemedi'),
+    onError: () => toast.error(t('pricing_admin.toast_cp_add_fail')),
   });
 
   const deleteCpMutation = useMutation({
     mutationFn: (pricingId: number) =>
       pricingApi.deleteCustomerPricing(selectedCustomerId!, pricingId),
     onSuccess: () => {
-      toast.success('Müşteri fiyati silindi');
+      toast.success(t('pricing_admin.toast_cp_deleted'));
       queryClient.invalidateQueries({ queryKey: ['customer-pricing', selectedCustomerId] });
     },
-    onError: () => toast.error('Müşteri fiyati silinemedi'),
+    onError: () => toast.error(t('pricing_admin.toast_cp_delete_fail')),
   });
 
   const handleAddSubmit = () => {
     if (!cpForm.spare_part_id || !cpForm.contracted_price) {
-      toast.error('Parça ve anlasilan fiyat zorunludur');
+      toast.error(t('pricing_admin.err_part_price'));
       return;
     }
     createCpMutation.mutate(cpForm);
@@ -395,14 +404,14 @@ function CustomerPricingTab() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-          Müşteri:
+          {t('pricing_admin.customer_label')}
         </label>
         <select
           className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           value={selectedCustomerId ?? ''}
           onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
         >
-          <option value="">-- Müşteri seçiniz --</option>
+          <option value="">{t('pricing_admin.select_customer')}</option>
           {customers.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name} — {c.company}
@@ -417,18 +426,24 @@ function CustomerPricingTab() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Parça</th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-                    Anlasilan Fiyat
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Doviz</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-                    Indirim %
+                    {t('pricing_admin.col_part')}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-                    Baslangic
+                    {t('pricing_admin.th_agreed_price')}
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Bitis</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                    {t('pricing_admin.lbl_currency_short')}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                    {t('pricing_admin.col_discount_pct')}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                    {t('pricing_admin.lbl_valid_from')}
+                  </th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                    {t('pricing_admin.lbl_valid_until')}
+                  </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500"></th>
                 </tr>
               </thead>
@@ -436,13 +451,13 @@ function CustomerPricingTab() {
                 {pricingsLoading ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                      Yükleniyor...
+                      {t('subscription.loading')}
                     </td>
                   </tr>
                 ) : customerPricings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                      Müşteri fiyati bulunamadi
+                      {t('pricing_admin.customer_price_empty')}
                     </td>
                   </tr>
                 ) : (
@@ -469,7 +484,7 @@ function CustomerPricingTab() {
                           onClick={() => deleteCpMutation.mutate(cp.id)}
                           disabled={deleteCpMutation.isPending}
                           className="rounded p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
-                          aria-label="Sil"
+                          aria-label={t('common.delete')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -487,7 +502,7 @@ function CustomerPricingTab() {
             className="inline-flex items-center gap-1.5"
           >
             <Plus size={15} />
-            Fiyat Ekle
+            {t('pricing_admin.btn_add_price')}
           </Button>
         </>
       )}
@@ -498,18 +513,20 @@ function CustomerPricingTab() {
           setAddModalOpen(false);
           setCpForm(EMPTY_CP_FORM);
         }}
-        title="Müşteri Özel Fiyat Ekle"
+        title={t('pricing_admin.modal_add_customer_price')}
         size="md"
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Yedek Parça *</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">
+              {t('pricing_admin.lbl_spare_part_req')}
+            </label>
             <select
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
               value={cpForm.spare_part_id}
               onChange={(e) => setCpForm((f) => ({ ...f, spare_part_id: e.target.value }))}
             >
-              <option value="">-- Parça seçiniz --</option>
+              <option value="">{t('pricing_admin.select_part')}</option>
               {parts.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.honeywell_code} — {p.name_tr || p.name_en}
@@ -520,7 +537,7 @@ function CustomerPricingTab() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-500">
-                Anlasilan Fiyat *
+                {t('pricing_admin.col_agreed_price')}
               </label>
               <input
                 type="text"
@@ -534,7 +551,9 @@ function CustomerPricingTab() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">Doviz</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">
+                {t('pricing_admin.lbl_currency_short')}
+              </label>
               <select
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                 value={cpForm.currency}
@@ -548,7 +567,9 @@ function CustomerPricingTab() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">Indirim %</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">
+                {t('pricing_admin.lbl_discount_pct')}
+              </label>
               <input
                 type="number"
                 min={0}
@@ -563,7 +584,7 @@ function CustomerPricingTab() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-500">
-                Baslangic Tarihi
+                {t('pricing_admin.lbl_valid_from')}
               </label>
               <input
                 type="date"
@@ -573,7 +594,9 @@ function CustomerPricingTab() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">Bitis Tarihi</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">
+                {t('pricing_admin.lbl_valid_until')}
+              </label>
               <input
                 type="date"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
@@ -583,7 +606,9 @@ function CustomerPricingTab() {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Notlar</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">
+              {t('pricing_admin.lbl_notes')}
+            </label>
             <textarea
               rows={2}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 resize-none"
@@ -599,10 +624,10 @@ function CustomerPricingTab() {
                 setCpForm(EMPTY_CP_FORM);
               }}
             >
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button loading={createCpMutation.isPending} onClick={handleAddSubmit}>
-              Kaydet
+              {t('common.save')}
             </Button>
           </div>
         </div>
@@ -619,6 +644,7 @@ interface MarginRowState {
 }
 
 function MarginRulesTab() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [rowState, setRowState] = useState<MarginRowState>({ editingId: null, editValue: '' });
 
@@ -632,17 +658,17 @@ function MarginRulesTab() {
     mutationFn: ({ id, min_margin_pct }: { id: number; min_margin_pct: number }) =>
       pricingApi.updateMargin(id, min_margin_pct),
     onSuccess: () => {
-      toast.success('Marj kuralı guncellendi');
+      toast.success(t('pricing_admin.toast_margin_ok'));
       queryClient.invalidateQueries({ queryKey: ['parts', 'all'] });
       setRowState({ editingId: null, editValue: '' });
     },
-    onError: () => toast.error('Marj kuralı guncellenemedi'),
+    onError: () => toast.error(t('pricing_admin.toast_margin_fail')),
   });
 
   const handleSaveMargin = (partId: number) => {
     const value = parseFloat(rowState.editValue);
     if (isNaN(value) || value < 0 || value > 100) {
-      toast.error('Geçerli bir marj yuzde degeri giriniz (0-100)');
+      toast.error(t('pricing_admin.err_margin_pct'));
       return;
     }
     updateMarginMutation.mutate({ id: partId, min_margin_pct: value });
@@ -658,10 +684,14 @@ function MarginRulesTab() {
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
             <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
-              Honeywell Kodu
+              {t('pricing_admin.col_hw_code')}
             </th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Parça Adi</th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Min. Marj %</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+              {t('pricing_admin.col_part_name')}
+            </th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+              {t('pricing_admin.col_min_margin')}
+            </th>
             <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500"></th>
           </tr>
         </thead>
@@ -669,13 +699,13 @@ function MarginRulesTab() {
           {isLoading ? (
             <tr>
               <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                Yükleniyor...
+                {t('subscription.loading')}
               </td>
             </tr>
           ) : parts.length === 0 ? (
             <tr>
               <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                Parça bulunamadi
+                {t('pricing_admin.parts_empty')}
               </td>
             </tr>
           ) : (
@@ -722,14 +752,14 @@ function MarginRulesTab() {
                         <button
                           onClick={() => handleSaveMargin(part.id)}
                           className="rounded p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer"
-                          aria-label="Kaydet"
+                          aria-label={t('pricing_admin.aria_save')}
                         >
                           <Check size={14} />
                         </button>
                         <button
                           onClick={handleCancelEdit}
                           className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                          aria-label="İptal"
+                          aria-label={t('pricing_admin.aria_cancel')}
                         >
                           <X size={14} />
                         </button>
@@ -743,7 +773,7 @@ function MarginRulesTab() {
                           })
                         }
                         className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                        aria-label="Düzenle"
+                        aria-label={t('pricing_admin.aria_edit')}
                       >
                         <Pencil size={14} />
                       </button>
@@ -762,27 +792,28 @@ function MarginRulesTab() {
 // ── Page ──────────────────────────────────────────────
 
 export default function PricingAdminPage() {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<Tab>('tiers');
 
   return (
     <div>
-      <PageHeader title="Fiyatlama Yönetimi" />
+      <PageHeader title={t('pricing_admin.title')} />
 
       <Card title="">
         {/* Tab Bar */}
         <div className="mb-6 flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800/50 w-fit">
           <TabButton
-            label="Fiyat Kademeleri"
+            label={t('pricing_admin.tab_tiers')}
             active={activeTab === 'tiers'}
             onClick={() => setActiveTab('tiers')}
           />
           <TabButton
-            label="Müşteri Özel Fiyatlari"
+            label={t('pricing_admin.tab_customer')}
             active={activeTab === 'customer'}
             onClick={() => setActiveTab('customer')}
           />
           <TabButton
-            label="Marj Kuralları"
+            label={t('pricing_admin.tab_margin')}
             active={activeTab === 'margin'}
             onClick={() => setActiveTab('margin')}
           />

@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { activitiesApi } from '../../lib/api';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
+import { useT } from '../../hooks/useT';
+import type { TranslationKey } from '../../lib/i18n';
 
 interface QuickActivityModalProps {
   isOpen: boolean;
@@ -14,22 +16,22 @@ interface QuickActivityModalProps {
 
 type ActivityTab = 'call' | 'meeting' | 'note';
 
-const TABS: { key: ActivityTab; label: string }[] = [
-  { key: 'call', label: 'Arama' },
-  { key: 'meeting', label: 'Toplanti' },
-  { key: 'note', label: 'Not' },
+const TAB_DEFS: { key: ActivityTab; labelKey: TranslationKey }[] = [
+  { key: 'call', labelKey: 'activity.tab_call' },
+  { key: 'meeting', labelKey: 'activity.tab_meeting' },
+  { key: 'note', labelKey: 'activity.tab_note' },
 ];
 
-const CALL_OUTCOMES = [
-  { value: 'baglandi', label: 'Baglandi' },
-  { value: 'mesaj_birakti', label: 'Mesaj Birakti' },
-  { value: 'cevap_yok', label: 'Cevap Yok' },
+const CALL_OUTCOMES: { value: string; labelKey: TranslationKey }[] = [
+  { value: 'baglandi', labelKey: 'activity.call_connected' },
+  { value: 'mesaj_birakti', labelKey: 'activity.call_left_message' },
+  { value: 'cevap_yok', labelKey: 'activity.call_no_answer' },
 ];
 
-const MEETING_OUTCOMES = [
-  { value: 'tamamlandi', label: 'Tamamlandi' },
-  { value: 'ertelendi', label: 'Ertelendi' },
-  { value: 'iptal', label: 'İptal' },
+const MEETING_OUTCOMES: { value: string; labelKey: TranslationKey }[] = [
+  { value: 'tamamlandi', labelKey: 'activity.meeting_completed' },
+  { value: 'ertelendi', labelKey: 'activity.meeting_postponed' },
+  { value: 'iptal', labelKey: 'activity.meeting_cancelled' },
 ];
 
 const INITIAL_FORM = {
@@ -46,6 +48,7 @@ export default function QuickActivityModal({
   opportunityId,
   customerId,
 }: QuickActivityModalProps) {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<ActivityTab>('call');
   const [form, setForm] = useState(INITIAL_FORM);
 
@@ -54,7 +57,7 @@ export default function QuickActivityModal({
   const mutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => activitiesApi.log(payload),
     onSuccess: () => {
-      toast.success('Aktivite kaydedildi');
+      toast.success(t('activity.toast_saved'));
       queryClient.invalidateQueries({ queryKey: ['activities'] });
       if (opportunityId) {
         queryClient.invalidateQueries({ queryKey: ['opportunity-timeline', opportunityId] });
@@ -62,7 +65,7 @@ export default function QuickActivityModal({
       handleClose();
     },
     onError: () => {
-      toast.error('Aktivite kaydedilemedi');
+      toast.error(t('activity.toast_save_failed'));
     },
   });
 
@@ -94,7 +97,10 @@ export default function QuickActivityModal({
     if (activeTab === 'meeting') {
       if (form.attendees.trim()) {
         payload.attendees_json = JSON.stringify(
-          form.attendees.split(',').map((n) => n.trim()).filter(Boolean),
+          form.attendees
+            .split(',')
+            .map((n) => n.trim())
+            .filter(Boolean),
         );
       }
       if (form.agenda.trim()) {
@@ -113,10 +119,10 @@ export default function QuickActivityModal({
     'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-honeywell-red/30';
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Yeni Aktivite" size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title={t('activity.title')} size="md">
       {/* Tab selector */}
       <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
-        {TABS.map((tab) => (
+        {TAB_DEFS.map((tab) => (
           <button
             key={tab.key}
             type="button"
@@ -130,7 +136,7 @@ export default function QuickActivityModal({
                 : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
             }`}
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
@@ -138,8 +144,11 @@ export default function QuickActivityModal({
       <div className="space-y-4">
         {/* Summary — shared by all types */}
         <div>
-          <label htmlFor="activity-summary" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-            Özet
+          <label
+            htmlFor="activity-summary"
+            className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+          >
+            {t('activity.summary')}
           </label>
           <textarea
             id="activity-summary"
@@ -147,7 +156,7 @@ export default function QuickActivityModal({
             value={form.summary}
             onChange={(e) => updateField('summary', e.target.value)}
             className={inputClass}
-            placeholder="Aktivite ozetini yazin..."
+            placeholder={t('activity.summary_placeholder')}
           />
         </div>
 
@@ -156,8 +165,11 @@ export default function QuickActivityModal({
           <>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="call-duration" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Süre (dk)
+                <label
+                  htmlFor="call-duration"
+                  className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                >
+                  {t('activity.duration_min')}
                 </label>
                 <input
                   id="call-duration"
@@ -170,8 +182,11 @@ export default function QuickActivityModal({
                 />
               </div>
               <div>
-                <label htmlFor="call-outcome" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Sonuç
+                <label
+                  htmlFor="call-outcome"
+                  className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                >
+                  {t('activity.outcome')}
                 </label>
                 <select
                   id="call-outcome"
@@ -179,9 +194,11 @@ export default function QuickActivityModal({
                   onChange={(e) => updateField('outcome', e.target.value)}
                   className={inputClass}
                 >
-                  <option value="">Seçiniz</option>
+                  <option value="">{t('activity.select')}</option>
                   {CALL_OUTCOMES.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                    <option key={o.value} value={o.value}>
+                      {t(o.labelKey)}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -194,8 +211,11 @@ export default function QuickActivityModal({
           <>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="meeting-duration" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Süre (dk)
+                <label
+                  htmlFor="meeting-duration"
+                  className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                >
+                  {t('activity.duration_min')}
                 </label>
                 <input
                   id="meeting-duration"
@@ -208,8 +228,11 @@ export default function QuickActivityModal({
                 />
               </div>
               <div>
-                <label htmlFor="meeting-outcome" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Sonuç
+                <label
+                  htmlFor="meeting-outcome"
+                  className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                >
+                  {t('activity.outcome')}
                 </label>
                 <select
                   id="meeting-outcome"
@@ -217,16 +240,21 @@ export default function QuickActivityModal({
                   onChange={(e) => updateField('outcome', e.target.value)}
                   className={inputClass}
                 >
-                  <option value="">Seçiniz</option>
+                  <option value="">{t('activity.select')}</option>
                   {MEETING_OUTCOMES.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                    <option key={o.value} value={o.value}>
+                      {t(o.labelKey)}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
             <div>
-              <label htmlFor="meeting-attendees" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                Katilimcilar (virgul ile ayirin)
+              <label
+                htmlFor="meeting-attendees"
+                className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+              >
+                {t('activity.attendees')}
               </label>
               <input
                 id="meeting-attendees"
@@ -234,12 +262,15 @@ export default function QuickActivityModal({
                 value={form.attendees}
                 onChange={(e) => updateField('attendees', e.target.value)}
                 className={inputClass}
-                placeholder="Ahmet Yilmaz, Mehmet Demir"
+                placeholder={t('activity.attendees_placeholder')}
               />
             </div>
             <div>
-              <label htmlFor="meeting-agenda" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                Gundem
+              <label
+                htmlFor="meeting-agenda"
+                className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+              >
+                {t('activity.agenda')}
               </label>
               <textarea
                 id="meeting-agenda"
@@ -247,7 +278,7 @@ export default function QuickActivityModal({
                 value={form.agenda}
                 onChange={(e) => updateField('agenda', e.target.value)}
                 className={inputClass}
-                placeholder="Toplanti gundemi..."
+                placeholder={t('activity.agenda_placeholder')}
               />
             </div>
           </>
@@ -259,7 +290,7 @@ export default function QuickActivityModal({
       {/* Actions */}
       <div className="mt-6 flex justify-end gap-2">
         <Button variant="secondary" size="sm" onClick={handleClose}>
-          İptal
+          {t('common.cancel')}
         </Button>
         <Button
           size="sm"
@@ -267,7 +298,7 @@ export default function QuickActivityModal({
           loading={mutation.isPending}
           onClick={handleSubmit}
         >
-          Kaydet
+          {t('common.save')}
         </Button>
       </div>
     </Modal>

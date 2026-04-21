@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -10,6 +10,13 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { contractsApi } from '../../lib/api';
 import type { Contract, ContractAmendment } from '../../lib/types';
+import { useT } from '../../hooks/useT';
+import {
+  CONTRACT_AMENDMENT_VALUES,
+  translateContractAmendmentType,
+  translateContractStatus,
+} from '../../lib/labelTranslations';
+import { formatDate, currentLocale } from '../../lib/formatters';
 
 const STATUS_BADGES: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-700',
@@ -19,29 +26,11 @@ const STATUS_BADGES: Record<string, string> = {
   terminated: 'bg-red-200 text-red-800',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Taslak',
-  active: 'Aktif',
-  amended: 'Degistirilmis',
-  expired: 'Süresi Dolmus',
-  terminated: 'Feshedilmis',
-};
-
-const AMENDMENT_TYPE_LABELS: Record<string, string> = {
-  extension: 'Uzatma',
-  modification: 'Degisiklik',
-  termination: 'Fesih',
-};
-
-const AMENDMENT_TYPE_OPTIONS = [
-  { value: 'extension', label: 'Uzatma' },
-  { value: 'modification', label: 'Degisiklik' },
-  { value: 'termination', label: 'Fesih' },
-];
-
 const STATUS_FLOW = ['draft', 'active', 'amended', 'expired'];
 
 export default function ContractDetailPage() {
+  const t = useT();
+  const locale = currentLocale();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -61,23 +50,23 @@ export default function ContractDetailPage() {
   const activateMutation = useMutation({
     mutationFn: () => contractsApi.activate(contractId),
     onSuccess: () => {
-      toast.success('Kontrat aktiflestirildi');
+      toast.success(t('contracts.toast_activated'));
       queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
     },
-    onError: () => toast.error('Aktiflesitirme başarısız'),
+    onError: () => toast.error(t('contracts.toast_activate_failed')),
   });
 
   const amendMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => contractsApi.amend(contractId, payload),
     onSuccess: () => {
-      toast.success('Degisiklik eklendi');
+      toast.success(t('contracts.toast_amend_added'));
       queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
       setIsAmendOpen(false);
       setAmendType('modification');
       setAmendChanges('');
       setAmendDate('');
     },
-    onError: () => toast.error('Degisiklik eklenemedi'),
+    onError: () => toast.error(t('contracts.toast_amend_failed')),
   });
 
   const handleAmend = useCallback(() => {
@@ -88,6 +77,15 @@ export default function ContractDetailPage() {
     });
   }, [amendType, amendChanges, amendDate, amendMutation]);
 
+  const amendmentTypeOptions = useMemo(
+    () =>
+      CONTRACT_AMENDMENT_VALUES.map((value) => ({
+        value,
+        label: translateContractAmendmentType(value, t),
+      })),
+    [t],
+  );
+
   if (isLoading) {
     return <Skeleton variant="card" count={3} />;
   }
@@ -95,9 +93,9 @@ export default function ContractDetailPage() {
   if (!contract) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-gray-500">Kontrat bulunamadi</p>
+        <p className="text-sm text-gray-500">{t('contracts.detail_not_found')}</p>
         <Button variant="secondary" onClick={() => navigate('/contracts')} className="mt-4">
-          Geri Don
+          {t('common.back')}
         </Button>
       </div>
     );
@@ -107,14 +105,14 @@ export default function ContractDetailPage() {
 
   return (
     <div>
-      <PageHeader title={contract.title} description="Kontrat detaylari">
+      <PageHeader title={contract.title} description={t('contracts.detail_description')}>
         <span
           className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGES[contract.status] || 'bg-gray-100 text-gray-700'}`}
         >
-          {STATUS_LABELS[contract.status] || contract.status}
+          {translateContractStatus(contract.status, t)}
         </span>
         <Button variant="secondary" onClick={() => navigate('/contracts')}>
-          Geri Don
+          {t('common.back')}
         </Button>
         {contract.status === 'draft' && (
           <Button
@@ -122,17 +120,17 @@ export default function ContractDetailPage() {
             loading={activateMutation.isPending}
             className="!bg-green-600 !text-white hover:!bg-green-700"
           >
-            Aktifles
+            {t('contracts.activate')}
           </Button>
         )}
         <Button variant="secondary" onClick={() => setIsAmendOpen(true)}>
-          Degisiklik Ekle
+          {t('contracts.add_amendment')}
         </Button>
       </PageHeader>
 
       <div className="space-y-6">
         {/* Status Flow */}
-        <Card title="Durum Akisi">
+        <Card title={t('contracts.card_status_flow')}>
           <div className="flex items-center gap-1">
             {STATUS_FLOW.map((step, idx) => {
               const isCurrent = contract.status === step;
@@ -151,7 +149,7 @@ export default function ContractDetailPage() {
                           : 'bg-gray-100 text-gray-400'
                     }`}
                   >
-                    {STATUS_LABELS[step]}
+                    {translateContractStatus(step, t)}
                   </div>
                 </div>
               );
@@ -160,39 +158,43 @@ export default function ContractDetailPage() {
         </Card>
 
         {/* Contract Info */}
-        <Card title="Kontrat Bilgileri">
+        <Card title={t('contracts.card_info')}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <p className="text-xs text-gray-500">Müşteri ID</p>
+              <p className="text-xs text-gray-500">{t('contracts.field_customer_id')}</p>
               <p className="text-sm font-medium text-gray-900">{contract.customer_id}</p>
             </div>
             {contract.quote_id && (
               <div>
-                <p className="text-xs text-gray-500">Teklif ID</p>
+                <p className="text-xs text-gray-500">{t('contracts.field_quote_id')}</p>
                 <p className="text-sm font-medium text-gray-900">{contract.quote_id}</p>
               </div>
             )}
             <div>
-              <p className="text-xs text-gray-500">Baslangic Tarihi</p>
-              <p className="text-sm font-medium text-gray-900">{contract.start_date || '-'}</p>
+              <p className="text-xs text-gray-500">{t('contracts.field_start')}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {contract.start_date ? formatDate(contract.start_date, locale) : '-'}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Bitis Tarihi</p>
-              <p className="text-sm font-medium text-gray-900">{contract.end_date || '-'}</p>
+              <p className="text-xs text-gray-500">{t('contracts.field_end')}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {contract.end_date ? formatDate(contract.end_date, locale) : '-'}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Değer</p>
+              <p className="text-xs text-gray-500">{t('contracts.field_value')}</p>
               <p className="text-sm font-medium text-gray-900">
                 {contract.value != null
-                  ? contract.value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })
+                  ? contract.value.toLocaleString(locale, { minimumFractionDigits: 2 })
                   : '-'}
               </p>
             </div>
             {contract.signed_at && (
               <div>
-                <p className="text-xs text-gray-500">Imzalanma</p>
+                <p className="text-xs text-gray-500">{t('contracts.field_signed')}</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {new Date(contract.signed_at).toLocaleDateString('tr-TR')}
+                  {formatDate(contract.signed_at, locale)}
                   {contract.signed_by && (
                     <span className="text-gray-500"> - {contract.signed_by}</span>
                   )}
@@ -203,9 +205,11 @@ export default function ContractDetailPage() {
         </Card>
 
         {/* Amendment Timeline */}
-        <Card title="Degisiklik Gecmisi">
+        <Card title={t('contracts.amendments_title')}>
           {amendments.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">Henüz degisiklik yok</p>
+            <p className="py-6 text-center text-sm text-gray-400">
+              {t('contracts.amendments_empty')}
+            </p>
           ) : (
             <div className="relative pl-6">
               <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-gray-200" />
@@ -216,12 +220,14 @@ export default function ContractDetailPage() {
                     <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 ml-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-gray-700">
-                          {AMENDMENT_TYPE_LABELS[amendment.amendment_type] ||
-                            amendment.amendment_type}
+                          {translateContractAmendmentType(amendment.amendment_type, t)}
                         </span>
                         {amendment.effective_date && (
                           <span className="text-xs text-gray-400">
-                            Gecerlilik: {amendment.effective_date}
+                            {t('contracts.amendment_effective').replace(
+                              '{date}',
+                              amendment.effective_date,
+                            )}
                           </span>
                         )}
                       </div>
@@ -229,9 +235,7 @@ export default function ContractDetailPage() {
                         <p className="mt-1 text-xs text-gray-600">{amendment.changes_json}</p>
                       )}
                       <p className="mt-1 text-[10px] text-gray-400">
-                        {amendment.created_at
-                          ? new Date(amendment.created_at).toLocaleDateString('tr-TR')
-                          : ''}
+                        {amendment.created_at ? formatDate(amendment.created_at, locale) : ''}
                       </p>
                     </div>
                   </div>
@@ -246,26 +250,30 @@ export default function ContractDetailPage() {
       {isAmendOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">Degisiklik Ekle</h3>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+              {t('contracts.modal_amend_title')}
+            </h3>
             <div className="space-y-3">
               <Select
-                label="Degisiklik Tipi"
-                options={AMENDMENT_TYPE_OPTIONS}
+                label={t('contracts.label_amendment_type')}
+                options={amendmentTypeOptions}
                 value={amendType}
                 onChange={(e) => setAmendType(e.target.value)}
               />
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Açıklama</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  {t('contracts.field_description')}
+                </label>
                 <textarea
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light focus:border-honeywell-red"
                   rows={3}
                   value={amendChanges}
                   onChange={(e) => setAmendChanges(e.target.value)}
-                  placeholder="Degisiklik detaylari..."
+                  placeholder={t('contracts.amendment_changes_ph')}
                 />
               </div>
               <Input
-                label="Gecerlilik Tarihi"
+                label={t('contracts.label_effective_date')}
                 type="date"
                 value={amendDate}
                 onChange={(e) => setAmendDate(e.target.value)}
@@ -273,10 +281,10 @@ export default function ContractDetailPage() {
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setIsAmendOpen(false)}>
-                İptal
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleAmend} loading={amendMutation.isPending}>
-                Ekle
+                {t('contracts.add')}
               </Button>
             </div>
           </div>

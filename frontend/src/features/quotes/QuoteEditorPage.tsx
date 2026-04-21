@@ -13,7 +13,9 @@ import BundleSelectorModal from './BundleSelectorModal';
 import GuidedSellingWizard from './GuidedSellingWizard';
 import QuoteComparisonModal from './QuoteComparisonModal';
 import { formatCurrency } from '../../lib/formatters';
-import { STATUS_LABELS, STATUS_COLORS } from '../../lib/constants';
+import { STATUS_COLORS } from '../../lib/constants';
+import { translateStatus } from '../../lib/labelTranslations';
+import { useT } from '../../hooks/useT';
 import type { Quote, QuoteItem, Customer, SparePart } from '../../lib/types';
 
 interface EditableItem {
@@ -26,11 +28,6 @@ interface EditableItem {
   discount_pct: number;
   sort_order: number;
 }
-
-const LANGUAGE_OPTIONS = [
-  { value: 'tr', label: 'Turkce' },
-  { value: 'en', label: 'Ingilizce' },
-];
 
 const CURRENCY_OPTIONS = [
   { value: 'TRY', label: 'TRY' },
@@ -52,6 +49,7 @@ function itemToEditable(item: QuoteItem, idx: number): EditableItem {
 }
 
 export default function QuoteEditorPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -117,30 +115,30 @@ export default function QuoteEditorPage() {
     mutationFn: (payload: Record<string, unknown>) =>
       quoteId ? quotesApi.updateQuote(quoteId, payload) : quotesApi.createQuote(payload),
     onSuccess: (result) => {
-      toast.success(quoteId ? 'Teklif guncellendi' : 'Teklif oluşturuldu');
+      toast.success(quoteId ? t('quotes.editor_toast_updated') : t('quotes.editor_toast_created'));
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
       if (!quoteId) navigate(`/quotes/${result.id}`, { replace: true });
       else queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
     },
-    onError: () => toast.error('Kaydetme başarısız'),
+    onError: () => toast.error(t('quotes.editor_toast_save_failed')),
   });
 
   const approveMutation = useMutation({
     mutationFn: () => quotesApi.approveQuote(quoteId!),
     onSuccess: () => {
-      toast.success('Teklif onaylandi');
+      toast.success(t('quotes.editor_toast_approved'));
       queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
     },
-    onError: () => toast.error('Onaylama başarısız'),
+    onError: () => toast.error(t('quotes.editor_toast_approve_failed')),
   });
 
   const sendMutation = useMutation({
     mutationFn: () => quotesApi.sendQuote(quoteId!),
     onSuccess: () => {
-      toast.success('Teklif gonderildi');
+      toast.success(t('quotes.editor_toast_sent'));
       queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
     },
-    onError: () => toast.error('Gönderme başarısız'),
+    onError: () => toast.error(t('quotes.editor_toast_send_failed')),
   });
 
   // ── Calculations ───────────────────────────────────
@@ -166,7 +164,7 @@ export default function QuoteEditorPage() {
   // ── Handlers ───────────────────────────────────────
   const handleSave = useCallback(() => {
     if (!customerId) {
-      toast.error('Lütfen müşteri seçin');
+      toast.error(t('quotes.editor_select_customer_required'));
       return;
     }
     saveMutation.mutate({
@@ -185,7 +183,7 @@ export default function QuoteEditorPage() {
         sort_order: idx + 1,
       })),
     });
-  }, [customerId, language, currency, taxRate, notes, items, saveMutation]);
+  }, [customerId, language, currency, taxRate, notes, items, saveMutation, t]);
 
   const addPartToItems = useCallback((part: SparePart) => {
     const price = part.supplier_price ?? part.transfer_price ?? 0;
@@ -304,16 +302,16 @@ export default function QuoteEditorPage() {
       const msg =
         apiErr?.response?.data?.error?.message ||
         apiErr?.response?.data?.detail ||
-        'PDF indirilemedi';
+        t('quotes.editor_pdf_download_failed');
       toast.error(msg);
     }
-  }, [quoteId]);
+  }, [quoteId, t]);
 
   const handleShareLink = useCallback(async () => {
     if (!quoteId || !quote) return;
     const customerEmail = quote.customer?.email || '';
     if (!customerEmail) {
-      toast.error('Müşteri email adresi bulunamadi');
+      toast.error(t('quotes.editor_customer_email_missing'));
       return;
     }
     try {
@@ -326,11 +324,11 @@ export default function QuoteEditorPage() {
       const trackingUrl = `${window.location.origin}${result.data.tracking_url}`;
       setShareTrackingUrl(trackingUrl);
       await navigator.clipboard.writeText(trackingUrl);
-      toast.success('Paylasim linki panoya kopyalandi');
+      toast.success(t('quotes.editor_share_copied'));
     } catch {
-      toast.error('Paylasim linki oluşturulamadı');
+      toast.error(t('quotes.editor_share_failed'));
     }
-  }, [quoteId, quote]);
+  }, [quoteId, quote, t]);
 
   // ── Loading state ──────────────────────────────────
   if (!isNew && quoteLoading) {
@@ -347,8 +345,12 @@ export default function QuoteEditorPage() {
     <div>
       {/* ── Header ──────────────────────────────────── */}
       <PageHeader
-        title={isNew ? 'Yeni Teklif' : `Teklif: ${quote?.quote_number || ''}`}
-        description={!isNew ? undefined : 'Yeni teklif olusturun'}
+        title={
+          isNew
+            ? t('quotes.editor_new_title')
+            : `${t('quotes.editor_title_prefix')}: ${quote?.quote_number || ''}`
+        }
+        description={!isNew ? undefined : t('quotes.editor_new_desc')}
       >
         {!isNew && (
           <span
@@ -356,15 +358,15 @@ export default function QuoteEditorPage() {
               STATUS_COLORS[status] || 'bg-gray-100 text-gray-700'
             }`}
           >
-            {STATUS_LABELS[status] || status}
+            {translateStatus(status, t)}
           </span>
         )}
         <Button variant="secondary" onClick={() => navigate('/quotes')}>
-          Geri Don
+          {t('common.back')}
         </Button>
         {(!quoteId || status === 'draft' || status === 'pending_approval') && (
           <Button loading={saveMutation.isPending} onClick={handleSave}>
-            Kaydet
+            {t('common.save')}
           </Button>
         )}
         {quoteId && status === 'draft' && (
@@ -374,7 +376,7 @@ export default function QuoteEditorPage() {
             onClick={() => approveMutation.mutate()}
             className="!bg-green-600 !text-white hover:!bg-green-700"
           >
-            Onayla
+            {t('quotes.editor_approve_label')}
           </Button>
         )}
         {quoteId && status === 'approved' && (
@@ -384,17 +386,17 @@ export default function QuoteEditorPage() {
             onClick={() => sendMutation.mutate()}
             className="!bg-blue-600 !text-white hover:!bg-blue-700"
           >
-            Gönder
+            {t('quotes.editor_send_label')}
           </Button>
         )}
         {quoteId && (
           <Button variant="secondary" onClick={handleDownloadPdf}>
-            PDF Indir
+            {t('common.download_pdf')}
           </Button>
         )}
         {quoteId && (
           <Button variant="secondary" onClick={handleShareLink}>
-            Paylasim Linki
+            {t('common.share_link')}
           </Button>
         )}
         {shareTrackingUrl && (
@@ -402,7 +404,7 @@ export default function QuoteEditorPage() {
             type="button"
             onClick={() => {
               navigator.clipboard.writeText(shareTrackingUrl);
-              toast.success('Link kopyalandi');
+              toast.success(t('quotes.editor_link_copied'));
             }}
             className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-mono text-gray-600 hover:bg-gray-100 transition-colors truncate max-w-xs"
             title={shareTrackingUrl}
@@ -412,18 +414,18 @@ export default function QuoteEditorPage() {
         )}
         {quoteId && quote && quote.version > 1 && (
           <Button variant="secondary" onClick={() => setIsComparisonOpen(true)}>
-            Versiyonlari Karsilastir
+            {t('quotes.editor_versions_compare')}
           </Button>
         )}
       </PageHeader>
 
       <div className="space-y-6">
         {/* ── Customer Section ──────────────────────── */}
-        <Card title="Müşteri">
+        <Card title={t('quotes.editor_customer_card')}>
           <div className="relative max-w-md">
             <Input
-              label="Müşteri Ara"
-              placeholder="Şirket veya isim yazin..."
+              label={t('quotes.editor_customer_search_label')}
+              placeholder={t('quotes.editor_customer_search_ph')}
               value={customerSearch}
               onChange={(e) => {
                 setCustomerSearch(e.target.value);
@@ -471,22 +473,25 @@ export default function QuoteEditorPage() {
         </Card>
 
         {/* ── Settings Row ──────────────────────────── */}
-        <Card title="Teklif Ayarlari">
+        <Card title={t('quotes.editor_settings_card')}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Select
-              label="Dil"
-              options={LANGUAGE_OPTIONS}
+              label={t('quotes.editor_language')}
+              options={[
+                { value: 'tr', label: 'Türkçe' },
+                { value: 'en', label: 'English' },
+              ]}
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
             />
             <Select
-              label="Para Birimi"
+              label={t('quotes.editor_currency')}
               options={CURRENCY_OPTIONS}
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
             />
             <Input
-              label="KDV Orani (%)"
+              label={t('quotes.editor_tax_rate')}
               type="number"
               min={0}
               max={100}
@@ -498,18 +503,18 @@ export default function QuoteEditorPage() {
 
         {/* ── Items Table ───────────────────────────── */}
         <Card
-          title="Kalemler"
+          title={t('quotes.editor_items_card')}
           action={
             <div className="flex items-center gap-2">
               <Button variant="secondary" size="sm" onClick={() => setIsGuidedSellingOpen(true)}>
-                Rehberli Satış
+                {t('quotes.editor_guided_selling')}
               </Button>
               <Button variant="secondary" size="sm" onClick={() => setIsBundleModalOpen(true)}>
-                Paket Ekle
+                {t('quotes.editor_add_bundle')}
               </Button>
               <div className="relative">
                 <Input
-                  placeholder="Parça kodu ile ara..."
+                  placeholder={t('quotes.editor_part_search_ph')}
                   value={partSearch}
                   onChange={(e) => {
                     setPartSearch(e.target.value);
@@ -559,27 +564,33 @@ export default function QuoteEditorPage() {
         >
           {items.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">
-              Henüz kalem eklenmedi. Yukardaki arama kutusundan parça ekleyin.
+              {t('quotes.editor_items_empty')}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-2 py-2 text-xs font-semibold text-gray-500 w-24">Sira</th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">
-                      Honeywell Kodu
+                    <th className="px-2 py-2 text-xs font-semibold text-gray-500 w-24">
+                      {t('quotes.editor_col_row')}
                     </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">Aciklama</th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-20">Adet</th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-28">
-                      Birim Fiyat
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                      {t('quotes.editor_col_code')}
+                    </th>
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                      {t('quotes.editor_col_desc')}
                     </th>
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-20">
-                      Iskonto %
+                      {t('quotes.editor_col_qty')}
+                    </th>
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-28">
+                      {t('quotes.editor_col_unit_price')}
+                    </th>
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-20">
+                      {t('quotes.editor_col_discount')}
                     </th>
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-28 text-right">
-                      Toplam
+                      {t('quotes.editor_col_total')}
                     </th>
                     <th className="px-3 py-2 w-10" />
                   </tr>
@@ -597,7 +608,7 @@ export default function QuoteEditorPage() {
                               type="button"
                               onClick={() => addBlankItemAfter(idx)}
                               className="flex h-5 w-5 items-center justify-center rounded bg-green-50 text-green-600 hover:bg-green-100 transition-colors text-xs font-bold"
-                              title="Alt satira yeni kalem ekle"
+                              title={t('quotes.editor_add_line_tooltip')}
                             >
                               +
                             </button>
@@ -610,7 +621,7 @@ export default function QuoteEditorPage() {
                                   ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
                                   : 'bg-red-50 text-red-500 hover:bg-red-100'
                               }`}
-                              title="Bu kalemi sil"
+                              title={t('quotes.editor_remove_line_tooltip')}
                             >
                               -
                             </button>
@@ -677,7 +688,7 @@ export default function QuoteEditorPage() {
                                 ? 'text-gray-200 cursor-not-allowed'
                                 : 'text-gray-400 hover:bg-red-50 hover:text-red-600'
                             }`}
-                            title="Kalemi sil"
+                            title={t('quotes.editor_remove_line_tooltip')}
                           >
                             <svg
                               className="h-4 w-4"
@@ -704,7 +715,7 @@ export default function QuoteEditorPage() {
         </Card>
 
         {/* ── Summary ───────────────────────────────── */}
-        <Card title="Özet">
+        <Card title={t('quotes.editor_summary_card')}>
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Receipt-style item list */}
             <div className="flex-1 min-w-0">
@@ -736,29 +747,33 @@ export default function QuoteEditorPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 italic">Henüz kalem eklenmedi</p>
+                <p className="text-sm text-gray-400 italic">{t('quotes.editor_summary_empty')}</p>
               )}
             </div>
 
             {/* Totals */}
             <div className="w-full max-w-xs shrink-0 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Alt Toplam:</span>
+                <span className="text-gray-500">{t('quotes.editor_subtotal')}:</span>
                 <span className="font-medium">{formatCurrency(subtotal, currency)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Iskonto:</span>
+                <span className="text-gray-500">{t('quotes.editor_discount')}:</span>
                 <span className="font-medium text-red-600">
                   -{formatCurrency(discountTotal, currency)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">KDV (%{taxRate}):</span>
+                <span className="text-gray-500">
+                  {t('quotes.editor_tax')} (%{taxRate}):
+                </span>
                 <span className="font-medium">{formatCurrency(taxAmount, currency)}</span>
               </div>
               <hr className="border-gray-200" />
               <div className="flex justify-between text-base">
-                <span className="font-semibold text-gray-900">Genel Toplam:</span>
+                <span className="font-semibold text-gray-900">
+                  {t('quotes.editor_grand_total')}:
+                </span>
                 <span className="font-bold text-honeywell-red">
                   {formatCurrency(grandTotal, currency)}
                 </span>
@@ -768,13 +783,13 @@ export default function QuoteEditorPage() {
         </Card>
 
         {/* ── Notes ─────────────────────────────────── */}
-        <Card title="Notlar">
+        <Card title={t('quotes.editor_notes')}>
           <textarea
             className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
               placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light
               focus:border-honeywell-red"
             rows={4}
-            placeholder="Teklif notu ekleyin..."
+            placeholder={t('quotes.editor_notes_placeholder')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />

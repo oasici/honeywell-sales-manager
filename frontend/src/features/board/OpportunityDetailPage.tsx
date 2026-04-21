@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { formatCurrency, formatDateTime, formatDate } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
+import { useT } from '../../hooks/useT';
 import SalesPathBar from './SalesPathBar';
 import ActivityLogPanel from './ActivityLogPanel';
 import CommentThread from './CommentThread';
@@ -26,33 +27,11 @@ import type {
   DealRoom,
 } from '../../lib/types';
 
-const STAGE_LABELS: Record<string, string> = {
-  prospecting: 'Arastirma',
-  qualified: 'Nitelenmis',
-  proposal: 'Teklif',
-  negotiation: 'Muzakere',
-  closed_won: 'Kazanildi',
-  closed_lost: 'Kaybedildi',
-};
-
 const RISK_BADGE_VARIANT: Record<string, 'success' | 'warning' | 'danger'> = {
   healthy: 'success',
   at_risk: 'warning',
   critical: 'danger',
 };
-
-const RISK_LABELS: Record<string, string> = {
-  healthy: 'Saglikli',
-  at_risk: 'Risk Altinda',
-  critical: 'Kritik',
-};
-
-const FORECAST_CATEGORIES = [
-  { value: 'commit', label: 'Kesin' },
-  { value: 'best_case', label: 'En Iyi Durum' },
-  { value: 'pipeline', label: 'Pipeline' },
-  { value: 'omitted', label: 'Hariç' },
-];
 
 const SCORE_RING_RADIUS = 36;
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS;
@@ -87,9 +66,41 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 export default function OpportunityDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const oppId = Number(id);
+
+  const STAGE_LABELS = useMemo(
+    () => ({
+      prospecting: t('opp_detail.stage_prospecting'),
+      qualified: t('opp_detail.stage_qualified'),
+      proposal: t('opp_detail.stage_proposal'),
+      negotiation: t('opp_detail.stage_negotiation'),
+      closed_won: t('opp_detail.stage_closed_won'),
+      closed_lost: t('opp_detail.stage_closed_lost'),
+    }),
+    [t],
+  );
+
+  const RISK_LABELS = useMemo(
+    () => ({
+      healthy: t('opp_detail.risk_healthy'),
+      at_risk: t('opp_detail.risk_at_risk'),
+      critical: t('opp_detail.risk_critical'),
+    }),
+    [t],
+  );
+
+  const FORECAST_CATEGORIES = useMemo(
+    () => [
+      { value: 'commit', label: t('opp_detail.fc_commit') },
+      { value: 'best_case', label: t('opp_detail.fc_best_case') },
+      { value: 'pipeline', label: t('opp_detail.fc_pipeline') },
+      { value: 'omitted', label: t('opp_detail.fc_omitted') },
+    ],
+    [t],
+  );
 
   const { data: opp, isLoading } = useQuery<Opportunity>({
     queryKey: ['opportunity', oppId],
@@ -163,22 +174,25 @@ export default function OpportunityDetailPage() {
 
   const createDealRoomMutation = useMutation({
     mutationFn: () =>
-      dealRoomsApi.create({ opportunity_id: oppId, name: `${opp?.title ?? 'Fırsat'} - Deal Room` }),
+      dealRoomsApi.create({
+        opportunity_id: oppId,
+        name: `${opp?.title ?? t('opp_detail.opportunity_fallback')} - ${t('opp_detail.deal_room_title')}`,
+      }),
     onSuccess: () => {
-      toast.success('Deal room oluşturuldu');
+      toast.success(t('opp_detail.toast_deal_room_ok'));
       queryClient.invalidateQueries({ queryKey: ['deal-rooms'] });
     },
-    onError: () => toast.error('Deal room oluşturulamadı'),
+    onError: () => toast.error(t('opp_detail.toast_deal_room_fail')),
   });
 
   const generateActionsMutation = useMutation({
     mutationFn: () => aiApi.generateActions({ opportunity_id: oppId }),
     onSuccess: (data: { actions: unknown[]; count: number }) => {
-      toast.success(`${data.count} AI gorev oluşturuldu`);
+      toast.success(`${data.count} ${t('opp_detail.toast_ai_tasks_suffix')}`);
       queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['cockpit'] });
     },
-    onError: () => toast.error('AI gorevler oluşturulamadı'),
+    onError: () => toast.error(t('settings.operation_failed')),
   });
 
   const [adjForm, setAdjForm] = useState({
@@ -190,7 +204,7 @@ export default function OpportunityDetailPage() {
   const adjustmentMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => forecastApi.createAdjustment(payload),
     onSuccess: () => {
-      toast.success('Tahmin ayarlamasi kaydedildi');
+      toast.success(t('opp_detail.toast_forecast_saved'));
       queryClient.invalidateQueries({ queryKey: ['forecast-adjustments', oppId] });
       setAdjForm({ new_amount: '', new_category: 'pipeline', reason: '' });
     },
@@ -201,16 +215,20 @@ export default function OpportunityDetailPage() {
   }
 
   if (!opp) {
-    return <div className="py-16 text-center text-gray-500">Fırsat bulunamadi</div>;
+    return <div className="py-16 text-center text-gray-500">{t('opp_detail.not_found')}</div>;
   }
 
   const events = timelineData?.events || [];
 
   return (
     <div>
-      <PageHeader title={opp.title} description={STAGE_LABELS[opp.stage] || opp.stage}>
+      <PageHeader
+        title={opp.title}
+        description={STAGE_LABELS[opp.stage as keyof typeof STAGE_LABELS] || opp.stage}
+      >
         <Button variant="secondary" onClick={() => navigate('/board')}>
-          Board'a Don'        </Button>
+          {t('opp_detail.back_board')}
+        </Button>
       </PageHeader>
 
       <SalesPathBar oppId={oppId} currentStage={opp.stage} />
@@ -218,40 +236,52 @@ export default function OpportunityDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Details */}
         <div className="lg:col-span-2 space-y-6">
-          <Card title="Fırsat Bilgileri">
+          <Card title={t('opp_detail.card_info')}>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Aşama</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.lbl_stage')}
+                </span>
                 <p className="font-semibold text-gray-900 dark:text-white">
-                  {STAGE_LABELS[opp.stage] || opp.stage}
+                  {STAGE_LABELS[opp.stage as keyof typeof STAGE_LABELS] || opp.stage}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Tutar</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.lbl_amount')}
+                </span>
                 <p className="font-semibold text-gray-900 dark:text-white">
                   {opp.amount != null ? formatCurrency(opp.amount, opp.currency) : '-'}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Kapanma Tarihi</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.lbl_close')}
+                </span>
                 <p className="text-gray-700 dark:text-gray-300">{opp.close_date || '-'}</p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Sahip</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.lbl_owner')}
+                </span>
                 <p className="text-gray-700 dark:text-gray-300">{opp.owner?.full_name || '-'}</p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Müşteri</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.lbl_customer')}
+                </span>
                 <p className="text-gray-700 dark:text-gray-300">
                   {opp.customer ? `${opp.customer.name} (${opp.customer.company})` : '-'}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Rotting</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.lbl_rotting')}
+                </span>
                 <p
                   className={`font-semibold ${opp.rotting_days > 7 ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}
                 >
-                  {opp.rotting_days} gun
+                  {opp.rotting_days} {t('opp_detail.days_suffix')}
                 </p>
               </div>
             </div>
@@ -259,7 +289,7 @@ export default function OpportunityDetailPage() {
 
           {/* Related Quotes */}
           {opp.quotes && opp.quotes.length > 0 && (
-            <Card title="Iliskili Teklifler">
+            <Card title={t('opp_detail.related_quotes')}>
               <div className="space-y-2">
                 {opp.quotes.map((q) => (
                   <button
@@ -288,9 +318,11 @@ export default function OpportunityDetailPage() {
 
         {/* Right: Timeline */}
         <div>
-          <Card title="Timeline">
+          <Card title={t('opp_detail.timeline')}>
             {events.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">Henüz olay yok</p>
+              <p className="py-8 text-center text-sm text-gray-400">
+                {t('opp_detail.timeline_empty')}
+              </p>
             ) : (
               <div className="space-y-0">
                 {events.map((event, idx) => (
@@ -326,7 +358,7 @@ export default function OpportunityDetailPage() {
 
       {/* Deal Health Section */}
       <div className="mt-6">
-        <Card title="Fırsat Sagligi">
+        <Card title={t('opp_detail.deal_health')}>
           {healthLoading ? (
             <Skeleton variant="card" />
           ) : dealHealth ? (
@@ -336,10 +368,11 @@ export default function OpportunityDetailPage() {
                 <ScoreRing score={dealHealth.score} />
                 <div>
                   <Badge variant={RISK_BADGE_VARIANT[dealHealth.risk_level] || 'default'}>
-                    {RISK_LABELS[dealHealth.risk_level] || dealHealth.risk_level}
+                    {RISK_LABELS[dealHealth.risk_level as keyof typeof RISK_LABELS] ||
+                      dealHealth.risk_level}
                   </Badge>
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Genel saglik puani
+                    {t('opp_detail.health_score_hint')}
                   </p>
                 </div>
               </div>
@@ -347,14 +380,14 @@ export default function OpportunityDetailPage() {
               {/* Indicators */}
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Gostergeler
+                  {t('opp_detail.indicators')}
                 </h4>
                 {dealHealth.indicators.map((ind) => (
                   <div key={ind.name}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-gray-700 dark:text-gray-300">{ind.label}</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {ind.score}/100 (agirlik: {ind.weight})
+                        {ind.score}/100 ({t('opp_detail.weight')}: {ind.weight})
                       </span>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800">
@@ -377,7 +410,7 @@ export default function OpportunityDetailPage() {
               {dealHealth.recommendations.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Öneriler
+                    {t('opp_detail.recommendations')}
                   </h4>
                   <ul className="space-y-1.5">
                     {dealHealth.recommendations.map((rec, idx) => (
@@ -394,7 +427,7 @@ export default function OpportunityDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-400">Saglik verisi bulunamadi</p>
+            <p className="py-8 text-center text-sm text-gray-400">{t('opp_detail.health_empty')}</p>
           )}
         </Card>
       </div>
@@ -402,7 +435,7 @@ export default function OpportunityDetailPage() {
       {/* AI Insights Section */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* AI Risk Assessment */}
-        <Card title="AI Risk Analizi">
+        <Card title={t('opp_detail.ai_risk_title')}>
           {aiRiskLoading ? (
             <Skeleton variant="card" />
           ) : aiRisk ? (
@@ -420,19 +453,21 @@ export default function OpportunityDetailPage() {
                     }
                   >
                     {aiRisk.risk_level === 'low'
-                      ? 'Düşük Risk'
+                      ? t('opp_detail.ai_risk_low')
                       : aiRisk.risk_level === 'medium'
-                        ? 'Orta Risk'
+                        ? t('opp_detail.ai_risk_medium')
                         : aiRisk.risk_level === 'high'
-                          ? 'Yüksek Risk'
-                          : 'Kritik Risk'}
+                          ? t('opp_detail.ai_risk_high')
+                          : t('opp_detail.ai_risk_critical')}
                   </Badge>
-                  <p className="mt-1 text-xs text-gray-500">Claude AI tarafindan degerlendirildi</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('opp_detail.claude_evaluated')}</p>
                 </div>
               </div>
               {aiRisk.factors && aiRisk.factors.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase">Risk Faktorleri</h4>
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase">
+                    {t('opp_detail.risk_factors')}
+                  </h4>
                   {aiRisk.factors.map((f, i) => (
                     <div
                       key={i}
@@ -456,7 +491,7 @@ export default function OpportunityDetailPage() {
               {aiRisk.recommendations && aiRisk.recommendations.length > 0 && (
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                    AI Onerileri
+                    {t('opp_detail.ai_suggestions')}
                   </h4>
                   <ul className="space-y-1">
                     {aiRisk.recommendations.map((r, i) => (
@@ -477,16 +512,18 @@ export default function OpportunityDetailPage() {
                 loading={generateActionsMutation.isPending}
                 onClick={() => generateActionsMutation.mutate()}
               >
-                AI Aksiyon Oluştur
+                {t('opp_detail.btn_ai_actions')}
               </Button>
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">AI risk verisi bulunamadi</p>
+            <p className="py-6 text-center text-sm text-gray-400">
+              {t('opp_detail.ai_risk_empty')}
+            </p>
           )}
         </Card>
 
         {/* Close Probability */}
-        <Card title="Kapanma Olasiligi">
+        <Card title={t('opp_detail.close_probability')}>
           {closePredictionLoading ? (
             <Skeleton variant="card" />
           ) : closePrediction?.data ? (
@@ -504,18 +541,18 @@ export default function OpportunityDetailPage() {
                     }
                   >
                     {closePrediction.data.confidence === 'high'
-                      ? 'Yüksek Guven'
+                      ? t('opp_detail.conf_high')
                       : closePrediction.data.confidence === 'medium'
-                        ? 'Orta Guven'
-                        : 'Düşük Guven'}
+                        ? t('opp_detail.conf_medium')
+                        : t('opp_detail.conf_low')}
                   </Badge>
-                  <p className="mt-1 text-xs text-gray-500">Kapanma olasiligi tahmini</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('opp_detail.close_prob_hint')}</p>
                 </div>
               </div>
               {closePrediction.data.factors && closePrediction.data.factors.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold text-gray-500 uppercase">
-                    Etkileyen Faktorler
+                    {t('opp_detail.influencing_factors')}
                   </h4>
                   {closePrediction.data.factors.map((f, i) => (
                     <div
@@ -539,10 +576,10 @@ export default function OpportunityDetailPage() {
                         size="sm"
                       >
                         {f.impact === 'positive'
-                          ? 'Olumlu'
+                          ? t('opp_detail.impact_positive')
                           : f.impact === 'negative'
-                            ? 'Olumsuz'
-                            : 'Notr'}
+                            ? t('opp_detail.impact_negative')
+                            : t('opp_detail.impact_neutral')}
                       </Badge>
                     </div>
                   ))}
@@ -551,7 +588,7 @@ export default function OpportunityDetailPage() {
               {closePrediction.data.next_steps && closePrediction.data.next_steps.length > 0 && (
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                    Sonraki Adımlar
+                    {t('opp_detail.next_steps')}
                   </h4>
                   <ul className="space-y-1">
                     {closePrediction.data.next_steps.map((step, i) => (
@@ -569,13 +606,13 @@ export default function OpportunityDetailPage() {
             </div>
           ) : (
             <p className="py-6 text-center text-sm text-gray-400">
-              Kapanma olasiligi verisi bulunamadi
+              {t('opp_detail.close_data_empty')}
             </p>
           )}
         </Card>
 
         {/* AI Summary */}
-        <Card title="AI Özet">
+        <Card title={t('opp_detail.ai_summary')}>
           {aiSummaryLoading ? (
             <Skeleton variant="card" />
           ) : aiSummary ? (
@@ -584,11 +621,13 @@ export default function OpportunityDetailPage() {
                 {aiSummary.summary}
               </p>
               {aiSummary.sources && aiSummary.sources.length > 0 && (
-                <p className="text-xs text-gray-400">Kaynaklar: {aiSummary.sources.join(', ')}</p>
+                <p className="text-xs text-gray-400">
+                  {t('opp_detail.sources')}: {aiSummary.sources.join(', ')}
+                </p>
               )}
               {aiSummary.cached && (
                 <Badge variant="default" size="sm">
-                  Onbellek
+                  {t('opp_detail.cached')}
                 </Badge>
               )}
               {/* Cross-link to customer */}
@@ -598,19 +637,21 @@ export default function OpportunityDetailPage() {
                   variant="ghost"
                   onClick={() => navigate(`/customers/${opp.customer_id}`)}
                 >
-                  Müşteri Sagligi Gor &rarr;
+                  {t('opp_detail.customer_health_cta')} &rarr;
                 </Button>
               )}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">AI özet bulunamadi</p>
+            <p className="py-6 text-center text-sm text-gray-400">
+              {t('opp_detail.ai_summary_empty')}
+            </p>
           )}
         </Card>
       </div>
 
       {/* Forecast Adjustments Section */}
       <div className="mt-6">
-        <Card title="Tahmin Ayarlamalari">
+        <Card title={t('opp_detail.forecast_adj')}>
           {adjLoading ? (
             <Skeleton variant="card" />
           ) : (
@@ -621,13 +662,21 @@ export default function OpportunityDetailPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="py-2 px-3 text-left text-xs text-gray-500">Tarih</th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">
-                          Orijinal Tutar
+                        <th className="py-2 px-3 text-left text-xs text-gray-500">
+                          {t('opp_detail.tbl_date')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">Yeni Tutar</th>
-                        <th className="py-2 px-3 text-left text-xs text-gray-500">Kategori</th>
-                        <th className="py-2 px-3 text-left text-xs text-gray-500">Neden</th>
+                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                          {t('opp_detail.tbl_orig_amount')}
+                        </th>
+                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                          {t('opp_detail.tbl_new_amount')}
+                        </th>
+                        <th className="py-2 px-3 text-left text-xs text-gray-500">
+                          {t('opp_detail.tbl_category')}
+                        </th>
+                        <th className="py-2 px-3 text-left text-xs text-gray-500">
+                          {t('opp_detail.tbl_reason')}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -660,19 +709,19 @@ export default function OpportunityDetailPage() {
                   </table>
                 </div>
               ) : (
-                <p className="py-4 text-center text-sm text-gray-400">Henüz ayarlama yapilmamis</p>
+                <p className="py-4 text-center text-sm text-gray-400">{t('opp_detail.adj_none')}</p>
               )}
 
               {/* Adjustment form (manager only) */}
               {isManager && (
                 <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    Yeni Ayarlama
+                    {t('opp_detail.new_adj')}
                   </h4>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
                       <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        Yeni Tutar
+                        {t('opp_detail.lbl_new_amount')}
                       </label>
                       <input
                         type="number"
@@ -684,7 +733,7 @@ export default function OpportunityDetailPage() {
                     </div>
                     <div>
                       <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        Kategori
+                        {t('opp_detail.lbl_category')}
                       </label>
                       <select
                         value={adjForm.new_category}
@@ -702,14 +751,14 @@ export default function OpportunityDetailPage() {
                     </div>
                     <div>
                       <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        Neden
+                        {t('opp_detail.lbl_reason')}
                       </label>
                       <textarea
                         value={adjForm.reason}
                         onChange={(e) => setAdjForm((f) => ({ ...f, reason: e.target.value }))}
                         rows={1}
                         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        placeholder="Açıklama..."
+                        placeholder={t('opp_detail.reason_ph')}
                       />
                     </div>
                   </div>
@@ -727,7 +776,7 @@ export default function OpportunityDetailPage() {
                         });
                       }}
                     >
-                      Kaydet
+                      {t('common.save')}
                     </Button>
                   </div>
                 </div>
@@ -739,35 +788,41 @@ export default function OpportunityDetailPage() {
 
       {/* Activity Summary (Modul 6) */}
       <div className="mt-6">
-        <Card title="Aktivite Özeti">
+        <Card title={t('opp_detail.activity_summary')}>
           {activitySummaryLoading ? (
             <Skeleton variant="card" />
           ) : activitySummary ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Toplam Aktivite</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.total_activities')}
+                </span>
                 <p className="text-xl font-bold text-gray-900 dark:text-white">
                   {activitySummary.total_activities}
                 </p>
               </div>
               <div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Son Aktiviteden Bu Yana
+                  {t('opp_detail.since_last')}
                 </span>
                 <p
                   className={`text-xl font-bold ${activitySummary.days_since_last_activity > 7 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}
                 >
-                  {activitySummary.days_since_last_activity} gun
+                  {activitySummary.days_since_last_activity} {t('opp_detail.days_suffix')}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Aşama Ortalamasi</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.avg_stage')}
+                </span>
                 <p className="text-xl font-bold text-gray-900 dark:text-white">
                   {activitySummary.avg_activities_for_stage}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Ture Gore</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.by_type')}
+                </span>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {Object.entries(activitySummary.by_type).map(([type, count]) => (
                     <Badge key={type} variant="default" size="sm">
@@ -781,14 +836,16 @@ export default function OpportunityDetailPage() {
               </div>
             </div>
           ) : (
-            <p className="py-4 text-center text-sm text-gray-400">Aktivite verisi bulunamadi</p>
+            <p className="py-4 text-center text-sm text-gray-400">
+              {t('opp_detail.activity_empty')}
+            </p>
           )}
         </Card>
       </div>
 
       {/* Deal Room Section */}
       <div className="mt-6">
-        <Card title="Deal Room">
+        <Card title={t('opp_detail.deal_room_title')}>
           {dealRoomsLoading ? (
             <Skeleton variant="card" />
           ) : oppDealRooms.length > 0 ? (
@@ -806,11 +863,12 @@ export default function OpportunityDetailPage() {
                   <div className="flex items-center gap-2">
                     {room.last_buyer_activity_at && (
                       <Badge variant="default" size="sm">
-                        Son aktivite: {formatDateTime(room.last_buyer_activity_at)}
+                        {t('opp_detail.last_activity')}:{' '}
+                        {formatDateTime(room.last_buyer_activity_at)}
                       </Badge>
                     )}
                     <Badge variant={room.is_active ? 'success' : 'danger'} size="sm">
-                      {room.is_active ? 'Aktif' : 'Pasif'}
+                      {room.is_active ? t('opp_detail.active') : t('opp_detail.inactive')}
                     </Badge>
                   </div>
                 </button>
@@ -818,13 +876,13 @@ export default function OpportunityDetailPage() {
             </div>
           ) : (
             <div className="py-4 text-center">
-              <p className="mb-3 text-sm text-gray-400">Bu fırsat için deal room bulunmuyor</p>
+              <p className="mb-3 text-sm text-gray-400">{t('opp_detail.dr_empty')}</p>
               <Button
                 size="sm"
                 loading={createDealRoomMutation.isPending}
                 onClick={() => createDealRoomMutation.mutate()}
               >
-                Deal Room Oluştur
+                {t('opp_detail.dr_create')}
               </Button>
             </div>
           )}
@@ -833,7 +891,7 @@ export default function OpportunityDetailPage() {
 
       {/* Buyer Relationship Map */}
       <div className="mt-6">
-        <Card title="Alis Komitesi Haritasi">
+        <Card title={t('opp_detail.buying_map')}>
           <BuyerRelationshipMap opportunityId={oppId} />
         </Card>
       </div>

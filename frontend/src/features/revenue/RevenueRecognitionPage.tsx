@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TrendingUp, ChevronDown, ChevronRight, Plus, Zap } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,24 +12,17 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { revenueRecApi, contractsApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type { RevenueSchedule, RevenueScheduleEntry, Contract } from '../../lib/types';
-
-const RECOGNITION_TYPES = [
-  { value: 'straight_line', label: 'Duz Hat (Straight Line)' },
-  { value: 'milestone', label: 'Kilometre Tasi (Milestone)' },
-  { value: 'percentage_completion', label: 'Tamamlanma Yuzdesi' },
-  { value: 'point_in_time', label: 'Anlık (Point in Time)' },
-];
+import { useT } from '../../hooks/useT';
+import {
+  REVENUE_RECOGNITION_TYPE_VALUES,
+  translateRevenueEntryStatus,
+  translateRevenueRecognitionType,
+} from '../../lib/labelTranslations';
 
 const ENTRY_STATUS_VARIANTS: Record<string, 'warning' | 'success' | 'info' | 'default'> = {
   pending: 'warning',
   recognized: 'success',
   adjusted: 'info',
-};
-
-const ENTRY_STATUS_LABELS: Record<string, string> = {
-  pending: 'Bekliyor',
-  recognized: 'Tanindi',
-  adjusted: 'Duzeltildi',
 };
 
 interface RevenueDashboard {
@@ -88,6 +81,7 @@ function EntryRow({
   onRecognize: (scheduleId: number, entryId: number) => void;
   isRecognizing: boolean;
 }) {
+  const t = useT();
   return (
     <tr className="border-t border-gray-100 dark:border-gray-700">
       <td className="py-2 px-4 text-sm text-gray-700 dark:text-gray-300">{entry.period}</td>
@@ -99,7 +93,7 @@ function EntryRow({
       </td>
       <td className="py-2 px-4 text-sm">
         <Badge variant={ENTRY_STATUS_VARIANTS[entry.status] ?? 'default'}>
-          {ENTRY_STATUS_LABELS[entry.status] ?? entry.status}
+          {translateRevenueEntryStatus(entry.status, t)}
         </Badge>
       </td>
       <td className="py-2 px-4 text-sm text-right">
@@ -109,7 +103,7 @@ function EntryRow({
             disabled={isRecognizing}
             className="rounded-md px-2.5 py-1 text-xs font-medium bg-honeywell-red/10 text-honeywell-red hover:bg-honeywell-red/20 disabled:opacity-50 transition-colors cursor-pointer"
           >
-            Tani
+            {t('revenue.recognize')}
           </button>
         )}
       </td>
@@ -130,6 +124,7 @@ function ScheduleCard({
   onGenerateEntries: (scheduleId: number) => void;
   isGenerating: boolean;
 }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   const pct =
     schedule.total_amount > 0
@@ -147,11 +142,11 @@ function ScheduleCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-gray-900 dark:text-white truncate">
-              {schedule.contract?.title ?? `Kontrat #${schedule.contract_id}`}
+              {schedule.contract?.title ??
+                t('revenue.contract_fallback').replace('{id}', String(schedule.contract_id))}
             </span>
             <span className="text-xs rounded-full px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-              {RECOGNITION_TYPES.find((r) => r.value === schedule.recognition_type)?.label ??
-                schedule.recognition_type}
+              {translateRevenueRecognitionType(schedule.recognition_type, t)}
             </span>
           </div>
           <div className="mt-2 flex items-center gap-4 text-sm text-gray-500 flex-wrap">
@@ -159,7 +154,7 @@ function ScheduleCard({
               {formatCurrency(schedule.recognized_amount, schedule.currency)} /{' '}
               {formatCurrency(schedule.total_amount, schedule.currency)}
             </span>
-            <span>{pct}% tamamlandi</span>
+            <span>{t('revenue.pct_done').replace('{pct}', String(pct))}</span>
             <span>
               {schedule.start_date} - {schedule.end_date}
             </span>
@@ -181,19 +176,19 @@ function ScheduleCard({
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-800/50">
                     <th className="py-2 px-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                      Donem
+                      {t('revenue.col_period')}
                     </th>
                     <th className="py-2 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                      Tutar
+                      {t('revenue.col_amount')}
                     </th>
                     <th className="py-2 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                      Tanınan
+                      {t('revenue.col_recognized')}
                     </th>
                     <th className="py-2 px-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                      Durum
+                      {t('revenue.col_status')}
                     </th>
                     <th className="py-2 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
-                      İşlem
+                      {t('revenue.col_action')}
                     </th>
                   </tr>
                 </thead>
@@ -212,11 +207,9 @@ function ScheduleCard({
             </div>
           ) : (
             <div className="p-6 text-center">
-              <p className="text-sm text-gray-500 mb-3">
-                Kayıt yok. Kayıtları olusturmak için butona basin.
-              </p>
+              <p className="text-sm text-gray-500 mb-3">{t('revenue.entries_empty_hint')}</p>
               <Button onClick={() => onGenerateEntries(schedule.id)} loading={isGenerating}>
-                Kayıtları Oluştur
+                {t('revenue.generate_entries')}
               </Button>
             </div>
           )}
@@ -250,6 +243,7 @@ const EMPTY_FORM: CreateScheduleFormState = {
 };
 
 export default function RevenueRecognitionPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState<CreateScheduleFormState>(EMPTY_FORM);
@@ -286,11 +280,11 @@ export default function RevenueRecognitionPage() {
   function validateForm(): boolean {
     const errors: FormErrors = {};
     if (form.startDate && form.endDate && form.endDate <= form.startDate) {
-      errors.endDate = 'Bitis tarihi baslangic tarihinden sonra olmalidir';
+      errors.endDate = t('revenue.err_end_before_start');
     }
     const amount = Number(form.totalAmount);
     if (form.totalAmount !== '' && (isNaN(amount) || amount <= 0)) {
-      errors.totalAmount = "Toplam tutar 0'dan buyuk olmalidir";
+      errors.totalAmount = t('revenue.err_amount_positive');
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -307,7 +301,7 @@ export default function RevenueRecognitionPage() {
         currency: form.currency,
       }),
     onSuccess: (created: RevenueSchedule) => {
-      toast.success('Takvim oluşturuldu');
+      toast.success(t('revenue.toast_schedule_created'));
       setIsCreateOpen(false);
       setForm(EMPTY_FORM);
       setFormErrors({});
@@ -315,28 +309,28 @@ export default function RevenueRecognitionPage() {
       queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
       queryClient.invalidateQueries({ queryKey: ['revenue-dashboard'] });
     },
-    onError: () => toast.error('Takvim oluşturulamadı'),
+    onError: () => toast.error(t('revenue.toast_schedule_failed')),
   });
 
   const generateMutation = useMutation({
     mutationFn: (scheduleId: number) => revenueRecApi.generateEntries(scheduleId),
     onSuccess: () => {
-      toast.success('Kayıtlar oluşturuldu');
+      toast.success(t('revenue.toast_entries_created'));
       setNewScheduleId(null);
       queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
     },
-    onError: () => toast.error('Kayıtlar oluşturulamadı'),
+    onError: () => toast.error(t('revenue.toast_entries_failed')),
   });
 
   const recognizeMutation = useMutation({
     mutationFn: ({ scheduleId, entryId }: { scheduleId: number; entryId: number }) =>
       revenueRecApi.recognizeEntry(scheduleId, entryId),
     onSuccess: () => {
-      toast.success('Gelir tanindi');
+      toast.success(t('revenue.toast_recognized'));
       queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
       queryClient.invalidateQueries({ queryKey: ['revenue-dashboard'] });
     },
-    onError: () => toast.error('Tanıma başarısız'),
+    onError: () => toast.error(t('revenue.toast_recognize_failed')),
   });
 
   function handleRecognizeEntry(scheduleId: number, entryId: number) {
@@ -346,15 +340,22 @@ export default function RevenueRecognitionPage() {
   const schedules = Array.isArray(schedulesData) ? schedulesData : [];
   const contracts = contractsData?.items ?? [];
 
+  const recognitionTypeOptions = useMemo(
+    () =>
+      REVENUE_RECOGNITION_TYPE_VALUES.map((value) => ({
+        value,
+        label: translateRevenueRecognitionType(value, t),
+      })),
+    [t],
+  );
+
   if (isDashboardError || isSchedulesError) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Gelir Tanıma" description="ASC 606 / IFRS 15 uyumlu gelir zamanlamasi" />
+        <PageHeader title={t('revenue.title')} description={t('revenue.description')} />
         <Card>
           <div className="p-8 text-center">
-            <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
-            </p>
+            <p className="text-sm text-red-500">{t('chat.load_error')}</p>
           </div>
         </Card>
       </div>
@@ -363,10 +364,10 @@ export default function RevenueRecognitionPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Gelir Tanıma" description="ASC 606 / IFRS 15 uyumlu gelir zamanlamasi">
+      <PageHeader title={t('revenue.title')} description={t('revenue.description')}>
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus size={16} className="mr-1.5" />
-          Yeni Takvim
+          {t('revenue.new_schedule')}
         </Button>
       </PageHeader>
 
@@ -377,19 +378,19 @@ export default function RevenueRecognitionPage() {
         ) : (
           <>
             <KpiCard
-              label="Toplam Planlanan"
+              label={t('revenue.kpi_scheduled')}
               value={formatCurrency(dashboard?.total_scheduled ?? 0)}
             />
             <KpiCard
-              label="Toplam Tanınan"
+              label={t('revenue.kpi_recognized')}
               value={formatCurrency(dashboard?.total_recognized ?? 0)}
             />
             <KpiCard
-              label="Bu Ay Bekleyen"
+              label={t('revenue.kpi_pending_month')}
               value={formatCurrency(dashboard?.this_month_pending ?? 0)}
             />
             <KpiCard
-              label="Tanıma Orani"
+              label={t('revenue.kpi_rate')}
               value={Math.round(dashboard?.recognition_rate_pct ?? 0)}
               suffix="%"
             />
@@ -402,19 +403,19 @@ export default function RevenueRecognitionPage() {
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20 px-4 py-3">
           <Zap size={18} className="text-yellow-600 dark:text-yellow-400 shrink-0" />
           <p className="flex-1 text-sm text-yellow-800 dark:text-yellow-200">
-            Takvim oluşturuldu. Donem kayitlarini otomatik olusturmak ister misiniz?
+            {t('revenue.banner_new_schedule')}
           </p>
           <button
             onClick={() => generateMutation.mutate(newScheduleId)}
             disabled={generateMutation.isPending}
             className="rounded-lg px-3 py-1.5 text-xs font-medium bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50 transition-colors cursor-pointer"
           >
-            {generateMutation.isPending ? 'Oluşturuluyor…' : 'Kayıtları Oluştur'}
+            {generateMutation.isPending ? t('revenue.generating') : t('revenue.generate_entries')}
           </button>
           <button
             onClick={() => setNewScheduleId(null)}
             className="text-yellow-600 hover:text-yellow-800 text-sm cursor-pointer"
-            aria-label="Kapat"
+            aria-label={t('revenue.close_banner')}
           >
             ×
           </button>
@@ -428,10 +429,8 @@ export default function RevenueRecognitionPage() {
         ) : schedules.length === 0 ? (
           <Card className="py-16 text-center">
             <TrendingUp size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-            <p className="text-gray-500">Henüz gelir takvimi yok.</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Yeni bir takvim olusturmak icin "Yeni Takvim" dusinesine tiklayin.
-            </p>
+            <p className="text-gray-500">{t('revenue.empty_title')}</p>
+            <p className="text-sm text-gray-400 mt-1">{t('revenue.empty_hint')}</p>
           </Card>
         ) : (
           schedules.map((schedule) => (
@@ -451,7 +450,7 @@ export default function RevenueRecognitionPage() {
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Yeni Gelir Takvimi"
+        title={t('revenue.modal_create_title')}
       >
         <div className="space-y-4">
           <div>
@@ -459,7 +458,7 @@ export default function RevenueRecognitionPage() {
               htmlFor="rev-contract"
               className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >
-              Kontrat
+              {t('revenue.label_contract')}
             </label>
             <select
               id="rev-contract"
@@ -467,7 +466,7 @@ export default function RevenueRecognitionPage() {
               onChange={(e) => setForm((f) => ({ ...f, contractId: e.target.value }))}
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
-              <option value="">Kontrat seçin…</option>
+              <option value="">{t('revenue.select_contract')}</option>
               {contracts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title}
@@ -481,7 +480,7 @@ export default function RevenueRecognitionPage() {
               htmlFor="rev-type"
               className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >
-              Tanıma Tipi
+              {t('revenue.label_recognition_type')}
             </label>
             <select
               id="rev-type"
@@ -489,9 +488,9 @@ export default function RevenueRecognitionPage() {
               onChange={(e) => setForm((f) => ({ ...f, recognitionType: e.target.value }))}
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
-              {RECOGNITION_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              {recognitionTypeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
@@ -503,7 +502,7 @@ export default function RevenueRecognitionPage() {
                 htmlFor="rev-start"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Baslangic Tarihi
+                {t('revenue.label_start')}
               </label>
               <Input
                 id="rev-start"
@@ -520,7 +519,7 @@ export default function RevenueRecognitionPage() {
                 htmlFor="rev-end"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Bitis Tarihi
+                {t('revenue.label_end')}
               </label>
               <Input
                 id="rev-end"
@@ -543,7 +542,7 @@ export default function RevenueRecognitionPage() {
                 htmlFor="rev-amount"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Toplam Tutar
+                {t('revenue.label_total')}
               </label>
               <Input
                 id="rev-amount"
@@ -566,7 +565,7 @@ export default function RevenueRecognitionPage() {
                 htmlFor="rev-currency"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Para Birimi
+                {t('revenue.label_currency')}
               </label>
               <select
                 id="rev-currency"
@@ -589,7 +588,7 @@ export default function RevenueRecognitionPage() {
                 setFormErrors({});
               }}
             >
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={() => {
@@ -603,7 +602,7 @@ export default function RevenueRecognitionPage() {
                 !form.totalAmount
               }
             >
-              {createMutation.isPending ? 'Kaydediliyor…' : 'Oluştur'}
+              {createMutation.isPending ? t('revenue.saving') : t('revenue.create')}
             </Button>
           </div>
         </div>

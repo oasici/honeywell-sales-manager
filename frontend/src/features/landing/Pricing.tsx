@@ -1,62 +1,83 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Check, ArrowRight } from 'lucide-react';
+import { useT } from '../../hooks/useT';
+import type { TranslationKey } from '../../lib/i18n';
 
-const PLANS = [
-  {
-    name: 'Starter',
-    price: '$49',
-    period: '/kullanıcı/ay',
-    desc: 'Kucuk ekipler için temel satış otomasyonu.',
-    cta: 'Baslat',
-    ctaStyle: 'border border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:shadow-md',
-    features: [
-      '5 kullaniciya kadar',
-      'Email ayrıştırma (gunluk 50)',
-      'Teklif oluşturma + PDF',
-      'Temel raporlar',
-      'Email destek',
-    ],
-    popular: false,
-  },
-  {
-    name: 'Pro',
-    price: '$89',
-    period: '/kullanıcı/ay',
-    desc: 'Buyuyen ekipler için tam özellik.',
-    cta: 'Pro ile Basla',
-    ctaStyle: 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-900/20',
-    features: [
-      '25 kullaniciya kadar',
-      'Sinirsiz email ayrıştırma',
-      'Onay akisi + RBAC',
-      'Denetim izi (audit trail)',
-      'Gelismis analitik + raporlar',
-      'Müşteri sagligi skoru',
-      'Bildirimler + is kuyrugu',
-      'Oncelikli destek',
-    ],
-    popular: true,
-  },
-  {
-    name: 'Enterprise',
-    price: 'Özel',
-    period: '',
-    desc: 'Buyuk organizasyonlar için tam kontrol.',
-    cta: 'Goruselim',
-    ctaStyle: 'border border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:shadow-md',
-    features: [
-      'Sinirsiz kullanıcı',
-      'Özel entegrasyonlar (CRM/ERP)',
-      'SalesBoard v2 (kanban + AI)',
-      'SSO + gelismis guvenlik',
-      'SLA garantisi',
-      'Özel egitim + teknik danismanlik',
-    ],
-    popular: false,
-  },
-];
+type Plan = {
+  nameKey: TranslationKey;
+  priceKey: TranslationKey;
+  periodKey: TranslationKey;
+  descKey: TranslationKey;
+  ctaKey: TranslationKey;
+  ctaStyle: string;
+  featureKeys: TranslationKey[];
+  popular: boolean;
+};
 
 export default function Pricing() {
+  const t = useT();
+
+  const plans: Plan[] = useMemo(
+    () => [
+      {
+        nameKey: 'landing.plan_starter_name',
+        priceKey: 'landing.plan_starter_price',
+        periodKey: 'landing.plan_starter_period',
+        descKey: 'landing.plan_starter_desc',
+        ctaKey: 'landing.plan_starter_cta',
+        ctaStyle:
+          'border border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:shadow-md',
+        featureKeys: [
+          'landing.plan_starter_f1',
+          'landing.plan_starter_f2',
+          'landing.plan_starter_f3',
+          'landing.plan_starter_f4',
+          'landing.plan_starter_f5',
+        ],
+        popular: false,
+      },
+      {
+        nameKey: 'landing.plan_pro_name',
+        priceKey: 'landing.plan_pro_price',
+        periodKey: 'landing.plan_pro_period',
+        descKey: 'landing.plan_pro_desc',
+        ctaKey: 'landing.plan_pro_cta',
+        ctaStyle: 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-900/20',
+        featureKeys: [
+          'landing.plan_pro_f1',
+          'landing.plan_pro_f2',
+          'landing.plan_pro_f3',
+          'landing.plan_pro_f4',
+          'landing.plan_pro_f5',
+          'landing.plan_pro_f6',
+          'landing.plan_pro_f7',
+          'landing.plan_pro_f8',
+        ],
+        popular: true,
+      },
+      {
+        nameKey: 'landing.plan_ent_name',
+        priceKey: 'landing.plan_ent_price',
+        periodKey: 'landing.plan_ent_period',
+        descKey: 'landing.plan_ent_desc',
+        ctaKey: 'landing.plan_ent_cta',
+        ctaStyle:
+          'border border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:shadow-md',
+        featureKeys: [
+          'landing.plan_ent_f1',
+          'landing.plan_ent_f2',
+          'landing.plan_ent_f3',
+          'landing.plan_ent_f4',
+          'landing.plan_ent_f5',
+          'landing.plan_ent_f6',
+        ],
+        popular: false,
+      },
+    ],
+    [],
+  );
+
   return (
     <section id="pricing" className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6">
@@ -66,19 +87,19 @@ export default function Pricing() {
           viewport={{ once: true }}
           className="mx-auto max-w-2xl text-center"
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-red-600">Fiyatlar</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            Ekip buyuklugune gore esnek planlar
-          </h2>
-          <p className="mt-4 text-base text-slate-600">
-            14 gun rehberli deneme. Kredi karti gerekmez.
+          <p className="text-xs font-semibold uppercase tracking-widest text-red-600">
+            {t('landing.nav_pricing')}
           </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+            {t('landing.pricing_head')}
+          </h2>
+          <p className="mt-4 text-base text-slate-600">{t('landing.pricing_sub')}</p>
         </motion.div>
 
         <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {PLANS.map((plan, i) => (
+          {plans.map((plan, i) => (
             <motion.div
-              key={i}
+              key={plan.nameKey}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -91,30 +112,32 @@ export default function Pricing() {
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-1 text-[10px] font-bold text-white">
-                  EN POPULER
+                  {t('landing.pricing_popular')}
                 </div>
               )}
 
-              <p className="text-sm font-bold text-slate-900">{plan.name}</p>
+              <p className="text-sm font-bold text-slate-900">{t(plan.nameKey)}</p>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-slate-900">{plan.price}</span>
-                {plan.period && <span className="text-sm text-slate-500">{plan.period}</span>}
+                <span className="text-4xl font-extrabold text-slate-900">{t(plan.priceKey)}</span>
+                {t(plan.periodKey) ? (
+                  <span className="text-sm text-slate-500">{t(plan.periodKey)}</span>
+                ) : null}
               </div>
-              <p className="mt-2 text-sm text-slate-600">{plan.desc}</p>
+              <p className="mt-2 text-sm text-slate-600">{t(plan.descKey)}</p>
 
               <a
                 href="#demo"
-                className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 cursor-pointer ${plan.ctaStyle}`}
+                className={`mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 ${plan.ctaStyle}`}
               >
-                {plan.cta}
+                {t(plan.ctaKey)}
                 <ArrowRight size={14} />
               </a>
 
               <ul className="mt-6 space-y-2.5 border-t border-slate-100 pt-6">
-                {plan.features.map((f, j) => (
-                  <li key={j} className="flex items-start gap-2 text-sm text-slate-700">
+                {plan.featureKeys.map((fk) => (
+                  <li key={fk} className="flex items-start gap-2 text-sm text-slate-700">
                     <Check size={14} className="mt-0.5 shrink-0 text-green-500" />
-                    {f}
+                    {t(fk)}
                   </li>
                 ))}
               </ul>

@@ -1,12 +1,42 @@
 /**
- * Format a number as currency (Turkish locale).
- * Defaults to USD if no currency specified.
+ * Format helpers (locale-aware).
  */
+import { usePreferencesStore } from '../stores/preferencesStore';
+
+type Language = 'tr' | 'en' | 'de' | 'fr' | 'es';
+
+export function languageToLocale(language: string | null | undefined): string {
+  const lang = (language || 'tr') as Language;
+  switch (lang) {
+    case 'en':
+      return 'en-US';
+    case 'de':
+      return 'de-DE';
+    case 'fr':
+      return 'fr-FR';
+    case 'es':
+      return 'es-ES';
+    case 'tr':
+    default:
+      return 'tr-TR';
+  }
+}
+
+/** Active UI locale (from preferences store). Safe outside React. */
+export function currentLocale(): string {
+  try {
+    return languageToLocale(usePreferencesStore.getState().language);
+  } catch {
+    return 'tr-TR';
+  }
+}
+
 export function formatCurrency(
   amount: number | null | undefined,
   currency: string = 'USD',
+  locale: string = currentLocale(),
 ): string {
-  return new Intl.NumberFormat('tr-TR', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -14,18 +44,16 @@ export function formatCurrency(
   }).format(amount ?? 0);
 }
 
-/** Format an ISO date string as Turkish date (dd.MM.yyyy) */
-export function formatDate(date: string): string {
-  return new Intl.DateTimeFormat('tr-TR', {
+export function formatDate(date: string, locale: string = currentLocale()): string {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(date));
 }
 
-/** Format an ISO date string as Turkish date-time (dd.MM.yyyy HH:mm) */
-export function formatDateTime(date: string): string {
-  return new Intl.DateTimeFormat('tr-TR', {
+export function formatDateTime(date: string, locale: string = currentLocale()): string {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -35,21 +63,24 @@ export function formatDateTime(date: string): string {
 }
 
 /** Format a decimal as percentage string */
-export function formatPercent(value: number): string {
-  return new Intl.NumberFormat('tr-TR', {
+export function formatPercent(value: number, locale: string = currentLocale()): string {
+  return new Intl.NumberFormat(locale, {
     style: 'percent',
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   }).format(value / 100);
 }
 
-/** Format a number with Turkish locale grouping */
-export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('tr-TR').format(value);
+export function formatNumber(value: number, locale: string = currentLocale()): string {
+  return new Intl.NumberFormat(locale).format(value);
 }
 
-/** Turkish locale-aware string comparator (sorts İ/I, ş/s, ç/c correctly) */
-export const TR_COLLATOR = new Intl.Collator('tr', { sensitivity: 'base', numeric: true });
+export function getCollator(locale: string = currentLocale()): Intl.Collator {
+  return new Intl.Collator(locale, { sensitivity: 'base', numeric: true });
+}
+
+// Backward compatible export (historical usage)
+export const TR_COLLATOR = getCollator('tr-TR');
 
 /** Turkish-safe lowercase (İ→i, I→ı) */
 export function toLowerTR(str: string): string {

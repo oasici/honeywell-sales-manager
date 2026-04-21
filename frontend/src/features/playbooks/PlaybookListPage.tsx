@@ -17,12 +17,8 @@ import { ConditionBuilder } from './ConditionBuilder';
 import { StepBuilder } from './StepBuilder';
 
 import type { Playbook, TriggerCondition, PlaybookStepDef } from '../../lib/types';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  retention: 'Elde Tutma',
-  growth: 'Buyume',
-  pipeline: 'Pipeline',
-};
+import { useT } from '../../hooks/useT';
+import { translatePlaybookCategory } from '../../lib/labelTranslations';
 
 const CATEGORY_COLORS: Record<string, 'info' | 'success' | 'warning'> = {
   retention: 'info',
@@ -40,6 +36,7 @@ const EMPTY_CONDITIONS: TriggerCondition[] = [];
 const EMPTY_STEPS: PlaybookStepDef[] = [];
 
 export default function PlaybookListPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
@@ -154,7 +151,7 @@ export default function PlaybookListPage() {
                 <div className="flex items-center gap-2">
                   {pb.category && (
                     <Badge variant={CATEGORY_COLORS[pb.category] ?? 'default'}>
-                      {CATEGORY_LABELS[pb.category] ?? pb.category}
+                      {translatePlaybookCategory(pb.category, t)}
                     </Badge>
                   )}
                   <span className="text-xs text-gray-400">{formatDateTime(pb.created_at)}</span>

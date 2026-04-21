@@ -14,6 +14,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { engagementApi, aiApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 import type { Transcript, KeywordPack, RevenueSignalItem } from '../../lib/types';
 
@@ -62,6 +63,7 @@ function highlightKeywords(text: string, packs: KeywordPack[]): React.ReactNode 
 }
 
 function TranscriptSignals({ opportunityId }: { opportunityId: number }) {
+  const t = useT();
   const signalsQuery = useQuery<{ signals: RevenueSignalItem[] }>({
     queryKey: ['ai-signals', opportunityId],
     queryFn: () => aiApi.getSignals(opportunityId),
@@ -69,7 +71,7 @@ function TranscriptSignals({ opportunityId }: { opportunityId: number }) {
 
   const signals = signalsQuery.data?.signals ?? [];
   if (signalsQuery.isLoading) {
-    return <span className="text-xs text-gray-400">Sinyaller yükleniyor...</span>;
+    return <span className="text-xs text-gray-400">{t('transcripts.signals_loading')}</span>;
   }
   if (signals.length === 0) return null;
 
@@ -97,6 +99,7 @@ function TranscriptSignals({ opportunityId }: { opportunityId: number }) {
 }
 
 export default function TranscriptsPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -143,21 +146,21 @@ export default function TranscriptsPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => engagementApi.createTranscript(payload),
     onSuccess: () => {
-      toast.success('Transkript oluşturuldu');
+      toast.success(t('transcripts.toast_created'));
       queryClient.invalidateQueries({ queryKey: ['transcripts'] });
       setIsCreateOpen(false);
       resetForm();
     },
-    onError: () => toast.error('Transkript oluşturulamadı'),
+    onError: () => toast.error(t('transcripts.toast_create_fail')),
   });
 
   const summarizeMutation = useMutation({
     mutationFn: (id: number) => engagementApi.summarizeTranscript(id),
     onSuccess: (res: { summary: string; sources: string[] }, id: number) => {
-      toast.success('Özet oluşturuldu');
+      toast.success(t('transcripts.toast_summary_ok'));
       setExpandedSummaries((prev) => ({ ...prev, [id]: res.summary }));
     },
-    onError: () => toast.error('Özet oluşturulamadı'),
+    onError: () => toast.error(t('transcripts.toast_summary_fail')),
   });
 
   function resetForm() {
@@ -173,7 +176,7 @@ export default function TranscriptsPage() {
 
   function handleCreate() {
     if (!form.title.trim() || !form.content.trim()) {
-      toast.error('Baslik ve içerik zorunludur');
+      toast.error(t('transcripts.err_title_body'));
       return;
     }
     createMutation.mutate({
@@ -218,31 +221,31 @@ export default function TranscriptsPage() {
     },
     {
       key: 'title',
-      header: 'Baslik',
+      header: t('transcripts.col_title'),
       render: (row: Transcript) => (
         <span className="text-sm font-medium text-gray-900">{row.title}</span>
       ),
     },
     {
       key: 'source',
-      header: 'Kaynak',
+      header: t('transcripts.col_source'),
       render: (row: Transcript) => (
         <span className="text-sm text-gray-600">{row.source || '-'}</span>
       ),
     },
     {
       key: 'duration_minutes',
-      header: 'Süre (dk)',
+      header: t('transcripts.col_duration'),
       render: (row: Transcript) => <span className="text-sm">{row.duration_minutes ?? '-'}</span>,
     },
     {
       key: 'keywords_found',
-      header: 'Anahtar Kelime',
+      header: t('transcripts.col_keywords'),
       render: (row: Transcript) => <span className="text-sm">{row.keywords_found}</span>,
     },
     {
       key: 'created_at',
-      header: 'Tarih',
+      header: t('transcripts.col_date'),
       sortable: true,
       render: (row: Transcript) => (
         <span className="whitespace-nowrap text-sm">{formatDateTime(row.created_at)}</span>
@@ -250,7 +253,7 @@ export default function TranscriptsPage() {
     },
     {
       key: 'actions',
-      header: 'İşlem',
+      header: t('transcripts.col_actions'),
       render: (row: Transcript) => (
         <Button
           variant="secondary"
@@ -262,7 +265,7 @@ export default function TranscriptsPage() {
           }}
         >
           <Sparkles size={14} className="mr-1" />
-          Ozetle
+          {t('transcripts.btn_summarize')}
         </Button>
       ),
     },
@@ -270,20 +273,20 @@ export default function TranscriptsPage() {
 
   return (
     <div>
-      <PageHeader title="Transkriptler" description="Görüşme kayitlari ve ozetleri">
+      <PageHeader title={t('transcripts.title')} description={t('transcripts.description')}>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={handleSearchToggle}>
             <Search size={16} className="mr-1" />
-            {isSearchMode ? 'Listeye Don' : 'Ara'}
+            {isSearchMode ? t('transcripts.btn_clear_search') : t('transcripts.btn_search')}
           </Button>
-          <Button onClick={() => setIsCreateOpen(true)}>Yeni Transkript</Button>
+          <Button onClick={() => setIsCreateOpen(true)}>{t('transcripts.btn_new')}</Button>
         </div>
       </PageHeader>
 
       {isSearchMode && (
         <div className="mb-4 w-80">
           <Input
-            placeholder="Transkript icinde ara..."
+            placeholder={t('transcripts.search_ph')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -297,10 +300,12 @@ export default function TranscriptsPage() {
         <Skeleton variant="table" />
       ) : items.length === 0 ? (
         <EmptyState
-          title="Transkript bulunamadi"
-          description="Henüz transkript eklenmemis"
+          title={t('transcripts.empty')}
+          description={t('transcripts.empty')}
           icon={<FileText size={40} />}
-          action={<Button onClick={() => setIsCreateOpen(true)}>İlk Transkripti Ekle</Button>}
+          action={
+            <Button onClick={() => setIsCreateOpen(true)}>{t('transcripts.first_add')}</Button>
+          }
         />
       ) : (
         <>
@@ -308,7 +313,7 @@ export default function TranscriptsPage() {
             columns={columns}
             data={items}
             loading={isLoading}
-            emptyMessage="Transkript bulunamadi"
+            emptyMessage={t('transcripts.empty')}
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
@@ -332,7 +337,10 @@ export default function TranscriptsPage() {
                           onClick={() => navigate(`/opportunities/${transcript.opportunity_id}`)}
                         >
                           <ExternalLink size={12} />
-                          Fırsat #{transcript.opportunity_id}
+                          {t('transcripts.opp_ref').replace(
+                            '{id}',
+                            String(transcript.opportunity_id),
+                          )}
                         </button>
                       )}
                       {transcript.customer_id && (
@@ -342,7 +350,10 @@ export default function TranscriptsPage() {
                           onClick={() => navigate(`/customers/${transcript.customer_id}`)}
                         >
                           <ExternalLink size={12} />
-                          Müşteri #{transcript.customer_id}
+                          {t('transcripts.cust_ref').replace(
+                            '{id}',
+                            String(transcript.customer_id),
+                          )}
                         </button>
                       )}
                     </div>
@@ -351,7 +362,7 @@ export default function TranscriptsPage() {
                   {summary && (
                     <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
                       <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-700">
-                        Özet
+                        {t('transcripts.summary')}
                       </div>
                       <p className="text-sm leading-relaxed text-gray-700">{summary}</p>
                     </div>
@@ -359,12 +370,12 @@ export default function TranscriptsPage() {
 
                   <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
                     <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      İçerik
+                      {t('transcripts.content')}
                     </div>
                     <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
                       {transcript.content
                         ? highlightKeywords(transcript.content, keywordPacks)
-                        : transcript.summary || 'Transkript icerigi yuklenemedi.'}
+                        : transcript.summary || t('common.error')}
                     </p>
                   </div>
 
@@ -377,37 +388,49 @@ export default function TranscriptsPage() {
         </>
       )}
 
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Yeni Transkript">
+      <Modal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title={t('transcripts.modal_new_title')}
+      >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Baslik</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('transcripts.col_title')}
+            </label>
             <Input
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              placeholder="Görüşme basligi"
+              placeholder={t('transcripts.ph_title')}
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">İçerik</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('transcripts.lbl_content')}
+            </label>
             <textarea
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               rows={6}
               value={form.content}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-              placeholder="Transkript icerigi..."
+              placeholder={t('transcripts.content')}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Kaynak</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                {t('transcripts.col_source')}
+              </label>
               <Input
                 value={form.source}
                 onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
-                placeholder="Örneğin: telefon, toplanti"
+                placeholder={t('transcripts.ph_channel')}
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Süre (dk)</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                {t('transcripts.lbl_duration')}
+              </label>
               <Input
                 type="number"
                 value={form.duration_minutes}
@@ -418,7 +441,9 @@ export default function TranscriptsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Fırsat ID</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                {t('transcripts.lbl_opp_id')}
+              </label>
               <Input
                 type="number"
                 value={form.opportunity_id}
@@ -427,7 +452,9 @@ export default function TranscriptsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Müşteri ID</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                {t('transcripts.lbl_cust_id')}
+              </label>
               <Input
                 type="number"
                 value={form.customer_id}
@@ -438,10 +465,10 @@ export default function TranscriptsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button loading={createMutation.isPending} onClick={handleCreate}>
-              Oluştur
+              {t('common.create')}
             </Button>
           </div>
         </div>

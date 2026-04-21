@@ -1,44 +1,23 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
+import { useT } from '../../hooks/useT';
+import type { TranslationKey } from '../../lib/i18n';
 
-const FAQS = [
-  {
-    q: 'E-postalarimiz guvende mi?',
-    a: 'Evet. Email sifreleri Fernet (AES-256) ile sifrelenir. IMAP baglantisi SSL/TLS uzerinden yapilir. Tüm veriler PostgreSQL\'de saklanir, erişim RBAC ile kontrol edilir. Denetim izi (audit trail) her işlemi kayıt altina alir.',
-  },
-  {
-    q: 'AI yanlis yaparsa ne olur?',
-    a: 'AI (Claude) her ayrıştırma sonucunu bir guven skoru ile sunar. Düşük guvenli sonuclar (<%75) otomatik olarak insan incelemesine yonlendirilir. Hicbir işlem otomatik onaylanmaz — her zaman bir insan karar verir. Hatali sonuclari duzeltebilir ve sistem bu duzeltmelerden ogrenir.',
-  },
-  {
-    q: 'Kurulum ne kadar surer?',
-    a: 'Tipik kurulum 1 is gunu. Email baglantisi, parça katalogu ve fiyat listesi yuklendikten sonra sistem kullanima hazir. Ekibinize rehberli egitim dahil.',
-  },
-  {
-    q: 'Mevcut surecimiz bozulur mu?',
-    a: 'Hayir. Sistem mevcut email akisinizin yanina eklenir — hicbir seyi degistirmez. Gelen kutunuz aynen calisir, sistem sadece kopyalari okur (readonly IMAP). Kademeli gecis için feature-flag destegi vardir.',
-  },
-  {
-    q: 'Onay ve yetkilendirme nasil calisir?',
-    a: 'Uc rol vardir: Satış Temsilcisi (teklif olusturur), Satış Yoneticisi (onaylar/reddeder + tüm verileri gorur), Operasyon (katalog/fiyat yönetimi). Her kullanıcı sadece yetkili oldugu verileri gorur ve işlem yapabilir.',
-  },
-  {
-    q: 'Fiyat listesi ve katalog nasil yuklenir?',
-    a: 'Excel (.xlsx), CSV veya PDF formatlarinda toplu import destegi vardir. Sistem Honeywell parça kodlarini otomatik tanir. Fiyat gecerlilik tarihleri, para birimi ve indirim oranlari da yuklenir.',
-  },
-];
+type FaqItem = { qKey: TranslationKey; aKey: TranslationKey };
 
-function FAQItem({ q, a }: { q: string; a: string }) {
+function FAQItem({ qKey, aKey }: FaqItem) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
     <div className="border-b border-slate-100 last:border-0">
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="flex w-full cursor-pointer items-center justify-between py-5 text-left"
       >
-        <span className="pr-4 text-base font-semibold text-slate-900">{q}</span>
+        <span className="pr-4 text-base font-semibold text-slate-900">{t(qKey)}</span>
         <ChevronDown
           size={18}
           className={`shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
@@ -53,7 +32,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <p className="pb-5 pr-8 text-sm leading-relaxed text-slate-600">{a}</p>
+            <p className="pb-5 pr-8 text-sm leading-relaxed text-slate-600">{t(aKey)}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -62,6 +41,20 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function FAQ() {
+  const t = useT();
+
+  const items: FaqItem[] = useMemo(
+    () => [
+      { qKey: 'landing.faq_q1', aKey: 'landing.faq_a1' },
+      { qKey: 'landing.faq_q2', aKey: 'landing.faq_a2' },
+      { qKey: 'landing.faq_q3', aKey: 'landing.faq_a3' },
+      { qKey: 'landing.faq_q4', aKey: 'landing.faq_a4' },
+      { qKey: 'landing.faq_q5', aKey: 'landing.faq_a5' },
+      { qKey: 'landing.faq_q6', aKey: 'landing.faq_a6' },
+    ],
+    [],
+  );
+
   return (
     <section id="faq" className="bg-slate-50 py-20 md:py-28">
       <div className="mx-auto max-w-3xl px-6">
@@ -71,15 +64,17 @@ export default function FAQ() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">SSS</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            {t('landing.faq_label')}
+          </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            Sik sorulan sorular
+            {t('landing.faq_title')}
           </h2>
         </motion.div>
 
         <div className="mt-12 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          {FAQS.map((faq, i) => (
-            <FAQItem key={i} q={faq.q} a={faq.a} />
+          {items.map((faq) => (
+            <FAQItem key={faq.qKey} qKey={faq.qKey} aKey={faq.aKey} />
           ))}
         </div>
       </div>

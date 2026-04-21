@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
+import { tt } from './i18n-runtime';
 
 type ApiRequestConfig = AxiosRequestConfig & { _skipToast?: boolean };
 import type {
@@ -152,7 +153,7 @@ api.interceptors.response.use(
     } else if (originalRequest?._skipToast) {
       // Skip toast for requests that handle errors themselves (e.g. PDF download)
     } else if (status === 403) {
-      toast.error('Bu isleme yetkiniz yok');
+      toast.error(tt('errors.api_forbidden'));
     } else if (status === 422) {
       const detail = data?.detail;
       if (Array.isArray(detail)) {
@@ -163,10 +164,10 @@ api.interceptors.response.use(
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
-        toast.error('Geçersiz veri');
+        toast.error(tt('errors.api_invalid_data'));
       }
     } else if (status >= 500) {
-      toast.error('Sunucu hatasi, lütfen tekrar deneyin');
+      toast.error(tt('errors.api_server_error'));
     }
 
     return Promise.reject(error);

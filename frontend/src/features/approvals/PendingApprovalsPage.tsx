@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { approvalsApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 import type { ApprovalRequest } from '../../lib/types';
 
@@ -20,17 +21,6 @@ const STATUS_VARIANT: Record<string, 'warning' | 'success' | 'danger' | 'default
   rejected: 'danger',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Beklemede',
-  approved: 'Onaylandi',
-  rejected: 'Reddedildi',
-};
-
-const ENTITY_LABEL: Record<string, string> = {
-  quote: 'Teklif',
-  opportunity: 'Fırsat',
-};
-
 function entityLink(entityType: string, entityId: number) {
   if (entityType === 'quote') return `/quotes/${entityId}`;
   if (entityType === 'opportunity') return `/opportunities/${entityId}`;
@@ -38,6 +28,7 @@ function entityLink(entityType: string, entityId: number) {
 }
 
 export default function PendingApprovalsPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
@@ -45,6 +36,23 @@ export default function PendingApprovalsPage() {
     requestId: number;
   }>({ isOpen: false, type: 'approve', requestId: 0 });
   const [comments, setComments] = useState('');
+
+  const statusLabel = useMemo(
+    () => ({
+      pending: t('approvals.status_pending'),
+      approved: t('approvals.status_approved'),
+      rejected: t('approvals.status_rejected'),
+    }),
+    [t],
+  );
+
+  const entityLabel = useMemo(
+    () => ({
+      quote: t('approvals.entity_quote'),
+      opportunity: t('approvals.entity_opportunity'),
+    }),
+    [t],
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ['approvals', 'pending'],
@@ -55,12 +63,12 @@ export default function PendingApprovalsPage() {
     mutationFn: ({ id, comment }: { id: number; comment: string }) =>
       approvalsApi.approve(id, comment),
     onSuccess: () => {
-      toast.success('Onay başarılı');
+      toast.success(t('approvals.toast_approve_ok'));
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       closeModal();
     },
     onError: () => {
-      toast.error('Onay işlemi başarısız');
+      toast.error(t('approvals.toast_approve_fail'));
     },
   });
 
@@ -68,12 +76,12 @@ export default function PendingApprovalsPage() {
     mutationFn: ({ id, comment }: { id: number; comment: string }) =>
       approvalsApi.reject(id, comment),
     onSuccess: () => {
-      toast.success('Red işlemi tamamlandi');
+      toast.success(t('approvals.toast_reject_ok'));
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       closeModal();
     },
     onError: () => {
-      toast.error('Red işlemi başarısız');
+      toast.error(t('approvals.toast_reject_fail'));
     },
   });
 
@@ -101,42 +109,42 @@ export default function PendingApprovalsPage() {
   const columns = [
     {
       key: 'entity',
-      header: 'Varlik',
+      header: t('approvals.col_entity'),
       render: (row: ApprovalRequest) => (
         <Link
           to={entityLink(row.entity_type, row.entity_id)}
           className="font-medium text-honeywell-red hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
-          {ENTITY_LABEL[row.entity_type] || row.entity_type} #{row.entity_id}
+          {entityLabel[row.entity_type as keyof typeof entityLabel] || row.entity_type} #
+          {row.entity_id}
         </Link>
       ),
     },
     {
       key: 'level',
-      header: 'Seviye',
+      header: t('approvals.col_level'),
       render: (row: ApprovalRequest) => (
         <span className="text-gray-700 dark:text-gray-300">{row.level}</span>
       ),
     },
     {
       key: 'status',
-      header: 'Durum',
+      header: t('approvals.col_status'),
       render: (row: ApprovalRequest) => (
         <Badge variant={STATUS_VARIANT[row.status] || 'default'}>
-          {STATUS_LABEL[row.status] || row.status}
+          {statusLabel[row.status as keyof typeof statusLabel] || row.status}
         </Badge>
       ),
     },
     {
       key: 'created_at',
-      header: 'Talep Tarihi',
-      render: (row: ApprovalRequest) =>
-        row.created_at ? formatDateTime(row.created_at) : '-',
+      header: t('approvals.col_requested'),
+      render: (row: ApprovalRequest) => (row.created_at ? formatDateTime(row.created_at) : '-'),
     },
     {
       key: 'actions',
-      header: 'Islemler',
+      header: t('approvals.col_actions'),
       render: (row: ApprovalRequest) =>
         row.status === 'pending' ? (
           <div className="flex items-center gap-2">
@@ -149,7 +157,7 @@ export default function PendingApprovalsPage() {
                 openModal('approve', row.id);
               }}
             >
-              Onayla
+              {t('approvals.approve')}
             </Button>
             <Button
               size="sm"
@@ -159,7 +167,7 @@ export default function PendingApprovalsPage() {
                 openModal('reject', row.id);
               }}
             >
-              Reddet
+              {t('approvals.reject')}
             </Button>
           </div>
         ) : null,
@@ -170,17 +178,14 @@ export default function PendingApprovalsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="Bekleyen Onaylar"
-        description="Onay bekleyen teklif ve fırsat talepleri"
-      />
+      <PageHeader title={t('approvals.title')} description={t('approvals.description')} />
 
       <Card>
         <DataTable
           columns={columns}
           data={items}
           loading={isLoading}
-          emptyMessage="Bekleyen onay bulunmuyor"
+          emptyMessage={t('approvals.empty')}
         />
       </Card>
 
@@ -188,20 +193,24 @@ export default function PendingApprovalsPage() {
       <Modal
         isOpen={actionModal.isOpen}
         onClose={closeModal}
-        title={actionModal.type === 'approve' ? 'Onay' : 'Reddet'}
+        title={
+          actionModal.type === 'approve'
+            ? t('approvals.modal_approve')
+            : t('approvals.modal_reject')
+        }
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {actionModal.type === 'approve'
-              ? 'Bu talebi onaylamak istediginizden emin misiniz?'
-              : 'Bu talebi reddetmek istediginizden emin misiniz?'}
+              ? t('approvals.confirm_approve')
+              : t('approvals.confirm_reject')}
           </p>
           <div>
             <label
               htmlFor="approval-comments"
               className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              Yorumlar
+              {t('approvals.comments')}
             </label>
             <textarea
               id="approval-comments"
@@ -211,16 +220,12 @@ export default function PendingApprovalsPage() {
               rows={3}
               value={comments}
               onChange={(e) => setComments(e.target.value)}
-              placeholder="Opsiyonel yorum ekleyin..."
+              placeholder={t('approvals.comments_ph')}
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button
-              variant="secondary"
-              onClick={closeModal}
-              disabled={isSubmitting}
-            >
-              İptal
+            <Button variant="secondary" onClick={closeModal} disabled={isSubmitting}>
+              {t('common.cancel')}
             </Button>
             <Button
               variant={actionModal.type === 'approve' ? 'primary' : 'danger'}
@@ -228,7 +233,7 @@ export default function PendingApprovalsPage() {
               onClick={handleSubmit}
               loading={isSubmitting}
             >
-              {actionModal.type === 'approve' ? 'Onayla' : 'Reddet'}
+              {actionModal.type === 'approve' ? t('approvals.approve') : t('approvals.reject')}
             </Button>
           </div>
         </div>

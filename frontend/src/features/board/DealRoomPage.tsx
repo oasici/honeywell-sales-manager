@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 import type { DealRoom } from '../../lib/types';
 
 interface SharedItem {
@@ -34,6 +35,7 @@ function parseJsonSafe<T>(raw: string | null, fallback: T): T {
 }
 
 export default function DealRoomPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -74,10 +76,10 @@ export default function DealRoomPage() {
         welcome_message: welcomeMessage,
       }),
     onSuccess: () => {
-      toast.success('Deal room kaydedildi');
+      toast.success(t('deal_room.toast_saved'));
       queryClient.invalidateQueries({ queryKey: ['deal-room', roomId] });
     },
-    onError: () => toast.error('Kaydetme başarısız'),
+    onError: () => toast.error(t('deal_room.toast_save_failed')),
   });
 
   const handleCopyLink = () => {
@@ -85,7 +87,7 @@ export default function DealRoomPage() {
     const publicUrl = `${window.location.origin}/deal-rooms/public/${room.external_token}`;
     navigator.clipboard.writeText(publicUrl);
     setIsLinkCopied(true);
-    toast.success('Baglanti kopyalandi');
+    toast.success(t('deal_room.copied'));
     setTimeout(() => setIsLinkCopied(false), 2000);
   };
 
@@ -120,7 +122,7 @@ export default function DealRoomPage() {
   }
 
   if (!room) {
-    return <div className="py-16 text-center text-gray-500">Deal room bulunamadi</div>;
+    return <div className="py-16 text-center text-gray-500">{t('deal_room.not_found')}</div>;
   }
 
   const currentSharedItems = sharedItems ?? [];
@@ -128,13 +130,13 @@ export default function DealRoomPage() {
 
   return (
     <div>
-      <PageHeader title={room.name} description="Deal Room">
+      <PageHeader title={room.name} description={t('deal_room.description')}>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={handleCopyLink}>
-            {isLinkCopied ? 'Kopyalandi' : 'Harici Baglanti Kopyala'}
+            {isLinkCopied ? t('deal_room.copied') : t('deal_room.copy_external')}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => navigate(-1)}>
-            Geri Don
+            {t('common.back')}
           </Button>
         </div>
       </PageHeader>
@@ -150,23 +152,25 @@ export default function DealRoomPage() {
 
       {/* Welcome Message */}
       <div className="mb-6">
-        <Card title="Karsilama Mesaji">
+        <Card title={t('deal_room.welcome')}>
           <textarea
             value={welcomeMessage ?? ''}
             onChange={(e) => setWelcomeMessage(e.target.value)}
             rows={3}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            placeholder="Aliciya gosterilecek karsilama mesaji..."
+            placeholder={t('deal_room.welcome_placeholder')}
           />
         </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Shared Items */}
-        <Card title="Paylasilan Ogeler">
+        <Card title={t('deal_room.shared_items')}>
           <div className="space-y-3">
             {currentSharedItems.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-400">Henüz oge eklenmemis</p>
+              <p className="py-4 text-center text-sm text-gray-400">
+                {t('deal_room.shared_items_empty')}
+              </p>
             ) : (
               currentSharedItems.map((item, idx) => (
                 <div
@@ -195,7 +199,7 @@ export default function DealRoomPage() {
                       onClick={() => handleRemoveItem(idx)}
                       className="text-xs text-red-500 hover:text-red-700"
                     >
-                      Kaldir
+                      {t('deal_room.remove')}
                     </button>
                   </div>
                 </div>
@@ -208,13 +212,13 @@ export default function DealRoomPage() {
                 <input
                   value={newItem.title}
                   onChange={(e) => setNewItem((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="Baslik"
+                  placeholder={t('deal_room.item_title')}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
                 <input
                   value={newItem.url}
                   onChange={(e) => setNewItem((p) => ({ ...p, url: e.target.value }))}
-                  placeholder="URL"
+                  placeholder={t('deal_room.item_url')}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
                 <select
@@ -222,9 +226,9 @@ export default function DealRoomPage() {
                   onChange={(e) => setNewItem((p) => ({ ...p, type: e.target.value }))}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
-                  <option value="document">Dokuman</option>
-                  <option value="quote">Teklif</option>
-                  <option value="link">Baglanti</option>
+                  <option value="document">{t('deal_room.type_document')}</option>
+                  <option value="quote">{t('deal_room.type_quote')}</option>
+                  <option value="link">{t('deal_room.type_link')}</option>
                 </select>
               </div>
               <div className="mt-2 flex justify-end">
@@ -234,7 +238,7 @@ export default function DealRoomPage() {
                   onClick={handleAddItem}
                   disabled={!newItem.title || !newItem.url}
                 >
-                  Oge Ekle
+                  {t('deal_room.add_item')}
                 </Button>
               </div>
             </div>
@@ -242,10 +246,12 @@ export default function DealRoomPage() {
         </Card>
 
         {/* Mutual Action Plan */}
-        <Card title="Karsilikli Aksiyon Plani">
+        <Card title={t('deal_room.action_plan')}>
           <div className="space-y-3">
             {currentActionPlan.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-400">Henüz madde eklenmemis</p>
+              <p className="py-4 text-center text-sm text-gray-400">
+                {t('deal_room.action_plan_empty')}
+              </p>
             ) : (
               currentActionPlan.map((item, idx) => (
                 <div
@@ -265,8 +271,16 @@ export default function DealRoomPage() {
                       {item.task}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                      {item.due_date && <span>Tarih: {item.due_date}</span>}
-                      {item.owner && <span>Sorumlu: {item.owner}</span>}
+                      {item.due_date && (
+                        <span>
+                          {t('deal_room.date')}: {item.due_date}
+                        </span>
+                      )}
+                      {item.owner && (
+                        <span>
+                          {t('deal_room.owner')}: {item.owner}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button
@@ -274,7 +288,7 @@ export default function DealRoomPage() {
                     onClick={() => handleRemoveAction(idx)}
                     className="text-xs text-red-500 hover:text-red-700"
                   >
-                    Kaldir
+                    {t('deal_room.remove')}
                   </button>
                 </div>
               ))
@@ -286,7 +300,7 @@ export default function DealRoomPage() {
                 <input
                   value={newAction.task}
                   onChange={(e) => setNewAction((p) => ({ ...p, task: e.target.value }))}
-                  placeholder="Gorev"
+                  placeholder={t('deal_room.task')}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
                 <input
@@ -298,7 +312,7 @@ export default function DealRoomPage() {
                 <input
                   value={newAction.owner}
                   onChange={(e) => setNewAction((p) => ({ ...p, owner: e.target.value }))}
-                  placeholder="Sorumlu"
+                  placeholder={t('deal_room.owner')}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
               </div>
@@ -309,7 +323,7 @@ export default function DealRoomPage() {
                   onClick={handleAddAction}
                   disabled={!newAction.task}
                 >
-                  Madde Ekle
+                  {t('deal_room.add_action')}
                 </Button>
               </div>
             </div>
@@ -320,7 +334,7 @@ export default function DealRoomPage() {
       {/* Save */}
       <div className="mt-6 flex justify-end">
         <Button loading={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
-          Kaydet
+          {t('common.save')}
         </Button>
       </div>
     </div>

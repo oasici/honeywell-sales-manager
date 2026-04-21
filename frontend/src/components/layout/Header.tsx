@@ -2,12 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
-import { ROLE_LABELS } from '../../lib/constants';
+import { translateUserRole } from '../../lib/labelTranslations';
 import { notificationsApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Bell, Check, CheckCheck, ExternalLink } from 'lucide-react';
+import { useT } from '../../hooks/useT';
 
 interface Notification {
   id: number;
@@ -32,8 +33,9 @@ function getEntityRoute(entityType?: string | null, entityId?: number | null): s
 
 export function Header() {
   const user = useAuthStore((state) => state.user);
-  const roleLabel = user?.role ? ROLE_LABELS[user.role] || user.role : '';
   const navigate = useNavigate();
+  const t = useT();
+  const roleLabel = user?.role ? translateUserRole(user.role, t) : '';
 
   const queryClient = useQueryClient();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -104,7 +106,7 @@ export function Header() {
         <div className="relative" ref={dropdownRef}>
           <button
             className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-            title="Bildirimler"
+            title={t('notifications.title')}
             aria-expanded={isDropdownOpen}
             aria-haspopup="true"
             onClick={handleBellClick}
@@ -113,7 +115,7 @@ export function Header() {
             {unreadCount > 0 && (
               <span
                 className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white"
-                aria-label={`${unreadCount} okunmamis bildirim`}
+                aria-label={`${unreadCount} ${t('notifications.unread_suffix')}`}
               >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
@@ -127,7 +129,7 @@ export function Header() {
               role="menu"
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                <h3 className="text-sm font-semibold text-gray-900">Bildirimler</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{t('notifications.title')}</h3>
                 {unreadCount > 0 && (
                   <Button
                     variant="ghost"
@@ -136,7 +138,7 @@ export function Header() {
                     loading={markAllReadMutation.isPending}
                   >
                     <CheckCheck size={14} className="shrink-0" />
-                    Tumu okundu
+                    {t('notifications.mark_all_read')}
                   </Button>
                 )}
               </div>
@@ -150,7 +152,7 @@ export function Header() {
                   </div>
                 ) : notificationList.length === 0 ? (
                   <p className="px-4 py-8 text-center text-sm text-gray-400">
-                    Bildirim bulunmuyor
+                    {t('notifications.none')}
                   </p>
                 ) : (
                   <ul>
@@ -165,7 +167,10 @@ export function Header() {
                             if (!notification.is_read) {
                               handleMarkRead(notification.id);
                             }
-                            const route = getEntityRoute(notification.entity_type, notification.entity_id);
+                            const route = getEntityRoute(
+                              notification.entity_type,
+                              notification.entity_id,
+                            );
                             if (route) {
                               setIsDropdownOpen(false);
                               navigate(route);
@@ -174,7 +179,9 @@ export function Header() {
                           role="menuitem"
                         >
                           <div className="min-w-0 flex-1">
-                            <p className={`text-sm ${notification.is_read ? 'text-gray-600' : 'font-semibold text-gray-900'}`}>
+                            <p
+                              className={`text-sm ${notification.is_read ? 'text-gray-600' : 'font-semibold text-gray-900'}`}
+                            >
                               {notification.title}
                             </p>
                             <p className="mt-0.5 text-xs text-gray-400 line-clamp-2">
@@ -189,7 +196,7 @@ export function Header() {
                               <ExternalLink size={12} className="text-gray-300" />
                             )}
                             {!notification.is_read && (
-                              <span title="Okundu olarak isaretle">
+                              <span title={t('notifications.mark_read')}>
                                 <Check size={14} className="text-blue-500" />
                               </span>
                             )}
@@ -207,7 +214,9 @@ export function Header() {
         {/* User info */}
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-700">{user?.full_name || 'Kullanıcı'}</p>
+            <p className="text-sm font-medium text-gray-700">
+              {user?.full_name || t('common.user')}
+            </p>
           </div>
           {roleLabel && (
             <Badge variant="info" size="sm">

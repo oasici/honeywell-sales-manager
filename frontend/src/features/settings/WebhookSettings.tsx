@@ -20,16 +20,18 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { webhooksApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
+import type { TranslationKey } from '../../lib/i18n';
 import type { WebhookSubscription, WebhookDelivery } from '../../lib/types';
 
-const AVAILABLE_EVENTS = [
-  { value: 'opportunity.created', label: 'Fırsat Oluşturuldu' },
-  { value: 'opportunity.stage_changed', label: 'Fırsat Aşama Değişti' },
-  { value: 'quote.approved', label: 'Teklif Onaylandı' },
-  { value: 'quote.sent', label: 'Teklif Gönderildi' },
-  { value: 'lead.converted', label: 'Lead Donusturuldu' },
-  { value: 'customer.created', label: 'Müşteri Oluşturuldu' },
-  { value: 'email.parsed', label: 'Email Ayristi' },
+const AVAILABLE_EVENTS: { value: string; labelKey: TranslationKey }[] = [
+  { value: 'opportunity.created', labelKey: 'webhooks.event.opportunity_created' },
+  { value: 'opportunity.stage_changed', labelKey: 'webhooks.event.opportunity_stage_changed' },
+  { value: 'quote.approved', labelKey: 'webhooks.event.quote_approved' },
+  { value: 'quote.sent', labelKey: 'webhooks.event.quote_sent' },
+  { value: 'lead.converted', labelKey: 'webhooks.event.lead_converted' },
+  { value: 'customer.created', labelKey: 'webhooks.event.customer_created' },
+  { value: 'email.parsed', labelKey: 'webhooks.event.email_parsed' },
 ];
 
 const MAX_URL_DISPLAY_LENGTH = 40;
@@ -64,12 +66,14 @@ function StatusCodeBadge({ code }: { code: number }) {
 }
 
 function DeliveryHistory({ webhookId }: { webhookId: number }) {
+  const t = useT();
   const { data, isLoading } = useQuery<{ data: WebhookDelivery[] }>({
     queryKey: ['webhook-deliveries', webhookId],
     queryFn: () => webhooksApi.getDeliveries(webhookId),
   });
 
-  const deliveries: WebhookDelivery[] = data?.data ?? (Array.isArray(data) ? data as WebhookDelivery[] : []);
+  const deliveries: WebhookDelivery[] =
+    data?.data ?? (Array.isArray(data) ? (data as WebhookDelivery[]) : []);
 
   if (isLoading) {
     return (
@@ -82,7 +86,7 @@ function DeliveryHistory({ webhookId }: { webhookId: number }) {
   if (deliveries.length === 0) {
     return (
       <p className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
-        Henüz teslimat yok
+        {t('webhooks.no_deliveries')}
       </p>
     );
   }
@@ -92,9 +96,15 @@ function DeliveryHistory({ webhookId }: { webhookId: number }) {
       <table className="w-full text-left text-xs">
         <thead>
           <tr className="border-b border-gray-100 dark:border-gray-700">
-            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">Olay</th>
-            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">Durum</th>
-            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">Tarih</th>
+            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">
+              {t('webhooks.table_event')}
+            </th>
+            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">
+              {t('webhooks.table_status')}
+            </th>
+            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">
+              {t('webhooks.table_date')}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -122,30 +132,28 @@ function WebhookCard({
   webhook: WebhookSubscription;
   onDelete: () => void;
 }) {
+  const t = useT();
   const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleMutation = useMutation({
-    mutationFn: () =>
-      webhooksApi.update(webhook.id, { is_active: !webhook.is_active }),
+    mutationFn: () => webhooksApi.update(webhook.id, { is_active: !webhook.is_active }),
     onSuccess: () => {
-      toast.success(
-        webhook.is_active ? 'Webhook devre disi birakildi' : 'Webhook aktif edildi',
-      );
+      toast.success(webhook.is_active ? t('webhooks.toast_disabled') : t('webhooks.toast_enabled'));
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
     },
-    onError: () => toast.error('İşlem başarısız'),
+    onError: () => toast.error(t('settings.operation_failed')),
   });
 
   const testMutation = useMutation({
     mutationFn: () => webhooksApi.test(webhook.id),
     onSuccess: () => {
-      toast.success('Test istegi gönderildi');
+      toast.success(t('webhooks.toast_test_sent'));
       queryClient.invalidateQueries({
         queryKey: ['webhook-deliveries', webhook.id],
       });
     },
-    onError: () => toast.error('Test istegi başarısız'),
+    onError: () => toast.error(t('webhooks.toast_test_failed')),
   });
 
   return (
@@ -157,9 +165,13 @@ function WebhookCard({
               {webhook.name}
             </h4>
             {webhook.is_active ? (
-              <Badge variant="success" size="sm">Aktif</Badge>
+              <Badge variant="success" size="sm">
+                {t('webhooks.active')}
+              </Badge>
             ) : (
-              <Badge variant="default" size="sm">Pasif</Badge>
+              <Badge variant="default" size="sm">
+                {t('webhooks.inactive')}
+              </Badge>
             )}
           </div>
           <p
@@ -178,7 +190,7 @@ function WebhookCard({
           </div>
           {webhook.failure_count > 0 && (
             <p className="mt-1.5 text-xs text-red-500">
-              {webhook.failure_count} başarısız teslimat
+              {webhook.failure_count} {t('webhooks.failure_count_suffix')}
             </p>
           )}
         </div>
@@ -189,7 +201,7 @@ function WebhookCard({
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
               webhook.is_active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
             }`}
-            title={webhook.is_active ? 'Devre Disi Birak' : 'Aktif Et'}
+            title={webhook.is_active ? t('webhooks.toggle_disable') : t('webhooks.toggle_enable')}
           >
             <span
               className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
@@ -201,7 +213,7 @@ function WebhookCard({
             type="button"
             onClick={() => testMutation.mutate()}
             className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors dark:hover:bg-blue-900/20"
-            title="Test Et"
+            title={t('common.test')}
           >
             <PlayCircle size={16} />
           </button>
@@ -209,7 +221,7 @@ function WebhookCard({
             type="button"
             onClick={onDelete}
             className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
-            title="Sil"
+            title={t('common.delete')}
           >
             <Trash2 size={14} />
           </button>
@@ -222,7 +234,7 @@ function WebhookCard({
           onClick={() => setIsExpanded((prev) => !prev)}
           className="flex w-full items-center justify-between px-4 py-2 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors dark:text-gray-400 dark:hover:text-gray-200"
         >
-          Teslimatlar
+          {t('webhooks.deliveries')}
           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
         {isExpanded && <DeliveryHistory webhookId={webhook.id} />}
@@ -232,6 +244,7 @@ function WebhookCard({
 }
 
 export default function WebhookSettings() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WebhookSubscription | null>(null);
@@ -243,7 +256,7 @@ export default function WebhookSettings() {
   });
 
   const webhooks: WebhookSubscription[] =
-    data?.webhooks ?? (Array.isArray(data) ? data as WebhookSubscription[] : []);
+    data?.webhooks ?? (Array.isArray(data) ? (data as WebhookSubscription[]) : []);
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -254,22 +267,22 @@ export default function WebhookSettings() {
         secret: form.secret || undefined,
       }),
     onSuccess: () => {
-      toast.success('Webhook oluşturuldu');
+      toast.success(t('webhooks.toast_created'));
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
       setIsModalOpen(false);
       setForm(INITIAL_FORM);
     },
-    onError: () => toast.error('Webhook oluşturulamadı'),
+    onError: () => toast.error(t('webhooks.toast_create_failed')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => webhooksApi.remove(id),
     onSuccess: () => {
-      toast.success('Webhook silindi');
+      toast.success(t('webhooks.toast_deleted'));
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
       setDeleteTarget(null);
     },
-    onError: () => toast.error('Webhook silinemedi'),
+    onError: () => toast.error(t('webhooks.toast_delete_failed')),
   });
 
   const toggleEvent = (eventValue: string) => {
@@ -291,29 +304,23 @@ export default function WebhookSettings() {
   return (
     <>
       <Card
-        title="Webhook Yönetimi"
+        title={t('webhooks.title')}
         action={
           <Button size="sm" onClick={() => setIsModalOpen(true)}>
             <Plus size={14} className="mr-1.5" />
-            Yeni Webhook
+            {t('webhooks.new')}
           </Button>
         }
       >
         {webhooks.length === 0 ? (
           <div className="flex flex-col items-center py-8 text-center">
             <Webhook size={32} className="mb-2 text-gray-300 dark:text-gray-600" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Henüz webhook tanimlanmamis
-            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('webhooks.empty')}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {webhooks.map((wh) => (
-              <WebhookCard
-                key={wh.id}
-                webhook={wh}
-                onDelete={() => setDeleteTarget(wh)}
-              />
+              <WebhookCard key={wh.id} webhook={wh} onDelete={() => setDeleteTarget(wh)} />
             ))}
           </div>
         )}
@@ -322,27 +329,27 @@ export default function WebhookSettings() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Yeni Webhook"
+        title={t('webhooks.modal_title')}
         size="lg"
       >
         <div className="space-y-4">
           <Input
-            label="Webhook Adi"
+            label={t('webhooks.name_label')}
             value={form.name}
             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="örnek: Slack Bildirimi"
+            placeholder={t('webhooks.name_placeholder')}
           />
           <Input
-            label="URL"
+            label={t('webhooks.url_label')}
             type="url"
             value={form.url}
             onChange={(e) => setForm((prev) => ({ ...prev, url: e.target.value }))}
-            placeholder="https://example.com/webhook"
+            placeholder={t('webhooks.url_placeholder')}
           />
 
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
-              Olay Turleri
+              {t('webhooks.event_types')}
             </label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {AVAILABLE_EVENTS.map((event) => (
@@ -356,29 +363,29 @@ export default function WebhookSettings() {
                     onChange={() => toggleEvent(event.value)}
                     className="h-4 w-4 rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">{event.label}</span>
+                  <span className="text-gray-700 dark:text-gray-300">{t(event.labelKey)}</span>
                 </label>
               ))}
             </div>
           </div>
 
           <Input
-            label="Secret (Opsiyonel)"
+            label={t('webhooks.secret_label')}
             value={form.secret}
             onChange={(e) => setForm((prev) => ({ ...prev, secret: e.target.value }))}
-            placeholder="Webhook imzalama anahtari"
+            placeholder={t('webhooks.secret_placeholder')}
           />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={() => createMutation.mutate()}
               loading={createMutation.isPending}
               disabled={!form.name || !form.url || form.event_types.length === 0}
             >
-              Oluştur
+              {t('common.create')}
             </Button>
           </div>
         </div>
@@ -392,9 +399,9 @@ export default function WebhookSettings() {
             deleteMutation.mutate(deleteTarget.id);
           }
         }}
-        title="Webhook Sil"
-        message={`"${deleteTarget?.name}" webhook'u silinecek. Devam etmek istiyor musunuz?`}
-        confirmLabel="Sil"
+        title={t('webhooks.delete_title')}
+        message={`${t('webhooks.delete_message_prefix')}"${deleteTarget?.name}"${t('webhooks.delete_message_suffix')}`}
+        confirmLabel={t('common.delete')}
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}
       />

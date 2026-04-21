@@ -6,6 +6,8 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { chatApi } from '../../lib/api';
 import type { ChatSession, ChatMessage } from '../../lib/types';
+import { useT } from '../../hooks/useT';
+import { translateChatSessionStatus } from '../../lib/labelTranslations';
 
 const SESSIONS_POLL_MS = 10_000;
 const MESSAGES_POLL_MS = 5_000;
@@ -16,13 +18,8 @@ const STATUS_BADGES: Record<string, string> = {
   closed: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  open: 'Acik',
-  assigned: 'Atandi',
-  closed: 'Kapali',
-};
-
 export default function AgentChatPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [messageInput, setMessageInput] = useState('');
@@ -48,19 +45,19 @@ export default function AgentChatPage() {
   const assignMutation = useMutation({
     mutationFn: (id: number) => chatApi.assignSession(id),
     onSuccess: () => {
-      toast.success('Oturum size atandi');
+      toast.success(t('chat.toast_assigned'));
       queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
     },
-    onError: () => toast.error('Atama başarısız'),
+    onError: () => toast.error(t('chat.toast_assign_failed')),
   });
 
   const closeMutation = useMutation({
     mutationFn: (id: number) => chatApi.closeSession(id),
     onSuccess: () => {
-      toast.success('Oturum kapatildi');
+      toast.success(t('chat.toast_closed'));
       queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
     },
-    onError: () => toast.error('Kapatma başarısız'),
+    onError: () => toast.error(t('chat.toast_close_failed')),
   });
 
   const sendMutation = useMutation({
@@ -72,7 +69,7 @@ export default function AgentChatPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chat-messages-agent', selectedSessionId] });
     },
-    onError: () => toast.error('Mesaj gonderilemedi'),
+    onError: () => toast.error(t('chat.toast_send_failed')),
   });
 
   const sessions = Array.isArray(sessionsData) ? sessionsData : [];
@@ -100,12 +97,10 @@ export default function AgentChatPage() {
   if (isSessionsError) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Canlı Sohbet" description="Ziyaretci oturumlarini yonetin" />
+        <PageHeader title={t('chat.agent_title')} description={t('chat.agent_description')} />
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="p-8 text-center">
-            <p className="text-sm text-red-500">
-              Veriler yuklenirken bir hata oluştu. Lütfen sayfayi yenileyin.
-            </p>
+            <p className="text-sm text-red-500">{t('chat.load_error')}</p>
           </div>
         </div>
       </div>
@@ -114,7 +109,7 @@ export default function AgentChatPage() {
 
   return (
     <div className="animate-fade-in h-full flex flex-col">
-      <PageHeader title="Canlı Sohbet" description="Ziyaretci oturumlarini yonetin" />
+      <PageHeader title={t('chat.agent_title')} description={t('chat.agent_description')} />
 
       <div className="flex flex-1 gap-4 overflow-hidden min-h-0">
         {/* Session list */}
@@ -126,7 +121,7 @@ export default function AgentChatPage() {
           ) : sessions.length === 0 ? (
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 text-center">
               <MessageSquare size={32} className="mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-              <p className="text-sm text-gray-500">Aktif oturum yok</p>
+              <p className="text-sm text-gray-500">{t('chat.no_sessions')}</p>
             </div>
           ) : (
             sessions.map((session) => (
@@ -147,11 +142,15 @@ export default function AgentChatPage() {
                   <span
                     className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_BADGES[session.status] ?? ''}`}
                   >
-                    {STATUS_LABELS[session.status] ?? session.status}
+                    {translateChatSessionStatus(session.status, t)}
                   </span>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                  {session.agent && <span>Temsilci: {session.agent.full_name}</span>}
+                  {session.agent && (
+                    <span>
+                      {t('chat.agent_prefix')} {session.agent.full_name}
+                    </span>
+                  )}
                   {(session.unread_count ?? 0) > 0 && (
                     <span className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-honeywell-red px-1 text-[10px] font-bold text-white">
                       {session.unread_count}
@@ -172,7 +171,7 @@ export default function AgentChatPage() {
                   size={40}
                   className="mx-auto mb-3 text-gray-300 dark:text-gray-600"
                 />
-                <p className="text-sm">Sol panelden bir oturum seçin</p>
+                <p className="text-sm">{t('chat.select_session')}</p>
               </div>
             </div>
           ) : (
@@ -184,11 +183,11 @@ export default function AgentChatPage() {
                     {selectedSession.visitor_id}
                   </p>
                   <p className="text-xs text-gray-500">
-                    Durum:{' '}
+                    {t('common.status')}:{' '}
                     <span
                       className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_BADGES[selectedSession.status] ?? ''}`}
                     >
-                      {STATUS_LABELS[selectedSession.status] ?? selectedSession.status}
+                      {translateChatSessionStatus(selectedSession.status, t)}
                     </span>
                   </p>
                 </div>
@@ -201,7 +200,7 @@ export default function AgentChatPage() {
                         className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 disabled:opacity-50 transition-colors cursor-pointer"
                       >
                         <UserCheck size={13} />
-                        Bana Ata
+                        {t('chat.assign_to_me')}
                       </button>
                       <button
                         onClick={() => closeMutation.mutate(selectedSession.id)}
@@ -209,7 +208,7 @@ export default function AgentChatPage() {
                         className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50 transition-colors cursor-pointer"
                       >
                         <X size={13} />
-                        Kapat
+                        {t('chat.close_session')}
                       </button>
                     </>
                   )}
@@ -219,7 +218,7 @@ export default function AgentChatPage() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                 {messages.length === 0 ? (
-                  <p className="text-center text-xs text-gray-400 pt-8">Henüz mesaj yok</p>
+                  <p className="text-center text-xs text-gray-400 pt-8">{t('chat.no_messages')}</p>
                 ) : (
                   messages.map((msg) => {
                     const isAgent = msg.sender_type === 'agent';
@@ -252,16 +251,16 @@ export default function AgentChatPage() {
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Yanit yazin…"
+                    placeholder={t('chat.input_placeholder')}
                     disabled={sendMutation.isPending}
                     className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-red disabled:opacity-50"
-                    aria-label="Mesaj yaz"
+                    aria-label={t('chat.aria_message_input')}
                   />
                   <button
                     onClick={handleSend}
                     disabled={!messageInput.trim() || sendMutation.isPending}
                     className="rounded-lg p-2 bg-honeywell-red text-white hover:bg-honeywell-red/90 disabled:opacity-40 transition-colors cursor-pointer"
-                    aria-label="Gönder"
+                    aria-label={t('chat.aria_send')}
                   >
                     <Send size={16} />
                   </button>

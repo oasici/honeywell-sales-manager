@@ -15,7 +15,9 @@ import { useMultiSelect } from '../../hooks/useMultiSelect';
 import { customersApi, quotesApi } from '../../lib/api';
 import { DuplicateWarning } from '../../components/ui/DuplicateWarning';
 import { formatCurrency } from '../../lib/formatters';
-import { STATUS_LABELS, STATUS_COLORS } from '../../lib/constants';
+import { STATUS_COLORS } from '../../lib/constants';
+import { translateStatus } from '../../lib/labelTranslations';
+import { useT } from '../../hooks/useT';
 import type { Customer, Quote, PaginatedResponse } from '../../lib/types';
 
 /* ── Avatar color palette ── */
@@ -63,6 +65,7 @@ function CustomerCard({
   isSelected: boolean;
   onToggle: (id: number) => void;
 }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   const quoteCount = c.quote_count ?? 0;
 
@@ -78,11 +81,16 @@ function CustomerCard({
   const quotes = quotesData?.items ?? [];
 
   return (
-    <div className={`card-modern flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
+    <div
+      className={`card-modern flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+    >
       {/* Top section - clickable to customer detail */}
       <div className="flex items-start gap-4 p-5">
         {/* Checkbox */}
-        <label className="flex items-center shrink-0 pt-0.5" aria-label={`${c.name} seç`}>
+        <label
+          className="flex items-center shrink-0 pt-0.5"
+          aria-label={`${c.name} ${t('customers.select_row_suffix')}`}
+        >
           <input
             type="checkbox"
             checked={isSelected}
@@ -96,24 +104,22 @@ function CustomerCard({
           onClick={() => navigate(`/customers/${c.id}`)}
           className="flex items-start gap-4 flex-1 text-left hover:bg-gray-50/60 transition-colors rounded-lg -m-1 p-1"
         >
-        {/* Avatar */}
-        <div
-          className={`${avatarColor} flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm`}
-        >
-          {initials}
-        </div>
+          {/* Avatar */}
+          <div
+            className={`${avatarColor} flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm`}
+          >
+            {initials}
+          </div>
 
-        {/* Info */}
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold text-gray-900 truncate leading-tight">
-            {c.name}
-          </h3>
-          {c.company && (
-            <p className="mt-0.5 text-sm text-gray-500 truncate">{c.company}</p>
-          )}
-          <p className="mt-0.5 text-xs text-gray-400 truncate">{c.email}</p>
-        </div>
-      </button>
+          {/* Info */}
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-semibold text-gray-900 truncate leading-tight">
+              {c.name}
+            </h3>
+            {c.company && <p className="mt-0.5 text-sm text-gray-500 truncate">{c.company}</p>}
+            <p className="mt-0.5 text-xs text-gray-400 truncate">{c.email}</p>
+          </div>
+        </button>
       </div>
 
       {/* Stats row + dropdown toggle */}
@@ -132,18 +138,16 @@ function CustomerCard({
               <FileText size={14} className="text-gray-400" />
               <div>
                 <span className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">
-                  Teklif
+                  {t('customers.card_quotes')}
                 </span>
-                <p className="text-sm font-semibold text-gray-800 leading-tight">
-                  {quoteCount}
-                </p>
+                <p className="text-sm font-semibold text-gray-800 leading-tight">{quoteCount}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <TrendingUp size={14} className="text-gray-400" />
               <div>
                 <span className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">
-                  Toplam Deger
+                  {t('customers.card_total_value')}
                 </span>
                 <p className="text-sm font-semibold text-gray-800 leading-tight">
                   {formatCurrency(c.total_quote_value ?? 0, 'TRY')}
@@ -171,7 +175,9 @@ function CustomerCard({
                 ))}
               </div>
             ) : quotes.length === 0 ? (
-              <p className="px-5 py-3 text-xs text-gray-400">Teklif bulunamadi</p>
+              <p className="px-5 py-3 text-xs text-gray-400">
+                {t('customers.card_quotes_not_found')}
+              </p>
             ) : (
               <div className="divide-y divide-gray-100/80">
                 {quotes.map((q) => (
@@ -199,7 +205,10 @@ function CustomerCard({
                           ))}
                           {q.items.length > 3 && (
                             <span className="text-[10px] text-gray-400">
-                              +{q.items.length - 3} daha
+                              {t('customers.card_more').replace(
+                                '{count}',
+                                String(q.items.length - 3),
+                              )}
                             </span>
                           )}
                         </div>
@@ -211,7 +220,7 @@ function CustomerCard({
                           STATUS_COLORS[q.status] || 'bg-gray-100 text-gray-600'
                         }`}
                       >
-                        {STATUS_LABELS[q.status] || q.status}
+                        {translateStatus(q.status, t)}
                       </span>
                       <span className="text-xs font-semibold text-gray-700 tabular-nums">
                         {formatCurrency(q.grand_total, q.currency)}
@@ -243,6 +252,7 @@ const INITIAL_FORM = {
 };
 
 export default function CustomerListPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const importRef = useRef<HTMLInputElement>(null);
@@ -265,21 +275,21 @@ export default function CustomerListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => customersApi.createCustomer(payload),
     onSuccess: () => {
-      toast.success('Müşteri başarıyla eklendi');
+      toast.success(t('customers.toast_created'));
       setModalOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: () => toast.error('Müşteri eklenemedi'),
+    onError: () => toast.error(t('customers.toast_create_failed')),
   });
 
   const importMutation = useMutation({
     mutationFn: (file: File) => customersApi.importCustomers(file),
     onSuccess: (res) => {
-      toast.success(`${res.imported} müşteri içe aktarıldı`);
+      toast.success(t('customers.toast_imported').replace('{count}', String(res.imported)));
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: () => toast.error('İçe aktarma başarısız'),
+    onError: () => toast.error(t('customers.toast_import_failed')),
   });
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,7 +325,7 @@ export default function CustomerListPage() {
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: () => toast.error('Toplu işlem başarısız oldu'),
+    onError: () => toast.error(t('customers.bulk_failed')),
   });
 
   const handleBulkAction = useCallback(
@@ -330,11 +340,11 @@ export default function CustomerListPage() {
         return;
       }
       if (key === 'assign') {
-        const ownerIdStr = window.prompt('Atanacak kullanıcı ID\'sini girin:');
+        const ownerIdStr = window.prompt(t('customers.prompt_assign_user_id'));
         if (!ownerIdStr) return;
         const ownerId = parseInt(ownerIdStr, 10);
         if (isNaN(ownerId)) {
-          toast.error('Geçersiz kullanıcı ID');
+          toast.error(t('customers.invalid_user_id'));
           return;
         }
         bulkMutation.mutate({ ids, action: 'assign', params: { created_by: ownerId } });
@@ -345,14 +355,14 @@ export default function CustomerListPage() {
   );
 
   const BULK_ACTIONS = [
-    { key: 'assign', label: 'Sahip Ata' },
-    { key: 'export', label: 'CSV Indir' },
-    { key: 'delete', label: 'Sil', variant: 'danger' as const },
+    { key: 'assign', label: t('customers.bulk_assign') },
+    { key: 'export', label: t('customers.bulk_export') },
+    { key: 'delete', label: t('customers.bulk_delete'), variant: 'danger' as const },
   ];
 
   return (
     <div>
-      <PageHeader title="Müşteriler" description="Müşteri yönetimi">
+      <PageHeader title={t('customers.list_title')} description={t('customers.list_description')}>
         <input
           type="file"
           ref={importRef}
@@ -365,16 +375,16 @@ export default function CustomerListPage() {
           loading={importMutation.isPending}
           onClick={() => importRef.current?.click()}
         >
-          İçe Aktar
+          {t('customers.import')}
         </Button>
-        <Button onClick={() => setModalOpen(true)}>Yeni Müşteri</Button>
+        <Button onClick={() => setModalOpen(true)}>{t('customers.new')}</Button>
       </PageHeader>
 
       {/* Search + Select All */}
       <div className="mb-6 flex items-center gap-4">
         <div className="max-w-md flex-1">
           <Input
-            placeholder="İsim, şirket veya email ile ara..."
+            placeholder={t('customers.search_placeholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -390,7 +400,7 @@ export default function CustomerListPage() {
               onChange={toggleAll}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            Tumu Seç
+            {t('customers.select_all')}
           </label>
         )}
       </div>
@@ -408,11 +418,9 @@ export default function CustomerListPage() {
             <Users size={36} className="text-gray-400" />
           </div>
           <EmptyState
-            title="Müşteri bulunamadi"
-            description="Yeni müşteri ekleyerek baslayabilirsiniz"
-            action={
-              <Button onClick={() => setModalOpen(true)}>Yeni Müşteri</Button>
-            }
+            title={t('customers.empty_title')}
+            description={t('customers.empty_description')}
+            action={<Button onClick={() => setModalOpen(true)}>{t('customers.new')}</Button>}
           />
         </div>
       ) : (
@@ -433,7 +441,9 @@ export default function CustomerListPage() {
           {totalPages > 1 && (
             <div className="mt-8 flex items-center justify-between">
               <span className="text-sm text-gray-500">
-                Sayfa {page} / {totalPages}
+                {t('customers.pagination')
+                  .replace('{page}', String(page))
+                  .replace('{pages}', String(totalPages))}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -442,7 +452,7 @@ export default function CustomerListPage() {
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
                 >
-                  Onceki
+                  {t('customers.prev')}
                 </Button>
                 <Button
                   variant="secondary"
@@ -450,7 +460,7 @@ export default function CustomerListPage() {
                   disabled={page >= totalPages}
                   onClick={() => setPage(page + 1)}
                 >
-                  Sonraki
+                  {t('customers.next')}
                 </Button>
               </div>
             </div>
@@ -462,7 +472,7 @@ export default function CustomerListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title="Yeni Müşteri"
+        title={t('customers.modal_new_title')}
         size="lg"
       >
         <form
@@ -474,38 +484,38 @@ export default function CustomerListPage() {
         >
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Input
-              label="İsim"
+              label={t('customers.name')}
               value={form.name}
               onChange={(e) => updateField('name', e.target.value)}
               required
             />
             <Input
-              label="Şirket"
+              label={t('customers.company')}
               value={form.company}
               onChange={(e) => updateField('company', e.target.value)}
             />
             <Input
-              label="Email"
+              label={t('customers.email')}
               type="email"
               value={form.email}
               onChange={(e) => updateField('email', e.target.value)}
               required
             />
             <Input
-              label="Telefon"
+              label={t('customers.phone')}
               value={form.phone}
               onChange={(e) => updateField('phone', e.target.value)}
             />
             <Input
-              label="Vergi No"
+              label={t('customers.tax_id')}
               value={form.tax_id}
               onChange={(e) => updateField('tax_id', e.target.value)}
             />
             <Input
-              label="Tercih Edilen Dil"
+              label={t('customers.preferred_lang')}
               value={form.preferred_lang}
               onChange={(e) => updateField('preferred_lang', e.target.value)}
-              placeholder="tr / en"
+              placeholder={t('customers.preferred_lang_placeholder')}
             />
           </div>
           <DuplicateWarning
@@ -515,20 +525,16 @@ export default function CustomerListPage() {
             email={form.email}
           />
           <Input
-            label="Adres"
+            label={t('customers.address')}
             value={form.address}
             onChange={(e) => updateField('address', e.target.value)}
           />
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
-              İptal
+              {t('common.cancel')}
             </Button>
-            <Button
-              type="submit"
-              loading={createMutation.isPending}
-              className="px-8 shadow-sm"
-            >
-              Kaydet
+            <Button type="submit" loading={createMutation.isPending} className="px-8 shadow-sm">
+              {t('common.save')}
             </Button>
           </div>
         </form>
@@ -550,9 +556,9 @@ export default function CustomerListPage() {
           bulkMutation.mutate({ ids: Array.from(selectedIds), action: 'delete' });
           setShowDeleteConfirm(false);
         }}
-        title="Musterileri Sil"
-        message={`${selectedCount} musteriyi silmek istediginize emin misiniz? Bu işlem geri alinamaz.`}
-        confirmLabel="Sil"
+        title={t('customers.delete_title')}
+        message={t('customers.delete_message').replace('{count}', String(selectedCount))}
+        confirmLabel={t('common.delete')}
         confirmVariant="danger"
         isLoading={bulkMutation.isPending}
       />

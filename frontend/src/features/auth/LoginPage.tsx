@@ -5,15 +5,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
 import { SalesSuitLogo } from '../../components/brand/SalesSuitLogo';
+import { useT } from '../../hooks/useT';
 
-const loginSchema = z.object({
-  email: z.string().min(1, 'E-posta adresi gereklidir').email('Geçerli bir e-posta adresi giriniz'),
-  password: z.string().min(1, 'Sifre gereklidir'),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
+type LoginForm = { email: string; password: string };
 
 export function LoginPage() {
+  const t = useT();
+
+  const loginSchema = z.object({
+    email: z.string().min(1, t('auth.email_required')).email(t('auth.email_invalid')),
+    password: z.string().min(1, t('auth.password_required')),
+  });
+
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((state) => state.login);
@@ -32,12 +35,13 @@ export function LoginPage() {
   const onSubmit = async (values: LoginForm) => {
     try {
       await login(values.email, values.password);
-      toast.success('Giris başarılı');
+      toast.success(t('auth.login_success'));
       navigate(from, { replace: true });
     } catch (error: unknown) {
-      const raw =
-        (error as { response?: { data?: { detail?: unknown; error?: { message?: string } } } })?.response?.data;
-      let message = 'Giris başarısız. Lütfen bilgilerinizi kontrol ediniz.';
+      const raw = (
+        error as { response?: { data?: { detail?: unknown; error?: { message?: string } } } }
+      )?.response?.data;
+      let message = t('auth.login_failed');
       if (raw?.error?.message) {
         message = raw.error.message;
       } else if (typeof raw?.detail === 'string') {
@@ -53,7 +57,7 @@ export function LoginPage() {
         {/* Logo / Brand */}
         <div className="mb-10 flex flex-col items-center">
           <SalesSuitLogo size="lg" className="mb-4" />
-          <p className="text-sm text-gray-400 tracking-wide">Hesabiniza giris yapiniz</p>
+          <p className="text-sm text-gray-400 tracking-wide">{t('auth.subtitle')}</p>
         </div>
 
         {/* Form Card */}
@@ -62,13 +66,13 @@ export function LoginPage() {
             {/* Email */}
             <div>
               <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-600">
-                E-posta
+                {t('auth.email')}
               </label>
               <input
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="örnek@honeywell.com"
+                placeholder={t('auth.email_placeholder')}
                 className={`w-full rounded-xl border bg-gray-50/50 px-4 py-3 text-sm outline-none transition-all duration-200 focus:bg-white focus:border-honeywell-red focus:ring-2 focus:ring-honeywell-light focus:shadow-sm ${
                   errors.email ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
                 }`}
@@ -82,7 +86,7 @@ export function LoginPage() {
             {/* Password */}
             <div>
               <label htmlFor="password" className="mb-2 block text-sm font-medium text-gray-600">
-                Sifre
+                {t('auth.password')}
               </label>
               <input
                 id="password"
@@ -105,14 +109,12 @@ export function LoginPage() {
               disabled={isSubmitting}
               className="btn-modern w-full bg-honeywell-red px-4 py-3 text-sm text-white shadow-lg shadow-red-200/50 hover:bg-honeywell-dark hover:shadow-xl hover:shadow-red-300/50 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97]"
             >
-              {isSubmitting ? 'Giris yapiliyor...' : 'Giris Yap'}
+              {isSubmitting ? t('auth.logging_in') : t('auth.login')}
             </button>
           </form>
         </div>
 
-        <p className="mt-8 text-center text-xs text-gray-400">
-          &copy; 2026 Honeywell Sales Suit. Tüm haklar saklidir.
-        </p>
+        <p className="mt-8 text-center text-xs text-gray-400">{t('auth.footer')}</p>
       </div>
     </div>
   );

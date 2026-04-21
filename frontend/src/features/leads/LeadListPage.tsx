@@ -17,6 +17,8 @@ import { getErrorMessage } from '../../lib/utils';
 import { DuplicateWarning } from '../../components/ui/DuplicateWarning';
 import { formatDate } from '../../lib/formatters';
 import { UserPlus, Search } from 'lucide-react';
+import { useT } from '../../hooks/useT';
+import { LEAD_STATUS_VALUES, translateLeadStatus } from '../../lib/labelTranslations';
 
 interface Lead {
   id: number;
@@ -31,14 +33,6 @@ interface Lead {
   lead_score: number;
   created_at: string;
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  new: 'Yeni',
-  contacted: 'Iletisime Gecildi',
-  qualified: 'Nitelikli',
-  unqualified: 'Niteliksiz',
-  converted: 'Donusturuldu',
-};
 
 const STATUS_COLORS: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
   new: 'default',
@@ -65,6 +59,7 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 export default function LeadListPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -105,7 +100,7 @@ export default function LeadListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => leadsApi.create(payload),
     onSuccess: () => {
-      toast.success('Lead oluşturuldu');
+      toast.success(t('leads.toast_created'));
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setShowCreate(false);
       setForm({
@@ -118,7 +113,7 @@ export default function LeadListPage() {
         source: 'manual',
       });
     },
-    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Hata oluştu')),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, t('leads.error_generic'))),
   });
 
   const bulkMutation = useMutation({
@@ -129,7 +124,7 @@ export default function LeadListPage() {
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
-    onError: () => toast.error('Toplu işlem başarısız oldu'),
+    onError: () => toast.error(t('leads.bulk_failed')),
   });
 
   const handleBulkAction = useCallback(
@@ -144,11 +139,11 @@ export default function LeadListPage() {
         return;
       }
       if (key === 'assign') {
-        const ownerIdStr = window.prompt("Atanacak kullanıcı ID'sini girin:");
+        const ownerIdStr = window.prompt(t('leads.prompt_assign_user_id'));
         if (!ownerIdStr) return;
         const ownerId = parseInt(ownerIdStr, 10);
         if (isNaN(ownerId)) {
-          toast.error('Geçersiz kullanıcı ID');
+          toast.error(t('leads.invalid_user_id'));
           return;
         }
         bulkMutation.mutate({ ids, action: 'assign', params: { owner_id: ownerId } });
@@ -163,10 +158,10 @@ export default function LeadListPage() {
   );
 
   const BULK_ACTIONS = [
-    { key: 'change_status', label: 'Durum Degistir' },
-    { key: 'assign', label: 'Sahip Ata' },
-    { key: 'export', label: 'CSV Indir' },
-    { key: 'delete', label: 'Sil', variant: 'danger' as const },
+    { key: 'change_status', label: t('leads.bulk_change_status') },
+    { key: 'assign', label: t('leads.bulk_assign') },
+    { key: 'export', label: t('leads.bulk_export') },
+    { key: 'delete', label: t('leads.bulk_delete'), variant: 'danger' as const },
   ];
 
   const columns = [
@@ -174,7 +169,10 @@ export default function LeadListPage() {
       key: 'select',
       header: '',
       render: (row: Lead) => (
-        <label className="flex items-center" aria-label={`${row.first_name} ${row.last_name} seç`}>
+        <label
+          className="flex items-center"
+          aria-label={`${row.first_name} ${row.last_name} ${t('leads.aria_select_row_suffix')}`}
+        >
           <input
             type="checkbox"
             checked={isSelected(row.id)}
@@ -190,7 +188,7 @@ export default function LeadListPage() {
     },
     {
       key: 'full_name',
-      header: 'Ad Soyad',
+      header: t('leads.col_name'),
       render: (row: Lead) => (
         <div>
           <p className="font-medium text-gray-900 dark:text-white">
@@ -200,37 +198,34 @@ export default function LeadListPage() {
         </div>
       ),
     },
-    { key: 'email', header: 'Email' },
+    { key: 'email', header: t('leads.col_email') },
     {
       key: 'lead_score',
-      header: 'Skor',
+      header: t('leads.col_score'),
       render: (row: Lead) => <ScoreBadge score={row.lead_score} />,
     },
     {
       key: 'status',
-      header: 'Durum',
+      header: t('leads.col_status'),
       render: (row: Lead) => (
         <Badge variant={STATUS_COLORS[row.status] || 'default'}>
-          {STATUS_LABELS[row.status] || row.status}
+          {translateLeadStatus(row.status, t)}
         </Badge>
       ),
     },
-    { key: 'source', header: 'Kaynak' },
+    { key: 'source', header: t('leads.col_source') },
     {
       key: 'created_at',
-      header: 'Tarih',
+      header: t('leads.col_date'),
       render: (row: Lead) => formatDate(row.created_at),
     },
   ];
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="Potansiyel Müşteriler (Leads)"
-        description="Lead yönetimi, skorlama ve donusum"
-      >
+      <PageHeader title={t('leads.title')} description={t('leads.description')}>
         <Button onClick={() => setShowCreate(true)}>
-          <UserPlus className="mr-1 h-4 w-4" /> Yeni Lead
+          <UserPlus className="mr-1 h-4 w-4" /> {t('leads.new')}
         </Button>
       </PageHeader>
 
@@ -239,7 +234,7 @@ export default function LeadListPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Ara (isim, email, firma)..."
+            placeholder={t('leads.search_placeholder')}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             value={search}
             onChange={(e) => {
@@ -256,10 +251,10 @@ export default function LeadListPage() {
             setPage(1);
           }}
         >
-          <option value="">Tüm Durumlar</option>
-          {Object.entries(STATUS_LABELS).map(([k, v]) => (
+          <option value="">{t('leads.all_statuses')}</option>
+          {LEAD_STATUS_VALUES.map((k) => (
             <option key={k} value={k}>
-              {v}
+              {translateLeadStatus(k, t)}
             </option>
           ))}
         </select>
@@ -271,7 +266,7 @@ export default function LeadListPage() {
               onChange={toggleAll}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            Tumu Seç
+            {t('leads.select_all')}
           </label>
         )}
       </div>
@@ -281,7 +276,7 @@ export default function LeadListPage() {
           columns={columns}
           data={items}
           loading={isLoading}
-          emptyMessage="Henüz lead bulunmuyor"
+          emptyMessage={t('leads.empty')}
           onRowClick={(row: Lead) => navigate(`/leads/${row.id}`)}
           page={page}
           totalPages={data?.pages || 0}
@@ -290,7 +285,11 @@ export default function LeadListPage() {
       </Card>
 
       {/* Create Lead Modal */}
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Yeni Lead Oluştur">
+      <Modal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        title={t('leads.modal_create_title')}
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -300,32 +299,32 @@ export default function LeadListPage() {
         >
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="Ad"
+              label={t('leads.first_name')}
               value={form.first_name}
               onChange={(e) => setForm({ ...form, first_name: e.target.value })}
               required
             />
             <Input
-              label="Soyad"
+              label={t('leads.last_name')}
               value={form.last_name}
               onChange={(e) => setForm({ ...form, last_name: e.target.value })}
               required
             />
           </div>
           <Input
-            label="Email"
+            label={t('leads.col_email')}
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
           />
           <Input
-            label="Telefon"
+            label={t('leads.phone')}
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
           <Input
-            label="Firma"
+            label={t('leads.company')}
             value={form.company}
             onChange={(e) => setForm({ ...form, company: e.target.value })}
           />
@@ -336,16 +335,16 @@ export default function LeadListPage() {
             email={form.email}
           />
           <Input
-            label="Unvan"
+            label={t('leads.job_title')}
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setShowCreate(false)} type="button">
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={createMutation.isPending}>
-              Oluştur
+              {t('common.create')}
             </Button>
           </div>
         </form>
@@ -367,9 +366,9 @@ export default function LeadListPage() {
           bulkMutation.mutate({ ids: Array.from(selectedIds), action: 'delete' });
           setShowDeleteConfirm(false);
         }}
-        title="Leadleri Sil"
-        message={`${selectedCount} leadi silmek istediginize emin misiniz? Bu işlem geri alinamaz.`}
-        confirmLabel="Sil"
+        title={t('leads.delete_title')}
+        message={t('leads.delete_message').replace('{count}', String(selectedCount))}
+        confirmLabel={t('common.delete')}
         confirmVariant="danger"
         isLoading={bulkMutation.isPending}
       />
@@ -378,24 +377,26 @@ export default function LeadListPage() {
       <Modal
         isOpen={showStatusModal}
         onClose={() => setShowStatusModal(false)}
-        title="Durum Degistir"
+        title={t('leads.status_change_title')}
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">{selectedCount} lead icin yeni durum seçin:</p>
+          <p className="text-sm text-gray-600">
+            {t('leads.status_change_desc').replace('{count}', String(selectedCount))}
+          </p>
           <select
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             value={newStatus}
             onChange={(e) => setNewStatus(e.target.value)}
           >
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
+            {LEAD_STATUS_VALUES.map((k) => (
               <option key={k} value={k}>
-                {v}
+                {translateLeadStatus(k, t)}
               </option>
             ))}
           </select>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowStatusModal(false)}>
-              İptal
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={() => {
@@ -407,7 +408,7 @@ export default function LeadListPage() {
                 setShowStatusModal(false);
               }}
             >
-              Uygula
+              {t('leads.apply')}
             </Button>
           </div>
         </div>

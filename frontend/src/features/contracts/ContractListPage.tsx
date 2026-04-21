@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -10,15 +10,9 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { contractsApi, customersApi } from '../../lib/api';
 import type { Contract, Customer } from '../../lib/types';
-
-const STATUS_OPTIONS = [
-  { value: '', label: 'Tumu' },
-  { value: 'draft', label: 'Taslak' },
-  { value: 'active', label: 'Aktif' },
-  { value: 'amended', label: 'Degistirilmis' },
-  { value: 'expired', label: 'Süresi Dolmus' },
-  { value: 'terminated', label: 'Feshedilmis' },
-];
+import { useT } from '../../hooks/useT';
+import { CONTRACT_STATUS_VALUES, translateContractStatus } from '../../lib/labelTranslations';
+import { formatDate, currentLocale } from '../../lib/formatters';
 
 const STATUS_BADGES: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-700',
@@ -28,15 +22,9 @@ const STATUS_BADGES: Record<string, string> = {
   terminated: 'bg-red-200 text-red-800',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Taslak',
-  active: 'Aktif',
-  amended: 'Degistirilmis',
-  expired: 'Süresi Dolmus',
-  terminated: 'Feshedilmis',
-};
-
 export default function ContractListPage() {
+  const t = useT();
+  const locale = currentLocale();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
@@ -75,13 +63,13 @@ export default function ContractListPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => contractsApi.create(payload),
     onSuccess: (data) => {
-      toast.success('Kontrat oluşturuldu');
+      toast.success(t('contracts.toast_created'));
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       setIsCreateOpen(false);
       resetForm();
       navigate(`/contracts/${(data as Contract).id}`);
     },
-    onError: () => toast.error('Kontrat oluşturulamadı'),
+    onError: () => toast.error(t('contracts.toast_create_failed')),
   });
 
   const resetForm = useCallback(() => {
@@ -95,7 +83,7 @@ export default function ContractListPage() {
 
   const handleCreate = useCallback(() => {
     if (!formTitle || !formCustomerId) {
-      toast.error('Baslik ve müşteri zorunludur');
+      toast.error(t('contracts.err_title_customer'));
       return;
     }
     createMutation.mutate({
@@ -105,16 +93,27 @@ export default function ContractListPage() {
       end_date: formEndDate || undefined,
       value: formValue ? parseFloat(formValue) : undefined,
     });
-  }, [formTitle, formCustomerId, formStartDate, formEndDate, formValue, createMutation]);
+  }, [formTitle, formCustomerId, formStartDate, formEndDate, formValue, createMutation, t]);
 
   const contracts: Contract[] = contractsData?.contracts || [];
   const expiringContracts: Contract[] = expiringData?.contracts || [];
   const expiringCount = expiringData?.count || 0;
 
+  const statusOptions = useMemo(
+    () => [
+      { value: '', label: t('labels.all') },
+      ...CONTRACT_STATUS_VALUES.map((value) => ({
+        value,
+        label: translateContractStatus(value, t),
+      })),
+    ],
+    [t],
+  );
+
   return (
     <div>
-      <PageHeader title="Kontratlar" description="Kontrat yasam dongusu yönetimi">
-        <Button onClick={() => setIsCreateOpen(true)}>Yeni Kontrat</Button>
+      <PageHeader title={t('contracts.title')} description={t('contracts.description')}>
+        <Button onClick={() => setIsCreateOpen(true)}>{t('contracts.new')}</Button>
       </PageHeader>
 
       {/* Tabs */}
@@ -128,7 +127,7 @@ export default function ContractListPage() {
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          Tüm Kontratlar
+          {t('contracts.tab_all')}
         </button>
         <button
           type="button"
@@ -139,7 +138,7 @@ export default function ContractListPage() {
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          Suresi Dolan
+          {t('contracts.tab_expiring')}
           {expiringCount > 0 && (
             <span
               className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
@@ -160,16 +159,16 @@ export default function ContractListPage() {
           <div className="mb-4 flex flex-wrap gap-3">
             <div className="w-48">
               <Select
-                label="Durum"
-                options={STATUS_OPTIONS}
+                label={t('contracts.filter_status')}
+                options={statusOptions}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               />
             </div>
             <div className="w-64">
               <Input
-                label="Ara"
-                placeholder="Kontrat basligi..."
+                label={t('contracts.search_label')}
+                placeholder={t('contracts.search_ph')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -180,7 +179,7 @@ export default function ContractListPage() {
 
           {!isLoading && contracts.length === 0 && (
             <Card>
-              <p className="py-8 text-center text-sm text-gray-500">Kontrat bulunamadi</p>
+              <p className="py-8 text-center text-sm text-gray-500">{t('contracts.empty')}</p>
             </Card>
           )}
 
@@ -190,14 +189,24 @@ export default function ContractListPage() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">Baslik</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">Durum</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">Baslangic</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">Bitis</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
-                        Değer
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                        {t('contracts.col_title')}
                       </th>
-                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">Olusturulma</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                        {t('contracts.col_status')}
+                      </th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                        {t('contracts.col_start')}
+                      </th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                        {t('contracts.col_end')}
+                      </th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
+                        {t('contracts.col_value')}
+                      </th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                        {t('contracts.col_created')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -212,20 +221,22 @@ export default function ContractListPage() {
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGES[contract.status] || 'bg-gray-100 text-gray-700'}`}
                           >
-                            {STATUS_LABELS[contract.status] || contract.status}
+                            {translateContractStatus(contract.status, t)}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-gray-600">{contract.start_date || '-'}</td>
-                        <td className="px-3 py-2 text-gray-600">{contract.end_date || '-'}</td>
+                        <td className="px-3 py-2 text-gray-600">
+                          {contract.start_date ? formatDate(contract.start_date, locale) : '-'}
+                        </td>
+                        <td className="px-3 py-2 text-gray-600">
+                          {contract.end_date ? formatDate(contract.end_date, locale) : '-'}
+                        </td>
                         <td className="px-3 py-2 text-right font-medium text-gray-900">
                           {contract.value != null
-                            ? contract.value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })
+                            ? contract.value.toLocaleString(locale, { minimumFractionDigits: 2 })
                             : '-'}
                         </td>
                         <td className="px-3 py-2 text-xs text-gray-400">
-                          {contract.created_at
-                            ? new Date(contract.created_at).toLocaleDateString('tr-TR')
-                            : '-'}
+                          {contract.created_at ? formatDate(contract.created_at, locale) : '-'}
                         </td>
                       </tr>
                     ))}
@@ -238,20 +249,24 @@ export default function ContractListPage() {
       )}
 
       {activeTab === 'expiring' && (
-        <Card title="Süresi Yaklasiyor (30 gun)">
+        <Card title={t('contracts.expiring_title')}>
           {expiringContracts.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">
-              Süresi dolmak uzere olan kontrat yok
+              {t('contracts.expiring_empty')}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">Baslik</th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">Bitis Tarihi</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                      {t('contracts.col_title')}
+                    </th>
+                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                      {t('contracts.col_end_date')}
+                    </th>
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
-                      Değer
+                      {t('contracts.col_value')}
                     </th>
                   </tr>
                 </thead>
@@ -268,7 +283,7 @@ export default function ContractListPage() {
                       </td>
                       <td className="px-3 py-2 text-right font-medium text-gray-900">
                         {contract.value != null
-                          ? contract.value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })
+                          ? contract.value.toLocaleString(locale, { minimumFractionDigits: 2 })
                           : '-'}
                       </td>
                     </tr>
@@ -284,20 +299,22 @@ export default function ContractListPage() {
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">Yeni Kontrat</h3>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+              {t('contracts.modal_create_title')}
+            </h3>
             <div className="space-y-3">
               <Input
-                label="Baslik"
+                label={t('contracts.label_title')}
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                placeholder="Kontrat basligi"
+                placeholder={t('contracts.title_ph')}
               />
               <div className="relative">
                 <Input
-                  label="Müşteri"
+                  label={t('contracts.label_customer')}
                   value={formCustomerSearch}
                   onChange={(e) => setFormCustomerSearch(e.target.value)}
-                  placeholder="Müşteri ara..."
+                  placeholder={t('contracts.customer_search_ph')}
                 />
                 {customerResults?.items &&
                   customerResults.items.length > 0 &&
@@ -323,26 +340,26 @@ export default function ContractListPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Baslangic Tarihi"
+                  label={t('contracts.label_start_date')}
                   type="date"
                   value={formStartDate}
                   onChange={(e) => setFormStartDate(e.target.value)}
                 />
                 <Input
-                  label="Bitis Tarihi"
+                  label={t('contracts.label_end_date')}
                   type="date"
                   value={formEndDate}
                   onChange={(e) => setFormEndDate(e.target.value)}
                 />
               </div>
               <Input
-                label="Değer"
+                label={t('contracts.label_value')}
                 type="number"
                 min={0}
                 step={0.01}
                 value={formValue}
                 onChange={(e) => setFormValue(e.target.value)}
-                placeholder="Kontrat degeri"
+                placeholder={t('contracts.value_ph')}
               />
             </div>
             <div className="mt-5 flex justify-end gap-2">
@@ -353,10 +370,10 @@ export default function ContractListPage() {
                   resetForm();
                 }}
               >
-                İptal
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleCreate} loading={createMutation.isPending}>
-                Oluştur
+                {t('contracts.create')}
               </Button>
             </div>
           </div>
