@@ -30,7 +30,7 @@ services:
       - key: DEFAULT_ADMIN_PASSWORD
         value: Honeywell2026!
       - key: CORS_ORIGINS
-        value: "*"
+        value: "https://honeywell-frontend.onrender.com"
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: ENCRYPTION_KEY
@@ -66,5 +66,8 @@ services:
         source: /*
         destination: /index.html
     envVars:
+      # Use relative /api/v1 so the static site's /api/* rewrite proxies to the
+      # backend. This keeps requests same-origin and avoids CORS credentials
+      # issues (CORS `*` + withCredentials is rejected by browsers).
       - key: VITE_API_URL
-        value: https://honeywell-backend.onrender.com/api/v1
+        value: /api/v1
