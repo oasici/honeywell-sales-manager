@@ -171,7 +171,9 @@ async def bulk_import_users(
     if not file.filename or not file.filename.endswith(".csv"):
         raise BadRequestException("Sadece CSV dosyasi yuklenebilir")
 
-    content = await file.read()
+    from app.core.config import settings as cfg
+    from app.core.upload_utils import read_upload_file_limited
+    content = await read_upload_file_limited(file, max_bytes=cfg.MAX_UPLOAD_SIZE_MB * 1024 * 1024)
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:

@@ -130,9 +130,10 @@ async def create_quote_from_pdf(
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise BadRequestException("Sadece PDF dosyasi kabul edilir")
 
-    content = await file.read()
-    if len(content) > 10 * 1024 * 1024:  # 10MB limit
-        raise BadRequestException("PDF dosya boyutu 10MB'i asamaz")
+    from app.core.config import settings as cfg
+    from app.core.upload_utils import read_upload_file_limited
+
+    content = await read_upload_file_limited(file, max_bytes=cfg.MAX_UPLOAD_SIZE_MB * 1024 * 1024)
     if content[:4] != b'%PDF':
         raise BadRequestException("Gecerli bir PDF dosyasi degil")
 
@@ -144,7 +145,21 @@ async def create_quote_from_pdf(
         import asyncio
         from app.services.pdf_import_service import extract_quote_data_from_pdf
 
-        pdf_data = await asyncio.to_thread(extract_quote_data_from_pdf, tmp_path)
+        # Hard limit: parsing can be CPU-heavy for crafted PDFs (DoS). Budget it.
+        timeout_s = getattr(cfg, "PDF_PARSE_TIMEOUT_SECONDS", 12)
+        max_pages = getattr(cfg, "PDF_PARSE_MAX_PAGES", 12)
+        sem_limit = getattr(cfg, "PDF_PARSE_CONCURRENCY", 2)
+        from app.services.pdf_import_service import set_pdf_limits
+
+        set_pdf_limits(max_pages=max_pages)
+
+        # Best-effort global concurrency limit
+        from app.services.pdf_import_service import pdf_parse_semaphore
+        async with pdf_parse_semaphore(sem_limit):
+            pdf_data = await asyncio.wait_for(
+                asyncio.to_thread(extract_quote_data_from_pdf, tmp_path),
+                timeout=timeout_s,
+            )
     finally:
         os.unlink(tmp_path)
 

@@ -23,6 +23,7 @@ import type {
 
 // ── Axios instance ───────────────────────────────────
 const BACKEND_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const COOKIE_AUTH_ONLY = import.meta.env.VITE_COOKIE_AUTH_ONLY === 'true';
 
 const api = axios.create({
   baseURL: BACKEND_URL,
@@ -43,8 +44,8 @@ function getCookie(name: string): string | null {
 // CSRF header for state-changing cookie-auth requests.
 api.interceptors.request.use((config) => {
   // Legacy header auth: only if a token exists in localStorage (pre-cookie users)
-  const token = localStorage.getItem('token');
-  if (token) {
+  const token = COOKIE_AUTH_ONLY ? null : localStorage.getItem('token');
+  if (token && !COOKIE_AUTH_ONLY) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -102,12 +103,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (status === 401 && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem('refreshToken');
-
-      if (!refreshToken) {
-        clearAuthAndRedirect();
-        return Promise.reject(error);
-      }
+      const refreshToken = COOKIE_AUTH_ONLY ? null : localStorage.getItem('refreshToken');
 
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
@@ -124,20 +120,25 @@ api.interceptors.response.use(
       try {
         const { data: tokenData } = await axios.post<TokenResponse>(
           `${BACKEND_URL}/auth/refresh`,
-          { refresh_token: refreshToken },
+          COOKIE_AUTH_ONLY ? {} : { refresh_token: refreshToken },
           { headers: { 'Content-Type': 'application/json' } },
         );
 
         const newToken = tokenData.access_token;
-        localStorage.setItem('token', newToken);
+        if (!COOKIE_AUTH_ONLY) {
+          localStorage.setItem('token', newToken);
+        }
 
         if (tokenData.refresh_token) {
-          localStorage.setItem('refreshToken', tokenData.refresh_token);
+          if (!COOKIE_AUTH_ONLY) {
+            localStorage.setItem('refreshToken', tokenData.refresh_token);
+          }
         }
 
         processQueue(null, newToken);
-
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        if (!COOKIE_AUTH_ONLY) {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        }
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
@@ -189,15 +190,16 @@ export const authApi = {
     return data;
   },
 
-  refresh: async (refreshToken: string): Promise<TokenResponse> => {
-    const { data } = await api.post<TokenResponse>('/auth/refresh', {
-      refresh_token: refreshToken,
-    });
+  refresh: async (refreshToken?: string | null): Promise<TokenResponse> => {
+    const { data } = await api.post<TokenResponse>(
+      '/auth/refresh',
+      refreshToken ? { refresh_token: refreshToken } : {},
+    );
     return data;
   },
 
-  logout: async (refreshToken: string): Promise<void> => {
-    await api.post('/auth/logout', { refresh_token: refreshToken });
+  logout: async (refreshToken?: string | null): Promise<void> => {
+    await api.post('/auth/logout', refreshToken ? { refresh_token: refreshToken } : {});
   },
 };
 

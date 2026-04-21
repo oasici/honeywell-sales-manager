@@ -255,9 +255,8 @@ async def import_customers(
     if not (filename_lower.endswith(".csv") or filename_lower.endswith(".xlsx")):
         raise BadRequestException("Yalnizca .csv ve .xlsx dosyalari desteklenmektedir")
 
-    content = await file.read()
-    if len(content) > 5 * 1024 * 1024:
-        raise BadRequestException("Dosya boyutu 5MB'dan buyuk olamaz")
+    from app.core.upload_utils import read_upload_file_limited
+    content = await read_upload_file_limited(file, max_bytes=5 * 1024 * 1024)
 
     imported_count = 0
     skipped_count = 0

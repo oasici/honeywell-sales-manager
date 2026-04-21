@@ -108,10 +108,18 @@ def _try_redis_revoke(jti: str, ttl_seconds: int) -> bool:
             loop = None
 
         if loop and loop.is_running():
-            # We're in async context but this function is sync
-            # Fall back to memory, async caller should use revoke_token_async
+            # We're in async context but this function is sync.
             return False
-        return False  # Always fall back to memory in sync context
+
+        # Safe in sync context: create a short-lived loop just for this revoke.
+        async def _do() -> bool:
+            try:
+                await r.setex(f"revoked:{jti}", ttl_seconds, "1")
+                return True
+            except Exception:
+                return False
+
+        return asyncio.run(_do())
     except Exception:
         return False
 
@@ -122,8 +130,28 @@ def decode_token(token: str) -> dict | None:
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")
-        if jti and _is_revoked_memory(jti):
-            return None
+        if jti:
+            # Best-effort Redis check even in sync context (multi-worker safety).
+            try:
+                from app.core.redis_client import get_redis
+                r = get_redis()
+                if r is not None:
+                    import asyncio
+
+                    async def _exists() -> bool:
+                        try:
+                            return bool(await r.exists(f"revoked:{jti}"))
+                        except Exception:
+                            return False
+
+                    is_revoked = asyncio.run(_exists())
+                    if is_revoked:
+                        return None
+            except Exception:
+                pass
+
+            if _is_revoked_memory(jti):
+                return None
         return payload
     except JWTError:
         return None
@@ -169,7 +197,8 @@ def revoke_token(token: str) -> None:
         if jti:
             ttl = int(payload.get("exp", 0) - datetime.now(timezone.utc).timestamp())
             ttl = max(ttl, 60)
-            _revoke_memory(jti, ttl)
+            if not _try_redis_revoke(jti, ttl):
+                _revoke_memory(jti, ttl)
     except JWTError:
         pass
 

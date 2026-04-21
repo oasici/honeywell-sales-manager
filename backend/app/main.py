@@ -429,7 +429,7 @@ async def seed_demo_data(
     """One-time seed endpoint. Manager-only. Blocked in production."""
     import traceback
 
-    if settings.is_production:
+    if settings.is_production or not getattr(settings, "ENABLE_DEMO_SEED", False):
         raise HTTPException(
             status_code=404,
             detail="Not found",
@@ -470,8 +470,9 @@ async def _run_seed(results: dict) -> dict:
 
         # ── Users (rep, ops) ──
         # Passwords come from env vars; fall back to random if not set.
-        # The generated password is logged ONCE so the operator can capture it.
+        # IMPORTANT: Never log generated passwords.
         import secrets as _secrets
+        generated_passwords: dict[str, str] = {}
         rep = (await db.execute(select(User).where(User.email == "rep@honeywell.com"))).scalar_one_or_none()
         if not rep:
             rep_pw = settings.DEMO_REP_PASSWORD or _secrets.token_urlsafe(18)
@@ -479,7 +480,7 @@ async def _run_seed(results: dict) -> dict:
             db.add(rep)
             await db.flush()
             if not settings.DEMO_REP_PASSWORD:
-                logger.warning("Seed: generated temporary rep password (save it now): %s", rep_pw)
+                generated_passwords["rep@honeywell.com"] = rep_pw
             results["rep"] = f"created id={rep.id}"
         ops = (await db.execute(select(User).where(User.email == "ops@honeywell.com"))).scalar_one_or_none()
         if not ops:
@@ -488,7 +489,7 @@ async def _run_seed(results: dict) -> dict:
             db.add(ops)
             await db.flush()
             if not settings.DEMO_OPS_PASSWORD:
-                logger.warning("Seed: generated temporary ops password (save it now): %s", ops_pw)
+                generated_passwords["ops@honeywell.com"] = ops_pw
             results["ops"] = f"created id={ops.id}"
         admin = (await db.execute(select(User).where(User.email == "admin@honeywell.com"))).scalar_one_or_none()
 
@@ -650,6 +651,8 @@ async def _run_seed(results: dict) -> dict:
 
         await db.commit()
 
+    if generated_passwords:
+        return {"status": "ok", "results": results, "generated_passwords": generated_passwords}
     return {"status": "ok", "results": results}
 
 

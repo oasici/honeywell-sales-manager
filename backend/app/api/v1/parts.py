@@ -211,11 +211,8 @@ async def import_catalog(
     if suffix not in allowed:
         raise BadRequestException(f"Only {', '.join(allowed)} files are supported")
 
-    content = await file.read()
-
-    # Size check
-    if len(content) > cfg.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
-        raise BadRequestException(f"File too large (max {cfg.MAX_UPLOAD_SIZE_MB} MB)")
+    from app.core.upload_utils import read_upload_file_limited
+    content = await read_upload_file_limited(file, max_bytes=cfg.MAX_UPLOAD_SIZE_MB * 1024 * 1024)
 
     # Validate file content (magic bytes)
     content_start = content[:4]

@@ -5,6 +5,8 @@ import type { User } from '../lib/types';
 import { authApi } from '../lib/api';
 import { storage } from '../lib/storage';
 
+const COOKIE_AUTH_ONLY = import.meta.env.VITE_COOKIE_AUTH_ONLY === 'true';
+
 interface ApiErrorResponse {
   error?: { message?: string };
   detail?: string | Array<{ msg?: string }>;
@@ -48,15 +50,16 @@ interface AuthState {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  bootstrap: () => Promise<void>;
   clearError: () => void;
   setAuth: (token: string, refreshToken: string, user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: storage.get<User | null>('user', null),
-  token: localStorage.getItem('token'),
-  refreshToken: localStorage.getItem('refreshToken'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  token: COOKIE_AUTH_ONLY ? null : localStorage.getItem('token'),
+  refreshToken: COOKIE_AUTH_ONLY ? null : localStorage.getItem('refreshToken'),
+  isAuthenticated: COOKIE_AUTH_ONLY ? false : !!localStorage.getItem('token'),
   isLoading: false,
   error: null,
 
@@ -66,13 +69,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await authApi.login(email, password);
       const { access_token, refresh_token, user } = response;
 
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('refreshToken', refresh_token);
+      if (!COOKIE_AUTH_ONLY) {
+        localStorage.setItem('token', access_token);
+        localStorage.setItem('refreshToken', refresh_token);
+      } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+      }
       storage.set('user', user);
 
       set({
-        token: access_token,
-        refreshToken: refresh_token,
+        token: COOKIE_AUTH_ONLY ? null : access_token,
+        refreshToken: COOKIE_AUTH_ONLY ? null : refresh_token,
         user,
         isAuthenticated: true,
       });
@@ -85,12 +93,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  bootstrap: async () => {
+    // Cookie-first bootstrap: if cookies exist, /auth/me will succeed even without localStorage.
+    set({ isLoading: true, error: null });
+    try {
+      const me = await authApi.getMe();
+      storage.set('user', me);
+      set({
+        user: me,
+        isAuthenticated: true,
+        // keep token fields as-is; cookie-only mode doesn't use them
+      });
+    } catch {
+      // Not authenticated (or backend down) → clear local state
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      storage.remove('user');
+      set({
+        token: null,
+        refreshToken: null,
+        user: null,
+        isAuthenticated: false,
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   logout: async () => {
     const { refreshToken } = get();
     try {
-      if (refreshToken) {
-        await authApi.logout(refreshToken);
-      }
+      await authApi.logout(COOKIE_AUTH_ONLY ? null : refreshToken);
     } catch {
       // Ignore logout API errors – clear local state regardless
     }
@@ -110,13 +143,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   setAuth: (token: string, refreshToken: string, user: User) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('refreshToken', refreshToken);
+    if (!COOKIE_AUTH_ONLY) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('refreshToken', refreshToken);
+    }
     storage.set('user', user);
 
     set({
-      token,
-      refreshToken,
+      token: COOKIE_AUTH_ONLY ? null : token,
+      refreshToken: COOKIE_AUTH_ONLY ? null : refreshToken,
       user,
       isAuthenticated: true,
     });

@@ -115,7 +115,9 @@ async def import_prices(
     if not (filename_lower.endswith(".csv") or filename_lower.endswith(".xlsx")):
         raise BadRequestException("Yalnizca .csv ve .xlsx dosyalari desteklenmektedir")
 
-    content = await file.read()
+    from app.core.config import settings as cfg
+    from app.core.upload_utils import read_upload_file_limited
+    content = await read_upload_file_limited(file, max_bytes=cfg.MAX_UPLOAD_SIZE_MB * 1024 * 1024)
 
     imported_count = 0
     skipped_count = 0

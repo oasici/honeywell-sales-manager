@@ -10,6 +10,7 @@ import logging
 import socket
 import urllib.parse
 from datetime import datetime, timezone
+from secrets import token_hex
 from typing import Callable
 
 import httpx
@@ -25,15 +26,40 @@ MAX_RESPONSE_BODY_LENGTH = 1000
 MAX_FAILURE_COUNT = 10
 
 
-BLOCKED_NETWORKS = [
-    ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("169.254.0.0/16"),
-    ipaddress.ip_network("0.0.0.0/8"),
-    ipaddress.ip_network("::1/128"),
-]
+_BLOCKED_HOST_SUFFIXES = (
+    ".localhost",
+    ".local",
+    ".internal",
+)
+
+
+def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    # ipaddress covers RFC1918 + loopback + link-local + unspecified etc.
+    if ip.is_loopback:
+        return True
+    if ip.is_private:
+        return True
+    if ip.is_link_local:
+        return True
+    if ip.is_multicast:
+        return True
+    if ip.is_reserved:
+        return True
+    if ip.is_unspecified:
+        return True
+    return False
+
+
+def _resolve_host(hostname: str) -> set[ipaddress._BaseAddress]:
+    try:
+        addr_infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror as exc:
+        raise ValueError(f"Webhook URL hostname cozumlenemedi: '{hostname}'.") from exc
+
+    ips: set[ipaddress._BaseAddress] = set()
+    for addr_info in addr_infos:
+        ips.add(ipaddress.ip_address(addr_info[4][0]))
+    return ips
 
 
 def validate_webhook_url(url: str) -> None:
@@ -56,22 +82,49 @@ def validate_webhook_url(url: str) -> None:
     if not hostname:
         raise ValueError("Webhook URL'sinde gecerli bir hostname bulunamadi.")
 
-    try:
-        addr_infos = socket.getaddrinfo(hostname, None)
-    except socket.gaierror:
-        raise ValueError(
-            f"Webhook URL hostname cozumlenemedi: '{hostname}'."
-        )
+    # Reject userinfo to avoid confusing downstream proxies/logging.
+    if parsed.username or parsed.password:
+        raise ValueError("Webhook URL userinfo (kullanici:parola) iceremez.")
 
-    for addr_info in addr_infos:
-        ip = ipaddress.ip_address(addr_info[4][0])
-        for network in BLOCKED_NETWORKS:
-            if ip in network:
-                raise ValueError(
-                    f"Webhook URL'si engellenmis bir ag adresine isaret ediyor: "
-                    f"{ip} ({network}). Dahili/ozel ag adreslerine "
-                    "webhook gonderimi yapilmaz."
-                )
+    hn = hostname.strip().lower().rstrip(".")
+    if hn == "localhost" or hn.endswith(_BLOCKED_HOST_SUFFIXES):
+        raise ValueError("Webhook URL localhost/local/internal alan adlarina gonderilemez.")
+
+    # Explicit port policy: allow default ports only (80/443) unless unset.
+    if parsed.port is not None and parsed.port not in (80, 443):
+        raise ValueError("Webhook URL yalnizca 80/443 portlarina gonderebilir.")
+
+    ips = _resolve_host(hn)
+    for ip in ips:
+        if _is_blocked_ip(ip):
+            raise ValueError(
+                "Webhook URL'si engellenmis bir IP'ye isaret ediyor: "
+                f"{ip}. Dahili/ozel ag adreslerine webhook gonderimi yapilmaz."
+            )
+
+
+def _build_webhook_headers(secret: str | None, body: str) -> dict[str, str]:
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if not secret:
+        return headers
+
+    # Legacy signature (body only)
+    sig_legacy = hmac.new(
+        secret.encode("utf-8"),
+        body.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    headers["X-Webhook-Signature"] = f"sha256={sig_legacy}"
+
+    # V2 signature includes timestamp+nonce to enable replay protection on the receiver side.
+    ts = str(int(datetime.now(timezone.utc).timestamp()))
+    nonce = token_hex(16)
+    signing_input = f"{ts}.{nonce}.{body}".encode("utf-8")
+    sig_v2 = hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).hexdigest()
+    headers["X-Webhook-Timestamp"] = ts
+    headers["X-Webhook-Nonce"] = nonce
+    headers["X-Webhook-Signature-V2"] = f"t={ts},nonce={nonce},sha256={sig_v2}"
+    return headers
 
 
 class WebhookService:
@@ -146,21 +199,20 @@ class WebhookService:
         validate_webhook_url(subscription.url)
 
         body = json.dumps(payload, default=str, ensure_ascii=False)
-        headers = {"Content-Type": "application/json"}
-
-        if subscription.secret:
-            signature = hmac.new(
-                subscription.secret.encode("utf-8"),
-                body.encode("utf-8"),
-                hashlib.sha256,
-            ).hexdigest()
-            headers["X-Webhook-Signature"] = f"sha256={signature}"
+        headers = _build_webhook_headers(subscription.secret, body)
 
         status_code = None
         response_body = None
 
         try:
-            async with httpx.AsyncClient(timeout=DELIVERY_TIMEOUT_SECONDS) as client:
+            # Re-validate right before the request as a best-effort DNS rebinding guard.
+            # (We still rely on the resolver used by the HTTP client; follow_redirects is disabled.)
+            validate_webhook_url(subscription.url)
+
+            async with httpx.AsyncClient(
+                timeout=DELIVERY_TIMEOUT_SECONDS,
+                follow_redirects=False,
+            ) as client:
                 response = await client.post(
                     subscription.url,
                     content=body,

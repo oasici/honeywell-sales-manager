@@ -256,8 +256,6 @@ async def retry_webhook_delivery(
             detail=f"Maksimum yeniden deneme sayisina ulasildi ({max_retries})",
         )
 
-    # Re-deliver using the webhook service
-    service = WebhookService(async_session)
     try:
         sub_result = await db.execute(
             select(WebhookSubscription).where(
@@ -268,44 +266,41 @@ async def retry_webhook_delivery(
         if not subscription:
             raise NotFoundException("Webhook aboneligi bulunamadi")
 
-        import httpx
         from datetime import datetime, timezone
 
-        payload = delivery.payload_json
+        validate_webhook_url(subscription.url)
 
-        headers = {"Content-Type": "application/json"}
-        if subscription.secret:
-            import hashlib
-            import hmac
+        # Re-deliver using the same hardened delivery semantics (SSRF guard, redirects off, timeout).
+        payload_obj = json.loads(delivery.payload_json)
+        service = WebhookService(async_session)
+        new_delivery = await service._deliver(db, subscription, delivery.event_type, payload_obj)
 
-            signature = hmac.new(
-                subscription.secret.encode(),
-                payload.encode(),
-                hashlib.sha256,
-            ).hexdigest()
-            headers["X-Webhook-Signature"] = signature
-
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.post(
-                subscription.url,
-                content=payload,
-                headers=headers,
-            )
-
-        delivery.status_code = response.status_code
-        delivery.response_body = response.text[:1000]
+        delivery.status_code = new_delivery.status_code
+        delivery.response_body = new_delivery.response_body
         delivery.retry_count += 1
         delivery.delivered_at = datetime.now(timezone.utc)
         await db.flush()
 
-        is_success = 200 <= response.status_code < 300
+        is_success = (
+            delivery.status_code is not None and 200 <= delivery.status_code < 300
+        )
         return {
             "status": "delivered" if is_success else "failed",
-            "status_code": response.status_code,
+            "status_code": delivery.status_code,
             "retry_count": delivery.retry_count,
         }
 
-    except httpx.RequestError as exc:
+    except (ValueError, json.JSONDecodeError) as exc:
+        delivery.retry_count += 1
+        delivery.response_body = str(exc)[:1000]
+        await db.flush()
+        return {
+            "status": "failed",
+            "error": str(exc),
+            "retry_count": delivery.retry_count,
+        }
+
+    except Exception as exc:
         delivery.retry_count += 1
         delivery.response_body = str(exc)[:1000]
         await db.flush()
