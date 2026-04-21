@@ -23,7 +23,27 @@ import type {
 } from './types';
 
 // ── Axios instance ───────────────────────────────────
-const BACKEND_URL = import.meta.env.VITE_API_URL || '/api/v1';
+// Resolve the API base URL while avoiding cross-origin credentialed requests.
+// Browsers reject `Access-Control-Allow-Origin: *` responses when the request
+// has `withCredentials: true`. The Render static site already proxies
+// `/api/*` to the backend, so when the env URL points to a different origin
+// we fall back to the same-origin relative path.
+function resolveBackendUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (!envUrl) return '/api/v1';
+  if (typeof window === 'undefined') return envUrl;
+  try {
+    const envOrigin = new URL(envUrl, window.location.origin).origin;
+    if (envOrigin !== window.location.origin) {
+      // Cross-origin env URL — prefer same-origin rewrite to avoid CORS+credentials conflict.
+      return '/api/v1';
+    }
+  } catch {
+    /* keep envUrl */
+  }
+  return envUrl;
+}
+const BACKEND_URL = resolveBackendUrl();
 const COOKIE_AUTH_ONLY = import.meta.env.VITE_COOKIE_AUTH_ONLY === 'true';
 
 const api = axios.create({
