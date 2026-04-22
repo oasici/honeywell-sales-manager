@@ -71,6 +71,18 @@ from app.models.erp import (
 )
 from app.models.field_audit import FieldAuditLog
 from app.models.whatsapp import WhatsAppMessage
+from app.models.operations import (
+    BillOfMaterials,
+    BOMComponent,
+    StockLevel,
+    StockMovement,
+    Warehouse,
+)
+from app.models.marketplace import (
+    Plugin,
+    PluginEventSubscription,
+    PluginInstallation,
+)
 
 __all__ = [
     "EmailStatus",
@@ -169,4 +181,12 @@ __all__ = [
     "ERPSyncJob",
     "FieldAuditLog",
     "WhatsAppMessage",
+    "Warehouse",
+    "StockLevel",
+    "StockMovement",
+    "BillOfMaterials",
+    "BOMComponent",
+    "Plugin",
+    "PluginInstallation",
+    "PluginEventSubscription",
 ]

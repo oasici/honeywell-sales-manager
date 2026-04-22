@@ -348,6 +348,59 @@ async def lifespan(app: FastAPI):
             except Exception as exc:
                 logger.warning("Field audit listener install failed: %s", exc)
 
+        # Agentic SDR — auto-trigger on high-severity signals + stage changes
+        if settings.FEATURE_AGENTIC_SDR and settings.ANTHROPIC_API_KEY:
+            from app.services.agentic_sdr import run_for_opportunity as _run_sdr
+
+            async def _on_agentic_trigger(event_type: str, payload: dict):
+                opp_id = payload.get("opportunity_id")
+                severity = (payload.get("severity") or "").lower()
+                if event_type == "revenue_signal.created" and severity not in {"high", "critical"}:
+                    return
+                if not opp_id:
+                    return
+                try:
+                    async with async_session() as ag_db:
+                        await _run_sdr(
+                            ag_db,
+                            opportunity_id=opp_id,
+                            trigger=event_type,
+                            trigger_payload=payload,
+                        )
+                        await ag_db.commit()
+                except Exception as exc:
+                    logger.warning("Agentic SDR trigger failed: %s", exc)
+
+            event_bus.subscribe("revenue_signal.created", _on_agentic_trigger)
+            event_bus.subscribe("opportunity.stage_changed", _on_agentic_trigger)
+            logger.info("Agentic SDR event handlers wired")
+
+        # Marketplace — fan domain events to installed plugin webhooks
+        if settings.FEATURE_MARKETPLACE:
+            from app.services.marketplace import dispatch_event as _plugin_dispatch
+
+            async def _on_plugin_event(event_type: str, payload: dict):
+                try:
+                    await _plugin_dispatch(
+                        async_session, event_type=event_type, payload=payload
+                    )
+                except Exception as exc:
+                    logger.warning("Marketplace dispatch failed for %s: %s", event_type, exc)
+
+            for evt in [
+                "opportunity.stage_changed",
+                "opportunity.created",
+                "quote.approved",
+                "quote.sent",
+                "email.parsed",
+                "lead.converted",
+                "customer.created",
+                "revenue_signal.created",
+                "erp.invoice.pushed",
+            ]:
+                event_bus.subscribe(evt, _on_plugin_event)
+            logger.info("Marketplace plugin dispatcher wired")
+
         logger.info("Event bus wired: %d handlers registered", event_bus.handler_count)
     except Exception as exc:
         logger.warning("Event bus wiring failed (non-critical): %s", exc)

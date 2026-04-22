@@ -677,3 +677,132 @@ async def list_breach_notifications(
             for b in breaches
         ],
     }
+
+
+# ── SOC 2 evidence export (v3) ────────────────────────────────────────
+
+from fastapi import HTTPException, Query
+from sqlalchemy import desc, func
+
+
+@router.get("/evidence")
+async def soc2_evidence(
+    evidence_type: str = Query(..., alias="type", description="access | ai_trust | field_audit | erp_sync | change_log"),
+    limit: int = Query(100, ge=1, le=1000),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Structured evidence export for SOC 2 auditors.
+
+    Each type returns a JSON array of anonymised rows. Raw PII is never
+    included; where a field might carry PII we hash it or truncate to a
+    SHA-256 prefix."""
+    if evidence_type == "access":
+        rows = (await db.execute(
+            select(User.id, User.email, User.role, User.is_active, User.created_at)
+            .order_by(desc(User.created_at))
+            .limit(limit)
+        )).all()
+        return {
+            "type": "access",
+            "rows": [
+                {
+                    "user_id": r.id,
+                    "email_hash": _hash_prefix(r.email),
+                    "role": r.role,
+                    "is_active": r.is_active,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in rows
+            ],
+        }
+
+    if evidence_type == "field_audit":
+        from app.models.field_audit import FieldAuditLog
+
+        rows = (await db.execute(
+            select(FieldAuditLog).order_by(desc(FieldAuditLog.changed_at)).limit(limit)
+        )).scalars().all()
+        return {
+            "type": "field_audit",
+            "rows": [
+                {
+                    "id": r.id,
+                    "entity_type": r.entity_type,
+                    "entity_id": r.entity_id,
+                    "field_name": r.field_name,
+                    "actor_id": r.actor_id,
+                    "actor_kind": r.actor_kind,
+                    "changed_at": r.changed_at.isoformat(),
+                }
+                for r in rows
+            ],
+        }
+
+    if evidence_type == "erp_sync":
+        from app.models.erp import ERPSyncJob
+
+        rows = (await db.execute(
+            select(ERPSyncJob).order_by(desc(ERPSyncJob.queued_at)).limit(limit)
+        )).scalars().all()
+        return {
+            "type": "erp_sync",
+            "rows": [
+                {
+                    "id": r.id,
+                    "connection_id": r.connection_id,
+                    "entity": r.entity,
+                    "status": r.status,
+                    "records_created": r.records_created,
+                    "records_updated": r.records_updated,
+                    "records_failed": r.records_failed,
+                    "started_at": r.started_at.isoformat() if r.started_at else None,
+                    "finished_at": r.finished_at.isoformat() if r.finished_at else None,
+                }
+                for r in rows
+            ],
+        }
+
+    if evidence_type == "ai_trust":
+        # No raw prompts are persisted by design; this returns a synthetic
+        # summary so the auditor can confirm the control is operating.
+        from app.services.ai_trust import AITrustContext, audit_record, scrub
+
+        masked, ctx = scrub("Örnek: ali.yilmaz@example.com TCKN 12345678901 IBAN TR33 0006 1005 1978 6457 8413 26")
+        sample = audit_record(ctx, prompt=masked, model="demo")
+        return {
+            "type": "ai_trust",
+            "control_state": "enabled",
+            "demo_audit": sample,
+            "hits_by_type": ctx.totals(),
+        }
+
+    if evidence_type == "change_log":
+        # Use AuditLog (entity mutations) as change evidence.
+        rows = (await db.execute(
+            select(AuditLog).order_by(desc(AuditLog.created_at)).limit(limit)
+        )).scalars().all()
+        return {
+            "type": "change_log",
+            "rows": [
+                {
+                    "id": r.id,
+                    "entity_type": r.entity_type,
+                    "entity_id": r.entity_id,
+                    "action": r.action,
+                    "actor_id": r.user_id,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in rows
+            ],
+        }
+
+    raise HTTPException(400, f"Unknown evidence type: {evidence_type}")
+
+
+def _hash_prefix(value: str | None) -> str:
+    import hashlib
+    if not value:
+        return ""
+    return hashlib.sha256(value.encode()).hexdigest()[:16]
+

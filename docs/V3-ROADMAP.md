@@ -82,6 +82,34 @@ Mobile work is intentionally excluded and tracked separately.
   `POST /integrations/whatsapp/send/{text,template}`, thread history
   endpoint, message persistence in `whatsapp_messages` table.
 
+### Later tracks — now shipped
+
+- **Conversation Intelligence v3** — `services/transcript_summarizer.py`
+  rewritten: Claude tool-use schema, chunking for long transcripts,
+  AI Trust Layer scrub/unscrub, keyword-pack merge, CompetitorMention
+  persistence, RevenueSignal emission (`pricing_concern`,
+  `objection_raised`, `competitor_mention`, `buying_signal`).
+- **Operations / MRP** — `models/operations.py` (warehouses, stock levels,
+  stock movements, BOM, components), `services/operations.py` (record,
+  transfer, reserve, BOM explode), `/api/v1/operations/*` REST endpoints,
+  migration `20260426`. `SparePart.current_stock_qty` refreshed from the
+  per-warehouse sum.
+- **Agentic SDR** — `services/agentic_sdr.py` (context-pack + Claude
+  tool-use with 4 tools: draft_follow_up_email, schedule_task,
+  escalate_to_manager, no_action). Event-bus auto-trigger on high-severity
+  RevenueSignal and opportunity stage changes. `/api/v1/agentic/sdr/run`
+  manual entry point. All PII scrubbed through the Trust Layer.
+- **Marketplace / Plugin system** — `models/marketplace.py` (plugins,
+  installations, event subscriptions), `services/marketplace.py`
+  (install/uninstall, scope check, HMAC-signed webhook dispatcher),
+  `/api/v1/marketplace/*` REST surface, migration `20260427`. Domain
+  events fanned to plugin subscriptions via the event bus.
+- **SOC 2 Type I readiness** — five compliance docs in
+  `docs/compliance/` (readiness matrix, risk register, access control
+  matrix, data retention, BCP). Auditor-facing endpoint
+  `GET /api/v1/compliance/evidence?type={access|field_audit|erp_sync|ai_trust|change_log}`
+  returns anonymised evidence bundles.
+
 ## Pending (ordered)
 
 ### Next sprints

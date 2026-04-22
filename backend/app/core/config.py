@@ -342,6 +342,12 @@ class Settings(BaseSettings):
     # Required by: tenant-scoped plugins, sandboxed webhooks, installable apps.
     FEATURE_MARKETPLACE: bool = False
 
+    # --- Operations / light MRP (v3) ---
+    # Depends on: DATABASE_URL
+    # Required by: warehouses, stock levels, BOM explosion, stock reservations,
+    #   quote -> reservation workflow.
+    FEATURE_OPERATIONS: bool = False
+
     MAX_CONCURRENT_SESSIONS: int = 3
 
     # Convenience flag: set ENABLE_ALL_FEATURES=true to activate everything at once
