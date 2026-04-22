@@ -15,8 +15,8 @@ router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
 
 @router.get("/")
 async def get_leaderboard(
-    period: str = Query("month", regex="^(week|month|quarter|year)$"),
-    metric: str = Query("revenue", regex="^(revenue|deals_won|activities|response_time)$"),
+    period: str = Query("month", pattern="^(week|month|quarter|year)$"),
+    metric: str = Query("revenue", pattern="^(revenue|deals_won|activities|response_time)$"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

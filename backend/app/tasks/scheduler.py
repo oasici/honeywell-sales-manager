@@ -738,6 +738,11 @@ async def check_subscription_renewals_task():
 
 def start_scheduler():
     """Start background scheduler with all tasks. Safe to call multiple times."""
+    # Ensure idempotency even before the scheduler is started.
+    # When AsyncIOScheduler isn't started yet, `replace_existing=True` may not
+    # dedupe pending jobs reliably across repeated calls.
+    scheduler.remove_all_jobs()
+
     scheduler.add_job(
         lambda: asyncio.ensure_future(_tracked("email_poll", poll_emails_task)),
         "interval",
@@ -829,13 +834,26 @@ def start_scheduler():
         id="subscription_renewals",
         replace_existing=True,
     )
+    # In production, this is started from the FastAPI lifespan where an event loop
+    # is guaranteed to be running. In sync unit tests, starting an AsyncIOScheduler
+    # can fail if the loop is closed; we keep the jobs registered but skip `start()`.
     if not scheduler.running:
-        scheduler.start()
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is not None and not loop.is_closed():
+            scheduler.start()
     logger.info("Background scheduler started")
 
 
 def stop_scheduler():
     """Stop background scheduler."""
     if scheduler.running:
-        scheduler.shutdown()
+        try:
+            scheduler.shutdown()
+        except RuntimeError:
+            # Best-effort: in sync contexts the event loop can already be closed.
+            pass
         logger.info("Background scheduler stopped")

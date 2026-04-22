@@ -41,12 +41,19 @@ class CircuitBreaker:
         return self.state == "open"
 
     async def call(self, coro):
-        """Execute coroutine through circuit breaker."""
+        """Execute coroutine through circuit breaker.
+
+        Accepts either:
+        - an awaitable (already-created coroutine), or
+        - a zero-arg callable returning an awaitable (preferred, avoids creating
+          coroutines that would never be awaited if the circuit is open).
+        """
         if self.is_open:
             raise CircuitOpenError(f"Circuit breaker '{self.name}' acik durumda")
 
         try:
-            result = await coro
+            awaitable = coro() if callable(coro) else coro
+            result = await awaitable
             self._on_success()
             return result
         except Exception:

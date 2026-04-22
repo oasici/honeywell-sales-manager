@@ -41,8 +41,9 @@ class Settings(BaseSettings):
             origins = [o.strip().lower() for o in self.CORS_ORIGINS.split(",") if o.strip()]
             local_origins = [o for o in origins if "localhost" in o or "127.0.0.1" in o]
             if local_origins:
-                _log.getLogger(__name__).warning(
-                    "CORS_ORIGINS contains localhost entries — remove for strict production"
+                raise ValueError(
+                    "CORS_ORIGINS contains localhost entries — remove for strict production: "
+                    + ", ".join(local_origins)
                 )
         return self
 

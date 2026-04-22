@@ -54,7 +54,7 @@ class TestCircuitBreaker:
             return "ok"
 
         with pytest.raises(CircuitOpenError, match="acik durumda"):
-            await cb.call(success())
+            await cb.call(success)
 
     @pytest.mark.asyncio
     async def test_half_open_after_recovery_timeout(self):

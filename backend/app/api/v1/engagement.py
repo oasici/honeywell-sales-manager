@@ -29,7 +29,13 @@ from app.models.quote import Quote
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/engagement", tags=["Engagement"])
+router = APIRouter(tags=["Engagement"])
+
+# Backward-compatible mount is defined at the bottom of this module — after
+# every @router.<method> decorator has registered — so include_router sees
+# the full route list. Importers must pull both ``router`` (canonical paths)
+# and ``legacy_router`` (``/engagement/*`` paths).
+legacy_router = APIRouter(prefix="/engagement", tags=["Engagement"])
 
 
 # ══════════════════════════════════════════
@@ -1090,3 +1096,9 @@ def _generate_coaching_notes(total_quotes: int, sent_quotes: int, process_rate: 
     if process_rate >= 90:
         notes.append("Mukemmel email isleme performansi — ornek olarak paylasabilirsiniz.")
     return notes
+
+
+# ── Backward-compatible legacy mount ─────────────────────────────────────────
+# Must run AFTER every @router.<verb> decorator above so the snapshot of
+# `router.routes` taken by `include_router` is complete.
+legacy_router.include_router(router)
