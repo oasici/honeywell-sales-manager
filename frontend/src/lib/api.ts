@@ -2163,4 +2163,154 @@ export const sequenceV2Api = {
   },
 };
 
+// ── ERP Connector Platform (v3) ─────────────────────────────────────────────
+
+export type ERPConnectionType = 'parasut' | 'logo' | 'netsis' | 'sap_b1' | 'webhook' | 'mikro';
+
+export interface ERPConnection {
+  id: number;
+  type: ERPConnectionType;
+  name: string;
+  endpoint: string;
+  is_active: boolean;
+  sync_cron: string | null;
+  last_customer_sync_at: string | null;
+  last_product_sync_at: string | null;
+  last_invoice_sync_at: string | null;
+  created_at: string;
+}
+
+export interface ERPSyncJob {
+  id: number;
+  connection_id: number;
+  entity: string;
+  mode: string;
+  status: 'queued' | 'running' | 'success' | 'failed' | 'partial';
+  triggered_by: string;
+  queued_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  records_created: number;
+  records_updated: number;
+  records_skipped: number;
+  records_failed: number;
+  error_message: string | null;
+}
+
+export interface ERPMappingRow {
+  id: number;
+  entity_type: string;
+  internal_id: number;
+  external_id: string;
+  last_source: string;
+  last_synced_at: string;
+}
+
+export interface ERPConflict {
+  id: number;
+  connection_id: number;
+  entity_type: string;
+  internal_id: number;
+  external_id: string;
+  hss_snapshot: string;
+  erp_snapshot: string;
+  field_diffs: string;
+  status: string;
+  detected_at: string;
+  resolved_at: string | null;
+  resolved_by: number | null;
+}
+
+export interface ERPTestResult {
+  ok: boolean;
+  details?: Record<string, unknown>;
+  error?: string;
+}
+
+export interface ERPConnectionCreate {
+  type: ERPConnectionType;
+  name: string;
+  endpoint: string;
+  credentials: Record<string, unknown>;
+  sync_cron?: string | null;
+  config?: Record<string, unknown> | null;
+}
+
+export interface ERPConnectionUpdate {
+  name?: string;
+  endpoint?: string;
+  credentials?: Record<string, unknown>;
+  sync_cron?: string | null;
+  config?: Record<string, unknown> | null;
+  is_active?: boolean;
+}
+
+export const erpApi = {
+  listConnections: async (): Promise<ERPConnection[]> => {
+    const { data } = await api.get<ERPConnection[]>('/erp/connections');
+    return data;
+  },
+  getConnection: async (id: number): Promise<ERPConnection> => {
+    const { data } = await api.get<ERPConnection>(`/erp/connections/${id}`);
+    return data;
+  },
+  createConnection: async (body: ERPConnectionCreate): Promise<ERPConnection> => {
+    const { data } = await api.post<ERPConnection>('/erp/connections', body);
+    return data;
+  },
+  updateConnection: async (id: number, body: ERPConnectionUpdate): Promise<ERPConnection> => {
+    const { data } = await api.put<ERPConnection>(`/erp/connections/${id}`, body);
+    return data;
+  },
+  deleteConnection: async (id: number): Promise<void> => {
+    await api.delete(`/erp/connections/${id}`);
+  },
+  testConnection: async (id: number): Promise<ERPTestResult> => {
+    const { data } = await api.post<ERPTestResult>(`/erp/connections/${id}/test`);
+    return data;
+  },
+  triggerSync: async (
+    id: number,
+    body: { entity: string; mode: 'full' | 'delta' },
+  ): Promise<ERPSyncJob> => {
+    const { data } = await api.post<ERPSyncJob>(`/erp/connections/${id}/sync`, body);
+    return data;
+  },
+  listJobs: async (id: number, limit = 50): Promise<ERPSyncJob[]> => {
+    const { data } = await api.get<ERPSyncJob[]>(
+      `/erp/connections/${id}/jobs?limit=${limit}`,
+    );
+    return data;
+  },
+  listMappings: async (
+    id: number,
+    entity_type?: string,
+    limit = 200,
+  ): Promise<ERPMappingRow[]> => {
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (entity_type) qs.set('entity_type', entity_type);
+    const { data } = await api.get<ERPMappingRow[]>(
+      `/erp/connections/${id}/mappings?${qs.toString()}`,
+    );
+    return data;
+  },
+  listConflicts: async (status: string = 'pending', limit = 100): Promise<ERPConflict[]> => {
+    const { data } = await api.get<ERPConflict[]>(
+      `/erp/conflicts?status=${encodeURIComponent(status)}&limit=${limit}`,
+    );
+    return data;
+  },
+  resolveConflict: async (
+    id: number,
+    body: {
+      action: 'hss_wins' | 'erp_wins' | 'merge' | 'dismiss';
+      merged_payload?: Record<string, unknown>;
+      note?: string;
+    },
+  ): Promise<ERPConflict> => {
+    const { data } = await api.post<ERPConflict>(`/erp/conflicts/${id}/resolve`, body);
+    return data;
+  },
+};
+
 export default api;

@@ -300,6 +300,48 @@ class Settings(BaseSettings):
     #   coverage gap alerts, transcript participant enrichment
     FEATURE_BUYER_MAP: bool = False
 
+    # --- ERP Connector Platform (v3) ---
+    # Depends on: DATABASE_URL, REDIS_URL, ENCRYPTION_KEY
+    # Required by: Paraşüt/Logo/SAP B1 adapters, sync orchestrator, mapping UI,
+    #   conflict resolver, quote-to-invoice push, stock-aware signals.
+    FEATURE_ERP_CONNECTOR: bool = False
+
+    # --- AI Trust Layer (v3) ---
+    # Depends on: ANTHROPIC_API_KEY
+    # Required by: PII scrubbing before LLM calls, prompt audit logging,
+    #   response re-hydration. Always-on when AI flags are enabled is recommended.
+    FEATURE_AI_TRUST_LAYER: bool = True
+
+    # --- Field Audit Trail (Shield equivalent, v3) ---
+    # Depends on: DATABASE_URL
+    # Required by: long-retention field-level change log, regulated-industry
+    #   evidence collection (SOC 2 / KVKK).
+    FEATURE_FIELD_AUDIT: bool = False
+    FIELD_AUDIT_RETENTION_DAYS: int = 3650  # 10 years, Shield parity
+
+    # --- WhatsApp Business (v3) ---
+    # Depends on: DATABASE_URL + Meta Cloud API credentials
+    # Required by: template message send, inbound webhook processing.
+    FEATURE_WHATSAPP: bool = False
+    WHATSAPP_PHONE_NUMBER_ID: str = ""
+    WHATSAPP_ACCESS_TOKEN: str = ""
+    WHATSAPP_VERIFY_TOKEN: str = ""
+
+    # --- Conversation Intelligence (v3, lightweight) ---
+    # Depends on: ANTHROPIC_API_KEY (Claude for summarization only — no call recording).
+    # Required by: uploaded meeting transcript summaries, action-item extraction.
+    FEATURE_CONVERSATION_INTEL: bool = False
+
+    # --- Agentic SDR (v3) ---
+    # Depends on: ANTHROPIC_API_KEY, FEATURE_WORKFLOW_RULES
+    # Required by: autonomous follow-up agent that chains tool-use with domain events.
+    FEATURE_AGENTIC_SDR: bool = False
+
+    # --- Marketplace / Plugin system (v3) ---
+    # Depends on: DATABASE_URL, FEATURE_PUBLIC_API
+    # Required by: tenant-scoped plugins, sandboxed webhooks, installable apps.
+    FEATURE_MARKETPLACE: bool = False
+
     MAX_CONCURRENT_SESSIONS: int = 3
 
     # Convenience flag: set ENABLE_ALL_FEATURES=true to activate everything at once

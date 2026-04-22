@@ -420,6 +420,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               <Layers size={18} className="shrink-0" />
               {t('nav.pricing_admin')}
             </NavLink>
+            <NavLink to="/admin/erp" className={navLinkClass} onClick={onNavigate}>
+              <Plug size={18} className="shrink-0" />
+              {t('nav.erp_connector')}
+            </NavLink>
             <NavLink to="/admin/chat" className={navLinkClass} onClick={onNavigate}>
               <MessageSquare size={18} className="shrink-0" />
               {t('nav.live_chat')}

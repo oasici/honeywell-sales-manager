@@ -45,6 +45,7 @@ from app.api.v1.chat import router as chat_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.stakeholders import router as stakeholders_router
+from app.api.v1.erp import router as erp_router
 from app.api.v1.customer_health import router as customer_health_router
 from app.api.v1.customers import router as customers_router
 from app.api.v1.dashboard import router as dashboard_router
@@ -115,3 +116,4 @@ v1_router.include_router(revenue_recognition_router)
 v1_router.include_router(chat_router)
 v1_router.include_router(pricing_router)
 v1_router.include_router(stakeholders_router)
+v1_router.include_router(erp_router)

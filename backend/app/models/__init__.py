@@ -63,6 +63,12 @@ from app.models.pricing import PriceTier, CustomerPricing
 from app.models.revenue_recognition import RevenueSchedule, RevenueScheduleEntry
 from app.models.chat import ChatSession, ChatMessage, AutoResponseRule
 from app.models.sequence_v2 import SequenceStepRun, DomainEvent, Stakeholder
+from app.models.erp import (
+    ERPConnection,
+    ERPEntityMapping,
+    ERPSyncConflict,
+    ERPSyncJob,
+)
 
 __all__ = [
     "EmailStatus",
@@ -155,4 +161,8 @@ __all__ = [
     "SequenceStepRun",
     "DomainEvent",
     "Stakeholder",
+    "ERPConnection",
+    "ERPEntityMapping",
+    "ERPSyncConflict",
+    "ERPSyncJob",
 ]

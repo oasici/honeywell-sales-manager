@@ -8,6 +8,7 @@ from collections import OrderedDict
 from anthropic import AsyncAnthropic
 
 from app.core.config import settings
+from app.services.ai_trust import AITrustContext, audit_record, scrub, unscrub
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +231,20 @@ async def parse_email(body: str, subject: str = "") -> dict:
     )
     model = settings.AI_MODEL_NAME
     max_tokens = settings.AI_MAX_TOKENS
-    user_message = f"Subject: {subject}\n\n{body}" if subject else body
+    raw_message = f"Subject: {subject}\n\n{body}" if subject else body
+
+    trust_enabled = bool(settings.FEATURE_AI_TRUST_LAYER)
+    trust_ctx: AITrustContext | None = None
+    if trust_enabled:
+        user_message, trust_ctx = scrub(raw_message)
+        if trust_ctx.is_dirty():
+            logger.info(
+                "ai_trust.scrubbed hits=%s model=%s",
+                trust_ctx.totals(),
+                model,
+            )
+    else:
+        user_message = raw_message
 
     last_error: Exception | None = None
     for attempt in range(MAX_RETRIES):
@@ -247,6 +261,13 @@ async def parse_email(body: str, subject: str = "") -> dict:
             for block in response.content:
                 if block.type == "tool_use" and block.name == "extract_email_data":
                     result = block.input
+                    # Restore any masked PII in string fields before downstream use.
+                    if trust_ctx is not None and trust_ctx.is_dirty():
+                        result = _unscrub_result(result, trust_ctx)
+                        logger.info(
+                            "ai_trust.audit %s",
+                            audit_record(trust_ctx, prompt=raw_message, model=model),
+                        )
                     if result.get("parts"):
                         _parse_cache[cache_key] = result
                         if len(_parse_cache) > MAX_CACHE_SIZE:
@@ -286,6 +307,24 @@ async def parse_email(body: str, subject: str = "") -> dict:
 
 class ClaudeApiError(Exception):
     """Raised when all Claude API retry attempts are exhausted."""
+
+
+def _unscrub_result(result: dict, trust_ctx: AITrustContext) -> dict:
+    """Recursively restore masked PII tokens in Claude's structured output.
+
+    Only string leaves are touched so numeric scores / booleans pass through.
+    """
+
+    def walk(value):
+        if isinstance(value, str):
+            return unscrub(value, trust_ctx)
+        if isinstance(value, list):
+            return [walk(item) for item in value]
+        if isinstance(value, dict):
+            return {k: walk(v) for k, v in value.items()}
+        return value
+
+    return walk(result)
 
 
 def _empty_result() -> dict:

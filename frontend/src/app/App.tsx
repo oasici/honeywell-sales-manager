@@ -122,6 +122,16 @@ const TerritoryPage = lazy(() => import('../features/admin/TerritoryPage'));
 // Pricing Admin
 const PricingAdminPage = lazy(() => import('../features/admin/PricingAdminPage'));
 
+// ERP Connector Platform (v3)
+const ERPConnectionsPage = lazy(() =>
+  import('../features/admin/erp/ERPConnectionsPage').then((mod) => ({ default: mod.ERPConnectionsPage })),
+);
+const ERPConnectionDetailPage = lazy(() =>
+  import('../features/admin/erp/ERPConnectionDetailPage').then((mod) => ({
+    default: mod.ERPConnectionDetailPage,
+  })),
+);
+
 // Revenue Recognition
 const RevenueRecognitionPage = lazy(() => import('../features/revenue/RevenueRecognitionPage'));
 
@@ -899,6 +909,28 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <PricingAdminPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+
+        {/* ERP Connector Platform (v3) */}
+        <Route
+          path="admin/erp"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <ERPConnectionsPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/erp/:id"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <ERPConnectionDetailPage />
               </ErrorBoundary>
             </Suspense>
           }
