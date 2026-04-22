@@ -132,6 +132,11 @@ const ERPConnectionDetailPage = lazy(() =>
   })),
 );
 
+// Feature flag admin (v3)
+const FeatureFlagsPage = lazy(() =>
+  import('../features/admin/FeatureFlagsPage').then((mod) => ({ default: mod.FeatureFlagsPage })),
+);
+
 // Revenue Recognition
 const RevenueRecognitionPage = lazy(() => import('../features/revenue/RevenueRecognitionPage'));
 
@@ -931,6 +936,18 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <ERPConnectionDetailPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+
+        {/* Feature flag admin (v3) */}
+        <Route
+          path="admin/feature-flags"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <FeatureFlagsPage />
               </ErrorBoundary>
             </Suspense>
           }

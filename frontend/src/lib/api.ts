@@ -2245,6 +2245,34 @@ export interface ERPConnectionUpdate {
   is_active?: boolean;
 }
 
+// ── Feature Flag Admin (v3) ─────────────────────────────────────────────────
+
+export interface FeatureFlagRow {
+  name: string;
+  default: boolean;
+  env_value: boolean;
+  override: boolean | null;
+  effective: boolean;
+  description: string;
+}
+
+export const featureFlagsApi = {
+  list: async (): Promise<FeatureFlagRow[]> => {
+    const { data } = await api.get<FeatureFlagRow[]>('/admin/feature-flags');
+    return data;
+  },
+  setOverride: async (name: string, enabled: boolean | null): Promise<FeatureFlagRow> => {
+    const { data } = await api.patch<FeatureFlagRow>(
+      `/admin/feature-flags/${name}`,
+      { enabled },
+    );
+    return data;
+  },
+  clearAll: async (): Promise<void> => {
+    await api.delete('/admin/feature-flags');
+  },
+};
+
 export interface ERPInvoicePushResult {
   external_id: string;
   already_pushed: boolean;

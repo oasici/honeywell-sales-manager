@@ -1,0 +1,78 @@
+# Local development stack — mirrors production DB engine (PostgreSQL 16).
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+#   cd backend && source venv/bin/activate
+#   export DATABASE_URL=postgresql+asyncpg://honeywell:honeywell_dev_2026@localhost:5432/honeywell_sales_dev
+#   alembic upgrade head
+#   uvicorn app.main:app --reload
+#
+# Only runs the stateful dependencies so you can keep the backend + frontend
+# running from your host machine with hot reload. Production builds still use
+# docker-compose.yml.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: honeywell_sales_dev
+      POSTGRES_USER: honeywell
+      POSTGRES_PASSWORD: honeywell_dev_2026
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U honeywell -d honeywell_sales_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-test:
+    # Isolated instance for pytest integration tests so dev data is not wiped.
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: honeywell_sales_test
+      POSTGRES_USER: honeywell
+      POSTGRES_PASSWORD: honeywell_test_2026
+    volumes:
+      - pgdata-test:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U honeywell -d honeywell_sales_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.2
+    restart: unless-stopped
+    volumes:
+      - qdrant-dev:/qdrant/storage
+    ports:
+      - "6333:6333"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata-dev:
+  pgdata-test:
+  qdrant-dev:

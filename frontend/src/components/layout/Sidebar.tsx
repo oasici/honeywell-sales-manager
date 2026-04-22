@@ -40,6 +40,7 @@ import {
   Map,
   GitBranch,
   Layers,
+  Flag as FlagIcon,
   AlertTriangle,
   ListChecks,
   Tag,
@@ -423,6 +424,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <NavLink to="/admin/erp" className={navLinkClass} onClick={onNavigate}>
               <Plug size={18} className="shrink-0" />
               {t('nav.erp_connector')}
+            </NavLink>
+            <NavLink to="/admin/feature-flags" className={navLinkClass} onClick={onNavigate}>
+              <FlagIcon size={18} className="shrink-0" />
+              {t('nav.feature_flags')}
             </NavLink>
             <NavLink to="/admin/chat" className={navLinkClass} onClick={onNavigate}>
               <MessageSquare size={18} className="shrink-0" />

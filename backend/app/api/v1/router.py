@@ -51,6 +51,7 @@ from app.api.v1.whatsapp import router as whatsapp_router
 from app.api.v1.operations import router as operations_router
 from app.api.v1.agentic import router as agentic_router
 from app.api.v1.marketplace import router as marketplace_router
+from app.api.v1.feature_flags import router as feature_flags_router
 from app.api.v1.customer_health import router as customer_health_router
 from app.api.v1.customers import router as customers_router
 from app.api.v1.dashboard import router as dashboard_router
@@ -127,3 +128,4 @@ v1_router.include_router(whatsapp_router)
 v1_router.include_router(operations_router)
 v1_router.include_router(agentic_router)
 v1_router.include_router(marketplace_router)
+v1_router.include_router(feature_flags_router)

@@ -13,10 +13,14 @@ from app.models import *  # noqa: F401, F403 - import all models for autogenerat
 config = context.config
 
 # Normalize URL: Railway gives postgresql://, alembic needs postgresql+asyncpg://
+# SQLite URLs (used in local migration chain tests) pass through unchanged.
 _db_url = settings.DATABASE_URL
 if _db_url.startswith("postgresql://"):
     _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-elif not _db_url.startswith("postgresql+asyncpg://") and _db_url:
+elif _db_url.startswith("sqlite://"):
+    # Keep as-is so tests can verify the migration chain without Postgres.
+    pass
+elif _db_url and not _db_url.startswith("postgresql+asyncpg://"):
     _db_url = f"postgresql+asyncpg://{_db_url}"
 config.set_main_option("sqlalchemy.url", _db_url)
 
@@ -55,8 +59,23 @@ async def run_async_migrations() -> None:
     await connectable.dispose()
 
 
+def run_sync_migrations() -> None:
+    """Sync path used by SQLite local chain tests."""
+    from sqlalchemy import create_engine
+
+    url = config.get_main_option("sqlalchemy.url")
+    engine = create_engine(url, poolclass=pool.NullPool)
+    with engine.connect() as connection:
+        do_run_migrations(connection)
+    engine.dispose()
+
+
 def run_migrations_online() -> None:
-    asyncio.run(run_async_migrations())
+    url = config.get_main_option("sqlalchemy.url") or ""
+    if url.startswith("sqlite"):
+        run_sync_migrations()
+    else:
+        asyncio.run(run_async_migrations())
 
 
 if context.is_offline_mode():

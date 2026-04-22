@@ -8,6 +8,9 @@ python-multipart==0.0.18
 sqlalchemy[asyncio]==2.0.36
 asyncpg==0.30.0
 alembic==1.14.0
+# Sync driver used by migration verification tests and scripts that need
+# a non-async connection (create_engine, alembic local runs).
+psycopg2-binary==2.9.10
 
 # Validation
 pydantic==2.10.3
