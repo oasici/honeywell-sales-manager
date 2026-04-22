@@ -21,18 +21,36 @@ def set_pdf_limits(*, max_pages: int | None = None) -> None:
         _PDF_MAX_PAGES = int(max_pages)
 
 
-_semaphores: dict[int, asyncio.Semaphore] = {}
+# Single process-wide semaphore. The first caller seeds it with its
+# configured limit; later calls reuse the same instance even if their
+# requested limit differs, because "concurrency limit" is an application
+# contract — multiple limits would silently bypass each other.
+_PDF_PARSE_SEM: asyncio.Semaphore | None = None
+_PDF_PARSE_LIMIT: int | None = None
 
 
 @asynccontextmanager
 async def pdf_parse_semaphore(limit: int):
-    """Global concurrency limiter for CPU-heavy PDF parsing work."""
-    lim = max(int(limit or 1), 1)
-    sem = _semaphores.get(lim)
-    if sem is None:
-        sem = asyncio.Semaphore(lim)
-        _semaphores[lim] = sem
-    async with sem:
+    """Global concurrency limiter for CPU-heavy PDF parsing work.
+
+    The first call wins: subsequent calls with a different ``limit`` log a
+    warning and reuse the existing semaphore so the app-wide budget cannot
+    be accidentally inflated by a runtime config change.
+    """
+    global _PDF_PARSE_SEM, _PDF_PARSE_LIMIT
+
+    requested = max(int(limit or 1), 1)
+    if _PDF_PARSE_SEM is None:
+        _PDF_PARSE_SEM = asyncio.Semaphore(requested)
+        _PDF_PARSE_LIMIT = requested
+    elif _PDF_PARSE_LIMIT is not None and requested != _PDF_PARSE_LIMIT:
+        logger.warning(
+            "pdf_parse_semaphore limit change ignored (active=%d, requested=%d)",
+            _PDF_PARSE_LIMIT,
+            requested,
+        )
+
+    async with _PDF_PARSE_SEM:
         yield
 
 

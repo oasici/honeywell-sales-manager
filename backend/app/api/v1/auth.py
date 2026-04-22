@@ -17,9 +17,8 @@ from app.core.exceptions import BadRequestException, NotFoundException, Unauthor
 from app.core.security import (
     create_access_token,
     create_refresh_token,
-    decode_token,
+    decode_token_async,
     hash_password,
-    revoke_token,
     revoke_token_async,
     validate_password_strength,
     verify_password,
@@ -122,7 +121,7 @@ async def login(
         from datetime import timedelta, timezone
         from datetime import datetime
 
-        access_payload = decode_token(access_token)
+        access_payload = await decode_token_async(access_token)
         if access_payload and access_payload.get("jti"):
             device_info = form_data.scopes[0] if form_data.scopes else None
             ip_address = None
@@ -198,7 +197,9 @@ async def refresh_token_endpoint(
     if not refresh_token:
         raise UnauthorizedException("Yenileme tokeni eksik")
 
-    payload = decode_token(refresh_token)
+    # Async decode so multi-worker Redis revocation check is honoured
+    # without spawning a nested event loop.
+    payload = await decode_token_async(refresh_token)
     if payload is None or payload.get("type") != "refresh":
         raise UnauthorizedException("Gecersiz veya suresi dolmus yenileme tokeni")
 
@@ -213,8 +214,9 @@ async def refresh_token_endpoint(
     if user is None or not user.is_active:
         raise UnauthorizedException("Kullanici bulunamadi veya aktif degil")
 
-    # Revoke old refresh token (rotation)
-    revoke_token(refresh_token)
+    # Revoke old refresh token (rotation). Async variant writes to Redis so
+    # sibling workers see the revocation immediately.
+    await revoke_token_async(refresh_token)
 
     new_access = create_access_token(data={"sub": str(user.id)})
     new_refresh = create_refresh_token(data={"sub": str(user.id)})
@@ -246,7 +248,7 @@ async def logout(
     if token_to_revoke:
         await revoke_token_async(token_to_revoke)
         if settings.FEATURE_SESSION_MANAGEMENT:
-            payload = decode_token(token_to_revoke)
+            payload = await decode_token_async(token_to_revoke)
             if payload and payload.get("jti"):
                 await session_service.invalidate_session(db, payload["jti"])
 

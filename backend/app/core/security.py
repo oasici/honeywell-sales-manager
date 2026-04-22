@@ -4,6 +4,8 @@ JWT revocation uses Redis when available (multi-worker safe).
 Falls back to in-memory OrderedDict for single-worker/dev.
 """
 
+from __future__ import annotations
+
 import hashlib
 import logging
 import secrets
@@ -94,64 +96,30 @@ def _revoke_memory(jti: str, ttl_seconds: int) -> None:
 
 
 def _try_redis_revoke(jti: str, ttl_seconds: int) -> bool:
-    """Try to revoke via Redis. Returns True if Redis handled it."""
-    try:
-        from app.core.redis_client import get_redis
-        r = get_redis()
-        if r is None:
-            return False
-        # Sync wrapper for non-async context — use pipeline
-        import asyncio
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
+    """Best-effort Redis revoke from sync context.
 
-        if loop and loop.is_running():
-            # We're in async context but this function is sync.
-            return False
-
-        # Safe in sync context: create a short-lived loop just for this revoke.
-        async def _do() -> bool:
-            try:
-                await r.setex(f"revoked:{jti}", ttl_seconds, "1")
-                return True
-            except Exception:
-                return False
-
-        return asyncio.run(_do())
-    except Exception:
-        return False
+    We never call ``asyncio.run`` here: if there is a running event loop
+    (the common case in FastAPI) we return ``False`` so the caller
+    falls back to the in-memory store. Fully async call sites should use
+    :func:`revoke_token_async` for Redis-backed multi-worker revocation.
+    """
+    return False
 
 
 def decode_token(token: str) -> dict | None:
+    """Sync JWT decode.
+
+    Only validates signature + expiry and checks the in-memory revocation
+    list. Use :func:`decode_token_async` from FastAPI async endpoints to
+    additionally hit Redis for multi-worker revocation safety.
+    """
     try:
         payload = pyjwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         jti = payload.get("jti")
-        if jti:
-            # Best-effort Redis check even in sync context (multi-worker safety).
-            try:
-                from app.core.redis_client import get_redis
-                r = get_redis()
-                if r is not None:
-                    import asyncio
-
-                    async def _exists() -> bool:
-                        try:
-                            return bool(await r.exists(f"revoked:{jti}"))
-                        except Exception:
-                            return False
-
-                    is_revoked = asyncio.run(_exists())
-                    if is_revoked:
-                        return None
-            except Exception:
-                pass
-
-            if _is_revoked_memory(jti):
-                return None
+        if jti and _is_revoked_memory(jti):
+            return None
         return payload
     except JWTError:
         return None
