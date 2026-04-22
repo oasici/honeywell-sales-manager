@@ -54,6 +54,7 @@ qdrant-client==1.13.3
 # Background jobs
 apscheduler==3.10.4
 arq==0.26.1
+croniter==3.0.3
 
 # Web crawling
 crawl4ai==0.4.248

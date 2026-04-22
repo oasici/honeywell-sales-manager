@@ -2245,9 +2245,24 @@ export interface ERPConnectionUpdate {
   is_active?: boolean;
 }
 
+export interface ERPInvoicePushResult {
+  external_id: string;
+  already_pushed: boolean;
+}
+
 export const erpApi = {
   listConnections: async (): Promise<ERPConnection[]> => {
     const { data } = await api.get<ERPConnection[]>('/erp/connections');
+    return data;
+  },
+  pushInvoice: async (
+    quoteId: number,
+    connectionId: number,
+  ): Promise<ERPInvoicePushResult> => {
+    const { data } = await api.post<ERPInvoicePushResult>('/erp/invoices/push', {
+      quote_id: quoteId,
+      connection_id: connectionId,
+    });
     return data;
   },
   getConnection: async (id: number): Promise<ERPConnection> => {

@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { ERPInvoicePushButton } from './ERPInvoicePushButton';
 import { quotesApi, customersApi, partsApi, documentsApi } from '../../lib/api';
 import BundleSelectorModal from './BundleSelectorModal';
 import GuidedSellingWizard from './GuidedSellingWizard';
@@ -388,6 +389,9 @@ export default function QuoteEditorPage() {
           >
             {t('quotes.editor_send_label')}
           </Button>
+        )}
+        {quoteId && (status === 'approved' || status === 'accepted') && (
+          <ERPInvoicePushButton quoteId={quoteId} />
         )}
         {quoteId && (
           <Button variant="secondary" onClick={handleDownloadPdf}>

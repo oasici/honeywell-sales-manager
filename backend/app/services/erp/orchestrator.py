@@ -156,9 +156,12 @@ class ERPOrchestrator:
                         await self._sync_customers(db, job, connection, connector, resolver)
                     elif job.entity == "product":
                         await self._sync_products(db, job, connection, connector, resolver)
+                    elif job.entity == "stock":
+                        await self._sync_stock(db, job, connection, connector)
                     elif job.entity == "all":
                         await self._sync_customers(db, job, connection, connector, resolver)
                         await self._sync_products(db, job, connection, connector, resolver)
+                        await self._sync_stock(db, job, connection, connector)
                     else:
                         raise ConnectorError(f"Unknown sync entity: {job.entity}")
 
@@ -276,6 +279,54 @@ class ERPOrchestrator:
                 existing_mapping.last_source = "erp"
             job.records_updated += 1
 
+    async def _sync_stock(
+        self,
+        db: AsyncSession,
+        job: ERPSyncJob,
+        connection: ERPConnection,
+        connector: Any,
+    ) -> None:
+        """Pull stock levels and emit ``erp.stock.changed`` when qty moves."""
+        updated = 0
+        async for stock in connector.fetch_stock():
+            sku = stock.sku
+            if not sku:
+                continue
+            stmt = select(SparePart).where(SparePart.honeywell_code == sku)
+            part = (await db.execute(stmt)).scalar_one_or_none()
+            if not part:
+                job.records_skipped += 1
+                continue
+
+            old_qty = part.current_stock_qty
+            new_qty = float(stock.quantity)
+            part.current_stock_qty = new_qty
+            part.last_stock_sync_at = datetime.now(timezone.utc)
+
+            if old_qty is None or abs(old_qty - new_qty) > 1e-6:
+                await emit_domain_event(
+                    db,
+                    "erp.stock.changed",
+                    {
+                        "spare_part_id": part.id,
+                        "sku": sku,
+                        "old_qty": old_qty,
+                        "new_qty": new_qty,
+                        "warehouse_code": stock.warehouse_code,
+                        "connection_id": connection.id,
+                    },
+                    entity_type="spare_part",
+                    entity_id=part.id,
+                    persist=False,
+                )
+                updated += 1
+
+        job.records_updated += updated
+        connection.last_invoice_sync_at = connection.last_invoice_sync_at  # keep noqa
+        logger.info(
+            "erp.stock.sync connection=%s parts_updated=%d", connection.id, updated,
+        )
+
     async def _sync_products(
         self,
         db: AsyncSession,
@@ -321,14 +372,12 @@ class ERPOrchestrator:
 
         payload_hash = compute_payload_hash(mapped)
         if existing is None:
-            # Spare part minimum required fields vary by schema; fill safe defaults.
             part = SparePart(
-                code=mapped.get("sku") or erp_product.external_id,
-                description=mapped.get("name") or "",
+                honeywell_code=mapped.get("sku") or erp_product.external_id,
+                name_tr=mapped.get("name") or "",
+                transfer_price=mapped.get("unit_price"),
+                price_currency=mapped.get("currency") or "TRY",
             )
-            # Attach optional attributes if the column exists.
-            if hasattr(part, "unit_price") and mapped.get("unit_price") is not None:
-                setattr(part, "unit_price", mapped["unit_price"])
             db.add(part)
             await db.flush()
             await _upsert_mapping(
@@ -343,9 +392,11 @@ class ERPOrchestrator:
             job.records_created += 1
         else:
             if mapped.get("name"):
-                existing.description = mapped["name"]
-            if hasattr(existing, "unit_price") and mapped.get("unit_price") is not None:
-                setattr(existing, "unit_price", mapped["unit_price"])
+                existing.name_tr = mapped["name"]
+            if mapped.get("unit_price") is not None:
+                existing.transfer_price = mapped["unit_price"]
+            if mapped.get("currency"):
+                existing.price_currency = mapped["currency"]
             if existing_mapping:
                 existing_mapping.payload_hash = payload_hash
                 existing_mapping.last_synced_at = datetime.now(timezone.utc)
@@ -366,13 +417,12 @@ def _customer_to_dict(customer: Customer) -> dict[str, Any]:
 
 
 def _product_to_dict(part: SparePart) -> dict[str, Any]:
-    data: dict[str, Any] = {
-        "sku": getattr(part, "code", None),
-        "name": getattr(part, "description", None),
+    return {
+        "sku": part.honeywell_code,
+        "name": part.name_tr or part.name_en,
+        "unit_price": part.transfer_price,
+        "currency": part.price_currency,
     }
-    if hasattr(part, "unit_price"):
-        data["unit_price"] = getattr(part, "unit_price", None)
-    return data
 
 
 async def _load_mapping(

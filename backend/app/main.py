@@ -330,6 +330,24 @@ async def lifespan(app: FastAPI):
                 event_bus.subscribe(evt, _on_slack_teams_event)
             logger.info("Slack/Teams bildirim isleyicileri baglandi")
 
+        # ERP connector event subscribers (v3)
+        if settings.FEATURE_ERP_CONNECTOR:
+            try:
+                from app.services.erp.event_handlers import register_erp_handlers
+
+                register_erp_handlers()
+            except Exception as exc:
+                logger.warning("ERP event handlers wiring failed: %s", exc)
+
+        # Field audit trail listener (v3 - Shield equivalent)
+        if settings.FEATURE_FIELD_AUDIT:
+            try:
+                from app.services.field_audit import install_field_audit_listener
+
+                install_field_audit_listener()
+            except Exception as exc:
+                logger.warning("Field audit listener install failed: %s", exc)
+
         logger.info("Event bus wired: %d handlers registered", event_bus.handler_count)
     except Exception as exc:
         logger.warning("Event bus wiring failed (non-critical): %s", exc)

@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,6 +46,7 @@ from app.schemas.erp import (
 )
 from app.services.erp import build_connector
 from app.services.erp.base import ConnectorError
+from app.services.erp.invoice_push import InvoicePushError, push_quote_as_invoice
 from app.services.erp.orchestrator import ERPOrchestrator
 
 logger = logging.getLogger(__name__)
@@ -294,13 +296,27 @@ async def resolve_conflict(
     if row.status != "pending":
         raise HTTPException(409, "Conflict already resolved")
 
+    # Apply the resolution to the domain row. "hss_wins" and "dismiss" leave
+    # the HSS copy untouched; "erp_wins" overwrites with the erp_snapshot;
+    # "merge" expects ``merged_payload`` in the request body and applies it.
+    if body.action in ("erp_wins", "merge"):
+        target_payload = (
+            body.merged_payload
+            if body.action == "merge" and body.merged_payload
+            else _safe_json(row.erp_snapshot)
+        )
+        await _apply_resolution_payload(
+            db,
+            entity_type=row.entity_type,
+            internal_id=row.internal_id,
+            payload=target_payload or {},
+        )
+
     row.status = f"resolved_{body.action}" if body.action != "dismiss" else "dismissed"
     row.resolved_at = datetime.now(timezone.utc)
     row.resolved_by = current_user.id
     row.resolution_note = body.note
 
-    # Actual merge into domain tables happens in a dedicated helper service
-    # (Sprint 3) - leaving that concern out of the HTTP handler for now.
     await db.commit()
     await db.refresh(row)
     logger.info(
@@ -308,6 +324,88 @@ async def resolve_conflict(
         row.id, body.action, current_user.id,
     )
     return row
+
+
+def _safe_json(value: str) -> dict:
+    try:
+        return json.loads(value) if value else {}
+    except json.JSONDecodeError:
+        return {}
+
+
+async def _apply_resolution_payload(
+    db: AsyncSession, *, entity_type: str, internal_id: int, payload: dict
+) -> None:
+    """Write the chosen payload back into the HSS domain table."""
+    if entity_type == "customer":
+        from app.models.customer import Customer
+
+        customer = await db.get(Customer, internal_id)
+        if not customer:
+            return
+        if payload.get("name"):
+            customer.name = payload["name"]
+        if payload.get("email"):
+            customer.email = payload["email"]
+        if payload.get("phone") is not None:
+            customer.phone = payload.get("phone")
+        if payload.get("address") is not None:
+            customer.address = payload.get("address")
+        if payload.get("tax_number") is not None:
+            customer.tax_id = payload.get("tax_number")
+        return
+
+    if entity_type == "product":
+        from app.models.spare_part import SparePart
+
+        part = await db.get(SparePart, internal_id)
+        if not part:
+            return
+        if payload.get("name"):
+            part.name_tr = payload["name"]
+        if payload.get("unit_price") is not None:
+            part.transfer_price = payload["unit_price"]
+        if payload.get("currency"):
+            part.price_currency = payload["currency"]
+        return
+
+
+# ── Quote → ERP invoice push ────────────────────────────────────────────────
+
+
+class InvoicePushRequest(BaseModel):
+    connection_id: int
+    quote_id: int
+
+
+class InvoicePushResult(BaseModel):
+    external_id: str
+    already_pushed: bool
+
+
+@router.post("/invoices/push", response_model=InvoicePushResult)
+async def push_invoice(
+    body: InvoicePushRequest,
+    current_user: Annotated[User, Depends(require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS))],
+    db: AsyncSession = Depends(get_db),
+) -> InvoicePushResult:
+    """Push an accepted quote into the selected ERP as an invoice.
+
+    Idempotent: re-running the endpoint for the same quote/connection returns
+    the previously stored external id without a second write.
+    """
+    _require_flag()
+    try:
+        result = await push_quote_as_invoice(
+            db,
+            quote_id=body.quote_id,
+            connection_id=body.connection_id,
+            actor_id=current_user.id,
+        )
+        await db.commit()
+    except InvoicePushError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return InvoicePushResult(**result)
 
 
 # ── Debug / introspection ───────────────────────────────────────────────────

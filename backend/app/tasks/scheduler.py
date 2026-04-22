@@ -736,6 +736,79 @@ async def check_subscription_renewals_task():
         logger.error("Subscription renewal check failed: %s", exc)
 
 
+async def sync_erp_cron_connections_task():
+    """Every 5 minutes: dispatch ERP connections whose cron is due.
+
+    We parse ``ERPConnection.sync_cron`` (5-field crontab) and enqueue a delta
+    ``all`` sync via the orchestrator when the minute rolls over. This keeps
+    the heavy lifting inside the orchestrator's Redis lock.
+    """
+    if not settings.FEATURE_ERP_CONNECTOR:
+        return
+
+    from datetime import datetime, timezone
+
+    from sqlalchemy import select
+
+    from app.core.database import async_session
+    from app.models.erp import ERPConnection
+    from app.services.erp.orchestrator import ERPOrchestrator
+
+    try:
+        from croniter import croniter  # type: ignore import-not-found
+    except ImportError:
+        logger.debug("croniter not installed; ERP cron dispatch disabled")
+        return
+
+    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+
+    try:
+        async with async_session() as db:
+            rows = (
+                await db.execute(
+                    select(ERPConnection).where(
+                        ERPConnection.is_active.is_(True),
+                        ERPConnection.sync_cron.isnot(None),
+                    )
+                )
+            ).scalars().all()
+
+            if not rows:
+                return
+
+            orchestrator = ERPOrchestrator(session_factory=async_session, redis=None)
+            triggered = 0
+            for connection in rows:
+                cron_expr = (connection.sync_cron or "").strip()
+                if not cron_expr:
+                    continue
+                try:
+                    iterator = croniter(cron_expr, now)
+                    previous = iterator.get_prev(datetime)
+                except (ValueError, KeyError) as exc:
+                    logger.warning(
+                        "Invalid cron expression for connection %s: %s (%s)",
+                        connection.id, cron_expr, exc,
+                    )
+                    continue
+                # Fire only if the previous cron trigger landed within the
+                # scheduler's 5-minute window; avoids double-firing.
+                delta = (now - previous).total_seconds()
+                if 0 <= delta < 300:
+                    await orchestrator.trigger(
+                        connection_id=connection.id,
+                        entity="all",
+                        mode="delta",
+                        triggered_by="cron",
+                    )
+                    triggered += 1
+
+            if triggered:
+                logger.info("ERP cron dispatched %d connection(s)", triggered)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("ERP cron dispatch failed: %s", exc)
+
+
 def start_scheduler():
     """Start background scheduler with all tasks. Safe to call multiple times."""
     scheduler.add_job(
@@ -827,6 +900,13 @@ def start_scheduler():
         "interval",
         hours=24,
         id="subscription_renewals",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("erp_cron", sync_erp_cron_connections_task)),
+        "interval",
+        minutes=5,
+        id="erp_cron",
         replace_existing=True,
     )
     if not scheduler.running:

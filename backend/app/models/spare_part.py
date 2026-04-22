@@ -29,6 +29,14 @@ class SparePart(Base):
     supplier_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     price_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
     min_margin_pct: Mapped[float] = mapped_column(Float, default=0.0)
+
+    # ERP-sourced stock levels (v3). Nullable = never synced.
+    current_stock_qty: Mapped[float | None] = mapped_column(Float, nullable=True)
+    low_stock_threshold: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_stock_sync_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

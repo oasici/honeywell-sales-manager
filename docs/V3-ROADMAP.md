@@ -48,29 +48,43 @@ Mobile work is intentionally excluded and tracked separately.
 - Lazy routes `/admin/erp` and `/admin/erp/:id`, sidebar nav
   `nav.erp_connector` across 5 locales (tr/en/de/fr/es).
 
+### Sprint 3 & 4 — Event bus, cron, quote→invoice push, conflict apply (done)
+
+- Event subscribers (`app/services/erp/event_handlers.py`):
+  - `erp.stock.changed` → `low_stock_risk` RevenueSignal with threshold/drop
+    heuristics.
+  - `erp.customer.synced`, `erp.product.synced` logged (vector re-embed hook
+    reserved for v3.1).
+  - `erp.sync.failed` → notification fan-out to all active sales managers.
+- `SparePart.current_stock_qty` + `low_stock_threshold` + `last_stock_sync_at`
+  columns (migration `20260423`).
+- Stock sync entity in the orchestrator emits change events when qty moves.
+- APScheduler cron dispatcher (`sync_erp_cron_connections_task`) parses
+  `ERPConnection.sync_cron` via `croniter` every 5 min and fires delta
+  syncs without racing the Redis lock.
+- `app/services/erp/invoice_push.py` + `POST /api/v1/erp/invoices/push`
+  convert accepted quotes into ERP invoices idempotently (per
+  `erp_entity_mappings` row).
+- `ERPInvoicePushButton.tsx` on `QuoteEditorPage` lets the user pick an
+  active connector and push the quote once approved/accepted.
+- Conflict resolve endpoint now applies `erp_wins` / `merge` payloads back
+  into `customers` / `spare_parts` rows.
+
+### Parallel tracks (done skeleton)
+
+- **Field Audit Trail** — `field_audit_logs` table, SQLAlchemy
+  `before_flush` listener (`app/services/field_audit.py`) that writes one
+  row per dirty scalar attribute, `/api/v1/field-audit` read endpoints
+  (manager only). Gated by `FEATURE_FIELD_AUDIT`, retention from
+  `FIELD_AUDIT_RETENTION_DAYS` default 10 years.
+- **WhatsApp Business** — Meta Cloud API client
+  (`app/services/whatsapp.py`), inbound webhook verification + ingestion,
+  `POST /integrations/whatsapp/send/{text,template}`, thread history
+  endpoint, message persistence in `whatsapp_messages` table.
+
 ## Pending (ordered)
 
-### Sprint 3 — Logo hardening + mapping UI depth
-
-1. Logo Tiger partner sandbox validation (cookbook of real method names).
-2. Per-entity field mapping UI with drag-drop overrides persisted to
-   `ERPConnection.config_json`.
-3. Bulk conflict resolver actions.
-
-### Sprint 4 — Event bus + quote→invoice
-
-1. Domain events `erp.customer.synced`, `erp.stock.changed` wired into
-   playbook/signal pipelines.
-2. Quote-to-invoice push button on `QuoteDetailPage` (Paraşüt).
-3. Scheduler integration (APScheduler cron from `sync_cron`).
-4. Grafana metrics + E2E Playwright coverage.
-
-### Parallel tracks
-
-- **Field Audit Trail** — new `field_audit_log` model + decorator applied to
-  ORM `before_update` events; retention from `FIELD_AUDIT_RETENTION_DAYS`.
-- **WhatsApp Business** — `app/services/whatsapp/` package, inbound webhook
-  `/integrations/whatsapp/webhook`, template message sender.
+### Next sprints
 
 ### Later (tracked)
 

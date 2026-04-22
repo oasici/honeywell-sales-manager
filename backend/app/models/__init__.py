@@ -69,6 +69,8 @@ from app.models.erp import (
     ERPSyncConflict,
     ERPSyncJob,
 )
+from app.models.field_audit import FieldAuditLog
+from app.models.whatsapp import WhatsAppMessage
 
 __all__ = [
     "EmailStatus",
@@ -165,4 +167,6 @@ __all__ = [
     "ERPEntityMapping",
     "ERPSyncConflict",
     "ERPSyncJob",
+    "FieldAuditLog",
+    "WhatsAppMessage",
 ]
