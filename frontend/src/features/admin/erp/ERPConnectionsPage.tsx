@@ -336,11 +336,8 @@ function CreateConnectionModal({ onClose, onSubmit, submitting }: CreateConnecti
   }
 
   return (
-    <Modal onClose={onClose}>
+    <Modal isOpen onClose={onClose} title="Yeni ERP Bağlantısı" size="lg">
       <form onSubmit={handleSubmit} className="space-y-4 p-6 max-w-lg">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Yeni ERP Bağlantısı
-        </h2>
         <p className="text-sm text-gray-500">
           Bağlantı sihirbazı kimlik bilgilerini şifreleyerek kaydeder. Şifreler hiçbir zaman
           tarayıcıda saklanmaz.

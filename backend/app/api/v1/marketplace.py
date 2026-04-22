@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -186,18 +186,19 @@ async def list_installations(
     return list(rows)
 
 
-@router.delete("/installations/{installation_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=None)
+@router.delete("/installations/{installation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def uninstall(
     installation_id: int,
     current_user: Annotated[User, Depends(require_role(UserRole.SALES_MANAGER))],
     db: AsyncSession = Depends(get_db),
-):
+) -> Response:
     _require_flag()
     try:
         await uninstall_plugin(db, installation_id=installation_id)
     except MarketplaceError as exc:
         raise HTTPException(404, str(exc)) from exc
     await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # ── Subscriptions ──────────────────────────────────────────────────────────

@@ -12,7 +12,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -151,18 +151,18 @@ async def update_connection(
     return row
 
 
-@router.delete("/connections/{conn_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=None)
+@router.delete("/connections/{conn_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_connection(
     conn_id: int,
     current_user: Annotated[User, Depends(require_role(UserRole.SALES_MANAGER))],
     db: AsyncSession = Depends(get_db),
-):
+) -> Response:
     _require_flag()
     row = await db.get(ERPConnection, conn_id)
-    if not row:
-        return
-    await db.delete(row)
-    await db.commit()
+    if row:
+        await db.delete(row)
+        await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # ── Test + Sync ─────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -61,10 +61,11 @@ async def patch_feature_flag(
     raise HTTPException(500, "Flag not found after patch")
 
 
-@router.delete("", status_code=status.HTTP_204_NO_CONTENT, response_class=None)
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_all_overrides(
     current_user: Annotated[User, Depends(require_role(UserRole.SALES_MANAGER))],
     db: AsyncSession = Depends(get_db),
-):
+) -> Response:
     await ff_service.clear_overrides(db)
     await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
