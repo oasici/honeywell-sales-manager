@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: ConfigMap
+      name: hsm-backend-config
+    patch: |-
+      - op: replace
+        path: /data/ENV
+        value: production
+      - op: replace
+        path: /data/CORS_ORIGINS
+        value: "https://app.example.com"
+  - target:
+      kind: Ingress
+      name: hsm-backend
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: api.example.com
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: api.example.com
+

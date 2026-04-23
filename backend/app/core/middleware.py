@@ -48,6 +48,23 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         response: Response = await call_next(request)
+        # Defensive: some proxies/stacks may duplicate headers; delete first for idempotency.
+        for k in (
+            "X-Content-Type-Options",
+            "X-Frame-Options",
+            "X-XSS-Protection",
+            "Referrer-Policy",
+            "Permissions-Policy",
+            "Strict-Transport-Security",
+            "Content-Security-Policy",
+            "Cache-Control",
+            "Pragma",
+        ):
+            try:
+                del response.headers[k]
+            except KeyError:
+                pass
+
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"

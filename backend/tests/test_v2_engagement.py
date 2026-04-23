@@ -82,6 +82,60 @@ async def test_sequence_crud_and_enroll(client: AsyncClient, db: AsyncSession):
 
 
 @pytest.mark.asyncio
+async def test_sequence_performance_manager_ok(client: AsyncClient, db: AsyncSession):
+    _, h = await _mgr(db)
+    await client.post(
+        "/api/v1/sequences/",
+        json={
+            "name": "Perf Seq",
+            "steps": [{"step": 1, "action": "email", "delay_days": 0, "template": "Hi"}],
+        },
+        headers=h,
+    )
+
+    r = await client.get("/api/v1/sequences/performance", headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    assert "sequences" in body and "rollup" in body
+    assert body["rollup"]["sequence_count"] >= 1
+    assert isinstance(body["sequences"], list)
+    row = next(s for s in body["sequences"] if s["name"] == "Perf Seq")
+    assert row["enrollments_total"] == 0
+    assert row["avg_completed_steps_per_enrollment"] == 0
+
+    r2 = await client.post(
+        "/api/v1/sequences/enroll",
+        json={"sequence_id": row["sequence_id"]},
+        headers=h,
+    )
+    assert r2.status_code == 201
+
+    r3 = await client.get("/api/v1/sequences/performance", headers=h)
+    assert r3.status_code == 200
+    row2 = next(s for s in r3.json()["sequences"] if s["sequence_id"] == row["sequence_id"])
+    assert row2["enrollments_total"] == 1
+    assert row2["enrollments_active"] == 1
+
+
+@pytest.mark.asyncio
+async def test_sequence_performance_rep_forbidden(client: AsyncClient, db: AsyncSession):
+    rep = User(
+        email="eng_rep_perf@test.com",
+        full_name="Eng Rep",
+        hashed_password=hash_password("Test1234"),
+        role="sales_rep",
+        is_active=True,
+    )
+    db.add(rep)
+    await db.commit()
+    await db.refresh(rep)
+    rh = {"Authorization": f"Bearer {create_access_token({'sub': str(rep.id)})}"}
+
+    r = await client.get("/api/v1/sequences/performance", headers=rh)
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_segment_crud(client: AsyncClient, db: AsyncSession):
     _, h = await _mgr(db)
 

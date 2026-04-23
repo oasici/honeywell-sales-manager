@@ -10,10 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # Ensure tests are deterministic even if a `.env` is present for docker runs.
 os.environ["ENV"] = "test"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+os.environ["REDIS_URL"] = ""
 for _flag in (
     "FEATURE_DEAL_HEALTH",
     "FEATURE_SEQUENCES_V2",
     "FEATURE_V2_BOARD",
+    "FEATURE_TASKS",
     "FEATURE_RAG",
     "FEATURE_SESSION_MANAGEMENT",
 ):

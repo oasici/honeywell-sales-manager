@@ -226,7 +226,7 @@ class DataQualityService:
     def _check_stage_requirements(opportunity: Opportunity) -> bool:
         """Check if minimal stage requirements are met."""
         stage = opportunity.stage or ""
-        if stage in ("prospecting", "qualification"):
+        if stage in ("prospecting", "qualified"):
             return bool(opportunity.customer_id)
         if stage in ("proposal", "negotiation"):
             return bool(opportunity.amount and opportunity.close_date)

@@ -310,16 +310,18 @@ async def execute_step_v2(
 
     try:
         if action == "task":
-            from app.models.opportunity import Task
+            from app.services.dedupe_service import upsert_task
 
-            task = Task(
+            await upsert_task(
+                db,
                 owner_id=enrollment.enrolled_by or 1,
                 opportunity_id=enrollment.opportunity_id,
-                title=template or f"Sira adimi {current}",
+                title=(template or f"Sira adimi {current}")[:255],
                 source="rule",
                 priority="normal",
+                status="open",
+                dedupe_window_days=14,
             )
-            db.add(task)
             reason_codes.append("task_created")
         elif action == "email":
             reason_codes.append("email_step_logged")

@@ -20,6 +20,7 @@ import type {
   CustomerHealthReport,
   HealthOverview,
   AtRiskResponse,
+  SavedView,
 } from './types';
 
 // ── Axios instance ───────────────────────────────────
@@ -283,6 +284,14 @@ export const emailsApi = {
     const { data } = await api.patch<EmailRequest>(`/emails/${id}/review`, { action });
     return data;
   },
+
+  linkOpportunity: async (
+    id: number,
+    payload: { opportunity_id: number | null },
+  ): Promise<EmailRequest> => {
+    const { data } = await api.patch<EmailRequest>(`/emails/${id}/opportunity`, payload);
+    return data;
+  },
 };
 
 // ── Parts ────────────────────────────────────────────
@@ -418,6 +427,36 @@ export const customersApi = {
 
   enrich: async (id: number): Promise<{ data: Record<string, unknown> }> => {
     const { data } = await api.post<{ data: Record<string, unknown> }>(`/customers/${id}/enrich`);
+    return data;
+  },
+
+  getIntelligence: async (id: number, params?: Record<string, unknown>) => {
+    const { data } = await api.get(`/customers/${id}/intelligence`, { params });
+    return data;
+  },
+
+  getAccount360: async (id: number, opts?: { refresh?: boolean; timeline_limit?: number }) => {
+    const { data } = await api.get(`/customers/${id}/account-360`, {
+      params: {
+        refresh: opts?.refresh ?? false,
+        timeline_limit: opts?.timeline_limit ?? 40,
+      },
+    });
+    return data;
+  },
+
+  listHighIntent: async (params?: { limit?: number }) => {
+    const { data } = await api.get('/customers/high-intent', { params });
+    return data;
+  },
+
+  pinCustomer: async (id: number) => {
+    const { data } = await api.post(`/customers/${id}/pin`);
+    return data;
+  },
+
+  unpinCustomer: async (id: number) => {
+    const { data } = await api.delete(`/customers/${id}/pin`);
     return data;
   },
 };
@@ -613,6 +652,25 @@ export const opsApi = {
     const { data } = await api.get('/ops/queues');
     return data;
   },
+  getFeatureFlags: async (): Promise<Record<string, boolean>> => {
+    const { data } = await api.get<{ data: Record<string, boolean> }>('/ops/feature-flags');
+    return data?.data ?? {};
+  },
+};
+
+export const savedViewsApi = {
+  list: async (): Promise<{ views: SavedView[] }> => {
+    const { data } = await api.get('/saved-views/');
+    return data;
+  },
+  create: async (body: { name: string; route: string; query_json: string }) => {
+    const { data } = await api.post('/saved-views/', body);
+    return data;
+  },
+  remove: async (id: number) => {
+    const { data } = await api.delete(`/saved-views/${id}`);
+    return data;
+  },
 };
 
 // ── Settings ─────────────────────────────────────────
@@ -740,6 +798,10 @@ export const opportunitiesApi = {
   },
   get: async (id: number) => {
     const { data } = await api.get(`/opportunities/${id}`);
+    return data;
+  },
+  getIntelligence: async (id: number) => {
+    const { data } = await api.get(`/opportunities/${id}/intelligence`);
     return data;
   },
   create: async (payload: Record<string, unknown>) => {
@@ -896,6 +958,12 @@ export const forecastApi = {
     });
     return data;
   },
+  getHybrid: async (ownerId?: number) => {
+    const { data } = await api.get('/forecast/hybrid', {
+      params: ownerId != null ? { owner_id: ownerId } : undefined,
+    });
+    return data;
+  },
   getWowComparison: async () => {
     const { data } = await api.get('/forecast/wow');
     return data;
@@ -1041,6 +1109,10 @@ export const cockpitApi = {
     const { data } = await api.get('/cockpit/signals', { params });
     return data;
   },
+  getRiskyAccounts: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get('/cockpit/risky-accounts', { params });
+    return data;
+  },
   getActions: async () => {
     const { data } = await api.get('/cockpit/actions');
     return data;
@@ -1051,6 +1123,35 @@ export const cockpitApi = {
   },
   resolveSignal: async (id: number) => {
     const { data } = await api.post(`/cockpit/signals/${id}/resolve`);
+    return data;
+  },
+};
+
+// ── Insights ───────────────────────────────────────────
+export const insightsApi = {
+  getSignals: async (windowDays = 30) => {
+    const { data } = await api.get('/insights/signals', { params: { window: windowDays } });
+    return data;
+  },
+  getSignalsTrends: async (windowDays = 30) => {
+    const { data } = await api.get('/insights/signals/trends', { params: { window: windowDays } });
+    return data;
+  },
+  getConversationInsights: async (windowDays = 30) => {
+    const { data } = await api.get('/insights/conversation-insights', {
+      params: { window: windowDays },
+    });
+    return data;
+  },
+  searchConversations: async (params: {
+    q: string;
+    stage?: string;
+    signal_type?: string;
+    owner_id?: number;
+    page?: number;
+    page_size?: number;
+  }) => {
+    const { data } = await api.get('/insights/conversation-search', { params });
     return data;
   },
 };
@@ -1124,8 +1225,28 @@ export const coachingApi = {
 
 // ── AI Engine ─────────────────────────────────────────
 export const aiApi = {
-  summarize: async (payload: { entity_type: string; entity_id: number; focus?: string }) => {
+  summarize: async (payload: {
+    entity_type: string;
+    entity_id: number;
+    focus?: string;
+    force?: boolean;
+  }) => {
     const { data } = await api.post('/ai/summarize', payload);
+    return data;
+  },
+  summarizeChanges: async (payload: {
+    entity_type: 'opportunity' | 'customer';
+    entity_id: number;
+    days?: number;
+    force?: boolean;
+  }) => {
+    const { data } = await api.post('/ai/summarize/changes', payload);
+    return data;
+  },
+  meetingPrep: async (customerId: number) => {
+    const { data } = await api.post<{ prep: string; customer_id: number }>('/ai/meeting-prep', {
+      customer_id: customerId,
+    });
     return data;
   },
   suggestPipeline: async (payload: { opportunity_id: number }) => {
@@ -1739,6 +1860,15 @@ export const meetingsApi = {
     const { data } = await api.get('/meetings/bookings');
     return data;
   },
+  schedulePlaceholder: async (payload: {
+    title: string;
+    start_at: string;
+    duration_minutes?: number;
+    opportunity_id?: number;
+  }) => {
+    const { data } = await api.post('/meetings/schedule-placeholder', payload);
+    return data;
+  },
 };
 
 // ── Subscriptions ──────────────────────────────────
@@ -2148,6 +2278,10 @@ export const sequenceV2Api = {
   },
   getAnalytics: async () => {
     const { data } = await api.get('/engagement/sequences/analytics');
+    return data;
+  },
+  getPerformance: async () => {
+    const { data } = await api.get('/engagement/sequences/performance');
     return data;
   },
   getVariantMetrics: async (sequenceId?: number) => {

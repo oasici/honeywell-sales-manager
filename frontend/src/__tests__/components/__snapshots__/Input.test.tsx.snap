@@ -5,24 +5,31 @@ exports[`Input > renders with error state 1`] = `
   class="w-full"
 >
   <label
-    class="mb-1 block text-sm font-medium text-gray-700"
-    for="email"
+    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+    for="_r_2_"
   >
     Email
   </label>
   <input
-    class="block w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-200
-            placeholder:text-gray-400
+    aria-describedby="_r_2_-error"
+    aria-invalid="true"
+    class="block w-full rounded-lg border px-3 py-2 text-sm
+            transition-colors duration-200
+            placeholder:text-gray-400 dark:placeholder:text-gray-500
+            bg-white dark:bg-transparent
+            text-gray-900 dark:text-gray-100
             focus:outline-none focus:ring-2 focus:ring-offset-0
-            border-red-500 focus:border-red-500 focus:ring-red-200
-            disabled:bg-gray-50 disabled:text-gray-500
+            border-red-500 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900/30
+            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
             "
-    id="email"
+    id="_r_2_"
   />
   <p
-    class="mt-1 text-xs text-red-600"
+    class="mt-1 text-xs text-red-600 dark:text-red-400"
+    id="_r_2_-error"
+    role="alert"
   >
-    Gecersiz email adresi
+    Geçersiz email adresi
   </p>
 </div>
 `;
@@ -32,23 +39,28 @@ exports[`Input > renders with helper text 1`] = `
   class="w-full"
 >
   <label
-    class="mb-1 block text-sm font-medium text-gray-700"
-    for="sifre"
+    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+    for="_r_1_"
   >
     Sifre
   </label>
   <input
-    class="block w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-200
-            placeholder:text-gray-400
+    aria-describedby="_r_1_-helper"
+    class="block w-full rounded-lg border px-3 py-2 text-sm
+            transition-colors duration-200
+            placeholder:text-gray-400 dark:placeholder:text-gray-500
+            bg-white dark:bg-transparent
+            text-gray-900 dark:text-gray-100
             focus:outline-none focus:ring-2 focus:ring-offset-0
-            border-gray-300 focus:border-honeywell-red focus:ring-honeywell-light
-            disabled:bg-gray-50 disabled:text-gray-500
+            border-gray-300 dark:border-gray-600 focus:border-honeywell-red focus:ring-honeywell-light dark:focus:ring-honeywell-red/20
+            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
             "
-    id="sifre"
+    id="_r_1_"
     type="password"
   />
   <p
-    class="mt-1 text-xs text-gray-500"
+    class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+    id="_r_1_-helper"
   >
     En az 8 karakter
   </p>
@@ -60,20 +72,23 @@ exports[`Input > renders with label 1`] = `
   class="w-full"
 >
   <label
-    class="mb-1 block text-sm font-medium text-gray-700"
-    for="email"
+    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+    for="_r_0_"
   >
     Email
   </label>
   <input
-    class="block w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-200
-            placeholder:text-gray-400
+    class="block w-full rounded-lg border px-3 py-2 text-sm
+            transition-colors duration-200
+            placeholder:text-gray-400 dark:placeholder:text-gray-500
+            bg-white dark:bg-transparent
+            text-gray-900 dark:text-gray-100
             focus:outline-none focus:ring-2 focus:ring-offset-0
-            border-gray-300 focus:border-honeywell-red focus:ring-honeywell-light
-            disabled:bg-gray-50 disabled:text-gray-500
+            border-gray-300 dark:border-gray-600 focus:border-honeywell-red focus:ring-honeywell-light dark:focus:ring-honeywell-red/20
+            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
             "
-    id="email"
-    placeholder="ornek@test.com"
+    id="_r_0_"
+    placeholder="örnek@test.com"
   />
 </div>
 `;
@@ -83,12 +98,16 @@ exports[`Input > renders without label 1`] = `
   class="w-full"
 >
   <input
-    class="block w-full rounded-lg border px-3 py-2 text-sm transition-colors duration-200
-            placeholder:text-gray-400
+    class="block w-full rounded-lg border px-3 py-2 text-sm
+            transition-colors duration-200
+            placeholder:text-gray-400 dark:placeholder:text-gray-500
+            bg-white dark:bg-transparent
+            text-gray-900 dark:text-gray-100
             focus:outline-none focus:ring-2 focus:ring-offset-0
-            border-gray-300 focus:border-honeywell-red focus:ring-honeywell-light
-            disabled:bg-gray-50 disabled:text-gray-500
+            border-gray-300 dark:border-gray-600 focus:border-honeywell-red focus:ring-honeywell-light dark:focus:ring-honeywell-red/20
+            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
             "
+    id="_r_3_"
     placeholder="Ara..."
   />
 </div>

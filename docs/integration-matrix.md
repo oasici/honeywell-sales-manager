@@ -99,5 +99,24 @@
 |----------|---------|----------|---------------|------|--------|------|
 | Cockpit 3-tab | — | CockpitPage v2 | — | — | FEATURE_SEQUENCES_V2 | Tab navigation |
 | Completion analytics | `api/v1/engagement.py`: GET /sequences/analytics | CockpitPage | — | step_runs aggregation | FEATURE_SEQUENCES_V2 | Tamamlama nedeni, temas/hedef |
-| Manager dashboard | `api/v1/engagement.py`: GET /sequences/performance | — | — | step_runs + enrollments | FEATURE_SEQUENCES_V2 | Varyant/sequence perf |
+| Manager dashboard | `api/v1/engagement.py`: GET /sequences/performance | CockpitPage, SequencesPage | — | step_runs + enrollments | FEATURE_SEQUENCES_V2 | `pytest` `test_sequence_performance_*` |
 | E2E tests | — | — | — | — | — | Playwright: role-based + cockpit |
+
+## Product Sprint 4 — Prospecting + Engagement (pipeline)
+
+| Teslimat | Backend | Frontend | Event/Trigger | Data | Gating | Test |
+|----------|---------|----------|---------------|------|--------|------|
+| ProspectingAgent (facade) | `services/prospecting_agent.py` → `HighIntentService` | — | — | customers + emails + activities | — | `pytest` `test_prospecting_agent_facade` |
+| High-intent + pin | `api/v1/customers.py`: high-intent, pin | Board, HighIntentAccountsPage, CustomerDetail | — | pins + scoring | — | mevcut |
+| Email template library in sequences | `email_templates` + `SequenceBuilderPage` | SequenceBuilder | — | steps_json `email_template_id` | — | UI smoke |
+| Calendar adapter stub | `services/calendar_adapter.py` | — | — | — | — | import |
+| Schedule meeting placeholder | `api/v1/meetings.py`: POST `/schedule-placeholder` | OpportunityDetailPage | activity log | activity_logs | — | `pytest` `test_schedule_meeting_placeholder` |
+
+## Product Sprint 5 — Signals + Insights + Search
+
+| Teslimat | Backend | Frontend | Event/Trigger | Data | Gating | Test |
+|----------|---------|----------|---------------|------|--------|------|
+| Signals trend series | `api/v1/insights.py`: GET `/signals/trends` | InsightsPage (Recharts) | — | opportunity_signals | FEATURE_V2_BOARD | `pytest` trends |
+| Conversation keyword insights | `api/v1/insights.py`: GET `/conversation-insights` | InsightsPage | — | transcripts ILIKE buckets | FEATURE_V2_BOARD | — |
+| Unified conversation search | `api/v1/insights.py`: GET `/conversation-search` | InsightsPage | — | transcripts + email_requests + opportunity_events | FEATURE_V2_BOARD | `pytest` conversation_search_* |
+| Filters stage / signal / owner | `conversation_insights_service.py` | InsightsPage selects | — | opportunity joins | FEATURE_V2_BOARD | manager: owner filter |

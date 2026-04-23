@@ -24,11 +24,15 @@ import { engagementApi, sequenceV2Api } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import type { Sequence, SequenceEnrollment } from '../../lib/types';
 import { useT } from '../../hooks/useT';
+import { useAuthStore } from '../../stores/authStore';
+
+const PERF_QUERY_KEY = ['sequences', 'performance'] as const;
 
 export default function SequencesPage() {
   const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const isManager = useAuthStore((s) => s.user?.role === 'sales_manager');
 
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
   const [selectedSequenceId, setSelectedSequenceId] = useState<number | null>(null);
@@ -53,6 +57,10 @@ export default function SequencesPage() {
     onSuccess: () => {
       toast.success(t('sequences.toast_enroll_ok'));
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
+      queryClient.invalidateQueries({ queryKey: PERF_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-performance'] });
+      queryClient.invalidateQueries({ queryKey: ['sequence-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-analytics'] });
       setIsEnrollOpen(false);
       resetEnrollForm();
     },
@@ -64,6 +72,10 @@ export default function SequencesPage() {
     onSuccess: () => {
       toast.success(t('sequences.toast_pause_ok'));
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
+      queryClient.invalidateQueries({ queryKey: PERF_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-performance'] });
+      queryClient.invalidateQueries({ queryKey: ['sequence-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-analytics'] });
     },
     onError: () => toast.error(t('sequences.toast_pause_fail')),
   });
@@ -73,6 +85,10 @@ export default function SequencesPage() {
     onSuccess: () => {
       toast.success(t('sequences.toast_resume_ok'));
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
+      queryClient.invalidateQueries({ queryKey: PERF_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-performance'] });
+      queryClient.invalidateQueries({ queryKey: ['sequence-analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-analytics'] });
     },
     onError: () => toast.error(t('sequences.toast_resume_fail')),
   });
@@ -110,18 +126,28 @@ export default function SequencesPage() {
     return enrollmentsData.enrollments.filter((e) => e.sequence_id === sequenceId);
   }
 
-  // V2 analytics
+  // V2 analytics + performance (manager-only; backend returns 403 otherwise)
   const { data: analyticsData } = useQuery({
     queryKey: ['sequence-analytics'],
     queryFn: () => sequenceV2Api.getAnalytics(),
+    enabled: Boolean(isManager),
   });
 
   const { data: variantData } = useQuery({
     queryKey: ['sequence-variants'],
     queryFn: () => sequenceV2Api.getVariantMetrics(),
+    enabled: Boolean(isManager),
+  });
+
+  const { data: perfData, isLoading: perfLoading } = useQuery({
+    queryKey: PERF_QUERY_KEY,
+    queryFn: () => sequenceV2Api.getPerformance(),
+    enabled: Boolean(isManager),
+    refetchInterval: 120_000,
   });
 
   const sequences = data?.sequences ?? [];
+  const perfRows = (perfData?.sequences ?? []) as Array<Record<string, unknown>>;
 
   const hasVariants = (steps: Record<string, unknown>[]) =>
     steps.some((s) => Array.isArray(s.variants) && s.variants.length > 0);
@@ -326,6 +352,76 @@ export default function SequencesPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Per-sequence performance (manager) */}
+      {isManager && (
+        <div className="mt-6">
+          <Card title={t('cockpit.seq_perf_title')}>
+            {perfLoading ? (
+              <Skeleton variant="line" count={5} />
+            ) : perfRows.length === 0 ? (
+              <p className="text-sm text-gray-400">{t('cockpit.seq_perf_empty')}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b text-xs text-gray-500">
+                      <th className="py-2 pr-3 font-medium">{t('cockpit.seq_perf_col_name')}</th>
+                      <th className="py-2 pr-3 font-medium text-right">
+                        {t('cockpit.seq_perf_col_total')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium text-right">
+                        {t('cockpit.seq_perf_col_active')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium text-right">
+                        {t('cockpit.seq_perf_col_done')}
+                      </th>
+                      <th className="py-2 pr-3 font-medium text-right">
+                        {t('cockpit.seq_perf_col_exit')}
+                      </th>
+                      <th className="py-2 font-medium text-right">
+                        {t('cockpit.seq_perf_col_avg')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {perfRows.map((row) => (
+                      <tr
+                        key={String(row.sequence_id)}
+                        className="border-b border-gray-50 dark:border-gray-800"
+                      >
+                        <td className="py-2 pr-3 font-medium text-gray-900 dark:text-white">
+                          {String(row.name)}
+                          {!row.is_active ? (
+                            <span className="ml-2 text-xs font-normal text-gray-400">
+                              ({t('opp_detail.inactive')})
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">
+                          {Number(row.enrollments_total ?? 0)}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">
+                          {Number(row.enrollments_active ?? 0)}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">
+                          {Number(row.enrollments_completed ?? 0)}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">
+                          {Number(row.enrollments_exited ?? 0)}
+                        </td>
+                        <td className="py-2 text-right tabular-nums">
+                          {Number(row.avg_completed_steps_per_enrollment ?? 0)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
         </div>
       )}
 

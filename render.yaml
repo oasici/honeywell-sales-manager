@@ -28,13 +28,18 @@ services:
       - key: DEFAULT_ADMIN_EMAIL
         value: admin@honeywell.com
       - key: DEFAULT_ADMIN_PASSWORD
-        value: Honeywell2026!
+        # SECURITY: never hardcode a default in blueprints; set manually in Render dashboard.
+        sync: false
       - key: CORS_ORIGINS
         value: "https://honeywell-frontend.onrender.com"
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: ENCRYPTION_KEY
         generateValue: true
+      - key: AUTO_CREATE_TABLES
+        value: "false"
+      - key: AUTO_SCHEMA_SYNC
+        value: "false"
 
   - type: web
     name: honeywell-frontend

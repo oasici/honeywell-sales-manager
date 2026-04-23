@@ -42,6 +42,7 @@ import {
   Layers,
   AlertTriangle,
   ListChecks,
+  ListFilter,
   Tag,
   UsersRound,
 } from 'lucide-react';
@@ -74,6 +75,12 @@ const yedekParcaItems: NavItem[] = [
     label: 'nav.customers',
     to: '/customers',
     icon: <Users size={18} className="shrink-0" />,
+    roles: ['sales_rep', 'sales_manager'],
+  },
+  {
+    label: 'nav.high_intent',
+    to: '/customers/high-intent',
+    icon: <Target size={18} className="shrink-0" />,
     roles: ['sales_rep', 'sales_manager'],
   },
 ];
@@ -175,6 +182,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <NavLink to="/board" className={navLinkClass} onClick={onNavigate}>
               <Kanban size={18} className="shrink-0" />
               {t('nav.board')}
+            </NavLink>
+            <NavLink to="/planning-studio" className={navLinkClass} onClick={onNavigate}>
+              <ListFilter size={18} className="shrink-0" />
+              {t('nav.planning_studio')}
             </NavLink>
           </>
         )}
@@ -294,6 +305,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <NavLink to="/ai/insights" className={navLinkClass} onClick={onNavigate}>
               <Brain size={18} className="shrink-0" />
               {t('nav.ai_assistant')}
+            </NavLink>
+            <NavLink to="/insights" className={navLinkClass} onClick={onNavigate}>
+              <TrendingUp size={18} className="shrink-0" />
+              {t('nav.insights')}
             </NavLink>
             <NavLink to="/email-templates" className={navLinkClass} onClick={onNavigate}>
               <FilePenLine size={18} className="shrink-0" />

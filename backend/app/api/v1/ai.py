@@ -11,6 +11,9 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+import asyncio
+import os
+import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -21,12 +24,15 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, NotFoundException
+from app.models.customer import Customer
 from app.models.email_request import EmailRequest
 from app.models.enums import UserRole
 from app.models.opportunity import Opportunity, OpportunityEvent, OpportunitySignal, Task
+from app.services.dedupe_service import upsert_opportunity_signal, upsert_task
 from app.models.quote import Quote
 from app.models.user import User
 from app.services.audit_service import log_action
+from app.api.v1.opportunities import _last_activity_max_by_opportunity_ids, _opportunity_staleness_days
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +42,16 @@ router = APIRouter(prefix="/ai", tags=["AI (v2)"])
 _summary_cache: dict[str, dict] = {}
 SUMMARY_CACHE_TTL = 300  # 5 minutes
 CONTEXT_MAX_CHARS = 8000  # expanded from 3000
+
+# Claude guardrails (production hardening)
+CLAUDE_TIMEOUT_S = 18
+CLAUDE_RETRIES = 2
+_claude_cb = {
+    "fail_count": 0,
+    "open_until": 0.0,  # monotonic time
+}
+CLAUDE_CB_OPEN_AFTER = 6  # consecutive failures
+CLAUDE_CB_COOLDOWN_S = 60
 
 
 def _require_ai_summaries():
@@ -47,6 +63,10 @@ def _require_ai_suggestions():
     if not settings.FEATURE_AI_PIPELINE_SUGGESTIONS:
         raise HTTPException(status_code=404, detail="Not found")
 
+def _require_tasks():
+    if not settings.FEATURE_TASKS:
+        raise HTTPException(status_code=404, detail="Not found")
+
 
 # ── Schemas ──
 
@@ -54,6 +74,16 @@ class SummarizeRequest(BaseModel):
     entity_type: str  # opportunity | quote | customer | email
     entity_id: int
     focus: str | None = None  # optional focus area
+    force: bool = False  # bypass cache (manual refresh)
+
+
+class SummarizeChangesRequest(BaseModel):
+    """Last-N-days change digest (opportunity | customer)."""
+
+    entity_type: str  # opportunity | customer
+    entity_id: int
+    days: int = Field(default=7, ge=1, le=90)
+    force: bool = False
 
 class PipelineSuggestRequest(BaseModel):
     opportunity_id: int
@@ -79,22 +109,58 @@ class GenerateActionsRequest(BaseModel):
     max_actions: int = Field(default=5, ge=1, le=20)
 
 
+class MeetingPrepRequest(BaseModel):
+    customer_id: int
+
+
 # ── AI Helper ──
 
 async def _call_claude(system_prompt: str, user_prompt: str) -> str | None:
     """Call Claude API. Returns text or None on failure."""
     if not settings.ANTHROPIC_API_KEY:
         return None
+    now = time.monotonic()
+    if _claude_cb["open_until"] > now:
+        logger.warning("Claude circuit open; skipping call")
+        return None
     try:
         import anthropic
         client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        response = await client.messages.create(
-            model=settings.AI_MODEL_NAME,
-            max_tokens=settings.AI_MAX_TOKENS,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}],
-        )
-        return response.content[0].text if response.content else None
+
+        last_err: Exception | None = None
+        for attempt in range(CLAUDE_RETRIES + 1):
+            started = time.monotonic()
+            try:
+                response = await asyncio.wait_for(
+                    client.messages.create(
+                        model=settings.AI_MODEL_NAME,
+                        max_tokens=settings.AI_MAX_TOKENS,
+                        system=system_prompt,
+                        messages=[{"role": "user", "content": user_prompt}],
+                    ),
+                    timeout=CLAUDE_TIMEOUT_S,
+                )
+                _claude_cb["fail_count"] = 0
+                dt_ms = int((time.monotonic() - started) * 1000)
+                logger.info("Claude ok in %sms (attempt=%s)", dt_ms, attempt + 1)
+                return response.content[0].text if response.content else None
+            except Exception as e:
+                last_err = e
+                _claude_cb["fail_count"] += 1
+                dt_ms = int((time.monotonic() - started) * 1000)
+                logger.warning("Claude fail in %sms (attempt=%s): %s", dt_ms, attempt + 1, e)
+
+                if _claude_cb["fail_count"] >= CLAUDE_CB_OPEN_AFTER:
+                    _claude_cb["open_until"] = time.monotonic() + CLAUDE_CB_COOLDOWN_S
+                    logger.error("Claude circuit opened for %ss", CLAUDE_CB_COOLDOWN_S)
+                    break
+
+                # simple backoff
+                if attempt < CLAUDE_RETRIES:
+                    await asyncio.sleep(0.6 * (attempt + 1))
+
+        logger.error("Claude API failed after retries: %s", last_err)
+        return None
     except Exception as e:
         logger.error("Claude API error: %s", e)
         return None
@@ -161,124 +227,90 @@ def _generate_fallback_summary(entity_type: str, entity_id: int, context_text: s
 @router.post("/summarize")
 async def summarize(
     body: SummarizeRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_ai_summaries),
 ):
-    """One-click summary with Redis cache (multi-worker shared, 5min TTL)."""
+    """One-click summary with cache + guard rails (Sprint 6 baseline)."""
     import time
 
-    raw_key = f"{body.entity_type}:{body.entity_id}:{body.focus or ''}"
+    # Cost guardrail: allow operators to hard-disable LLM calls.
+    if os.environ.get("AI_ENABLED", "true").lower() != "true":
+        raise HTTPException(status_code=503, detail="AI devre disi")
+
+    raw_key = f"v2:{body.entity_type}:{body.entity_id}:{body.focus or ''}"
     cache_key = f"ai:summary:{hashlib.md5(raw_key.encode()).hexdigest()}"
 
-    # Try Redis cache first (shared across workers)
+    # Rate limit (best-effort): protect AI endpoint from abuse.
+    # Prefer Redis to work in multi-worker deployments.
     try:
         from app.core.redis_client import get_redis
+
         r = get_redis()
         if r:
-            cached_json = await r.get(cache_key)
-            if cached_json:
-                cached = json.loads(cached_json)
-                return {"summary": cached["summary"], "sources": cached["sources"], "cached": True}
+            minute = int(time.time() // 60)
+            rl_key = f"ratelimit:ai_summarize:{current_user.id}:{minute}"
+            count = await r.incr(rl_key)
+            if count == 1:
+                await r.expire(rl_key, 70)
+            if count > 30:
+                raise HTTPException(status_code=429, detail="Cok fazla istek (AI summarize)")
+    except HTTPException:
+        raise
     except Exception:
         pass
 
-    # In-memory fallback
-    cached = _summary_cache.get(cache_key)
-    if cached and (time.time() - cached["ts"]) < SUMMARY_CACHE_TTL:
-        return {"summary": cached["summary"], "sources": cached["sources"], "cached": True}
+    if not body.force:
+        # Try Redis cache first (shared across workers)
+        try:
+            from app.core.redis_client import get_redis
+            r = get_redis()
+            if r:
+                cached_json = await r.get(cache_key)
+                if cached_json:
+                    cached = json.loads(cached_json)
+                    return {
+                        "summary": cached["summary"],
+                        "sources": cached["sources"],
+                        "generated_at": cached.get("generated_at"),
+                        "cached": True,
+                    }
+        except Exception:
+            pass
 
-    context_text = ""
-    sources = []
+    if not body.force:
+        # In-memory fallback
+        cached = _summary_cache.get(cache_key)
+        if cached and (time.time() - cached["ts"]) < SUMMARY_CACHE_TTL:
+            return {
+                "summary": cached["summary"],
+                "sources": cached["sources"],
+                "generated_at": cached.get("generated_at"),
+                "cached": True,
+            }
 
-    if body.entity_type == "opportunity":
-        opp = (await db.execute(select(Opportunity).where(Opportunity.id == body.entity_id))).scalar_one_or_none()
-        if not opp:
-            raise NotFoundException("Firsat bulunamadi")
+    from app.services.summary_service import SummaryService
 
-        # Gather context
-        events = (await db.execute(
-            select(OpportunityEvent).where(OpportunityEvent.opportunity_id == opp.id)
-            .order_by(OpportunityEvent.occurred_at.desc()).limit(20)
-        )).scalars().all()
-
-        quotes = (await db.execute(
-            select(Quote).where(Quote.opportunity_id == opp.id)
-        )).scalars().all()
-
-        context_text = f"Firsat: {opp.title}\nAsama: {opp.stage}\nTutar: {opp.amount} {opp.currency}\n"
-        context_text += f"Musteri: {opp.customer.name if opp.customer else 'Bilinmiyor'}\n"
-        context_text += f"Son guncelleme: {opp.updated_at}\n\n"
-        context_text += "Olaylar:\n" + "\n".join(f"- {e.event_type}: {e.description}" for e in events) + "\n\n"
-        context_text += f"Teklifler: {len(quotes)} adet\n"
-        for q in quotes:
-            context_text += f"- {q.quote_number} ({q.status}) {q.grand_total} {q.currency}\n"
-            sources.append({"type": "quote", "id": q.id, "label": q.quote_number})
-
-    elif body.entity_type == "email":
-        email = (await db.execute(select(EmailRequest).where(EmailRequest.id == body.entity_id))).scalar_one_or_none()
-        if not email:
-            raise NotFoundException("Email bulunamadi")
-        context_text = f"Gonderen: {email.from_address}\nKonu: {email.subject}\n\n{email.body_text or ''}"
-        sources.append({"type": "email", "id": email.id, "label": email.subject})
-
-    elif body.entity_type == "quote":
-        quote = (await db.execute(select(Quote).where(Quote.id == body.entity_id))).scalar_one_or_none()
-        if not quote:
-            raise NotFoundException("Teklif bulunamadi")
-        context_text = f"Teklif: {quote.quote_number}\nDurum: {quote.status}\nToplam: {quote.grand_total} {quote.currency}\nKalem sayisi: {len(quote.items or [])}"
-        sources.append({"type": "quote", "id": quote.id, "label": quote.quote_number})
-
-    elif body.entity_type == "customer":
-        from app.models.customer import Customer
-        customer = (await db.execute(select(Customer).where(Customer.id == body.entity_id))).scalar_one_or_none()
-        if not customer:
-            raise NotFoundException("Musteri bulunamadi")
-
-        # Gather customer context: quotes, opportunities, emails
-        cust_quotes = (await db.execute(
-            select(Quote).where(Quote.customer_id == customer.id).order_by(Quote.created_at.desc()).limit(10)
-        )).scalars().all()
-        cust_opps = (await db.execute(
-            select(Opportunity).where(Opportunity.customer_id == customer.id).order_by(Opportunity.created_at.desc()).limit(10)
-        )).scalars().all()
-        cust_emails = (await db.execute(
-            select(EmailRequest).where(EmailRequest.customer_id == customer.id).order_by(EmailRequest.created_at.desc()).limit(5)
-        )).scalars().all()
-
-        context_text = f"Musteri: {customer.name}\nSirket: {customer.company or '-'}\nEmail: {customer.email or '-'}\nTelefon: {customer.phone or '-'}\n\n"
-        context_text += f"Teklifler: {len(cust_quotes)} adet\n"
-        for q in cust_quotes[:5]:
-            context_text += f"  - {q.quote_number} ({q.status}) {q.grand_total} {q.currency}\n"
-        context_text += f"\nFirsatlar: {len(cust_opps)} adet\n"
-        for o in cust_opps[:5]:
-            context_text += f"  - {o.title} ({o.stage}) {o.amount} {o.currency}\n"
-        context_text += f"\nSon Emailler: {len(cust_emails)} adet\n"
-        for e in cust_emails[:3]:
-            context_text += f"  - {e.subject} ({e.status})\n"
-
-        sources = [{"type": "customer", "id": customer.id, "label": customer.name}]
-
-    else:
-        raise BadRequestException("Gecersiz entity_type. Desteklenen: opportunity, email, quote, customer")
-
-    if not context_text:
-        return {"summary": "Ozetlenecek veri bulunamadi.", "sources": []}
-
-    focus_instruction = f"\nOdak noktasi: {body.focus}" if body.focus else ""
-    summary = await _call_claude(
-        system_prompt="Sen bir satis asistanisin. Turkce, kisa ve aksiyona yonelik ozetler uretirsin. Teknik detay verme, is sonuclarina odaklan.",
-        user_prompt=f"Asagidaki satis verisini 3-5 cumleyle ozetle:{focus_instruction}\n\n{context_text[:CONTEXT_MAX_CHARS]}",
-    )
-
-    if not summary:
-        # Fallback: rule-based summary from gathered context
-        summary = _generate_fallback_summary(body.entity_type, body.entity_id, context_text)
+    service = SummaryService(db)
+    result = await service.summarize(body.entity_type, body.entity_id, focus=body.focus)
 
     await log_action(db, user_id=current_user.id, action="ai_summarize", entity_type=body.entity_type, entity_id=body.entity_id)
 
+    sources: list[dict | str] = []
+    for s in result.sources or []:
+        if isinstance(s, dict):
+            sources.append(
+                {
+                    "type": str(s.get("type", "")),
+                    "id": int(s.get("id", 0)),
+                    "label": str(s.get("label", "")),
+                }
+            )
+        else:
+            sources.append(str(s))
+
     # Write to Redis cache (shared) + in-memory fallback
-    cache_data = {"summary": summary, "sources": sources}
+    cache_data = {"summary": result.summary, "sources": sources, "generated_at": result.generated_at}
     try:
         from app.core.redis_client import get_redis
         r = get_redis()
@@ -292,7 +324,197 @@ async def summarize(
         for k in oldest:
             _summary_cache.pop(k, None)
 
-    return {"summary": summary, "sources": sources, "cached": False}
+    return {
+        "summary": result.summary,
+        "sources": sources,
+        "generated_at": result.generated_at,
+        "cached": False,
+    }
+
+
+@router.post("/summarize/changes")
+async def summarize_changes(
+    body: SummarizeChangesRequest,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_ai_summaries),
+):
+    """Sprint 6 — digest of what changed on the account/opportunity in the last N days."""
+    import time
+
+    if os.environ.get("AI_ENABLED", "true").lower() != "true":
+        raise HTTPException(status_code=503, detail="AI devre disi")
+
+    raw_key = f"v2:changes:{body.entity_type}:{body.entity_id}:{body.days}"
+    cache_key = f"ai:summary:changes:{hashlib.md5(raw_key.encode()).hexdigest()}"
+
+    try:
+        from app.core.redis_client import get_redis
+
+        r = get_redis()
+        if r:
+            minute = int(time.time() // 60)
+            rl_key = f"ratelimit:ai_summarize_changes:{current_user.id}:{minute}"
+            count = await r.incr(rl_key)
+            if count == 1:
+                await r.expire(rl_key, 70)
+            if count > 30:
+                raise HTTPException(status_code=429, detail="Cok fazla istek (AI degisim ozeti)")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
+    if not body.force:
+        try:
+            from app.core.redis_client import get_redis
+
+            r = get_redis()
+            if r:
+                cached_json = await r.get(cache_key)
+                if cached_json:
+                    cached = json.loads(cached_json)
+                    return {
+                        "summary": cached["summary"],
+                        "sources": cached["sources"],
+                        "generated_at": cached.get("generated_at"),
+                        "cached": True,
+                        "days": body.days,
+                    }
+        except Exception:
+            pass
+
+    if not body.force:
+        cached = _summary_cache.get(cache_key)
+        if cached and (time.time() - cached["ts"]) < SUMMARY_CACHE_TTL:
+            return {
+                "summary": cached["summary"],
+                "sources": cached["sources"],
+                "generated_at": cached.get("generated_at"),
+                "cached": True,
+                "days": body.days,
+            }
+
+    from app.services.summary_service import SummaryService
+
+    service = SummaryService(db)
+    result = await service.summarize_changes(body.entity_type, body.entity_id, days=body.days)
+
+    await log_action(
+        db,
+        user_id=current_user.id,
+        action="ai_summarize_changes",
+        entity_type=body.entity_type,
+        entity_id=body.entity_id,
+    )
+
+    sources: list[dict] = []
+    for s in result.sources or []:
+        if isinstance(s, dict):
+            sources.append(
+                {
+                    "type": str(s.get("type", "")),
+                    "id": int(s.get("id", 0)),
+                    "label": str(s.get("label", "")),
+                }
+            )
+
+    cache_data = {"summary": result.summary, "sources": sources, "generated_at": result.generated_at}
+    try:
+        from app.core.redis_client import get_redis
+
+        r = get_redis()
+        if r:
+            await r.setex(cache_key, SUMMARY_CACHE_TTL, json.dumps(cache_data))
+    except Exception:
+        pass
+    _summary_cache[cache_key] = {**cache_data, "ts": time.time()}
+    if len(_summary_cache) > 500:
+        oldest = sorted(_summary_cache, key=lambda k: _summary_cache[k]["ts"])[:100]
+        for k in oldest:
+            _summary_cache.pop(k, None)
+
+    return {
+        "summary": result.summary,
+        "sources": sources,
+        "generated_at": result.generated_at,
+        "cached": False,
+        "days": body.days,
+    }
+
+
+@router.post("/meeting-prep")
+async def meeting_prep(
+    body: MeetingPrepRequest,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_ai_summaries),
+):
+    """Sprint 3 — Account Intelligence: toplantı öncesi kısa brifing (PII maskeli)."""
+    import time
+
+    try:
+        from app.core.redis_client import get_redis
+
+        r = get_redis()
+        if r:
+            minute = int(time.time() // 60)
+            rl_key = f"ratelimit:ai_meeting_prep:{current_user.id}:{minute}"
+            count = await r.incr(rl_key)
+            if count == 1:
+                await r.expire(rl_key, 70)
+            if count > 20:
+                raise HTTPException(status_code=429, detail="Cok fazla istek (AI meeting prep)")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
+    cust = (
+        await db.execute(select(Customer).where(Customer.id == body.customer_id))
+    ).scalar_one_or_none()
+    if not cust:
+        raise NotFoundException("Musteri bulunamadi")
+
+    from app.services.account_aggregate_service import AccountAggregateService
+    from app.services.summary_service import redact_pii
+
+    svc = AccountAggregateService(db)
+    await svc.ensure_fresh(body.customer_id, current_user, refresh=False)
+    ctx = await svc.build_meeting_prep_context(body.customer_id, current_user)
+    ctx = redact_pii(ctx)
+
+    prep = await _call_claude(
+        system_prompt=(
+            "Satis temsilcisinin toplanti hazirlik asistanisin. Turkce, 5-7 numarali kisa madde. "
+            "Email, telefon ve kisisel veri yazma."
+        ),
+        user_prompt=(
+            ctx
+            + "\n\nGorev: Bu musteriyle yapilacak toplantiya hazirlik. "
+            "Odak: riskler, acik firsatlar, net sorular, sonraki adim onerisi."
+        )[:CONTEXT_MAX_CHARS],
+    )
+    if not prep:
+        rs = await svc.risk_summary(body.customer_id, current_user)
+        prep = (
+            f"{cust.name} ile toplanti — hazirlik notlari (otomatik):\n"
+            f"1) Risk seviyesi: {rs.get('risk_level')}, cozulmemis yuksek sinyal: {rs.get('unresolved_high_signals')}.\n"
+            f"2) Acik firsatlari board uzerinden gozden gecirin.\n"
+            f"3) Son aktivite ve teklif durumunu teyit edin.\n"
+            f"4) Net sonraki adim ve tarih onerin.\n"
+        )
+    prep = redact_pii(prep)[:2000]
+
+    await log_action(
+        db,
+        user_id=current_user.id,
+        action="ai_meeting_prep",
+        entity_type="customer",
+        entity_id=body.customer_id,
+    )
+
+    return {"prep": prep, "customer_id": body.customer_id}
 
 
 # ══════════════════════════════════════════
@@ -311,9 +533,9 @@ async def suggest_pipeline_update(
     if not opp:
         raise NotFoundException("Firsat bulunamadi")
 
-    now = datetime.now(timezone.utc)
-    updated = opp.updated_at.replace(tzinfo=timezone.utc) if opp.updated_at and opp.updated_at.tzinfo is None else opp.updated_at
-    days_stale = (now - updated).days if updated else 0
+    last_activity_map = await _last_activity_max_by_opportunity_ids(db, [opp.id])
+    last_activity_at = last_activity_map.get(opp.id)
+    days_stale = _opportunity_staleness_days(opp, last_activity_at)
 
     # Rule-based suggestions (always available, no AI needed)
     suggestions = []
@@ -321,7 +543,13 @@ async def suggest_pipeline_update(
 
     # Rotting check
     if days_stale > 14 and opp.stage not in ("closed_won", "closed_lost"):
-        factors.append({"factor": "no_touch", "detail": f"{days_stale} gundur guncelleme yok", "severity": "high"})
+        factors.append(
+            {
+                "factor": "no_touch",
+                "detail": f"{days_stale} gundur dokunulmamis (son aktivite veya kayit guncellemesi)",
+                "severity": "high",
+            }
+        )
         suggestions.append("Musteri ile iletisime gecin veya firsati kapatmayi degerlendirin.")
 
     # Stage progression
@@ -463,14 +691,15 @@ async def extract_signals(
                 parsed = json.loads(ai_signals.strip())
                 if isinstance(parsed, list):
                     for s in parsed:
-                        signal = OpportunitySignal(
+                        signal = await upsert_opportunity_signal(
+                            db,
                             opportunity_id=opp_id,
                             signal_type=s.get("type", "objection"),
                             severity=s.get("severity", "med"),
                             evidence=s.get("evidence", "AI tespit"),
                             source_type="ai",
+                            source_id=body.email_id,
                         )
-                        db.add(signal)
                         extracted_signals.append({
                             "signal_type": signal.signal_type,
                             "severity": signal.severity,
@@ -487,14 +716,15 @@ async def extract_signals(
             matched = [kw for kw in keywords if kw in combined_lower]
             if matched:
                 severity = "high" if len(matched) >= 3 else "med" if len(matched) >= 2 else "low"
-                signal = OpportunitySignal(
+                signal = await upsert_opportunity_signal(
+                    db,
                     opportunity_id=opp_id,
                     signal_type=signal_type,
                     severity=severity,
                     evidence=f"Eslesen anahtar kelimeler: {', '.join(matched)}",
                     source_type="keyword",
+                    source_id=body.email_id,
                 )
-                db.add(signal)
                 extracted_signals.append({
                     "signal_type": signal_type,
                     "severity": severity,
@@ -563,6 +793,7 @@ async def list_tasks(
     status: str = "open",
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_tasks),
 ):
     """List tasks for current user."""
     query = select(Task).where(Task.owner_id == current_user.id)
@@ -594,9 +825,11 @@ async def create_task(
     body: TaskCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_tasks),
 ):
     """Create a task (manual or from AI suggestion)."""
-    task = Task(
+    task = await upsert_task(
+        db,
         owner_id=current_user.id,
         opportunity_id=body.opportunity_id,
         title=body.title,
@@ -604,10 +837,9 @@ async def create_task(
         due_at=datetime.fromisoformat(body.due_at) if body.due_at else None,
         priority=body.priority,
         source="manual",
+        status="open",
+        dedupe_window_days=1,
     )
-    db.add(task)
-    await db.flush()
-    await db.refresh(task)
 
     return {"id": task.id, "title": task.title, "status": task.status}
 
@@ -618,6 +850,7 @@ async def update_task(
     body: TaskUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_tasks),
 ):
     """Update task status or details."""
     task = (await db.execute(

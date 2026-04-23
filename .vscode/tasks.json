@@ -1,0 +1,94 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: pytest (otomatik .venv)",
+      "type": "shell",
+      "command": "bash scripts/pytest-backend.sh tests/ -v --tb=short",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: pytest (parametre — Ornek: tests/test_v2_ai.py -v)",
+      "type": "shell",
+      "command": "bash scripts/pytest-backend.sh ${input:pytestTarget}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: venv requirements esitle",
+      "type": "shell",
+      "command": "bash scripts/sync-backend-venv.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: DB migrate (Alembic head)",
+      "type": "shell",
+      "command": "bash scripts/db-upgrade.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: DB sem denetimi (model vs Postgres)",
+      "type": "shell",
+      "command": "bash scripts/db-schema-audit.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: DB hizala (denetim + migrate + denetim)",
+      "type": "shell",
+      "command": "bash scripts/db-ensure-aligned.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "pytestTarget",
+      "type": "promptString",
+      "description": "pytest argumanlari (ornek: tests/test_v2_ai.py -v)"
+    }
+  ]
+}

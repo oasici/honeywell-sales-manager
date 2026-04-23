@@ -35,6 +35,94 @@ class AdjustmentCreate(BaseModel):
     reason: str | None = None
 
 
+# ══════════════════════════════════════════
+# Hybrid Forecast (Sprint 5.4)
+# ══════════════════════════════════════════
+
+@router.get("/hybrid")
+async def get_hybrid_forecast(
+    owner_id: int | None = Query(None, description="Rep owner filter (manager only)"),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_forecast),
+):
+    """Return both legacy stage-weighted forecast and new hybrid weighted forecast.
+
+    - legacy_weighted: amount * stage_probability(stage)
+    - hybrid_weighted: amount * close_probability (heuristic predictive scoring)
+    """
+    from app.models.opportunity import Opportunity
+    from app.services.forecast_service import _get_stage_probabilities
+    from app.services.predictive_scoring_service import predict_close_probability
+
+    stage_prob = await _get_stage_probabilities(db)
+
+    conditions = [Opportunity.status == "active"]
+    if owner_id is not None:
+        conditions.append(Opportunity.owner_id == owner_id)
+
+    opps = (
+        await db.execute(
+            select(Opportunity).where(and_(*conditions))
+        )
+    ).scalars().all()
+
+    legacy_total = 0.0
+    hybrid_total = 0.0
+
+    by_stage: dict[str, dict] = {}
+    by_confidence: dict[str, dict] = {"low": {"count": 0, "amount": 0.0, "hybrid_weighted": 0.0},
+                                      "medium": {"count": 0, "amount": 0.0, "hybrid_weighted": 0.0},
+                                      "high": {"count": 0, "amount": 0.0, "hybrid_weighted": 0.0}}
+
+    for opp in opps:
+        amount = float(opp.amount or 0.0)
+        stage_p = float(stage_prob.get(opp.stage, 0.0))
+        legacy_weighted = amount * stage_p
+        legacy_total += legacy_weighted
+
+        pred = await predict_close_probability(db, opp.id)
+        close_p = float(pred.get("close_probability") or 0.0)
+        conf = str(pred.get("confidence_band") or "low")
+        if conf not in by_confidence:
+            conf = "low"
+
+        hybrid_weighted = amount * close_p
+        hybrid_total += hybrid_weighted
+
+        if opp.stage not in by_stage:
+            by_stage[opp.stage] = {"stage": opp.stage, "count": 0, "amount": 0.0, "legacy_weighted": 0.0, "hybrid_weighted": 0.0}
+        by_stage[opp.stage]["count"] += 1
+        by_stage[opp.stage]["amount"] += amount
+        by_stage[opp.stage]["legacy_weighted"] += legacy_weighted
+        by_stage[opp.stage]["hybrid_weighted"] += hybrid_weighted
+
+        by_confidence[conf]["count"] += 1
+        by_confidence[conf]["amount"] += amount
+        by_confidence[conf]["hybrid_weighted"] += hybrid_weighted
+
+    stages = sorted(by_stage.values(), key=lambda s: s["stage"])
+
+    def _round_block(x: dict) -> dict:
+        return {
+            **x,
+            "amount": round(float(x.get("amount", 0.0)), 2),
+            "legacy_weighted": round(float(x.get("legacy_weighted", 0.0)), 2),
+            "hybrid_weighted": round(float(x.get("hybrid_weighted", 0.0)), 2),
+        }
+
+    return {
+        "owner_id": owner_id,
+        "legacy_weighted_total": round(legacy_total, 2),
+        "hybrid_weighted_total": round(hybrid_total, 2),
+        "by_stage": [_round_block(s) for s in stages],
+        "by_confidence": {
+            k: {"count": v["count"], "amount": round(v["amount"], 2), "hybrid_weighted": round(v["hybrid_weighted"], 2)}
+            for k, v in by_confidence.items()
+        },
+    }
+
+
 # -- Adjustment Endpoints --
 
 @router.post("/adjustments", status_code=201)

@@ -8,6 +8,7 @@ Worst-case data loss: up to FLUSH_SIZE entries or FLUSH_INTERVAL seconds of logs
 
 import asyncio
 import logging
+import json
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -57,13 +58,20 @@ async def _flush_buffer() -> None:
 
         async with async_session() as db:
             for entry in entries:
+                changes = {
+                    "method": entry.get("method"),
+                    "path": entry.get("path"),
+                    "status_code": entry.get("status_code"),
+                    "duration_ms": entry.get("duration_ms"),
+                    "created_at": entry.get("created_at").isoformat() if entry.get("created_at") else None,
+                }
                 db.add(AuditLog(
                     user_id=int(entry["user_id"]) if entry["user_id"] != "anonymous" else None,
                     action=entry["method"],
-                    entity_type="api",
+                    entity_type="api_request",
                     entity_id=0,
                     ip_address=entry["ip_address"],
-                    changes=None,
+                    changes=json.dumps(changes, ensure_ascii=False, default=str),
                 ))
             await db.commit()
             logger.debug("Flushed %d audit entries to DB", len(entries))

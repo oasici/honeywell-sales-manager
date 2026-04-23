@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { opportunitiesApi, dealHealthApi, forecastApi, aiApi, dealRoomsApi } from '../../lib/api';
+import { Calendar } from 'lucide-react';
+import { opportunitiesApi, forecastApi, aiApi, dealRoomsApi, meetingsApi } from '../../lib/api';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -12,24 +13,26 @@ import { formatCurrency, formatDateTime, formatDate } from '../../lib/formatters
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
 import SalesPathBar from './SalesPathBar';
+import { SummarySourceLinks } from '../../components/ai/SummarySourceLinks';
 import ActivityLogPanel from './ActivityLogPanel';
 import CommentThread from './CommentThread';
 import BuyerRelationshipMap from '../opportunities/BuyerRelationshipMap';
 import type {
-  Opportunity,
   OpportunityEvent,
-  DealHealthReport,
   ForecastAdjustment,
   DealRiskResult,
   AiSummarizeResponse,
   CloseProbabilityResult,
   ActivitySummary,
   DealRoom,
+  OpportunityIntelligenceResponse,
+  PipelineSuggestion,
 } from '../../lib/types';
 
 const RISK_BADGE_VARIANT: Record<string, 'success' | 'warning' | 'danger'> = {
   healthy: 'success',
   at_risk: 'warning',
+  high_risk: 'warning',
   critical: 'danger',
 };
 
@@ -65,11 +68,46 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
+function normalizeProbabilityPct(result: CloseProbabilityResult): number {
+  const raw = result.close_probability;
+  if (typeof result.close_probability_pct === 'number') return result.close_probability_pct;
+  if (raw <= 1) return Math.round(raw * 100);
+  return Math.round(raw);
+}
+
+function severityVariant(
+  sev: string | null | undefined,
+): 'success' | 'warning' | 'danger' | 'default' {
+  switch (sev) {
+    case 'low':
+    case 'pos':
+    case 'positive':
+      return 'success';
+    case 'high':
+    case 'critical':
+    case 'neg':
+    case 'negative':
+      return 'danger';
+    case 'med':
+    case 'medium':
+      return 'warning';
+    default:
+      return 'default';
+  }
+}
+
 export default function OpportunityDetailPage() {
   const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const oppId = Number(id);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [changesOpen, setChangesOpen] = useState(false);
+  const [pipelineSuggestion, setPipelineSuggestion] = useState<PipelineSuggestion | null>(null);
+
+  useEffect(() => {
+    setPipelineSuggestion(null);
+  }, [oppId]);
 
   const STAGE_LABELS = useMemo(
     () => ({
@@ -87,6 +125,7 @@ export default function OpportunityDetailPage() {
     () => ({
       healthy: t('opp_detail.risk_healthy'),
       at_risk: t('opp_detail.risk_at_risk'),
+      high_risk: t('opp_detail.risk_high_risk'),
       critical: t('opp_detail.risk_critical'),
     }),
     [t],
@@ -102,15 +141,70 @@ export default function OpportunityDetailPage() {
     [t],
   );
 
-  const { data: opp, isLoading } = useQuery<Opportunity>({
-    queryKey: ['opportunity', oppId],
-    queryFn: () => opportunitiesApi.get(oppId),
-    enabled: !!oppId,
-  });
+  const { data: intelligence, isLoading: intelligenceLoading } =
+    useQuery<OpportunityIntelligenceResponse>({
+      queryKey: ['opportunity-intelligence', oppId],
+      queryFn: () => opportunitiesApi.getIntelligence(oppId),
+      enabled: !!oppId,
+    });
+
+  const opp = intelligence?.opportunity;
+  const dealHealth = intelligence?.health;
+
+  const meetingAgendaText = useMemo(() => {
+    if (!opp) return '';
+    const cust = opp.customer
+      ? `${opp.customer.name}${opp.customer.company ? ` — ${opp.customer.company}` : ''}`
+      : '-';
+    const amt = opp.amount != null ? formatCurrency(opp.amount, opp.currency) : '-';
+    return [
+      `${t('opp_detail.agenda_deal')}: ${opp.title}`,
+      `${t('opp_detail.agenda_stage')}: ${STAGE_LABELS[opp.stage as keyof typeof STAGE_LABELS] || opp.stage}`,
+      `${t('opp_detail.agenda_amount')}: ${amt}`,
+      `${t('opp_detail.agenda_account')}: ${cust}`,
+      `${t('opp_detail.agenda_close')}: ${opp.close_date || 'TBD'}`,
+      '',
+      t('opp_detail.agenda_suggestion'),
+    ].join('\n');
+  }, [opp, STAGE_LABELS, t]);
+
+  const copyMeetingAgenda = useCallback(async () => {
+    if (!meetingAgendaText) return;
+    try {
+      await navigator.clipboard.writeText(meetingAgendaText);
+      toast.success(t('opp_detail.meeting_agenda_copied'));
+    } catch {
+      toast.error(t('opp_detail.meeting_copy_failed'));
+    }
+  }, [meetingAgendaText, t]);
+  const closePrediction = intelligence ? { data: intelligence.probability } : undefined;
+  const healthLoading = intelligenceLoading;
+  const closePredictionLoading = intelligenceLoading;
+  const signals = intelligence?.signals ?? [];
+  const tasks = intelligence?.tasks ?? [];
 
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const isManager = user?.role === 'manager' || user?.role === 'admin';
+
+  const meetingPlaceholderMutation = useMutation({
+    mutationFn: async () => {
+      const start = new Date();
+      start.setUTCDate(start.getUTCDate() + 1);
+      start.setUTCHours(10, 0, 0, 0);
+      return meetingsApi.schedulePlaceholder({
+        title: `Meeting: ${opp?.title ?? 'Opportunity'}`,
+        start_at: start.toISOString(),
+        duration_minutes: 30,
+        opportunity_id: oppId,
+      });
+    },
+    onSuccess: () => {
+      toast.success(t('opp_detail.meeting_placeholder_ok'));
+      queryClient.invalidateQueries({ queryKey: ['activity-summary', oppId] });
+    },
+    onError: () => toast.error(t('opp_detail.meeting_placeholder_fail')),
+  });
 
   const { data: timelineData } = useQuery<{ events: OpportunityEvent[] }>({
     queryKey: ['opportunity-timeline', oppId],
@@ -121,12 +215,6 @@ export default function OpportunityDetailPage() {
   const { data: activitySummary, isLoading: activitySummaryLoading } = useQuery<ActivitySummary>({
     queryKey: ['activity-summary', oppId],
     queryFn: () => opportunitiesApi.getActivitySummary(oppId),
-    enabled: !!oppId,
-  });
-
-  const { data: dealHealth, isLoading: healthLoading } = useQuery<DealHealthReport>({
-    queryKey: ['deal-health', oppId],
-    queryFn: () => dealHealthApi.get(oppId),
     enabled: !!oppId,
   });
 
@@ -153,13 +241,39 @@ export default function OpportunityDetailPage() {
     retry: false,
   });
 
-  const { data: closePrediction, isLoading: closePredictionLoading } = useQuery<{
-    data: CloseProbabilityResult;
-  }>({
-    queryKey: ['ai-predict-close', oppId],
-    queryFn: () => aiApi.predictClose(oppId),
-    enabled: !!oppId,
+  const refreshSummaryMutation = useMutation({
+    mutationFn: () =>
+      aiApi.summarize({ entity_type: 'opportunity', entity_id: oppId, force: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ai-opp-summary', oppId] });
+      toast.success(t('settings.operation_success'));
+      setSummaryOpen(true);
+    },
+    onError: () => toast.error(t('settings.operation_failed')),
+  });
+
+  const { data: aiChanges, isLoading: aiChangesLoading } = useQuery<AiSummarizeResponse>({
+    queryKey: ['ai-opp-changes', oppId, 7],
+    queryFn: () =>
+      aiApi.summarizeChanges({ entity_type: 'opportunity', entity_id: oppId, days: 7 }),
+    enabled: !!oppId && changesOpen,
     retry: false,
+  });
+
+  const refreshChangesMutation = useMutation({
+    mutationFn: () =>
+      aiApi.summarizeChanges({
+        entity_type: 'opportunity',
+        entity_id: oppId,
+        days: 7,
+        force: true,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ai-opp-changes', oppId, 7] });
+      toast.success(t('settings.operation_success'));
+      setChangesOpen(true);
+    },
+    onError: () => toast.error(t('settings.operation_failed')),
   });
 
   const { data: dealRoomsData, isLoading: dealRoomsLoading } = useQuery<{ deal_rooms: DealRoom[] }>(
@@ -191,6 +305,37 @@ export default function OpportunityDetailPage() {
       toast.success(`${data.count} ${t('opp_detail.toast_ai_tasks_suffix')}`);
       queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['cockpit'] });
+      queryClient.invalidateQueries({ queryKey: ['opportunity-intelligence', oppId] });
+    },
+    onError: () => toast.error(t('settings.operation_failed')),
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      aiApi.updateTask(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunity-intelligence', oppId] });
+      queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
+      toast.success(t('settings.operation_success'));
+    },
+    onError: () => toast.error(t('settings.operation_failed')),
+  });
+
+  const pipelineSuggestMutation = useMutation({
+    mutationFn: () => aiApi.suggestPipeline({ opportunity_id: oppId }),
+    onSuccess: (data) => {
+      setPipelineSuggestion(data);
+    },
+    onError: () => toast.error(t('settings.operation_failed')),
+  });
+
+  const applyPipelineStageMutation = useMutation({
+    mutationFn: (stage: string) => opportunitiesApi.update(oppId, { stage }),
+    onSuccess: () => {
+      toast.success(t('opp_detail.pipeline_stage_applied'));
+      setPipelineSuggestion(null);
+      queryClient.invalidateQueries({ queryKey: ['opportunity-intelligence', oppId] });
+      queryClient.invalidateQueries({ queryKey: ['opportunity-timeline', oppId] });
     },
     onError: () => toast.error(t('settings.operation_failed')),
   });
@@ -210,7 +355,7 @@ export default function OpportunityDetailPage() {
     },
   });
 
-  if (isLoading) {
+  if (intelligenceLoading) {
     return <Skeleton variant="card" count={3} />;
   }
 
@@ -274,7 +419,7 @@ export default function OpportunityDetailPage() {
                   {opp.customer ? `${opp.customer.name} (${opp.customer.company})` : '-'}
                 </p>
               </div>
-              <div>
+              <div className="col-span-2">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {t('opp_detail.lbl_rotting')}
                 </span>
@@ -283,9 +428,110 @@ export default function OpportunityDetailPage() {
                 >
                   {opp.rotting_days} {t('opp_detail.days_suffix')}
                 </p>
+                <p className="mt-1 text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.rotting_hint')}
+                </p>
               </div>
             </div>
           </Card>
+
+          <Card title={t('opp_detail.meeting_stub_title')}>
+            <div className="space-y-3">
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {t('opp_detail.meeting_stub_desc')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void copyMeetingAgenda()}
+                >
+                  <Calendar size={14} className="mr-1 inline-block align-middle" aria-hidden />
+                  {t('opp_detail.meeting_copy_agenda')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  loading={meetingPlaceholderMutation.isPending}
+                  onClick={() => meetingPlaceholderMutation.mutate()}
+                >
+                  {t('opp_detail.meeting_placeholder_btn')}
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {!['closed_won', 'closed_lost'].includes(opp.stage) && (
+            <Card title={t('opp_detail.pipeline_suggest_title')}>
+              <div className="space-y-3 p-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('opp_detail.pipeline_suggest_desc')}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    loading={pipelineSuggestMutation.isPending}
+                    onClick={() => pipelineSuggestMutation.mutate()}
+                  >
+                    {t('opp_detail.pipeline_suggest_btn')}
+                  </Button>
+                  {pipelineSuggestion &&
+                    pipelineSuggestion.suggested_stage &&
+                    pipelineSuggestion.suggested_stage !== opp.stage && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        loading={applyPipelineStageMutation.isPending}
+                        onClick={() =>
+                          applyPipelineStageMutation.mutate(pipelineSuggestion.suggested_stage)
+                        }
+                      >
+                        {t('opp_detail.pipeline_apply_btn')}
+                      </Button>
+                    )}
+                </div>
+                {pipelineSuggestion && (
+                  <div className="space-y-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">{opp.stage}</span>
+                      <span className="text-gray-400">→</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {pipelineSuggestion.suggested_stage}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        {t('opp_detail.pipeline_suggested_steps')}
+                      </p>
+                      <ul className="mt-1 list-inside list-disc text-sm text-gray-700 dark:text-gray-300">
+                        {pipelineSuggestion.suggested_next_steps.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    {pipelineSuggestion.factors.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          {t('opp_detail.pipeline_factors')}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {pipelineSuggestion.factors.map((f, i) => (
+                            <Badge key={i} variant="info" size="sm">
+                              {f}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
 
           {/* Related Quotes */}
           {opp.quotes && opp.quotes.length > 0 && (
@@ -326,7 +572,14 @@ export default function OpportunityDetailPage() {
             ) : (
               <div className="space-y-0">
                 {events.map((event, idx) => (
-                  <div key={event.id} className="relative flex gap-3 pb-4">
+                  <div
+                    key={
+                      event.synthetic
+                        ? `syn-${event.entity_type}-${event.entity_id}-${idx}`
+                        : event.id
+                    }
+                    className="relative flex gap-3 pb-4"
+                  >
                     {/* Line */}
                     {idx < events.length - 1 && (
                       <div className="absolute left-[11px] top-6 h-full w-0.5 bg-gray-200 dark:bg-gray-700" />
@@ -345,7 +598,7 @@ export default function OpportunityDetailPage() {
                         {event.description || event.event_type}
                       </p>
                       <p className="text-[10px] text-gray-400">
-                        {formatDateTime(event.occurred_at)}
+                        {event.occurred_at ? formatDateTime(event.occurred_at) : '—'}
                       </p>
                     </div>
                   </div>
@@ -522,33 +775,112 @@ export default function OpportunityDetailPage() {
           )}
         </Card>
 
+        {/* Signals */}
+        <Card title={t('opp_detail.indicators')}>
+          {signals.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-400">Sinyal yok</p>
+          ) : (
+            <div className="space-y-2">
+              {signals.slice(0, 8).map((s) => (
+                <div
+                  key={s.id}
+                  className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        {s.signal_type}
+                      </p>
+                      {s.evidence && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                          {s.evidence}
+                        </p>
+                      )}
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      <Badge variant={severityVariant(s.severity)} size="sm">
+                        {s.severity}
+                      </Badge>
+                      {s.is_resolved && (
+                        <Badge variant="default" size="sm">
+                          çözüldü
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  {s.created_at && (
+                    <p className="mt-1 text-[10px] text-gray-400">{formatDateTime(s.created_at)}</p>
+                  )}
+                </div>
+              ))}
+              {signals.length > 8 && (
+                <p className="text-xs text-gray-400">+{signals.length - 8} daha</p>
+              )}
+            </div>
+          )}
+        </Card>
+
         {/* Close Probability */}
         <Card title={t('opp_detail.close_probability')}>
           {closePredictionLoading ? (
             <Skeleton variant="card" />
           ) : closePrediction?.data ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <ScoreRing score={closePrediction.data.close_probability} />
-                <div>
-                  <Badge
-                    variant={
-                      closePrediction.data.confidence === 'high'
-                        ? 'success'
-                        : closePrediction.data.confidence === 'medium'
-                          ? 'warning'
-                          : 'danger'
-                    }
-                  >
-                    {closePrediction.data.confidence === 'high'
-                      ? t('opp_detail.conf_high')
-                      : closePrediction.data.confidence === 'medium'
-                        ? t('opp_detail.conf_medium')
-                        : t('opp_detail.conf_low')}
-                  </Badge>
-                  <p className="mt-1 text-xs text-gray-500">{t('opp_detail.close_prob_hint')}</p>
-                </div>
-              </div>
+              {(() => {
+                const pct = normalizeProbabilityPct(closePrediction.data);
+                const stageProb = opp.probability ?? 0;
+                const stagePct =
+                  stageProb <= 1 ? Math.round(stageProb * 100) : Math.round(stageProb);
+                const delta = pct - stagePct;
+                return (
+                  <>
+                    <div className="flex items-center gap-4">
+                      <ScoreRing score={pct} />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <Badge
+                            variant={
+                              (closePrediction.data.confidence_band ??
+                                closePrediction.data.confidence) === 'high'
+                                ? 'success'
+                                : (closePrediction.data.confidence_band ??
+                                      closePrediction.data.confidence) === 'medium'
+                                  ? 'warning'
+                                  : 'danger'
+                            }
+                          >
+                            {(closePrediction.data.confidence_band ??
+                              closePrediction.data.confidence) === 'high'
+                              ? t('opp_detail.conf_high')
+                              : (closePrediction.data.confidence_band ??
+                                    closePrediction.data.confidence) === 'medium'
+                                ? t('opp_detail.conf_medium')
+                                : t('opp_detail.conf_low')}
+                          </Badge>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {t('opp_detail.stage_probability')}:{' '}
+                            <span className="font-semibold">{stagePct}%</span>{' '}
+                            <span className={delta >= 0 ? 'text-green-600' : 'text-red-600'}>
+                              ({delta >= 0 ? '+' : ''}
+                              {delta}%)
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 h-2 rounded-full bg-gray-100 dark:bg-gray-800">
+                          <div
+                            className="h-2 rounded-full bg-blue-600 transition-all duration-700"
+                            style={{ width: `${Math.max(2, Math.min(100, pct))}%` }}
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {t('opp_detail.close_prob_hint')}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
               {closePrediction.data.factors && closePrediction.data.factors.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold text-gray-500 uppercase">
@@ -561,7 +893,7 @@ export default function OpportunityDetailPage() {
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {f.name}
+                          {f.name || f.label || '-'}
                         </p>
                         <p className="text-xs text-gray-500 truncate">{f.evidence}</p>
                       </div>
@@ -612,17 +944,42 @@ export default function OpportunityDetailPage() {
         </Card>
 
         {/* AI Summary */}
-        <Card title={t('opp_detail.ai_summary')}>
+        <Card
+          title={t('opp_detail.ai_summary')}
+          action={
+            <>
+              <Button size="sm" variant="secondary" onClick={() => setSummaryOpen((s) => !s)}>
+                {summaryOpen ? t('opp_detail.ai_summary_close') : t('opp_detail.ai_summary_open')}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                loading={refreshSummaryMutation.isPending}
+                onClick={() => refreshSummaryMutation.mutate()}
+              >
+                {t('opp_detail.ai_summary_refresh')}
+              </Button>
+            </>
+          }
+        >
           {aiSummaryLoading ? (
             <Skeleton variant="card" />
-          ) : aiSummary ? (
+          ) : aiSummary && summaryOpen ? (
             <div className="space-y-3">
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {aiSummary.summary}
               </p>
               {aiSummary.sources && aiSummary.sources.length > 0 && (
-                <p className="text-xs text-gray-400">
-                  {t('opp_detail.sources')}: {aiSummary.sources.join(', ')}
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {t('opp_detail.sources')}
+                  </p>
+                  <SummarySourceLinks sources={aiSummary.sources} />
+                </div>
+              )}
+              {aiSummary.generated_at && (
+                <p className="text-[10px] text-gray-400">
+                  {formatDateTime(aiSummary.generated_at)}
                 </p>
               )}
               {aiSummary.cached && (
@@ -643,8 +1000,124 @@ export default function OpportunityDetailPage() {
             </div>
           ) : (
             <p className="py-6 text-center text-sm text-gray-400">
-              {t('opp_detail.ai_summary_empty')}
+              {summaryOpen ? t('opp_detail.ai_summary_empty') : t('opp_detail.ai_summary_open')}
             </p>
+          )}
+        </Card>
+
+        <Card
+          title={t('opp_detail.changes_title').replace('{{d}}', '7')}
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" onClick={() => setChangesOpen((s) => !s)}>
+                {changesOpen ? t('opp_detail.ai_summary_close') : t('opp_detail.changes_show')}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                loading={refreshChangesMutation.isPending}
+                disabled={!changesOpen}
+                onClick={() => refreshChangesMutation.mutate()}
+              >
+                {t('opp_detail.changes_refresh')}
+              </Button>
+            </div>
+          }
+        >
+          {aiChangesLoading ? (
+            <Skeleton variant="card" />
+          ) : aiChanges && changesOpen ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {aiChanges.summary}
+              </p>
+              {aiChanges.sources && aiChanges.sources.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {t('opp_detail.sources')}
+                  </p>
+                  <SummarySourceLinks sources={aiChanges.sources} />
+                </div>
+              )}
+              {aiChanges.generated_at && (
+                <p className="text-[10px] text-gray-400">
+                  {formatDateTime(aiChanges.generated_at)}
+                </p>
+              )}
+              {aiChanges.cached && (
+                <Badge variant="default" size="sm">
+                  {t('opp_detail.cached')}
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-gray-400">
+              {changesOpen ? t('opp_detail.ai_summary_empty') : t('opp_detail.changes_hint')}
+            </p>
+          )}
+        </Card>
+      </div>
+
+      {/* Tasks */}
+      <div className="mt-6">
+        <Card title="Aksiyonlar (Tasks)">
+          {tasks.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-400">Task yok</p>
+          ) : (
+            <div className="space-y-2">
+              {tasks.slice(0, 12).map((task) => {
+                const isDone = task.status !== 'open';
+                return (
+                  <div
+                    key={task.id}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p
+                        className={`text-sm font-semibold ${
+                          isDone ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'
+                        }`}
+                      >
+                        {task.title}
+                      </p>
+                      {task.description && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                          {task.description}
+                        </p>
+                      )}
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-gray-400">
+                        {task.due_at && <span>due: {formatDate(task.due_at)}</span>}
+                        {task.source && <span>source: {task.source}</span>}
+                        {task.priority && <span>prio: {task.priority}</span>}
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      <Badge variant={isDone ? 'default' : 'warning'} size="sm">
+                        {task.status}
+                      </Badge>
+                      {!isDone && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          loading={updateTaskMutation.isPending}
+                          onClick={() =>
+                            updateTaskMutation.mutate({
+                              id: task.id,
+                              payload: { status: 'done' },
+                            })
+                          }
+                        >
+                          Tamamla
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {tasks.length > 12 && (
+                <p className="text-xs text-gray-400">+{tasks.length - 12} daha</p>
+              )}
+            </div>
           )}
         </Card>
       </div>

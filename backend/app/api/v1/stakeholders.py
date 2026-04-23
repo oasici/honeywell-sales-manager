@@ -119,6 +119,13 @@ async def create_stakeholder(
     if not body.opportunity_id and not body.customer_id:
         raise HTTPException(status_code=400, detail="opportunity_id or customer_id required")
 
+    if body.seniority and body.seniority not in VALID_SENIORITIES:
+        raise HTTPException(status_code=400, detail="invalid seniority")
+    if body.department_group and body.department_group not in VALID_DEPARTMENTS:
+        raise HTTPException(status_code=400, detail="invalid department_group")
+    if body.buyer_role and body.buyer_role not in VALID_BUYER_ROLES:
+        raise HTTPException(status_code=400, detail="invalid buyer_role")
+
     stakeholder = Stakeholder(
         opportunity_id=body.opportunity_id,
         customer_id=body.customer_id,
@@ -153,7 +160,15 @@ async def update_stakeholder(
     if not s:
         raise HTTPException(status_code=404, detail="Stakeholder not found")
 
-    for field, value in body.model_dump(exclude_unset=True).items():
+    data = body.model_dump(exclude_unset=True)
+    if data.get("seniority") is not None and data["seniority"] not in VALID_SENIORITIES:
+        raise HTTPException(status_code=400, detail="invalid seniority")
+    if data.get("department_group") is not None and data["department_group"] not in VALID_DEPARTMENTS:
+        raise HTTPException(status_code=400, detail="invalid department_group")
+    if data.get("buyer_role") is not None and data["buyer_role"] not in VALID_BUYER_ROLES:
+        raise HTTPException(status_code=400, detail="invalid buyer_role")
+
+    for field, value in data.items():
         setattr(s, field, value)
 
     await db.commit()

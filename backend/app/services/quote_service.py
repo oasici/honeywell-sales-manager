@@ -15,6 +15,7 @@ from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
 from app.models.spare_part import SparePart
 from app.models.user import User
+from app.services.opportunity_linking_service import ensure_opportunity_for_email
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,17 @@ class QuoteService:
         if email.status == EmailStatus.NEW.value:
             raise BadRequestException("E-posta henuz ayristirilmadi")
 
+        if not email.customer_id:
+            raise BadRequestException("E-posta musteriyle eslesmemis (customer_id yok)")
+
+        # v2 consistency: ensure email ↔ opportunity is set, then quote links to same opportunity
+        opportunity_id = email.opportunity_id or await ensure_opportunity_for_email(
+            self._db,
+            email=email,
+            owner_hint=created_by or email.assigned_to,
+        )
+        email.opportunity_id = opportunity_id
+
         quote_number = self.generate_quote_number()
 
         quote = Quote(
@@ -84,6 +96,7 @@ class QuoteService:
             created_by=created_by,
             status=QuoteStatus.DRAFT.value,
             language=email.language or "tr",
+            opportunity_id=opportunity_id,
         )
         self._db.add(quote)
         await self._db.flush()

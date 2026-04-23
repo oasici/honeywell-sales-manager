@@ -17,11 +17,14 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.enums import UserRole
-from app.models.opportunity import Opportunity, Task
+from app.models.opportunity import Opportunity, OpportunitySignal, Task
 from app.models.quote import Quote
 from app.models.revenue_signal import RevenueSignal
 from app.models.user import User
+from app.services.deal_health_service import DealHealthService
+from app.services.customer_health_service import CustomerHealthService
 from app.services import revenue_signal_service
+from app.api.v1.opportunities import _opportunity_staleness_days
 
 router = APIRouter(prefix="/cockpit", tags=["Revenue Cockpit"])
 
@@ -151,7 +154,11 @@ async def get_actions(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_cockpit),
 ):
-    """AI-recommended action queue (Tasks with source='ai', status='open')."""
+    """AI-recommended action queue (Tasks with source='ai', status='open').
+
+    Sprint 2: enrich each action with deal intelligence so the cockpit can show
+    "next best actions" that are actually prioritized by risk + staleness.
+    """
     conditions = [Task.source == "ai", Task.status == "open"]
     if current_user.role == UserRole.SALES_REP.value:
         conditions.append(Task.owner_id == current_user.id)
@@ -173,6 +180,101 @@ async def get_actions(
     )
     tasks = result.scalars().all()
 
+    opp_ids = sorted({int(t.opportunity_id) for t in tasks if t.opportunity_id is not None})
+
+    # Enrichment (batch)
+    opp_map: dict[int, Opportunity] = {}
+    last_activity_map: dict[int, datetime | None] = {}
+    open_tasks_map: dict[int, int] = {}
+    deal_health_map: dict[int, dict[str, int | str]] = {}
+
+    if opp_ids:
+        # Opportunities for rotting_days
+        opp_rows = (
+            await db.execute(select(Opportunity).where(Opportunity.id.in_(opp_ids)))
+        ).scalars().all()
+        opp_map = {int(o.id): o for o in opp_rows}
+
+        # Last activity per opportunity
+        from app.models.activity_log import ActivityLog
+
+        last_rows = (
+            await db.execute(
+                select(ActivityLog.opportunity_id, func.max(ActivityLog.created_at))
+                .where(ActivityLog.opportunity_id.in_(opp_ids))
+                .group_by(ActivityLog.opportunity_id)
+            )
+        ).all()
+        last_activity_map = {int(row[0]): row[1] for row in last_rows}
+
+        # Open tasks count per opportunity (all sources)
+        task_rows = (
+            await db.execute(
+                select(Task.opportunity_id, func.count(Task.id))
+                .where(Task.opportunity_id.in_(opp_ids), Task.status == "open")
+                .group_by(Task.opportunity_id)
+            )
+        ).all()
+        open_tasks_map = {int(row[0]): int(row[1]) for row in task_rows}
+
+        # Deal health (optimized batch) → map by opportunity_id
+        owner_filter = None
+        if current_user.role == UserRole.SALES_REP.value:
+            owner_filter = current_user.id
+        health_service = DealHealthService(db)
+        # batch method already applies owner scoping; then we filter down to opp_ids
+        reports = await health_service.get_all_deal_health_batch(owner_id=owner_filter)
+        for r in reports:
+            if int(r.opportunity_id) in opp_ids:
+                deal_health_map[int(r.opportunity_id)] = {
+                    "score": int(r.score),
+                    "risk_level": str(r.risk_level),
+                }
+
+    def risk_rank(level: str | None) -> int:
+        return {
+            "critical": 4,
+            "high_risk": 3,
+            "at_risk": 2,
+            "healthy": 1,
+        }.get(level or "", 0)
+
+    now = datetime.now(timezone.utc)
+
+    def rotting_days_for(opp_id: int | None) -> int:
+        if opp_id is None:
+            return 0
+        oid = int(opp_id)
+        opp = opp_map.get(oid)
+        if not opp:
+            return 0
+        la = last_activity_map.get(oid)
+        return _opportunity_staleness_days(opp, la)
+
+    # Re-sort tasks with enrichment signals (risk → rotting → due → priority → created)
+    def priority_rank(p: str | None) -> int:
+        return {"urgent": 0, "high": 1, "normal": 2, "low": 3}.get(p or "", 4)
+
+    def due_rank(d: datetime | None) -> tuple[int, datetime]:
+        # no due dates should go last
+        if d is None:
+            return (1, now)
+        dt = d
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (0, dt)
+
+    tasks_sorted = sorted(
+        tasks,
+        key=lambda t: (
+            -risk_rank(deal_health_map.get(int(t.opportunity_id or 0), {}).get("risk_level")),  # type: ignore[arg-type]
+            -rotting_days_for(t.opportunity_id),
+            due_rank(t.due_at),
+            priority_rank(t.priority),
+            -(t.created_at.timestamp() if t.created_at else 0),
+        ),
+    )
+
     return {
         "items": [
             {
@@ -184,11 +286,160 @@ async def get_actions(
                 "owner_id": t.owner_id,
                 "due_at": t.due_at.isoformat() if t.due_at else None,
                 "created_at": t.created_at.isoformat() if t.created_at else None,
+                "rotting_days": rotting_days_for(t.opportunity_id),
+                "last_activity_at": (
+                    last_activity_map.get(int(t.opportunity_id)).isoformat()
+                    if t.opportunity_id is not None and last_activity_map.get(int(t.opportunity_id)) is not None
+                    else None
+                ),
+                "open_tasks_count": (
+                    open_tasks_map.get(int(t.opportunity_id), 0) if t.opportunity_id is not None else 0
+                ),
+                "deal_health": (
+                    deal_health_map.get(int(t.opportunity_id)) if t.opportunity_id is not None else None
+                ),
             }
-            for t in tasks
+            for t in tasks_sorted
         ],
-        "total": len(tasks),
+        "total": len(tasks_sorted),
     }
+
+
+@router.get("/risky-accounts")
+async def get_risky_accounts(
+    limit: int = Query(12, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_cockpit),
+):
+    """Accounts (customers) with poor health plus operational load on active pipeline.
+
+    Uses CustomerHealthService for account-level risk, then enriches with counts
+    scoped to the caller's pipeline visibility (rep: own opps only).
+    """
+    owner_filter = None
+    if current_user.role == UserRole.SALES_REP.value:
+        owner_filter = current_user.id
+
+    health = CustomerHealthService(db)
+    reports = await health.get_at_risk_customers(limit=max(limit * 3, limit))
+
+    # Rep: only customers where they still have active pipeline
+    if owner_filter is not None:
+        cust_rows = (
+            await db.execute(
+                select(Opportunity.customer_id)
+                .where(
+                    Opportunity.status == "active",
+                    Opportunity.owner_id == owner_filter,
+                    Opportunity.customer_id.is_not(None),
+                )
+                .distinct()
+            )
+        ).all()
+        allowed = {int(row[0]) for row in cust_rows if row[0] is not None}
+        reports = [r for r in reports if int(r.customer_id) in allowed]
+
+    reports = reports[:limit]
+
+    if not reports:
+        return {"items": [], "total": 0}
+
+    customer_ids = [int(r.customer_id) for r in reports]
+
+    # Active opportunities per customer (scoped)
+    opp_conds = [
+        Opportunity.customer_id.in_(customer_ids),
+        Opportunity.status == "active",
+    ]
+    if owner_filter is not None:
+        opp_conds.append(Opportunity.owner_id == owner_filter)
+
+    opps = (await db.execute(select(Opportunity).where(and_(*opp_conds)))).scalars().all()
+    opps_by_customer: dict[int, list[Opportunity]] = {}
+    opp_ids: list[int] = []
+    for o in opps:
+        cid = int(o.customer_id) if o.customer_id is not None else None
+        if cid is None:
+            continue
+        opps_by_customer.setdefault(cid, []).append(o)
+        opp_ids.append(int(o.id))
+
+    from app.models.activity_log import ActivityLog
+
+    open_tasks_map: dict[int, int] = {}
+    if opp_ids:
+        task_rows = (
+            await db.execute(
+                select(Task.opportunity_id, func.count(Task.id))
+                .where(Task.opportunity_id.in_(opp_ids), Task.status == "open")
+                .group_by(Task.opportunity_id)
+            )
+        ).all()
+        open_tasks_map = {int(row[0]): int(row[1]) for row in task_rows}
+
+    last_activity_map: dict[int, datetime | None] = {}
+    if opp_ids:
+        last_rows = (
+            await db.execute(
+                select(ActivityLog.opportunity_id, func.max(ActivityLog.created_at))
+                .where(ActivityLog.opportunity_id.in_(opp_ids))
+                .group_by(ActivityLog.opportunity_id)
+            )
+        ).all()
+        last_activity_map = {int(row[0]): row[1] for row in last_rows}
+
+    high_sig_map: dict[int, int] = {}
+    if opp_ids:
+        sig_rows = (
+            await db.execute(
+                select(OpportunitySignal.opportunity_id, func.count(OpportunitySignal.id))
+                .where(
+                    OpportunitySignal.opportunity_id.in_(opp_ids),
+                    OpportunitySignal.is_resolved.is_(False),
+                    OpportunitySignal.severity.in_(["high", "critical"]),
+                )
+                .group_by(OpportunitySignal.opportunity_id)
+            )
+        ).all()
+        high_sig_map = {int(row[0]): int(row[1]) for row in sig_rows}
+
+    items = []
+    for r in reports:
+        cid = int(r.customer_id)
+        cust_opps = opps_by_customer.get(cid, [])
+        if not cust_opps:
+            # Health says risk, but no visible pipeline for this user — skip
+            continue
+
+        open_tasks = 0
+        last_ts: datetime | None = None
+        high_sigs = 0
+        pipeline = 0.0
+        for o in cust_opps:
+            oid = int(o.id)
+            open_tasks += open_tasks_map.get(oid, 0)
+            high_sigs += high_sig_map.get(oid, 0)
+            la = last_activity_map.get(oid)
+            if la is not None and (last_ts is None or la > last_ts):
+                last_ts = la
+            if o.amount is not None:
+                pipeline += float(o.amount)
+
+        items.append({
+            "customer_id": cid,
+            "customer_name": r.customer_name,
+            "company": r.company,
+            "health_score": r.score,
+            "health_risk_level": r.risk_level,
+            "active_opportunities": len(cust_opps),
+            "pipeline_total": round(pipeline, 2),
+            "open_tasks_count": open_tasks,
+            "unresolved_high_signals": high_sigs,
+            "last_activity_at": last_ts.isoformat() if last_ts else None,
+        })
+
+    return {"items": items, "total": len(items)}
 
 
 @router.post("/signals/{signal_id}/resolve")

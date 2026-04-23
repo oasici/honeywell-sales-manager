@@ -46,6 +46,7 @@ slowapi==0.1.9
 redis[hiredis]==5.2.1
 cryptography==44.0.0
 python-multipart==0.0.18
+prometheus-client==0.22.0
 
 # Vector search
 pgvector==0.3.6

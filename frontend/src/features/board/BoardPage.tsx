@@ -1,18 +1,24 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { boardApi, dealHealthApi, pipelinesApi } from '../../lib/api';
+import { Target } from 'lucide-react';
+import { boardApi, customersApi, dealHealthApi, pipelinesApi } from '../../lib/api';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import { DealHealthBadge } from './DealHealthBadge';
 import { formatCurrency } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 import type {
   KanbanColumn,
   BoardSummary,
+  Customer,
   Opportunity,
   DealHealthReport,
   Pipeline,
+  HighIntentListResponse,
 } from '../../lib/types';
 
 const STAGE_LABELS: Record<string, string> = {
@@ -40,6 +46,15 @@ interface KanbanCardProps {
 
 function KanbanCard({ opp, healthScore }: KanbanCardProps) {
   const navigate = useNavigate();
+  const t = useT();
+  const lastActivityDays = useMemo(() => {
+    if (!opp.last_activity_at) return null;
+    const dt = new Date(opp.last_activity_at);
+    if (Number.isNaN(dt.getTime())) return null;
+    const diffMs = Date.now() - dt.getTime();
+    return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  }, [opp.last_activity_at]);
+
   return (
     <button
       type="button"
@@ -66,20 +81,74 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
           )}
         </div>
         {opp.rotting_days > 7 && (
-          <span className="text-[10px] font-medium text-red-600 dark:text-red-400">
+          <span
+            title={t('board.rotting_tooltip')}
+            className="text-[10px] font-medium text-red-600 dark:text-red-400"
+          >
             {opp.rotting_days}g
           </span>
         )}
       </div>
-      {opp.owner && (
-        <p className="mt-1 text-[10px] text-gray-400 truncate">{opp.owner.full_name}</p>
-      )}
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {typeof opp.open_tasks_count === 'number' && opp.open_tasks_count > 0 && (
+            <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-800 dark:bg-violet-900/30 dark:text-violet-200">
+              {opp.open_tasks_count} task
+            </span>
+          )}
+          {typeof lastActivityDays === 'number' && (
+            <span
+              title={t('board.rotting_tooltip')}
+              className="text-[10px] font-medium text-gray-500 dark:text-gray-400"
+            >
+              {t('board.last_activity_fmt').replace('{{d}}', String(lastActivityDays))}
+            </span>
+          )}
+        </div>
+        {opp.owner && <p className="text-[10px] text-gray-400 truncate">{opp.owner.full_name}</p>}
+      </div>
     </button>
   );
 }
 
 export default function BoardPage() {
+  const t = useT();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedPipelineId, setSelectedPipelineId] = useState<number | null>(null);
+  const [minRottingDays, setMinRottingDays] = useState<number>(0);
+  const [minOpenTasks, setMinOpenTasks] = useState<number>(0);
+  const [customerId, setCustomerId] = useState<number | ''>('');
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [debouncedCustomerQuery, setDebouncedCustomerQuery] = useState('');
+  const [dealHealthRisk, setDealHealthRisk] = useState<string>('');
+
+  useEffect(() => {
+    const mrd = searchParams.get('min_rotting_days');
+    if (mrd != null && mrd !== '') {
+      const n = parseInt(mrd, 10);
+      if (!Number.isNaN(n) && n >= 0) setMinRottingDays(n);
+    }
+    const mot = searchParams.get('min_open_tasks');
+    if (mot != null && mot !== '') {
+      const n = parseInt(mot, 10);
+      if (!Number.isNaN(n) && n >= 0) setMinOpenTasks(n);
+    }
+    const cid = searchParams.get('customer_id');
+    if (cid != null && cid !== '') {
+      const n = parseInt(cid, 10);
+      if (!Number.isNaN(n) && n > 0) setCustomerId(n);
+    }
+    const dhr = searchParams.get('deal_health_risk');
+    if (dhr === 'critical' || dhr === 'high_risk' || dhr === 'at_risk' || dhr === 'healthy') {
+      setDealHealthRisk(dhr);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedCustomerQuery(customerQuery.trim()), 300);
+    return () => window.clearTimeout(t);
+  }, [customerQuery]);
 
   const { data: pipelines = [] } = useQuery<Pipeline[]>({
     queryKey: ['pipelines'],
@@ -93,10 +162,25 @@ export default function BoardPage() {
   const activePipelineId =
     selectedPipelineId ?? pipelines.find((p) => p.is_default)?.id ?? pipelines[0]?.id ?? null;
 
+  const { data: customerHits } = useQuery({
+    queryKey: ['customers', 'search', debouncedCustomerQuery],
+    enabled: debouncedCustomerQuery.length >= 2,
+    queryFn: async () => {
+      const res = await customersApi.getCustomers({ q: debouncedCustomerQuery, limit: 20 });
+      return res.items as Customer[];
+    },
+  });
+
   const { data: kanban, isLoading } = useQuery<{ columns: KanbanColumn[] }>({
-    queryKey: ['board', 'kanban', activePipelineId],
-    queryFn: () =>
-      boardApi.getKanban(activePipelineId != null ? { pipeline_id: activePipelineId } : undefined),
+    queryKey: ['board', 'kanban', activePipelineId, customerId, minRottingDays, minOpenTasks],
+    queryFn: () => {
+      const params: Record<string, unknown> = {};
+      if (activePipelineId != null) params.pipeline_id = activePipelineId;
+      if (customerId !== '') params.customer_id = customerId;
+      if (minRottingDays > 0) params.min_rotting_days = minRottingDays;
+      if (minOpenTasks > 0) params.min_open_tasks = minOpenTasks;
+      return boardApi.getKanban(Object.keys(params).length ? params : undefined);
+    },
   });
 
   const { data: summary } = useQuery<BoardSummary>({
@@ -109,6 +193,13 @@ export default function BoardPage() {
     queryFn: () => dealHealthApi.getOverview(),
     retry: false,
     staleTime: 60_000,
+  });
+
+  const { data: highIntent } = useQuery<HighIntentListResponse>({
+    queryKey: ['high-intent-accounts', 'board-widget'],
+    queryFn: () => customersApi.listHighIntent({ limit: 5 }) as Promise<HighIntentListResponse>,
+    staleTime: 60_000,
+    retry: false,
   });
 
   const healthMap = useMemo(() => {
@@ -133,6 +224,20 @@ export default function BoardPage() {
   }
 
   const columns = kanban?.columns || [];
+  const riskRank = (riskLevel: string | null | undefined): number => {
+    switch (riskLevel) {
+      case 'critical':
+        return 4;
+      case 'high_risk':
+        return 3;
+      case 'at_risk':
+        return 2;
+      case 'healthy':
+        return 1;
+      default:
+        return 0;
+    }
+  };
 
   return (
     <div>
@@ -158,6 +263,145 @@ export default function BoardPage() {
           ))}
         </div>
       )}
+
+      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+              Müşteri
+              <input
+                value={customerQuery}
+                onChange={(e) => {
+                  setCustomerQuery(e.target.value);
+                  setCustomerId('');
+                }}
+                placeholder="İsim / şirket ara (≥2 harf)"
+                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
+              <select
+                className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={customerId === '' ? '' : String(customerId)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCustomerId(v === '' ? '' : Number(v));
+                }}
+                disabled={!customerHits || customerHits.length === 0}
+              >
+                <option value="">
+                  {debouncedCustomerQuery.length < 2 ? 'Aramak için yazın…' : 'Seçin…'}
+                </option>
+                {(customerHits ?? []).map((c) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {c.name}
+                    {c.company ? ` — ${c.company}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+              Min. bayatlık (gün)
+              <input
+                type="number"
+                min={0}
+                value={minRottingDays}
+                onChange={(e) => setMinRottingDays(Number(e.target.value || 0))}
+                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
+            </label>
+
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+              Min. açık task
+              <input
+                type="number"
+                min={0}
+                value={minOpenTasks}
+                onChange={(e) => setMinOpenTasks(Number(e.target.value || 0))}
+                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
+            </label>
+
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+              Fırsat riski (client)
+              <select
+                value={dealHealthRisk}
+                onChange={(e) => setDealHealthRisk(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              >
+                <option value="">Tümü</option>
+                <option value="critical">Kritik</option>
+                <option value="high_risk">Yüksek risk</option>
+                <option value="at_risk">Risk altında</option>
+                <option value="healthy">Sağlıklı</option>
+              </select>
+            </label>
+          </div>
+
+          <button
+            type="button"
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+            onClick={() => {
+              setMinRottingDays(0);
+              setMinOpenTasks(0);
+              setCustomerId('');
+              setCustomerQuery('');
+              setDealHealthRisk('');
+            }}
+          >
+            Sıfırla
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+          {t('board.server_filters_hint')}
+        </p>
+      </div>
+
+      {/* High-intent accounts (Salesforce parity widget) */}
+      <div className="mb-6 rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50/90 to-white p-4 shadow-sm dark:border-amber-900/40 dark:from-amber-950/30 dark:to-gray-900">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-amber-700 dark:text-amber-400" aria-hidden />
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                {t('board.high_intent_title')}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {t('board.high_intent_sub')}
+              </p>
+            </div>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => navigate('/customers/high-intent')}>
+            {t('board.high_intent_cta')}
+          </Button>
+        </div>
+        {!highIntent?.items?.length ? (
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('board.high_intent_empty')}</p>
+        ) : (
+          <ul className="divide-y divide-amber-100 dark:divide-amber-900/30">
+            {highIntent.items.map((row) => (
+              <li key={row.customer_id}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/customers/${row.customer_id}`)}
+                  className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm hover:bg-amber-100/50 dark:hover:bg-amber-950/40 rounded-lg px-1 -mx-1"
+                >
+                  <span className="min-w-0 truncate font-medium text-honeywell-red">
+                    {row.company || row.name}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {row.pinned && (
+                      <Badge variant="default" size="sm">
+                        ★
+                      </Badge>
+                    )}
+                    <span className="text-xs text-gray-500">{row.score}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* KPI bar */}
       {summary && (
@@ -217,21 +461,51 @@ export default function BoardPage() {
                   {STAGE_LABELS[col.stage] || col.stage}
                 </span>
                 <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                  {col.count}
+                  {(() => {
+                    const visible = dealHealthRisk
+                      ? col.items.filter((o) => healthMap.get(o.id)?.risk_level === dealHealthRisk)
+                      : col.items;
+                    return visible.length;
+                  })()}
                 </span>
               </div>
               <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                {formatCurrency(col.total_amount, 'TRY')}
+                {(() => {
+                  const visible = dealHealthRisk
+                    ? col.items.filter((o) => healthMap.get(o.id)?.risk_level === dealHealthRisk)
+                    : col.items;
+                  const total = visible.reduce(
+                    (sum, o) => sum + (typeof o.amount === 'number' ? o.amount : 0),
+                    0,
+                  );
+                  return formatCurrency(total, 'TRY');
+                })()}
               </span>
             </div>
             <div className="space-y-2 rounded-xl bg-gray-50 p-2 dark:bg-gray-900/50 min-h-[200px]">
-              {col.items.length === 0 ? (
-                <p className="py-8 text-center text-xs text-gray-400">Fırsat yok</p>
-              ) : (
-                col.items.map((opp) => (
-                  <KanbanCard key={opp.id} opp={opp} healthScore={healthMap.get(opp.id) ?? null} />
-                ))
-              )}
+              {(() => {
+                const visible = dealHealthRisk
+                  ? col.items.filter((o) => healthMap.get(o.id)?.risk_level === dealHealthRisk)
+                  : col.items;
+                if (visible.length === 0) {
+                  return <p className="py-8 text-center text-xs text-gray-400">Fırsat yok</p>;
+                }
+                return [...visible]
+                  .sort((a, b) => {
+                    const ar = riskRank(healthMap.get(a.id)?.risk_level);
+                    const br = riskRank(healthMap.get(b.id)?.risk_level);
+                    if (br !== ar) return br - ar;
+                    if (b.rotting_days !== a.rotting_days) return b.rotting_days - a.rotting_days;
+                    return b.id - a.id;
+                  })
+                  .map((opp) => (
+                    <KanbanCard
+                      key={opp.id}
+                      opp={opp}
+                      healthScore={healthMap.get(opp.id) ?? null}
+                    />
+                  ));
+              })()}
             </div>
           </div>
         ))}

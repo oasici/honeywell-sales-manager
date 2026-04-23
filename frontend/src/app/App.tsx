@@ -16,6 +16,7 @@ const QuoteListPage = lazy(() => import('../features/quotes/QuoteListPage'));
 const QuoteEditorPage = lazy(() => import('../features/quotes/QuoteEditorPage'));
 const CustomerListPage = lazy(() => import('../features/customers/CustomerListPage'));
 const CustomerDetailPage = lazy(() => import('../features/customers/CustomerDetailPage'));
+const HighIntentAccountsPage = lazy(() => import('../features/customers/HighIntentAccountsPage'));
 const SettingsPage = lazy(() => import('../features/settings/SettingsPage'));
 const ReportsPage = lazy(() => import('../features/admin/ReportsPage'));
 const UserManagementPage = lazy(() => import('../features/admin/UserManagementPage'));
@@ -23,6 +24,7 @@ const AuditLogPage = lazy(() => import('../features/admin/AuditLogPage'));
 
 // v2 pages (behind FEATURE_V2_BOARD flag)
 const BoardPage = lazy(() => import('../features/board/BoardPage'));
+const PlanningStudioPage = lazy(() => import('../features/planning/PlanningStudioPage'));
 const OpportunityDetailPage = lazy(() => import('../features/board/OpportunityDetailPage'));
 const SalesAnalyticsPage = lazy(() => import('../features/board/SalesAnalyticsPage'));
 const DealRoomPage = lazy(() => import('../features/board/DealRoomPage'));
@@ -46,6 +48,7 @@ const ReportViewPage = lazy(() => import('../features/reports/ReportViewPage'));
 // AI Engine
 const AiTasksPage = lazy(() => import('../features/ai/AiTasksPage'));
 const AiInsightsPage = lazy(() => import('../features/ai/AiInsightsPage'));
+const InsightsPage = lazy(() => import('../features/insights/InsightsPage'));
 
 // Dashboard Builder
 const DashboardListPage = lazy(() => import('../features/dashboards/DashboardListPage'));
@@ -268,6 +271,16 @@ export default function App() {
           }
         />
         <Route
+          path="customers/high-intent"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <HighIntentAccountsPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
           path="customers/:id"
           element={
             <Suspense fallback={<LoadingSpinner />}>
@@ -406,6 +419,16 @@ export default function App() {
           }
         />
         <Route
+          path="planning-studio"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <PlanningStudioPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
           path="opportunities/:id"
           element={
             <Suspense fallback={<LoadingSpinner />}>
@@ -453,6 +476,16 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <AiInsightsPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="insights"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <InsightsPage />
               </ErrorBoundary>
             </Suspense>
           }

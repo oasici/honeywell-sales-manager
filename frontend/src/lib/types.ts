@@ -28,6 +28,118 @@ export interface Customer {
   website?: string | null;
   linkedin_url?: string | null;
   enriched_at?: string | null;
+  /** Present on GET /customers/:id — current user's pin for high-intent list. */
+  pinned?: boolean;
+}
+
+export interface CustomerIntelligenceOpportunityItem {
+  id: number;
+  title: string;
+  stage: string;
+  amount: number | null;
+  currency: string;
+  owner_id: number;
+  close_date: string | null;
+  updated_at: string | null;
+  last_activity_at: string | null;
+}
+
+export interface CustomerIntelligenceSignalItem {
+  id: number;
+  opportunity_id: number;
+  signal_type: string;
+  severity: string;
+  evidence: string | null;
+  source_type: string | null;
+  source_id: number | null;
+  is_resolved: boolean;
+  created_at: string | null;
+}
+
+export interface CustomerIntelligenceResponse {
+  customer: Customer;
+  opportunities: CustomerIntelligenceOpportunityItem[];
+  open_tasks_count: number;
+  signals: CustomerIntelligenceSignalItem[];
+}
+
+export interface Account360Enrichment {
+  customer_id: number;
+  currency: string;
+  pipeline_open_amount: number;
+  closed_won_revenue: number;
+  active_deal_count: number;
+  won_deal_count: number;
+  lost_deal_count: number;
+  total_deal_count: number;
+  risk_index: number;
+  engagement_score: number;
+  computed_at: string | null;
+  health_score: number | null;
+  health_risk_level: string | null;
+}
+
+export interface Account360LastTouch {
+  at: string | null;
+  source: string;
+  summary: string;
+}
+
+export interface Account360OpenDeal {
+  id: number;
+  title: string;
+  stage: string;
+  amount: number | null;
+  currency: string;
+  owner_id: number;
+  updated_at: string | null;
+}
+
+export interface Account360RiskSummary {
+  health_score: number | null;
+  risk_level: string;
+  risk_index: number | null;
+  unresolved_high_signals: number;
+  recommendations: string[];
+}
+
+export interface Account360TimelineItem {
+  kind: string;
+  occurred_at: string | null;
+  opportunity_id: number | null;
+  opportunity_title: string | null;
+  event_type: string;
+  entity_type: string | null;
+  entity_id: number | null;
+  description: string | null;
+}
+
+export interface Account360Response {
+  customer_id: number;
+  enrichment: Account360Enrichment;
+  last_touch: Account360LastTouch;
+  open_deals: Account360OpenDeal[];
+  risk_summary: Account360RiskSummary;
+  timeline: Account360TimelineItem[];
+}
+
+export interface AiMeetingPrepResponse {
+  prep: string;
+  customer_id: number;
+}
+
+export interface HighIntentAccountItem {
+  customer_id: number;
+  name: string;
+  company: string | null;
+  score: number;
+  signals: string[];
+  pinned: boolean;
+}
+
+export interface HighIntentListResponse {
+  items: HighIntentAccountItem[];
+  total: number;
 }
 
 // ── Email Request ────────────────────────────────────
@@ -51,6 +163,7 @@ export interface ParsedData {
 export interface EmailRequest {
   id: number;
   customer_id: number | null;
+  opportunity_id?: number | null;
   message_id: string;
   from_address: string;
   subject: string;
@@ -272,7 +385,10 @@ export interface Opportunity {
   owner_id: number;
   customer_id: number | null;
   status: string;
+  probability?: number; // stage probability (0-1 or 0-100, depends on backend)
   rotting_days: number;
+  last_activity_at?: string | null;
+  open_tasks_count?: number;
   customer: { id: number; name: string; company: string } | null;
   owner: { id: number; full_name: string } | null;
   quotes: { id: number; quote_number: string; status: string; grand_total: number }[];
@@ -281,13 +397,59 @@ export interface Opportunity {
   updated_at: string;
 }
 
+export interface OpportunitySignal {
+  id: number;
+  signal_type: string;
+  severity: string;
+  evidence: string | null;
+  source_type: string | null;
+  source_id: number | null;
+  is_resolved: boolean;
+  created_at: string | null;
+}
+
+export interface TaskItem {
+  id: number;
+  title: string;
+  description: string | null;
+  due_at: string | null;
+  status: string;
+  source: string | null;
+  priority: string | null;
+  created_at: string | null;
+}
+
+export interface OpportunityIntelligenceResponse {
+  opportunity: Opportunity;
+  health: {
+    opportunity_id: number;
+    score: number;
+    risk_level: string;
+    indicators: Array<{
+      name: string;
+      label: string;
+      score: number;
+      weight: number;
+      raw_value: unknown;
+      description: string | null;
+    }>;
+    recommendations: string[];
+  } | null;
+  probability: CloseProbabilityResult;
+  signals: OpportunitySignal[];
+  tasks: TaskItem[];
+  open_tasks_count: number;
+}
+
 export interface OpportunityEvent {
   id: number;
   event_type: string;
   entity_type: string | null;
   entity_id: number | null;
   description: string | null;
-  occurred_at: string;
+  occurred_at: string | null;
+  synthetic?: boolean;
+  via_quote?: boolean;
 }
 
 export interface KanbanColumn {
@@ -495,6 +657,23 @@ export interface CockpitAction {
   owner_id: number | null;
   due_at: string | null;
   created_at: string;
+  rotting_days?: number;
+  last_activity_at?: string | null;
+  open_tasks_count?: number;
+  deal_health?: { score: number; risk_level: string } | null;
+}
+
+export interface CockpitRiskyAccount {
+  customer_id: number;
+  customer_name: string;
+  company: string | null;
+  health_score: number;
+  health_risk_level: string;
+  active_opportunities: number;
+  pipeline_total: number;
+  open_tasks_count: number;
+  unresolved_high_signals: number;
+  last_activity_at: string | null;
 }
 
 export interface CoachingOverview {
@@ -533,10 +712,28 @@ export interface AiTask {
   created_at: string;
 }
 
+export interface AiSummarySource {
+  type: string;
+  id: number;
+  label: string;
+}
+
 export interface AiSummarizeResponse {
   summary: string;
-  sources: string[];
+  /** Structured links (preferred) or legacy string labels. */
+  sources: (AiSummarySource | string)[];
   cached: boolean;
+  generated_at?: string;
+  /** Present for `/ai/summarize/changes` responses. */
+  days?: number;
+}
+
+export interface SavedView {
+  id: number;
+  name: string;
+  route: string;
+  query_json: string;
+  created_at: string | null;
 }
 
 export interface PipelineSuggestion {
@@ -909,9 +1106,18 @@ export interface WorkflowRule {
 
 // ── AI Predictions ────────────────────────────────────
 export interface CloseProbabilityResult {
-  close_probability: number;
-  confidence: string;
-  factors: { name: string; impact: string; evidence: string }[];
+  close_probability: number; // 0-1 (preferred) or 0-100 (legacy)
+  close_probability_pct?: number;
+  confidence: string; // legacy alias
+  confidence_band?: string;
+  factors: {
+    name?: string;
+    label?: string;
+    key?: string;
+    impact: string;
+    weight?: number;
+    evidence: string;
+  }[];
   next_steps: string[];
 }
 
@@ -920,6 +1126,70 @@ export interface ChurnPredictionResult {
   risk_level: string;
   risk_factors: { name: string; description: string }[];
   retention_actions: string[];
+}
+
+// ── Forecast (Hybrid, Sprint 5.4) ───────────────────────
+export interface HybridForecastBlock {
+  stage: string;
+  count: number;
+  amount: number;
+  legacy_weighted: number;
+  hybrid_weighted: number;
+}
+
+export interface HybridForecastResponse {
+  owner_id: number | null;
+  legacy_weighted_total: number;
+  hybrid_weighted_total: number;
+  by_stage: HybridForecastBlock[];
+  by_confidence: Record<string, { count: number; amount: number; hybrid_weighted: number }>;
+}
+
+// ── Insights (Signals, Sprint 5) ──────────────────────
+export interface SignalsDashboardResponse {
+  window_days: number;
+  topic_counts: Record<string, number>;
+  severity_buckets: Record<string, number>;
+  impacted_opportunity_ids: number[];
+}
+
+export interface SignalsTrendPoint {
+  date: string;
+  total: number;
+  pricing_concern?: number;
+  competitor?: number;
+  objection?: number;
+  no_touch?: number;
+  discount_risk?: number;
+}
+
+export interface SignalsTrendResponse {
+  window_days: number;
+  series: SignalsTrendPoint[];
+}
+
+export interface ConversationInsightsResponse {
+  window_days: number;
+  transcript_keyword_hits: Record<string, number>;
+}
+
+export interface ConversationSearchItem {
+  type: string;
+  id: number;
+  title: string;
+  snippet: string;
+  opportunity_id: number;
+  stage: string;
+  owner_id: number;
+  occurred_at: string | null;
+}
+
+export interface ConversationSearchResponse {
+  query: string;
+  page: number;
+  page_size: number;
+  total: number;
+  items: ConversationSearchItem[];
 }
 
 // ── Comment ────────────────────────────────────────

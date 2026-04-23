@@ -28,6 +28,7 @@ import type {
   RevenueWaterfallResult,
   RevenueLeakResult,
   RevenueLeakItem,
+  HybridForecastResponse,
 } from '../../lib/types';
 import type { TranslationKey } from '../../lib/i18n';
 import { useT } from '../../hooks/useT';
@@ -124,6 +125,14 @@ export default function SalesAnalyticsPage() {
     queryKey: ['forecast', 'team-rollup'],
     queryFn: () => forecastApi.getTeamRollup(),
     enabled: isManager,
+  });
+
+  const { data: hybridForecast } = useQuery<HybridForecastResponse>({
+    queryKey: ['forecast', 'hybrid'],
+    queryFn: () => forecastApi.getHybrid(),
+    enabled: isManager,
+    retry: false,
+    staleTime: 60_000,
   });
 
   const { data: wow } = useQuery<WoWData>({
@@ -312,6 +321,54 @@ export default function SalesAnalyticsPage() {
           </div>
         </Card>
       </div>
+
+      {/* Manager block: Hybrid forecast (Sprint 5.5) */}
+      {isManager && hybridForecast && (
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card>
+            <div className="p-4">
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                {t('sales_analytics.hybrid_legacy')}
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {formatCurrency(hybridForecast.legacy_weighted_total || 0, 'TRY')}
+              </p>
+              <p className="mt-1 text-[10px] text-gray-400">{t('sales_analytics.hybrid_title')}</p>
+            </div>
+          </Card>
+          <Card>
+            <div className="p-4">
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                {t('sales_analytics.hybrid_predictive')}
+              </p>
+              <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                {formatCurrency(hybridForecast.hybrid_weighted_total || 0, 'TRY')}
+              </p>
+              <p className="mt-1 text-[10px] text-gray-400">{t('sales_analytics.hybrid_title')}</p>
+            </div>
+          </Card>
+          <Card>
+            <div className="p-4">
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                {t('sales_analytics.hybrid_confidence')}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(['high', 'medium', 'low'] as const).map((band) => (
+                  <Badge
+                    key={band}
+                    variant={
+                      band === 'high' ? 'success' : band === 'medium' ? 'warning' : 'default'
+                    }
+                  >
+                    {band}: {hybridForecast.by_confidence?.[band]?.count ?? 0}
+                  </Badge>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] text-gray-400">{t('sales_analytics.hybrid_title')}</p>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* WoW Bar Chart */}
       {wow?.weeks && wow.weeks.length > 0 && (

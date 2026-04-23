@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hsm-backend-default
+  namespace: hsm
+spec:
+  podSelector:
+    matchLabels:
+      app: hsm-backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        # Allow from same namespace (e.g. ingress controller, jobs)
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hsm
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow all egress by default; tighten once DB/Redis/Qdrant are in-cluster with labels.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+

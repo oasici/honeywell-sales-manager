@@ -37,6 +37,7 @@ import type {
   CockpitKpis,
   RevenueSignalItem,
   CockpitAction,
+  CockpitRiskyAccount,
   CoachingOverview,
   ActivityDroughtItem,
   RevenueLeakResult,
@@ -228,6 +229,7 @@ function SignalStream() {
 
 function ActionQueue() {
   const t = useT();
+  const navigate = useNavigate();
   const priorityLabel = useMemo(
     () => ({
       urgent: t('cockpit.priority_urgent'),
@@ -245,6 +247,52 @@ function ActionQueue() {
 
   const actions: CockpitAction[] = data?.items ?? [];
 
+  const riskLabel = (riskLevel: string | null | undefined): string => {
+    switch (riskLevel) {
+      case 'healthy':
+        return 'Sağlıklı';
+      case 'at_risk':
+        return 'Risk altında';
+      case 'high_risk':
+        return 'Yüksek risk';
+      case 'critical':
+        return 'Kritik';
+      default:
+        return riskLevel ?? '-';
+    }
+  };
+
+  const riskVariant = (riskLevel: string | null | undefined): BadgeVariant => {
+    switch (riskLevel) {
+      case 'critical':
+        return 'danger';
+      case 'high_risk':
+        return 'warning';
+      case 'at_risk':
+        return 'warning';
+      case 'healthy':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
+  const rottingVariant = (rottingDays: number): BadgeVariant => {
+    if (rottingDays >= 30) return 'danger';
+    if (rottingDays >= 14) return 'warning';
+    return 'default'; // 7-13
+  };
+
+  const rottingLabel = (rottingDays: number): string => {
+    if (rottingDays >= 30) {
+      return t('cockpit.rotting_very_stale').replace('{{n}}', String(rottingDays));
+    }
+    if (rottingDays >= 14) {
+      return t('cockpit.rotting_stale').replace('{{n}}', String(rottingDays));
+    }
+    return t('cockpit.rotting_compact').replace('{{n}}', String(rottingDays));
+  };
+
   return (
     <Card title={t('cockpit.ai_tasks_card')}>
       {isLoading ? (
@@ -258,10 +306,41 @@ function ActionQueue() {
               key={action.id}
               className="rounded-lg border border-gray-100 p-3 dark:border-gray-700"
             >
-              <div className="flex items-center gap-2">
-                <Badge variant={PRIORITY_VARIANT[action.priority] ?? 'default'} size="sm">
-                  {priorityLabel[action.priority as keyof typeof priorityLabel] ?? action.priority}
-                </Badge>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={PRIORITY_VARIANT[action.priority] ?? 'default'} size="sm">
+                    {priorityLabel[action.priority as keyof typeof priorityLabel] ??
+                      action.priority}
+                  </Badge>
+                  {action.deal_health && (
+                    <Badge variant={riskVariant(action.deal_health.risk_level)} size="sm">
+                      {riskLabel(action.deal_health.risk_level)} • {action.deal_health.score}
+                    </Badge>
+                  )}
+                  {typeof action.open_tasks_count === 'number' && action.open_tasks_count > 0 && (
+                    <Badge variant="info" size="sm">
+                      {action.open_tasks_count} açık task
+                    </Badge>
+                  )}
+                  {typeof action.rotting_days === 'number' && action.rotting_days >= 7 && (
+                    <Badge
+                      variant={rottingVariant(action.rotting_days)}
+                      size="sm"
+                      title={t('board.rotting_tooltip')}
+                    >
+                      {rottingLabel(action.rotting_days)}
+                    </Badge>
+                  )}
+                </div>
+                {action.opportunity_id != null && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => navigate(`/opportunities/${action.opportunity_id}`)}
+                  >
+                    Fırsatı aç
+                  </Button>
+                )}
               </div>
               <p className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-200">
                 {action.title}
@@ -271,11 +350,131 @@ function ActionQueue() {
                   {action.description}
                 </p>
               )}
+              {action.last_activity_at && (
+                <p className="mt-1 text-xs text-gray-400">
+                  son aktivite: {formatDateTime(action.last_activity_at)}
+                </p>
+              )}
               {action.due_at && (
                 <p className="mt-1 text-xs text-gray-400">
                   {t('cockpit.due_prefix')} {formatDate(action.due_at)}
                 </p>
               )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ── Risky accounts (customer health + pipeline load) ─
+
+function RiskyAccountsPanel() {
+  const navigate = useNavigate();
+
+  const { data, isLoading } = useQuery<{ items: CockpitRiskyAccount[]; total: number }>({
+    queryKey: ['cockpit', 'risky-accounts'],
+    queryFn: () => cockpitApi.getRiskyAccounts({ limit: 12 }),
+    refetchInterval: 120_000,
+  });
+
+  const items = data?.items ?? [];
+
+  const riskLabel = (riskLevel: string | null | undefined): string => {
+    switch (riskLevel) {
+      case 'healthy':
+        return 'Sağlıklı';
+      case 'at_risk':
+        return 'Risk altında';
+      case 'churning':
+        return 'Churn riski';
+      case 'high_risk':
+        return 'Yüksek risk';
+      case 'critical':
+        return 'Kritik';
+      default:
+        return riskLevel ?? '-';
+    }
+  };
+
+  const riskVariant = (riskLevel: string | null | undefined): BadgeVariant => {
+    switch (riskLevel) {
+      case 'critical':
+        return 'danger';
+      case 'high_risk':
+        return 'danger';
+      case 'churning':
+        return 'warning';
+      case 'at_risk':
+        return 'warning';
+      case 'healthy':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
+  return (
+    <Card title="Riskli hesaplar">
+      {isLoading ? (
+        <Skeleton variant="line" count={4} />
+      ) : items.length === 0 ? (
+        <p className="py-6 text-center text-sm text-gray-400">
+          Risk profili yüklenemedi veya uygun hesap bulunamadı.
+        </p>
+      ) : (
+        <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
+          {items.map((row) => (
+            <div
+              key={row.customer_id}
+              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                    {row.customer_name}
+                  </span>
+                  <Badge variant={riskVariant(row.health_risk_level)} size="sm">
+                    {riskLabel(row.health_risk_level)} • {row.health_score}
+                  </Badge>
+                </div>
+                {row.company && (
+                  <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                    {row.company}
+                  </p>
+                )}
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-600 dark:text-gray-300">
+                  <span className="rounded-md bg-gray-100 px-2 py-0.5 font-semibold dark:bg-gray-800">
+                    {row.active_opportunities} açık fırsat
+                  </span>
+                  <span className="rounded-md bg-gray-100 px-2 py-0.5 font-semibold dark:bg-gray-800">
+                    {formatCurrency(row.pipeline_total, 'TRY')} pipeline
+                  </span>
+                  {row.open_tasks_count > 0 && (
+                    <span className="rounded-md bg-violet-100 px-2 py-0.5 font-semibold text-violet-900 dark:bg-violet-900/30 dark:text-violet-200">
+                      {row.open_tasks_count} açık task
+                    </span>
+                  )}
+                  {row.unresolved_high_signals > 0 && (
+                    <span className="rounded-md bg-amber-100 px-2 py-0.5 font-semibold text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+                      {row.unresolved_high_signals} yüksek sinyal
+                    </span>
+                  )}
+                </div>
+                {row.last_activity_at && (
+                  <p className="mt-2 text-xs text-gray-400">
+                    son aktivite: {formatDateTime(row.last_activity_at)}
+                  </p>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/customers/${row.customer_id}`)}
+              >
+                Hesabı aç
+              </Button>
             </div>
           ))}
         </div>
@@ -785,12 +984,25 @@ type WorkHubTab = 'sequences' | 'feed' | 'todo';
 
 function SequencesTab() {
   const t = useT();
+  const isManager = useAuthStore((s) => s.user?.role === 'sales_manager');
+
   const { data, isLoading } = useQuery({
     queryKey: ['cockpit', 'sequence-analytics'],
     queryFn: async () => {
       const { sequenceV2Api } = await import('../../lib/api');
       return sequenceV2Api.getAnalytics();
     },
+    enabled: Boolean(isManager),
+    refetchInterval: 120_000,
+  });
+
+  const { data: perfData, isLoading: perfLoading } = useQuery({
+    queryKey: ['cockpit', 'sequence-performance'],
+    queryFn: async () => {
+      const { sequenceV2Api } = await import('../../lib/api');
+      return sequenceV2Api.getPerformance();
+    },
+    enabled: Boolean(isManager),
     refetchInterval: 120_000,
   });
 
@@ -803,12 +1015,49 @@ function SequencesTab() {
     refetchInterval: 60_000,
   });
 
-  if (isLoading) return <Skeleton className="h-48 rounded-xl" />;
+  if (isManager && (isLoading || perfLoading)) return <Skeleton className="h-48 rounded-xl" />;
 
   const analytics = data || {};
+  const perfSequences = (perfData?.sequences || []) as Array<Record<string, unknown>>;
   const activeEnrollments = (enrollments?.enrollments || []).filter(
     (e: Record<string, unknown>) => e.status === 'active',
   );
+
+  if (!isManager) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-gray-500 dark:text-gray-400">{t('cockpit.seq_manager_only')}</p>
+        <Card
+          title={t('cockpit.seq_active_title').replace('{count}', String(activeEnrollments.length))}
+        >
+          {activeEnrollments.length === 0 ? (
+            <p className="text-sm text-gray-400">{t('cockpit.seq_no_enrollment')}</p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {activeEnrollments.slice(0, 15).map((e: Record<string, unknown>) => (
+                <div
+                  key={e.id as number}
+                  className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
+                >
+                  <div>
+                    <span className="font-medium">
+                      {t('cockpit.seq_enrollment').replace('{id}', String(e.id as number))}
+                    </span>
+                    <span className="text-gray-500 ml-2">
+                      {t('cockpit.seq_step').replace('{step}', String(e.current_step as number))}
+                    </span>
+                  </div>
+                  <Badge variant={e.is_paused ? 'warning' : 'info'}>
+                    {e.is_paused ? t('cockpit.seq_paused') : t('cockpit.seq_active')}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -843,6 +1092,67 @@ function SequencesTab() {
             </div>
           </Card>
         )}
+
+      <Card title={t('cockpit.seq_perf_title')}>
+        {perfSequences.length === 0 ? (
+          <p className="text-sm text-gray-400">{t('cockpit.seq_perf_empty')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead>
+                <tr className="border-b text-xs text-gray-500">
+                  <th className="py-2 pr-3 font-medium">{t('cockpit.seq_perf_col_name')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">
+                    {t('cockpit.seq_perf_col_total')}
+                  </th>
+                  <th className="py-2 pr-3 font-medium text-right">
+                    {t('cockpit.seq_perf_col_active')}
+                  </th>
+                  <th className="py-2 pr-3 font-medium text-right">
+                    {t('cockpit.seq_perf_col_done')}
+                  </th>
+                  <th className="py-2 pr-3 font-medium text-right">
+                    {t('cockpit.seq_perf_col_exit')}
+                  </th>
+                  <th className="py-2 font-medium text-right">{t('cockpit.seq_perf_col_avg')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perfSequences.map((row) => (
+                  <tr
+                    key={String(row.sequence_id)}
+                    className="border-b border-gray-100 dark:border-gray-800"
+                  >
+                    <td className="py-2 pr-3 font-medium text-gray-900 dark:text-white">
+                      {String(row.name)}
+                      {!row.is_active ? (
+                        <span className="ml-2 text-xs font-normal text-gray-400">
+                          ({t('opp_detail.inactive')})
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {Number(row.enrollments_total ?? 0)}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {Number(row.enrollments_active ?? 0)}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {Number(row.enrollments_completed ?? 0)}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {Number(row.enrollments_exited ?? 0)}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">
+                      {Number(row.avg_completed_steps_per_enrollment ?? 0)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       {/* Active Enrollments (next actions) */}
       <Card
@@ -905,6 +1215,8 @@ export default function CockpitPage() {
 
       {/* KPI Strip */}
       <KpiStrip data={kpis} isLoading={isKpisLoading} />
+
+      <RiskyAccountsPanel />
 
       {/* Work Hub — 3 Tab Layout */}
       <div>

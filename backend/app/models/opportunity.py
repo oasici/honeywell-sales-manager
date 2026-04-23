@@ -31,7 +31,8 @@ class Opportunity(Base):
     status: Mapped[str] = mapped_column(String(20), default="active")  # active | closed
     forecast_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # commit | best_case | pipeline | omitted
-    probability: Mapped[float] = mapped_column(Float, default=0.0)
+    # DB may contain NULL for legacy rows; keep nullable for production safety.
+    probability: Mapped[float | None] = mapped_column(Float, default=0.0, nullable=True)
     loss_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     # Revenue leak tracking — previous values before last update

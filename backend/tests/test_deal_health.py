@@ -68,7 +68,7 @@ async def test_compute_deal_health_returns_report(db: AsyncSession):
     assert report is not None
     assert report.opportunity_id == opp.id
     assert 0 <= report.score <= 100
-    assert report.risk_level in ("healthy", "at_risk", "critical")
+    assert report.risk_level in ("healthy", "at_risk", "high_risk", "critical")
     assert len(report.indicators) == 6
 
 
@@ -293,7 +293,9 @@ async def test_risk_level_thresholds(db: AsyncSession):
     assert service._determine_risk_level(70) == "healthy"
     assert service._determine_risk_level(69) == "at_risk"
     assert service._determine_risk_level(40) == "at_risk"
-    assert service._determine_risk_level(39) == "critical"
+    assert service._determine_risk_level(39) == "high_risk"
+    assert service._determine_risk_level(20) == "high_risk"
+    assert service._determine_risk_level(19) == "critical"
     assert service._determine_risk_level(0) == "critical"
 
 

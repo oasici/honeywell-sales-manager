@@ -1,16 +1,18 @@
 import json
 import math
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.email_request import EmailRequest
 from app.models.enums import ReviewStatus, UserRole
+from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.schemas.email_request import ManualEmailCreate
 from app.core.event_bus import event_bus
@@ -21,6 +23,12 @@ from app.services.notification_service import create_notification
 
 class EmailReviewRequest(BaseModel):
     action: str = Field(..., pattern="^(approve|reject)$")
+
+
+class EmailOpportunityLinkBody(BaseModel):
+    """Link or unlink an inbound email to a v2 opportunity (same customer when both set)."""
+
+    opportunity_id: int | None = None
 
 router = APIRouter(prefix="/emails", tags=["Emails"])
 
@@ -374,6 +382,50 @@ async def get_email_thread(
     }
 
 
+@router.patch("/{email_id}/opportunity", status_code=200)
+async def link_email_to_opportunity(
+    email_id: int,
+    body: EmailOpportunityLinkBody,
+    current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set `email_requests.opportunity_id` for v2 timeline (requires FEATURE_V2_BOARD)."""
+    if not settings.FEATURE_V2_BOARD:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    result = await db.execute(select(EmailRequest).where(EmailRequest.id == email_id))
+    email = result.scalar_one_or_none()
+    if not email:
+        raise NotFoundException("E-posta bulunamadi")
+    _check_email_ownership(email, current_user)
+
+    if body.opportunity_id is None:
+        email.opportunity_id = None
+        await db.flush()
+        return _email_to_dict(email)
+
+    opp = (
+        await db.execute(select(Opportunity).where(Opportunity.id == body.opportunity_id))
+    ).scalar_one_or_none()
+    if not opp:
+        raise NotFoundException("Firsat bulunamadi")
+
+    if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
+        raise ForbiddenException("Bu firsata baglama yetkiniz yok")
+
+    if (
+        email.customer_id is not None
+        and opp.customer_id is not None
+        and int(email.customer_id) != int(opp.customer_id)
+    ):
+        raise BadRequestException("E-posta ve firsat ayni musteriye ait olmali")
+
+    email.opportunity_id = int(body.opportunity_id)
+    await db.flush()
+    await db.refresh(email)
+    return _email_to_dict(email)
+
+
 @router.patch("/{email_id}/read", status_code=200)
 async def mark_email_read(
     email_id: int,
@@ -713,6 +765,7 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
     data = {
         "id": email.id,
         "customer_id": email.customer_id,
+        "opportunity_id": getattr(email, "opportunity_id", None),
         "message_id": email.message_id,
         "from_address": email.from_address,
         "subject": email.subject,

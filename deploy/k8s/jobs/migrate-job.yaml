@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hsm-db-migrate
+  namespace: hsm
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: hsm-backend
+      containers:
+        - name: migrate
+          image: honeywell-sales-manager-backend:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: hsm-backend-config
+            - secretRef:
+                name: hsm-backend-secrets
+          command: ["sh", "-c"]
+          args:
+            - |
+              cd /app && python -m alembic upgrade head && echo OK
+

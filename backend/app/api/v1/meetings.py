@@ -43,6 +43,36 @@ class BookingRequest(BaseModel):
     notes: str | None = None
 
 
+class SchedulePlaceholderBody(BaseModel):
+    """Sprint 4 — calendar adapter stub: records intent without external calendar write."""
+
+    title: str
+    start_at: datetime
+    duration_minutes: int = 30
+    opportunity_id: int | None = None
+
+
+@router.post("/schedule-placeholder")
+async def schedule_meeting_placeholder(
+    body: SchedulePlaceholderBody,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.calendar_adapter import schedule_meeting_placeholder as run_stub
+
+    payload = await run_stub(
+        db=db,
+        user=current_user,
+        title=body.title,
+        start_at=body.start_at,
+        duration_minutes=body.duration_minutes,
+        opportunity_id=body.opportunity_id,
+        metadata=None,
+    )
+    await db.commit()
+    return {"data": payload}
+
+
 @router.get("/links")
 async def list_links(
     current_user: User = Depends(get_current_user),

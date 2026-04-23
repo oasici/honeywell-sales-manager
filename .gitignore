@@ -30,6 +30,9 @@ frontend/dist/
 
 # Data
 backend/data/
+backend/alembic_local.db
+backend/test.db
+backend/tmp-debug.db
 *.npy
 *.pkl
 

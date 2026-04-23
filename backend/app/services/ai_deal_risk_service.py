@@ -274,22 +274,15 @@ def _rule_based_risk_assessment(opp: Opportunity, context: dict) -> dict:
     }
 
 
-# Stage-based close probability baseline
-STAGE_PROBABILITY: dict[str, int] = {
-    "prospecting": 10,
-    "qualified": 25,
-    "proposal": 50,
-    "negotiation": 70,
-    "closed_won": 100,
-    "closed_lost": 0,
-}
-
-
 async def predict_close_probability(db: AsyncSession, opportunity_id: int) -> dict:
     """Predict close probability for an opportunity using Claude AI or rule-based fallback.
 
     Returns {close_probability, confidence, factors, next_steps}.
     """
+    # Sprint 5: prefer heuristic predictive scoring service (explainable & calibratable).
+    # Keep Claude as an optional enhancement, but always provide a deterministic baseline.
+    from app.services.predictive_scoring_service import predict_close_probability as heuristic_predict
+
     stmt = (
         select(Opportunity)
         .options(
@@ -303,6 +296,10 @@ async def predict_close_probability(db: AsyncSession, opportunity_id: int) -> di
 
     if not opp:
         return {"error": "Firsat bulunamadi"}
+
+    heuristic = await heuristic_predict(db, opportunity_id)
+    if "error" in heuristic:
+        return heuristic
 
     now = datetime.now(timezone.utc)
 
@@ -333,6 +330,7 @@ async def predict_close_probability(db: AsyncSession, opportunity_id: int) -> di
                 days_to_close = (close_dt - now.date()).days
 
     prediction_context = {
+        "stage_probability_pct": int(round(float(getattr(opp, "probability", 0.25)) * 100)),
         "signals_count": len(context["signals"]),
         "negative_signal_count": context["negative_signal_count"],
         "activity_count": context["activity_count"],
@@ -347,10 +345,17 @@ async def predict_close_probability(db: AsyncSession, opportunity_id: int) -> di
     if settings.ANTHROPIC_API_KEY:
         ai_result = await _claude_close_prediction(opp, prediction_context)
         if ai_result:
-            return ai_result
+            # Merge: keep AI output, but also return heuristic fields for UI explainability consistency.
+            ai_result.setdefault("confidence_band", ai_result.get("confidence"))
+            ai_result.setdefault("close_probability_pct", ai_result.get("close_probability"))
+            return {
+                **heuristic,
+                **ai_result,
+                "method": "ai+heuristic_v1",
+            }
 
-    # Strategy 2: Rule-based fallback
-    return _rule_based_close_prediction(opp, prediction_context)
+    # Strategy 2: heuristic-only
+    return heuristic
 
 
 async def _claude_close_prediction(opp: Opportunity, context: dict) -> dict | None:
@@ -413,7 +418,11 @@ async def _claude_close_prediction(opp: Opportunity, context: dict) -> dict | No
 
 def _rule_based_close_prediction(opp: Opportunity, context: dict) -> dict:
     """Rule-based close probability prediction fallback."""
-    base_probability = STAGE_PROBABILITY.get(opp.stage, 25)
+    # Single source of truth: stage probability service (pct).
+    base_probability = int(context.get("stage_probability_pct") or 0)
+    if base_probability <= 0:
+        # best-effort: sync call to async getter not possible here; keep safe default
+        base_probability = 25
     factors = []
     next_steps = []
 

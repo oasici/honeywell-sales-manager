@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.models.activity_log import ActivityLog
 from app.models.opportunity import Opportunity, Task
 from app.models.revenue_signal import RevenueSignal
+from app.services.dedupe_service import upsert_task
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,8 @@ async def generate_actions(
     created = []
     now = datetime.now(timezone.utc)
     for action in actions[:max_actions]:
-        task = Task(
+        task = await upsert_task(
+            db,
             owner_id=opp.owner_id,
             opportunity_id=opportunity_id,
             title=action["description"][:255],
@@ -63,10 +65,8 @@ async def generate_actions(
             status="open",
             source="ai",
             priority=action.get("priority", "normal"),
+            dedupe_window_days=7,
         )
-        db.add(task)
-        await db.flush()
-        await db.refresh(task)
 
         created.append({
             "task_id": task.id,

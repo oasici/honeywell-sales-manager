@@ -13,12 +13,19 @@ from app.models import *  # noqa: F401, F403 - import all models for autogenerat
 config = context.config
 
 # Normalize URL: Railway gives postgresql://, alembic needs postgresql+asyncpg://
-_db_url = settings.DATABASE_URL
-if _db_url.startswith("postgresql://"):
+_db_url = (settings.DATABASE_URL or "").strip()
+if not _db_url:
+    # Local/dev: allow `alembic upgrade head` without .env (matches test default driver)
+    _db_url = "sqlite+aiosqlite:///./alembic_local.db"
+elif _db_url.startswith("postgresql://"):
     _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-elif not _db_url.startswith("postgresql+asyncpg://") and _db_url:
+elif _db_url.startswith("sqlite"):
+    pass  # e.g. sqlite+aiosqlite:///./local.db
+elif not _db_url.startswith("postgresql+asyncpg://"):
     _db_url = f"postgresql+asyncpg://{_db_url}"
-config.set_main_option("sqlalchemy.url", _db_url)
+# ConfigParser treats "%" as interpolation; URL-encoded passwords must survive round-trip.
+_ini_url = _db_url.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", _ini_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

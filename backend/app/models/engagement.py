@@ -95,7 +95,8 @@ class SequenceEnrollment(Base):
         Integer, ForeignKey("leads.id"), nullable=True, index=True
     )
     current_step: Mapped[int] = mapped_column(Integer, default=1)
-    is_paused: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Legacy rows in some deployments can have NULL; keep nullable for safety.
+    is_paused: Mapped[bool | None] = mapped_column(Boolean, default=False, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="active")  # active | paused | completed | exited | cancelled
     next_action_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # V2 additive fields (FEATURE_SEQUENCES_V2)

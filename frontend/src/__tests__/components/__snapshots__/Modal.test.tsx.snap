@@ -2,48 +2,61 @@
 
 exports[`Modal > renders large size 1`] = `
 <div
+  aria-labelledby="modal-title"
   aria-modal="true"
   class="fixed inset-0 z-50 flex items-center justify-center"
   role="dialog"
 >
   <div
-    class="fixed inset-0 bg-black/50 transition-opacity"
+    aria-hidden="true"
+    class="fixed inset-0 bg-black/50 backdrop-blur-[2px] animate-fade-in"
   />
   <div
-    class="relative z-10 w-full max-w-2xl mx-4 rounded-2xl bg-white shadow-2xl transition-all"
+    class="relative z-10 w-full max-w-2xl mx-4
+          rounded-2xl bg-white dark:bg-gray-900 shadow-xl
+          border border-gray-200 dark:border-gray-700
+          animate-slide-up"
   >
     <div
-      class="flex items-center justify-between border-b border-gray-200 px-6 py-4"
+      class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4"
     >
       <h2
-        class="text-lg font-semibold text-gray-900"
+        class="text-heading-2 text-gray-900 dark:text-white"
+        id="modal-title"
       >
         Buyuk Modal
       </h2>
       <button
         aria-label="Kapat"
-        class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+        class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
       >
         <svg
-          class="h-5 w-5"
+          aria-hidden="true"
+          class="lucide lucide-x"
           fill="none"
+          height="18"
           stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
           viewBox="0 0 24 24"
+          width="18"
+          xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            d="M6 18L18 6M6 6l12 12"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
+            d="M18 6 6 18"
+          />
+          <path
+            d="m6 6 12 12"
           />
         </svg>
       </button>
     </div>
     <div
-      class="px-6 py-4"
+      class="px-6 py-4 max-h-[70vh] overflow-y-auto"
     >
       <p>
-        Genis icerik
+        Genis içerik
       </p>
     </div>
   </div>
@@ -52,45 +65,58 @@ exports[`Modal > renders large size 1`] = `
 
 exports[`Modal > renders with title and content when open 1`] = `
 <div
+  aria-labelledby="modal-title"
   aria-modal="true"
   class="fixed inset-0 z-50 flex items-center justify-center"
   role="dialog"
 >
   <div
-    class="fixed inset-0 bg-black/50 transition-opacity"
+    aria-hidden="true"
+    class="fixed inset-0 bg-black/50 backdrop-blur-[2px] animate-fade-in"
   />
   <div
-    class="relative z-10 w-full max-w-lg mx-4 rounded-2xl bg-white shadow-2xl transition-all"
+    class="relative z-10 w-full max-w-lg mx-4
+          rounded-2xl bg-white dark:bg-gray-900 shadow-xl
+          border border-gray-200 dark:border-gray-700
+          animate-slide-up"
   >
     <div
-      class="flex items-center justify-between border-b border-gray-200 px-6 py-4"
+      class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4"
     >
       <h2
-        class="text-lg font-semibold text-gray-900"
+        class="text-heading-2 text-gray-900 dark:text-white"
+        id="modal-title"
       >
         Email Detayi
       </h2>
       <button
         aria-label="Kapat"
-        class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+        class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
       >
         <svg
-          class="h-5 w-5"
+          aria-hidden="true"
+          class="lucide lucide-x"
           fill="none"
+          height="18"
           stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
           viewBox="0 0 24 24"
+          width="18"
+          xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            d="M6 18L18 6M6 6l12 12"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
+            d="M18 6 6 18"
+          />
+          <path
+            d="m6 6 12 12"
           />
         </svg>
       </button>
     </div>
     <div
-      class="px-6 py-4"
+      class="px-6 py-4 max-h-[70vh] overflow-y-auto"
     >
       <p>
         Email icerigi burada

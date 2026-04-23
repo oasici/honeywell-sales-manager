@@ -2,13 +2,14 @@
 
 exports[`Card > renders with title 1`] = `
 <div
-  class="card-modern overflow-hidden "
+  class="card-modern overflow-hidden animate-fade-in "
 >
   <div
-    class="flex items-center justify-between border-b border-gray-100 px-6 py-4"
+    class="flex items-center justify-between border-b px-6 py-4"
+    style="border-color: var(--border-light);"
   >
     <h3
-      class="text-[15px] font-semibold tracking-tight text-gray-900"
+      class="text-heading-3 text-gray-900 dark:text-white"
     >
       Test Basligi
     </h3>
@@ -17,7 +18,7 @@ exports[`Card > renders with title 1`] = `
     class="px-6 py-5"
   >
     <p>
-      Icerik
+      İçerik
     </p>
   </div>
 </div>
@@ -25,17 +26,20 @@ exports[`Card > renders with title 1`] = `
 
 exports[`Card > renders with title and action 1`] = `
 <div
-  class="card-modern overflow-hidden "
+  class="card-modern overflow-hidden animate-fade-in "
 >
   <div
-    class="flex items-center justify-between border-b border-gray-100 px-6 py-4"
+    class="flex items-center justify-between border-b px-6 py-4"
+    style="border-color: var(--border-light);"
   >
     <h3
-      class="text-[15px] font-semibold tracking-tight text-gray-900"
+      class="text-heading-3 text-gray-900 dark:text-white"
     >
       Ayarlar
     </h3>
-    <div>
+    <div
+      class="flex items-center gap-2"
+    >
       <button>
         Kaydet
       </button>
@@ -53,13 +57,13 @@ exports[`Card > renders with title and action 1`] = `
 
 exports[`Card > renders without title 1`] = `
 <div
-  class="card-modern overflow-hidden "
+  class="card-modern overflow-hidden animate-fade-in "
 >
   <div
     class="px-6 py-5"
   >
     <p>
-      Sadece icerik
+      Sadece içerik
     </p>
   </div>
 </div>

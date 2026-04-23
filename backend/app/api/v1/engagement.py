@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, NotFoundException
@@ -79,16 +80,27 @@ async def create_transcript(
 
     # Auto-create signals if linked to opportunity
     if body.opportunity_id and keywords_found:
+        from app.services.dedupe_service import upsert_opportunity_signal
         for kw_info in keywords_found:
-            db.add(OpportunitySignal(
+            await upsert_opportunity_signal(
+                db,
                 opportunity_id=body.opportunity_id,
                 signal_type=kw_info["category"],
                 severity="med",
                 evidence=f"Transkriptte tespit: {kw_info['keyword']}",
                 source_type="transcript",
                 source_id=t.id,
-            ))
+            )
         await db.flush()
+
+    if settings.FEATURE_BUYER_MAP and body.participants and (
+        body.opportunity_id is not None or body.customer_id is not None
+    ):
+        from app.services.stakeholder_enrichment_service import enrich_from_transcript
+
+        created_ids = await enrich_from_transcript(db, t, current_user.id)
+        if created_ids:
+            await db.flush()
 
     return {
         "id": t.id, "title": t.title, "keywords_found": keywords_found,
@@ -462,6 +474,80 @@ async def sequence_analytics(
         "avg_touches_per_target": round(avg_touches, 1),
         "status_distribution": status_dist,
         "total_step_runs": sum(touch_counts) if touch_counts else 0,
+    }
+
+
+@router.get("/sequences/performance")
+async def sequence_performance(
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    db: AsyncSession = Depends(get_db),
+):
+    """Per-sequence funnel: enrollment counts by status + avg completed step runs per enrollment."""
+    from app.models.sequence_v2 import SequenceStepRun
+
+    seq_rows = (await db.execute(select(Sequence.id, Sequence.name, Sequence.is_active))).all()
+
+    enroll_rows = (
+        await db.execute(
+            select(
+                SequenceEnrollment.sequence_id,
+                func.count(SequenceEnrollment.id).label("total"),
+                func.count().filter(SequenceEnrollment.status == "active").label("active_n"),
+                func.count().filter(SequenceEnrollment.status == "completed").label("completed_n"),
+                func.count().filter(SequenceEnrollment.status == "exited").label("exited_n"),
+                func.count().filter(SequenceEnrollment.status == "paused").label("paused_n"),
+                func.count().filter(SequenceEnrollment.status == "cancelled").label("cancelled_n"),
+            ).group_by(SequenceEnrollment.sequence_id)
+        )
+    ).all()
+    by_seq = {int(row.sequence_id): row for row in enroll_rows}
+
+    per_enrollment = (
+        select(
+            SequenceStepRun.sequence_id,
+            SequenceStepRun.enrollment_id,
+            func.count(SequenceStepRun.id).label("completed_steps"),
+        )
+        .where(SequenceStepRun.status == "completed")
+        .group_by(SequenceStepRun.sequence_id, SequenceStepRun.enrollment_id)
+    ).subquery()
+
+    avg_rows = (
+        await db.execute(
+            select(per_enrollment.c.sequence_id, func.avg(per_enrollment.c.completed_steps)).group_by(
+                per_enrollment.c.sequence_id
+            )
+        )
+    ).all()
+    avg_by_seq = {int(row[0]): float(row[1] or 0) for row in avg_rows}
+
+    sequences_out: list[dict] = []
+    total_enrollments = 0
+    for sid, name, is_active in seq_rows:
+        agg = by_seq.get(int(sid))
+        et = int(agg.total) if agg is not None else 0
+        total_enrollments += et
+        sequences_out.append(
+            {
+                "sequence_id": int(sid),
+                "name": name,
+                "is_active": bool(is_active),
+                "enrollments_total": et,
+                "enrollments_active": int(agg.active_n) if agg is not None else 0,
+                "enrollments_completed": int(agg.completed_n) if agg is not None else 0,
+                "enrollments_exited": int(agg.exited_n) if agg is not None else 0,
+                "enrollments_paused": int(agg.paused_n) if agg is not None else 0,
+                "enrollments_cancelled": int(agg.cancelled_n) if agg is not None else 0,
+                "avg_completed_steps_per_enrollment": round(avg_by_seq.get(int(sid), 0.0), 2),
+            }
+        )
+
+    return {
+        "sequences": sequences_out,
+        "rollup": {
+            "sequence_count": len(sequences_out),
+            "enrollment_count": total_enrollments,
+        },
     }
 
 

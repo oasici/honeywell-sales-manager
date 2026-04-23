@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.models.account_enrichment import AccountEnrichment
 
 from app.core.database import Base
 
@@ -81,3 +85,10 @@ class Customer(Base):
 
     quotes = relationship("Quote", back_populates="customer", lazy="selectin")
     email_requests = relationship("EmailRequest", back_populates="customer", lazy="selectin")
+    account_enrichment: Mapped["AccountEnrichment | None"] = relationship(
+        "AccountEnrichment",
+        back_populates="customer",
+        uselist=False,
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )

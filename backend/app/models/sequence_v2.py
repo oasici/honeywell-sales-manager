@@ -46,8 +46,9 @@ class SequenceStepRun(Base):
     )  # started | completed | skipped | failed
     reason_codes: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
     payload_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON step def at execution time
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    # Some deployments backfill telemetry incrementally; allow NULLs for compatibility.
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=True
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -71,8 +72,8 @@ class DomainEvent(Base):
     entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     actor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True, nullable=True
     )
 
 
@@ -107,11 +108,12 @@ class Stakeholder(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_auto_detected: Mapped[bool] = mapped_column(Boolean, default=False)
     created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=True
     )
-    updated_at: Mapped[datetime] = mapped_column(
+    updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+        nullable=True,
     )

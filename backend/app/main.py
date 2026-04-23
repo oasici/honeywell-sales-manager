@@ -21,6 +21,7 @@ from app.core.database import async_session, engine
 from app.core.dependencies import require_role
 from app.core.error_tracking import init_sentry
 from app.core.logging_config import setup_logging, request_id_var
+from app.core.metrics import PrometheusMiddleware, metrics_response
 from app.models.enums import UserRole
 from app.models.user import User
 from app.tasks.scheduler import start_scheduler, stop_scheduler
@@ -51,14 +52,18 @@ async def lifespan(app: FastAPI):
 
     _is_postgres = settings.DATABASE_URL.startswith("postgresql")
 
-    # Create tables — checkfirst=True prevents UniqueViolationError on existing DBs
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database tables created / verified")
-    except Exception as e:
-        # Tables may already exist with conflicting types — safe to continue
-        logger.warning("create_all partial: %s", str(e)[:200])
+    # Regulated production: never mutate schema implicitly; use Alembic.
+    if settings.is_development or settings.AUTO_CREATE_TABLES:
+        # Create tables — checkfirst=True prevents UniqueViolationError on existing DBs
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database tables created / verified")
+        except Exception as e:
+            # Tables may already exist with conflicting types — safe to continue
+            logger.warning("create_all partial: %s", str(e)[:200])
+    else:
+        logger.info("AUTO_CREATE_TABLES disabled (env=%s)", settings.ENV)
 
     # PostgreSQL-only extensions and indexes (silent fail on SQLite)
     # Auto-sync schema: add missing columns to existing tables
@@ -76,7 +81,7 @@ async def lifespan(app: FastAPI):
             raise ValueError(f"Unsafe SQL identifier: {name!r}")
         return name
 
-    if _is_postgres:
+    if _is_postgres and (settings.is_development or settings.AUTO_SCHEMA_SYNC):
         try:
             async with engine.begin() as conn:
                 for table in Base.metadata.sorted_tables:
@@ -110,6 +115,8 @@ async def lifespan(app: FastAPI):
             logger.error("Schema auto-sync aborted — unsafe identifier: %s", ve)
         except Exception as e:
             logger.warning("Schema auto-sync failed: %s", str(e)[:200])
+    elif _is_postgres:
+        logger.info("AUTO_SCHEMA_SYNC disabled (env=%s)", settings.ENV)
 
     _pg_migrations = [
         "CREATE EXTENSION IF NOT EXISTS pg_trgm",
@@ -369,6 +376,16 @@ app = FastAPI(
     redoc_url=None if settings.is_production else "/redoc",
     openapi_url=None if settings.is_production else "/openapi.json",
 )
+
+# ── Prometheus metrics ──
+# Disable by setting ENABLE_METRICS=false in environments where metrics scraping isn't used.
+if os.environ.get("ENABLE_METRICS", "true").lower() == "true":
+    app.add_middleware(PrometheusMiddleware)
+
+
+@app.get("/metrics")
+async def metrics():
+    return metrics_response()
 
 # ── Rate limiter state ──
 app.state.limiter = limiter

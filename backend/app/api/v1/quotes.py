@@ -671,6 +671,7 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
         "quote_number": quote.quote_number,
         "customer_id": quote.customer_id,
         "email_request_id": quote.email_request_id,
+        "opportunity_id": quote.opportunity_id,
         "created_by": quote.created_by,
         "approved_by": quote.approved_by,
         "status": quote.status,

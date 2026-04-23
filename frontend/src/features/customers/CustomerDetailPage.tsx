@@ -9,7 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { customersApi, quotesApi, customerHealthApi, aiApi, opportunitiesApi } from '../../lib/api';
-import { formatCurrency, formatDate } from '../../lib/formatters';
+import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
 import { STATUS_COLORS } from '../../lib/constants';
 import { translateStatus } from '../../lib/labelTranslations';
 import { useT } from '../../hooks/useT';
@@ -25,11 +25,16 @@ import {
   ExternalLink,
   Users,
   Building2,
+  CalendarClock,
+  RefreshCw,
+  Pin,
+  PinOff,
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { HealthScoreCard } from './HealthScoreCard';
 import AccountTeamPanel from './AccountTeamPanel';
 import CommentThread from '../board/CommentThread';
+import { SummarySourceLinks } from '../../components/ai/SummarySourceLinks';
 import type {
   Customer,
   Quote,
@@ -38,6 +43,8 @@ import type {
   AiSummarizeResponse,
   Opportunity,
   ChurnPredictionResult,
+  CustomerIntelligenceResponse,
+  Account360Response,
 } from '../../lib/types';
 
 export default function CustomerDetailPage() {
@@ -48,6 +55,9 @@ export default function CustomerDetailPage() {
   const customerId = Number(id);
 
   const [editing, setEditing] = useState(false);
+  const [meetingPrepText, setMeetingPrepText] = useState<string | null>(null);
+  const [aggregateRefreshing, setAggregateRefreshing] = useState(false);
+  const [changesOpen, setChangesOpen] = useState(false);
   const [form, setForm] = useState({
     name: '',
     company: '',
@@ -136,6 +146,30 @@ export default function CustomerDetailPage() {
     retry: false,
   });
 
+  const { data: aiChanges, isLoading: aiChangesLoading } = useQuery<AiSummarizeResponse>({
+    queryKey: ['ai-customer-changes', customerId, 7],
+    queryFn: () =>
+      aiApi.summarizeChanges({ entity_type: 'customer', entity_id: customerId, days: 7 }),
+    enabled: !!customerId && changesOpen,
+    retry: false,
+  });
+
+  const refreshChangesMutation = useMutation({
+    mutationFn: () =>
+      aiApi.summarizeChanges({
+        entity_type: 'customer',
+        entity_id: customerId,
+        days: 7,
+        force: true,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ai-customer-changes', customerId, 7] });
+      toast.success(t('settings.operation_success'));
+      setChangesOpen(true);
+    },
+    onError: () => toast.error(t('settings.operation_failed')),
+  });
+
   // Churn prediction
   const { data: churnPrediction, isLoading: churnLoading } = useQuery<{
     data: ChurnPredictionResult;
@@ -151,6 +185,29 @@ export default function CustomerDetailPage() {
     queryKey: ['customer-opportunities', customerId],
     queryFn: () => opportunitiesApi.list({ customer_id: customerId }),
     enabled: !!customerId,
+  });
+
+  const { data: intelligence } = useQuery<CustomerIntelligenceResponse>({
+    queryKey: ['customer-intelligence', customerId],
+    queryFn: () => customersApi.getIntelligence(customerId),
+    enabled: !!customerId,
+    staleTime: 60_000,
+  });
+
+  const { data: account360, isLoading: account360Loading } = useQuery<Account360Response>({
+    queryKey: ['account-360', customerId],
+    queryFn: () => customersApi.getAccount360(customerId),
+    enabled: !!customerId,
+    staleTime: 60_000,
+  });
+
+  const meetingPrepMutation = useMutation({
+    mutationFn: () => aiApi.meetingPrep(customerId),
+    onSuccess: (d) => {
+      setMeetingPrepText(d.prep);
+      toast.success(t('account360.meeting_prep_done'));
+    },
+    onError: () => toast.error(t('account360.meeting_prep_failed')),
   });
 
   useEffect(() => {
@@ -186,6 +243,19 @@ export default function CustomerDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
     },
     onError: () => toast.error(t('customer_detail.toast_enrich_failed')),
+  });
+
+  const pinMutation = useMutation({
+    mutationFn: async (pin: boolean) => {
+      if (pin) await customersApi.pinCustomer(customerId);
+      else await customersApi.unpinCustomer(customerId);
+    },
+    onSuccess: (_, pin) => {
+      queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['high-intent-accounts'] });
+      toast.success(pin ? t('high_intent.pinned') : t('high_intent.unpinned'));
+    },
+    onError: () => toast.error(t('high_intent.pin_error')),
   });
 
   const updateField = (field: string, value: string) => {
@@ -256,6 +326,25 @@ export default function CustomerDetailPage() {
       >
         <Button variant="secondary" onClick={() => navigate('/customers')}>
           {t('customer_detail.back')}
+        </Button>
+        <Button
+          variant="secondary"
+          loading={pinMutation.isPending}
+          disabled={editing}
+          onClick={() => pinMutation.mutate(!customer.pinned)}
+          title={customer.pinned ? t('high_intent.unpin') : t('high_intent.pin')}
+        >
+          {customer.pinned ? (
+            <>
+              <PinOff size={14} className="mr-1" />
+              {t('high_intent.unpin')}
+            </>
+          ) : (
+            <>
+              <Pin size={14} className="mr-1" />
+              {t('high_intent.pin')}
+            </>
+          )}
         </Button>
         {editing ? (
           <>
@@ -481,6 +570,279 @@ export default function CustomerDetailPage() {
           <HealthScoreCard health={healthData} />
         ) : null}
 
+        {/* Account 360 — Sprint 3 */}
+        {account360Loading ? (
+          <Skeleton variant="card" />
+        ) : account360 ? (
+          <Card title={t('account360.title')}>
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={aggregateRefreshing}
+                onClick={async () => {
+                  setAggregateRefreshing(true);
+                  try {
+                    await queryClient.fetchQuery({
+                      queryKey: ['account-360', customerId],
+                      queryFn: () => customersApi.getAccount360(customerId, { refresh: true }),
+                    });
+                    toast.success(t('account360.refreshed'));
+                  } finally {
+                    setAggregateRefreshing(false);
+                  }
+                }}
+              >
+                <RefreshCw size={14} className="mr-1" />
+                {t('account360.refresh_metrics')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={meetingPrepMutation.isPending}
+                onClick={() => meetingPrepMutation.mutate()}
+              >
+                <CalendarClock size={14} className="mr-1" />
+                {t('account360.meeting_prep')}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                <p className="text-xs text-gray-500">{t('account360.pipeline_open')}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {formatCurrency(
+                    account360.enrichment.pipeline_open_amount,
+                    account360.enrichment.currency || 'TRY',
+                  )}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                <p className="text-xs text-gray-500">{t('account360.closed_won')}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {formatCurrency(
+                    account360.enrichment.closed_won_revenue,
+                    account360.enrichment.currency || 'TRY',
+                  )}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                <p className="text-xs text-gray-500">{t('account360.risk_index')}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {account360.enrichment.risk_index}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                <p className="text-xs text-gray-500">{t('account360.engagement')}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {account360.enrichment.engagement_score}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm">
+              <div>
+                <span className="text-gray-500">{t('account360.deals_active')}</span>{' '}
+                <span className="font-semibold">{account360.enrichment.active_deal_count}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">{t('account360.deals_won')}</span>{' '}
+                <span className="font-semibold">{account360.enrichment.won_deal_count}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">{t('account360.deals_lost')}</span>{' '}
+                <span className="font-semibold">{account360.enrichment.lost_deal_count}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">{t('account360.computed')}</span>{' '}
+                <span className="font-semibold">
+                  {account360.enrichment.computed_at
+                    ? formatDate(account360.enrichment.computed_at)
+                    : '—'}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                {t('account360.last_touch')}
+              </p>
+              <p className="text-sm text-gray-800 dark:text-gray-200">
+                {account360.last_touch.summary}
+              </p>
+              {account360.last_touch.at && (
+                <p className="text-xs text-gray-400 mt-1">{formatDate(account360.last_touch.at)}</p>
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  {t('account360.risk_block')}
+                </p>
+                <ul className="list-disc pl-4 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  {(account360.risk_summary.recommendations || []).slice(0, 4).map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                  {(!account360.risk_summary.recommendations ||
+                    account360.risk_summary.recommendations.length === 0) && (
+                    <li className="text-gray-400">{t('account360.no_recommendations')}</li>
+                  )}
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                  {t('account360.open_deals')}
+                </p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {account360.open_deals.length === 0 ? (
+                    <p className="text-sm text-gray-400">{t('account360.no_open_deals')}</p>
+                  ) : (
+                    account360.open_deals.slice(0, 8).map((o) => (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => navigate(`/opportunities/${o.id}`)}
+                        className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <span className="font-medium text-gray-900 dark:text-white">{o.title}</span>
+                        <span className="text-xs text-gray-500 ml-2">{o.stage}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                {t('account360.multi_timeline')}
+              </p>
+              <div className="max-h-56 overflow-y-auto space-y-2 border border-gray-100 dark:border-gray-800 rounded-lg p-2">
+                {account360.timeline.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-2">{t('account360.timeline_empty')}</p>
+                ) : (
+                  account360.timeline.slice(0, 20).map((ev, idx) => (
+                    <div
+                      key={`${ev.kind}-${idx}-${ev.occurred_at || ''}`}
+                      className="text-xs border-b border-gray-100 dark:border-gray-800 pb-2 last:border-0"
+                    >
+                      <div className="flex justify-between gap-2 text-gray-500">
+                        <span>{ev.occurred_at ? formatDate(ev.occurred_at) : '—'}</span>
+                        <span className="truncate">
+                          {ev.opportunity_title || `#${ev.opportunity_id}`}
+                        </span>
+                      </div>
+                      <p className="text-gray-800 dark:text-gray-200 mt-0.5">
+                        <span className="font-medium">{ev.event_type}</span>
+                        {ev.description ? ` — ${ev.description}` : ''}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {meetingPrepText && (
+              <div className="mt-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-3">
+                <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                  {t('account360.meeting_prep_result')}
+                </p>
+                <pre className="text-sm whitespace-pre-wrap font-sans text-gray-800 dark:text-gray-200">
+                  {meetingPrepText}
+                </pre>
+              </div>
+            )}
+          </Card>
+        ) : null}
+
+        {/* Account Intelligence (v2) */}
+        {intelligence && (
+          <Card title="Account Intelligence">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                <p className="text-xs text-gray-500">Aktif fırsat</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {intelligence.opportunities.length}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                <p className="text-xs text-gray-500">Açık task</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {intelligence.open_tasks_count}
+                </p>
+              </div>
+            </div>
+
+            {intelligence.signals.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Son sinyaller</p>
+                <div className="space-y-2">
+                  {intelligence.signals.slice(0, 6).map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => navigate(`/opportunities/${s.opportunity_id}`)}
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {s.signal_type}
+                        </p>
+                        <Badge
+                          variant={
+                            s.severity === 'high' || s.severity === 'critical'
+                              ? 'danger'
+                              : s.severity === 'med' || s.severity === 'medium'
+                                ? 'warning'
+                                : 'default'
+                          }
+                          size="sm"
+                        >
+                          {s.severity}
+                        </Badge>
+                      </div>
+                      {s.evidence && (
+                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                          {s.evidence}
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {intelligence.opportunities.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Fırsatlar</p>
+                <div className="space-y-2">
+                  {intelligence.opportunities.slice(0, 5).map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => navigate(`/opportunities/${o.id}`)}
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {o.title}
+                        </p>
+                        <Badge variant="default" size="sm">
+                          {o.stage}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        {o.amount != null ? formatCurrency(o.amount, o.currency) : '-'}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
         {/* AI Customer Summary */}
         <Card title={t('customer_detail.ai_summary_title')}>
           {aiSummaryLoading ? (
@@ -501,10 +863,76 @@ export default function CustomerDetailPage() {
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {aiSummary.summary}
               </p>
+              {aiSummary.sources && aiSummary.sources.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {t('opp_detail.sources')}
+                  </p>
+                  <SummarySourceLinks sources={aiSummary.sources} />
+                </div>
+              )}
             </div>
           ) : (
             <p className="py-4 text-center text-sm text-gray-400">
               {t('customer_detail.ai_summary_empty')}
+            </p>
+          )}
+        </Card>
+
+        <Card
+          title={t('opp_detail.changes_title').replace('{{d}}', '7')}
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setChangesOpen((s) => !s)}
+              >
+                {changesOpen ? t('opp_detail.ai_summary_close') : t('opp_detail.changes_show')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                loading={refreshChangesMutation.isPending}
+                disabled={!changesOpen}
+                onClick={() => refreshChangesMutation.mutate()}
+              >
+                {t('opp_detail.changes_refresh')}
+              </Button>
+            </div>
+          }
+        >
+          {aiChangesLoading ? (
+            <Skeleton variant="line" count={3} />
+          ) : aiChanges && changesOpen ? (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {aiChanges.summary}
+              </p>
+              {aiChanges.sources && aiChanges.sources.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {t('opp_detail.sources')}
+                  </p>
+                  <SummarySourceLinks sources={aiChanges.sources} />
+                </div>
+              )}
+              {aiChanges.generated_at && (
+                <p className="text-[10px] text-gray-400">
+                  {formatDateTime(aiChanges.generated_at)}
+                </p>
+              )}
+              {aiChanges.cached && (
+                <Badge variant="default" size="sm">
+                  {t('customer_detail.cached')}
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <p className="py-4 text-center text-sm text-gray-400">
+              {changesOpen ? t('customer_detail.ai_summary_empty') : t('opp_detail.changes_hint')}
             </p>
           )}
         </Card>

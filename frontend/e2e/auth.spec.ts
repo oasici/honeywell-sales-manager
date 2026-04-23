@@ -181,8 +181,11 @@ test.describe('Security Headers', () => {
     const response = await page.request.get(`${BASE_URL}/api/health`);
     const headers = response.headers();
 
-    expect(headers['x-content-type-options']).toBe('nosniff');
-    expect(headers['x-frame-options']).toBe('DENY');
+    // Some hosting/proxy layers may duplicate headers, resulting in "nosniff, nosniff".
+    const xcto = (headers['x-content-type-options'] ?? '').split(',').map((s) => s.trim());
+    expect(xcto.includes('nosniff')).toBe(true);
+    const xfo = (headers['x-frame-options'] ?? '').split(',').map((s) => s.trim());
+    expect(xfo.includes('DENY')).toBe(true);
     expect(headers['content-security-policy']).toContain("default-src 'self'");
     expect(headers['content-security-policy']).toContain("object-src 'none'");
     expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");

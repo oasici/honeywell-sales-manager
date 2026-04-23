@@ -4,7 +4,7 @@ import io
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from sqlalchemy import func, select, and_, or_
+from sqlalchemy import delete, func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -86,6 +86,76 @@ async def list_customers(
     }
 
 
+@router.get("/high-intent")
+async def list_high_intent_accounts(
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sprint 4 — rule-based high-intent customers (+ pinned first)."""
+    from app.services.prospecting_agent import ProspectingAgent
+
+    rows = await ProspectingAgent(db).list_high_intent_accounts(current_user, limit=limit)
+    return {
+        "items": [
+            {
+                "customer_id": r.customer_id,
+                "name": r.name,
+                "company": r.company,
+                "score": r.score,
+                "signals": r.signals,
+                "pinned": r.pinned,
+            }
+            for r in rows
+        ],
+        "total": len(rows),
+    }
+
+
+@router.post("/{customer_id}/pin", status_code=201)
+async def pin_customer(
+    customer_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.user_customer_pin import UserCustomerPin
+
+    cust = (await db.execute(select(Customer).where(Customer.id == customer_id))).scalar_one_or_none()
+    if not cust:
+        raise NotFoundException("Musteri bulunamadi")
+
+    existing = (
+        await db.execute(
+            select(UserCustomerPin).where(
+                UserCustomerPin.user_id == current_user.id,
+                UserCustomerPin.customer_id == customer_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is None:
+        db.add(UserCustomerPin(user_id=current_user.id, customer_id=customer_id))
+        await db.flush()
+    return {"pinned": True, "customer_id": customer_id}
+
+
+@router.delete("/{customer_id}/pin", status_code=200)
+async def unpin_customer(
+    customer_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.user_customer_pin import UserCustomerPin
+
+    await db.execute(
+        delete(UserCustomerPin).where(
+            UserCustomerPin.user_id == current_user.id,
+            UserCustomerPin.customer_id == customer_id,
+        )
+    )
+    await db.flush()
+    return {"pinned": False, "customer_id": customer_id}
+
+
 @router.get("/{customer_id}")
 async def get_customer(
     customer_id: int,
@@ -120,13 +190,200 @@ async def get_customer(
     )
     sent_count = sent_count_q.scalar() or 0
 
+    from app.models.user_customer_pin import UserCustomerPin
+
+    pin_row = (
+        await db.execute(
+            select(UserCustomerPin).where(
+                UserCustomerPin.user_id == current_user.id,
+                UserCustomerPin.customer_id == customer_id,
+            )
+        )
+    ).scalar_one_or_none()
+
     data = _customer_to_dict(customer)
+    data["pinned"] = pin_row is not None
     data["stats"] = {
         "total_quotes": quote_count,
         "total_value": round(total_value, 2),
         "sent_quotes": sent_count,
     }
     return data
+
+
+@router.get("/{customer_id}/intelligence")
+async def get_customer_intelligence(
+    customer_id: int,
+    limit: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unified Customer/Account intelligence payload (v2).
+
+    Returns operational context without triggering any LLM calls:
+    - active opportunities for the customer
+    - open task count across those opportunities
+    - recent opportunity signals across those opportunities
+    """
+    customer = (
+        await db.execute(select(Customer).where(Customer.id == customer_id))
+    ).scalar_one_or_none()
+    if not customer:
+        raise NotFoundException("Musteri bulunamadi")
+
+    from app.models.activity_log import ActivityLog
+    from app.models.opportunity import Opportunity, OpportunitySignal, Task
+
+    opp_conds = [Opportunity.customer_id == customer_id, Opportunity.status == "active"]
+    if current_user.role == UserRole.SALES_REP.value:
+        opp_conds.append(Opportunity.owner_id == current_user.id)
+
+    opps = (
+        await db.execute(
+            select(Opportunity)
+            .where(and_(*opp_conds))
+            .order_by(Opportunity.updated_at.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+
+    opp_ids = [int(o.id) for o in opps]
+
+    open_tasks_count = 0
+    if opp_ids:
+        open_tasks_count = (
+            await db.execute(
+                select(func.count(Task.id)).where(
+                    Task.opportunity_id.in_(opp_ids),
+                    Task.status == "open",
+                )
+            )
+        ).scalar() or 0
+
+    last_activity_map: dict[int, datetime | None] = {}
+    if opp_ids:
+        last_rows = (
+            await db.execute(
+                select(ActivityLog.opportunity_id, func.max(ActivityLog.created_at))
+                .where(ActivityLog.opportunity_id.in_(opp_ids))
+                .group_by(ActivityLog.opportunity_id)
+            )
+        ).all()
+        last_activity_map = {int(row[0]): row[1] for row in last_rows}
+
+    signals = []
+    if opp_ids:
+        signals = (
+            await db.execute(
+                select(OpportunitySignal)
+                .where(OpportunitySignal.opportunity_id.in_(opp_ids))
+                .order_by(
+                    OpportunitySignal.is_resolved.asc(),
+                    OpportunitySignal.created_at.desc(),
+                )
+                .limit(50)
+            )
+        ).scalars().all()
+
+    return {
+        "customer": _customer_to_dict(customer),
+        "opportunities": [
+            {
+                "id": o.id,
+                "title": o.title,
+                "stage": o.stage,
+                "amount": o.amount,
+                "currency": o.currency,
+                "owner_id": o.owner_id,
+                "close_date": str(o.close_date) if o.close_date else None,
+                "updated_at": o.updated_at.isoformat() if o.updated_at else None,
+                "last_activity_at": (
+                    last_activity_map.get(int(o.id)).isoformat()
+                    if last_activity_map.get(int(o.id)) is not None
+                    else None
+                ),
+            }
+            for o in opps
+        ],
+        "open_tasks_count": int(open_tasks_count),
+        "signals": [
+            {
+                "id": s.id,
+                "opportunity_id": s.opportunity_id,
+                "signal_type": s.signal_type,
+                "severity": s.severity,
+                "evidence": s.evidence,
+                "source_type": s.source_type,
+                "source_id": s.source_id,
+                "is_resolved": s.is_resolved,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in signals
+        ],
+    }
+
+
+@router.get("/{customer_id}/account-360")
+async def get_account_360(
+    customer_id: int,
+    refresh: bool = Query(False, description="Zorunlu rollup yenileme"),
+    timeline_limit: int = Query(40, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Sprint 3 — Account360: rollup + coklu firsat zaman cizelgesi + acik deal + risk + son temas."""
+    from app.services.account_aggregate_service import AccountAggregateService
+
+    customer = (
+        await db.execute(select(Customer).where(Customer.id == customer_id))
+    ).scalar_one_or_none()
+    if not customer:
+        raise NotFoundException("Musteri bulunamadi")
+
+    svc = AccountAggregateService(db)
+    row = await svc.ensure_fresh(customer_id, current_user, refresh=refresh)
+    extra = row.extra if isinstance(row.extra, dict) else {}
+
+    enrichment = {
+        "customer_id": customer_id,
+        "pipeline_open_amount": round(float(row.pipeline_open_amount), 2),
+        "closed_won_revenue": round(float(row.closed_won_revenue), 2),
+        "active_deal_count": int(row.active_deal_count),
+        "won_deal_count": int(row.won_deal_count),
+        "lost_deal_count": int(row.lost_deal_count),
+        "total_deal_count": int(row.total_deal_count),
+        "risk_index": round(float(row.risk_index), 1),
+        "engagement_score": round(float(row.engagement_score), 1),
+        "computed_at": row.computed_at.isoformat() if row.computed_at else None,
+        "health_score": extra.get("health_score"),
+        "health_risk_level": extra.get("health_risk_level"),
+    }
+
+    last_touch = {
+        "at": row.last_touch_at.isoformat() if row.last_touch_at else None,
+        "source": extra.get("last_touch_source") or "unknown",
+        "summary": extra.get("last_touch_summary") or "",
+    }
+
+    timeline = await svc.merge_multi_opportunity_timeline(
+        customer_id, current_user, limit=timeline_limit
+    )
+    open_deals = await svc.open_deals(customer_id, current_user)
+    risk_summary = await svc.risk_summary(customer_id, current_user)
+
+    ccy = (extra.get("display_currency") if extra else None) or (
+        open_deals[0].get("currency") if open_deals else None
+    )
+    enrichment["currency"] = (str(ccy).strip() if ccy else "") or "TRY"
+
+    return {
+        "customer_id": customer_id,
+        "enrichment": enrichment,
+        "last_touch": last_touch,
+        "open_deals": open_deals,
+        "risk_summary": risk_summary,
+        "timeline": timeline,
+    }
 
 
 @router.post("/", status_code=201)

@@ -64,12 +64,11 @@ async def execute_sequence_step(ctx: dict, enrollment_id: int) -> str:
     - Telemetry (SequenceStepRun record per execution)
     - Domain events (sequence.step_completed, sequence.completed, sequence.exited)
     """
-    import json
     from sqlalchemy import select
     from app.core.database import async_session
     from app.core.config import settings as app_settings
     from app.models.engagement import SequenceEnrollment, Sequence
-    from app.models.opportunity import Task
+    from app.services.dedupe_service import upsert_task
 
     async with async_session() as db:
         enrollment = (await db.execute(
@@ -106,14 +105,16 @@ async def execute_sequence_step(ctx: dict, enrollment_id: int) -> str:
 
         # Execute step
         if action == "task":
-            task = Task(
+            await upsert_task(
+                db,
                 owner_id=enrollment.enrolled_by or 1,
                 opportunity_id=enrollment.opportunity_id,
-                title=template or f"Sira adimi {current}",
+                title=(template or f"Sira adimi {current}")[:255],
                 source="rule",
                 priority="normal",
+                status="open",
+                dedupe_window_days=14,
             )
-            db.add(task)
 
         # Advance to next step
         enrollment.current_step = current + 1

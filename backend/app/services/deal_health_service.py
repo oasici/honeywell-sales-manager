@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 HEALTHY_THRESHOLD = 70
 AT_RISK_THRESHOLD = 40
+CRITICAL_THRESHOLD = 20
 
 ACTIVITY_WEIGHT = 0.25
 STAGE_VELOCITY_WEIGHT = 0.20
@@ -947,4 +948,6 @@ class DealHealthService:
             return "healthy"
         if score >= AT_RISK_THRESHOLD:
             return "at_risk"
+        if score >= CRITICAL_THRESHOLD:
+            return "high_risk"
         return "critical"

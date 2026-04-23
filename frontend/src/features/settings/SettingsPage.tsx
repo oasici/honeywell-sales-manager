@@ -23,7 +23,7 @@ import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { settingsApi, meetingsApi } from '../../lib/api';
+import { settingsApi, meetingsApi, opsApi } from '../../lib/api';
 import { usePreferencesStore } from '../../stores/preferencesStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
@@ -162,8 +162,56 @@ export default function SettingsPage() {
         {user?.role === 'sales_manager' && <SharingRulesSection />}
         {user?.role === 'sales_manager' && <WebhookSettings />}
         {user?.role === 'sales_manager' && <NotificationChannelsSection />}
+        {user?.role === 'sales_manager' && <FeatureModulesSection />}
       </div>
     </div>
+  );
+}
+
+function FeatureModulesSection() {
+  const t = useT();
+  const { data, isLoading } = useQuery({
+    queryKey: ['ops-feature-flags'],
+    queryFn: opsApi.getFeatureFlags,
+  });
+  const entries = data
+    ? Object.entries(data)
+        .filter(([k]) => k.startsWith('FEATURE_'))
+        .sort(([a], [b]) => a.localeCompare(b))
+    : [];
+
+  return (
+    <Card title={t('settings.modules_title')}>
+      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        {t('settings.modules_subtitle')}
+      </p>
+      {isLoading ? (
+        <Skeleton variant="line" count={6} />
+      ) : (
+        <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-100 dark:border-gray-800">
+          <table className="min-w-full text-left text-xs">
+            <tbody>
+              {entries.map(([name, on]) => (
+                <tr key={name} className="border-b border-gray-50 dark:border-gray-900">
+                  <td className="px-3 py-2 font-mono text-gray-700 dark:text-gray-200">{name}</td>
+                  <td className="px-3 py-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 font-semibold ${
+                        on
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200'
+                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
+                      }`}
+                    >
+                      {on ? 'ON' : 'OFF'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
   );
 }
 

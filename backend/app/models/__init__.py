@@ -1,5 +1,7 @@
 from app.models.enums import EmailStatus, QuoteStatus, ReviewStatus, UserRole
 from app.models.user import User
+from app.models.user_customer_pin import UserCustomerPin
+from app.models.account_enrichment import AccountEnrichment
 from app.models.customer import Customer
 from app.models.email_request import EmailRequest
 from app.models.spare_part import SparePart
@@ -70,6 +72,8 @@ __all__ = [
     "ReviewStatus",
     "UserRole",
     "User",
+    "UserCustomerPin",
+    "AccountEnrichment",
     "Customer",
     "EmailRequest",
     "SparePart",

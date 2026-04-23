@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     # ── Database ──
     DATABASE_URL: str = ""
 
+    # ── Schema management (production hardening) ──
+    # In regulated production, schema drift must be handled via Alembic only.
+    AUTO_CREATE_TABLES: bool = False  # dev convenience only
+    AUTO_SCHEMA_SYNC: bool = False  # dev convenience only (ALTER TABLE ADD COLUMN IF NOT EXISTS)
+
     # ── Redis ──
     REDIS_URL: str = "redis://redis:6379/0"
 
@@ -145,6 +150,10 @@ class Settings(BaseSettings):
     # Depends on: DATABASE_URL
     # Required by: v2 Kanban board, pipeline snapshot scheduler task
     FEATURE_V2_BOARD: bool = False
+
+    # Depends on: DATABASE_URL
+    # Required by: Tasks CRUD + recommended actions panel (Sprint 2 prerequisite)
+    FEATURE_TASKS: bool = False
 
     # --- AI-Powered Features ---
     # Depends on: ANTHROPIC_API_KEY

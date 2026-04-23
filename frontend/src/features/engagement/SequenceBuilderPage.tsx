@@ -8,14 +8,28 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { engagementApi } from '../../lib/api';
+import { engagementApi, emailTemplatesApi } from '../../lib/api';
 import type { Sequence } from '../../lib/types';
+import { useT } from '../../hooks/useT';
 
 interface SequenceStep {
   step: number;
   action: string;
   delay_days: number;
   template: string;
+  email_template_id?: number | null;
+}
+
+function htmlToPlainText(html: string): string {
+  if (typeof document === 'undefined') {
+    return html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
 }
 
 const ACTION_OPTIONS = [
@@ -32,6 +46,7 @@ const EMPTY_STEP: SequenceStep = {
 };
 
 export default function SequenceBuilderPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -50,6 +65,17 @@ export default function SequenceBuilderPage() {
     enabled: Boolean(sequenceId),
   });
 
+  const { data: emailTplData } = useQuery({
+    queryKey: ['email-templates', 'sequence-builder'],
+    queryFn: () => emailTemplatesApi.list(),
+  });
+  const emailTemplates = (emailTplData?.items ?? []) as Array<{
+    id: number;
+    name: string;
+    subject: string;
+    body_html: string;
+  }>;
+
   useEffect(() => {
     if (sequence) {
       queueMicrotask(() => {
@@ -62,6 +88,8 @@ export default function SequenceBuilderPage() {
               action: (s.action as string) || (s.type as string) || 'email',
               delay_days: (s.delay_days as number) || 0,
               template: (s.template as string) || '',
+              email_template_id:
+                typeof s.email_template_id === 'number' ? s.email_template_id : null,
             })),
           );
         }
@@ -95,7 +123,7 @@ export default function SequenceBuilderPage() {
   }, []);
 
   const updateStep = useCallback(
-    (index: number, field: keyof SequenceStep, value: string | number) => {
+    (index: number, field: keyof SequenceStep, value: string | number | null) => {
       setSteps((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
     },
     [],
@@ -114,12 +142,18 @@ export default function SequenceBuilderPage() {
     const payload: Record<string, unknown> = {
       name,
       description: description || undefined,
-      steps: steps.map((s) => ({
-        step: s.step,
-        action: s.action,
-        delay_days: s.delay_days,
-        template: s.template,
-      })),
+      steps: steps.map((s) => {
+        const row: Record<string, unknown> = {
+          step: s.step,
+          action: s.action,
+          delay_days: s.delay_days,
+          template: s.template,
+        };
+        if (s.email_template_id != null) {
+          row.email_template_id = s.email_template_id;
+        }
+        return row;
+      }),
     };
 
     if (isAutoEnroll) {
@@ -225,8 +259,49 @@ export default function SequenceBuilderPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="mt-3">
-                    <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <div className="mt-3 space-y-2">
+                    {step.action === 'email' ? (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {t('sequences.builder_email_tpl')}
+                        </label>
+                        <select
+                          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                          value={step.email_template_id ?? ''}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (!raw) {
+                              updateStep(idx, 'email_template_id', null);
+                              return;
+                            }
+                            const tid = Number(raw);
+                            const tpl = emailTemplates.find((x) => x.id === tid);
+                            if (tpl) {
+                              const body = htmlToPlainText(tpl.body_html || '');
+                              const merged = `${tpl.subject}\n\n${body}`.trim();
+                              setSteps((prev) =>
+                                prev.map((s, i) =>
+                                  i === idx
+                                    ? { ...s, email_template_id: tid, template: merged }
+                                    : s,
+                                ),
+                              );
+                            }
+                          }}
+                        >
+                          <option value="">{t('sequences.builder_email_tpl_none')}</option>
+                          {emailTemplates.map((tpl) => (
+                            <option key={tpl.id} value={tpl.id}>
+                              {tpl.name}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          {t('sequences.builder_email_tpl_hint')}
+                        </p>
+                      </div>
+                    ) : null}
+                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
                       Şablon / İçerik
                     </label>
                     <textarea
@@ -234,7 +309,7 @@ export default function SequenceBuilderPage() {
                       value={step.template}
                       onChange={(e) => updateStep(idx, 'template', e.target.value)}
                       placeholder="Email şablonu veya gorev aciklamasi..."
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800"
                     />
                   </div>
                 </div>

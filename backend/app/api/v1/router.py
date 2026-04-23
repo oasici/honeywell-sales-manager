@@ -6,6 +6,7 @@ from app.api.v1.ops import router as ops_router
 from app.api.v1.saved_views import router as saved_views_router
 from app.api.v1.opportunities import router as opportunities_router
 from app.api.v1.ai import router as ai_router
+from app.api.v1.insights import router as insights_router
 from app.api.v1.engagement import legacy_router as engagement_legacy_router
 from app.api.v1.engagement import router as engagement_router
 from app.api.v1.integrations import router as integrations_router
@@ -77,6 +78,7 @@ v1_router.include_router(ops_router)
 v1_router.include_router(saved_views_router)
 v1_router.include_router(opportunities_router)
 v1_router.include_router(ai_router)
+v1_router.include_router(insights_router)
 v1_router.include_router(engagement_router)
 v1_router.include_router(engagement_legacy_router)
 v1_router.include_router(integrations_router)

@@ -69,6 +69,21 @@ test.describe('Full UI smoke (by role)', () => {
     await expectNotStuckLoading(page, testInfo);
     await expect(page.getByText('Sales Board', { exact: false })).toBeVisible({ timeout: 15_000 });
 
+    // Planning Studio (Sprint 7)
+    await page.goto('/planning-studio', { waitUntil: 'domcontentloaded' });
+    await expectNotStuckLoading(page, testInfo);
+    await expect(page.getByRole('heading', { name: 'Planlama Stüdyosu' })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Opportunity detail (open first card)
+    const firstCard = page.locator('button').filter({ hasText: '₺' }).first();
+    if (await firstCard.count()) {
+      await firstCard.click();
+      await expect(page).toHaveURL(/\/opportunities\/\d+/);
+      await expectNotStuckLoading(page, testInfo);
+    }
+
     // Leads
     await page.goto('/leads', { waitUntil: 'domcontentloaded' });
     await expectNotStuckLoading(page, testInfo);
@@ -84,6 +99,11 @@ test.describe('Full UI smoke (by role)', () => {
     await expect(page.getByRole('heading', { name: 'Gelir Kokpiti' })).toBeVisible({
       timeout: 15_000,
     });
+
+    // Insights (signals dashboard MVP)
+    await page.goto('/insights', { waitUntil: 'domcontentloaded' });
+    await expectNotStuckLoading(page, testInfo);
+    await expect(page.getByRole('heading', { name: 'Insights' })).toBeVisible({ timeout: 15_000 });
 
     // Admin / workflow rules (visual editor list) — only for admin/sales_manager
     if (role === 'admin' || role === 'sales_manager') {

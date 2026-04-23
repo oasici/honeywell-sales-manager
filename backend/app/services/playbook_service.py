@@ -211,7 +211,8 @@ class PlaybookService:
         self, execution: PlaybookExecution, step_data: dict
     ) -> None:
         """Create a Task from a playbook step."""
-        from app.models.opportunity import Opportunity, Task
+        from app.models.opportunity import Opportunity
+        from app.services.dedupe_service import upsert_task
 
         # Get opportunity owner
         opp_result = await self._db.execute(
@@ -228,18 +229,21 @@ class PlaybookService:
         delay_days = step_data.get("delay_days", 0)
         due_at = datetime.now(timezone.utc) + timedelta(days=max(delay_days, 1))
 
-        task = Task(
+        await upsert_task(
+            self._db,
             owner_id=opp.owner_id,
             opportunity_id=execution.opportunity_id,
-            title=step_data.get("template", "Playbook gorevi"),
-            description=step_data.get("description", f"Playbook: {execution.playbook_id}, Adim: {step_data.get('step')}"),
+            title=str(step_data.get("template", "Playbook gorevi"))[:255],
+            description=step_data.get(
+                "description",
+                f"Playbook: {execution.playbook_id}, Adim: {step_data.get('step')}",
+            ),
             due_at=due_at,
             status="open",
             source="rule",
             priority=step_data.get("priority", "normal"),
+            dedupe_window_days=14,
         )
-        self._db.add(task)
-        await self._db.flush()
 
     async def _create_notification(
         self, execution: PlaybookExecution, step_data: dict

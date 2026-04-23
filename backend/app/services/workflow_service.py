@@ -81,7 +81,7 @@ class WorkflowService:
                 if action_type == "send_notification":
                     await self._action_send_notification(rule, action, entity_data)
                 elif action_type == "create_task":
-                    self._action_create_task(rule, action, entity_data)
+                    await self._action_create_task(rule, action, entity_data)
                 elif action_type == "field_update":
                     logger.info("Field update action: %s", action)
                 elif action_type == "emit_signal":
@@ -114,20 +114,23 @@ class WorkflowService:
                 message=action.get("message", f"Kural tetiklendi: {rule.name}"),
             )
 
-    def _action_create_task(
+    async def _action_create_task(
         self, rule: WorkflowRule, action: dict, entity_data: dict,
     ) -> None:
-        from app.models.opportunity import Task
+        # This path can be called repeatedly for the same event; dedupe in DB write-path.
+        from app.services.dedupe_service import upsert_task
 
-        task = Task(
+        await upsert_task(
+            self.db,
             owner_id=entity_data.get("owner_id", 1),
             opportunity_id=entity_data.get("opportunity_id") or entity_data.get("id"),
-            title=action.get("title", f"Kural gorevi: {rule.name}"),
+            title=action.get("title", f"Kural gorevi: {rule.name}")[:255],
             description=action.get("description", ""),
             source="rule",
             priority=action.get("priority", "normal"),
+            status="open",
+            dedupe_window_days=14,
         )
-        self.db.add(task)
 
     async def _action_emit_signal(
         self, rule: WorkflowRule, action: dict, entity_data: dict,

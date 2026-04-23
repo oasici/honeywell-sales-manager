@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, and_
+from sqlalchemy import Integer, String, and_, case, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -16,7 +16,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.enums import OpportunityStage, UserRole
-from app.models.opportunity import Opportunity, OpportunityEvent
+from app.models.opportunity import Opportunity, OpportunityEvent, OpportunitySignal, Task
 from app.models.quote import Quote
 from app.models.user import User
 from app.core.event_bus import event_bus
@@ -53,26 +53,63 @@ class OpportunityUpdate(BaseModel):
     loss_reason: str | None = None
 
 
-# ── Stage probability mapping ──
+# ── Stage probability mapping (centralized) ──
 
-STAGE_PROBABILITY = {
-    "prospecting": 0.10,
-    "qualified": 0.25,
-    "proposal": 0.50,
-    "negotiation": 0.75,
-    "closed_won": 1.0,
-    "closed_lost": 0.0,
-}
+async def _stage_probability(db: AsyncSession, stage: str) -> float:
+    from app.services.stage_probability_service import get_stage_probability
+
+    return await get_stage_probability(db, stage)
 
 
 # ── Helpers ──
 
-def _opp_to_dict(opp: Opportunity, include_quotes: bool = False) -> dict:
+def _opportunity_staleness_days(opp: Opportunity, last_activity_at: datetime | None) -> int:
+    """Days since last ActivityLog on this deal, else since updated_at (aligned with /board/*)."""
+    ref_dt = last_activity_at or opp.updated_at
+    if ref_dt is None:
+        return 0
     now = datetime.now(timezone.utc)
-    updated = opp.updated_at
-    if updated and updated.tzinfo is None:
-        updated = updated.replace(tzinfo=timezone.utc)
-    rotting_days = (now - updated).days if updated else 0
+    ref = ref_dt
+    if ref.tzinfo is None:
+        ref = ref.replace(tzinfo=timezone.utc)
+    return max(0, (now - ref).days)
+
+
+def _board_staleness_timestamp():
+    """SQL: last ActivityLog time for the opportunity, else Opportunity.updated_at."""
+    from app.models.activity_log import ActivityLog
+
+    last_activity_scalar = (
+        select(func.max(ActivityLog.created_at))
+        .where(ActivityLog.opportunity_id == Opportunity.id)
+        .scalar_subquery()
+    )
+    return func.coalesce(last_activity_scalar, Opportunity.updated_at)
+
+
+async def _last_activity_max_by_opportunity_ids(
+    db: AsyncSession, opp_ids: list[int],
+) -> dict[int, datetime | None]:
+    if not opp_ids:
+        return {}
+    from app.models.activity_log import ActivityLog
+
+    rows = (
+        await db.execute(
+            select(ActivityLog.opportunity_id, func.max(ActivityLog.created_at))
+            .where(ActivityLog.opportunity_id.in_(opp_ids))
+            .group_by(ActivityLog.opportunity_id)
+        )
+    ).all()
+    return {int(r[0]): r[1] for r in rows}
+
+
+def _opp_to_dict(
+    opp: Opportunity,
+    include_quotes: bool = False,
+    last_activity_at: datetime | None = None,
+) -> dict:
+    rotting_days = _opportunity_staleness_days(opp, last_activity_at)
 
     data = {
         "id": opp.id,
@@ -159,8 +196,14 @@ async def list_opportunities(
     result = await db.execute(query)
     opps = result.scalars().unique().all()
 
+    opp_ids = [int(o.id) for o in opps]
+    last_by_opp = await _last_activity_max_by_opportunity_ids(db, opp_ids)
+
     return {
-        "items": [_opp_to_dict(o) for o in opps],
+        "items": [
+            _opp_to_dict(o, last_activity_at=last_by_opp.get(int(o.id)))
+            for o in opps
+        ],
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -223,10 +266,12 @@ async def pipeline_inspection(
             )
         ).scalar() or 0
 
+        staleness_ts = _board_staleness_timestamp()
         stale_count = (
             await db.execute(
                 select(func.count(Opportunity.id)).where(
-                    combined, Opportunity.updated_at < stale_cutoff,
+                    combined,
+                    staleness_ts < stale_cutoff,
                 )
             )
         ).scalar() or 0
@@ -249,7 +294,7 @@ async def pipeline_inspection(
         pipeline_total += amount_float
 
         # Weighted forecast: amount * stage probability
-        prob = STAGE_PROBABILITY.get(stage_name, 0.0)
+        prob = await _stage_probability(db, stage_name)
         weighted_forecast += amount_float * prob
 
         stages_data.append({
@@ -294,7 +339,12 @@ async def get_opportunity(
     if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
         raise ForbiddenException("Bu firsata erisim yetkiniz yok")
 
-    data = _opp_to_dict(opp, include_quotes=True)
+    last_by_opp = await _last_activity_max_by_opportunity_ids(db, [int(opp.id)])
+    data = _opp_to_dict(
+        opp,
+        include_quotes=True,
+        last_activity_at=last_by_opp.get(int(opp.id)),
+    )
 
     # Computed: open_quotes_count
     open_q = await db.execute(
@@ -306,6 +356,115 @@ async def get_opportunity(
     data["open_quotes_count"] = open_q.scalar() or 0
 
     return data
+
+
+@router.get("/opportunities/{opp_id}/intelligence")
+async def get_opportunity_intelligence(
+    opp_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_v2_board),
+):
+    """Unified intelligence payload for Opportunity Detail + Board (Sprint 1)."""
+    opp = (
+        await db.execute(select(Opportunity).where(Opportunity.id == opp_id))
+    ).scalar_one_or_none()
+    if not opp:
+        raise NotFoundException("Firsat bulunamadi")
+    if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
+        raise ForbiddenException("Bu firsata erisim yetkiniz yok")
+
+    # Deal health (rule-based)
+    from app.services.deal_health_service import DealHealthService
+
+    health_service = DealHealthService(db)
+    health = await health_service.compute_deal_health(opp_id)
+
+    # Predictive close probability (heuristic v1.5)
+    from app.services.predictive_scoring_service import predict_close_probability
+
+    probability = await predict_close_probability(db, opp_id)
+
+    # Signals (opportunity_signals)
+    signals = (
+        await db.execute(
+            select(OpportunitySignal)
+            .where(OpportunitySignal.opportunity_id == opp_id)
+            .order_by(OpportunitySignal.created_at.desc())
+            .limit(50)
+        )
+    ).scalars().all()
+
+    # Tasks (open first)
+    tasks = (
+        await db.execute(
+            select(Task)
+            .where(Task.opportunity_id == opp_id)
+            .order_by(
+                (Task.status == "open").desc(),
+                Task.due_at.asc().nullslast(),
+                Task.created_at.desc(),
+            )
+            .limit(50)
+        )
+    ).scalars().all()
+
+    open_tasks_count = sum(1 for t in tasks if t.status == "open")
+
+    last_by_opp = await _last_activity_max_by_opportunity_ids(db, [int(opp.id)])
+
+    return {
+        "opportunity": _opp_to_dict(
+            opp,
+            include_quotes=True,
+            last_activity_at=last_by_opp.get(int(opp.id)),
+        ),
+        "health": {
+            "opportunity_id": health.opportunity_id,
+            "score": health.score,
+            "risk_level": health.risk_level,
+            "indicators": [
+                {
+                    "name": i.name,
+                    "label": i.label,
+                    "score": i.score,
+                    "weight": i.weight,
+                    "raw_value": i.raw_value,
+                    "description": i.description,
+                }
+                for i in (health.indicators or [])
+            ],
+            "recommendations": health.recommendations,
+        } if health else None,
+        "probability": probability,
+        "signals": [
+            {
+                "id": s.id,
+                "signal_type": s.signal_type,
+                "severity": s.severity,
+                "evidence": s.evidence,
+                "source_type": s.source_type,
+                "source_id": s.source_id,
+                "is_resolved": s.is_resolved,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in signals
+        ],
+        "tasks": [
+            {
+                "id": t.id,
+                "title": t.title,
+                "description": t.description,
+                "due_at": t.due_at.isoformat() if t.due_at else None,
+                "status": t.status,
+                "source": t.source,
+                "priority": t.priority,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+            }
+            for t in tasks
+        ],
+        "open_tasks_count": open_tasks_count,
+    }
 
 
 @router.get("/opportunities/{opp_id}/stage-requirements")
@@ -370,7 +529,8 @@ async def create_opportunity(
         "amount": body.amount, "owner_id": current_user.id,
     })
 
-    return _opp_to_dict(opp)
+    last_by_opp = await _last_activity_max_by_opportunity_ids(db, [int(opp.id)])
+    return _opp_to_dict(opp, last_activity_at=last_by_opp.get(int(opp.id)))
 
 
 @router.patch("/opportunities/{opp_id}")
@@ -423,9 +583,7 @@ async def update_opportunity(
 
     # Auto-set probability on stage change
     if "stage" in updates and updates["stage"] != old_stage:
-        new_probability = STAGE_PROBABILITY.get(updates["stage"])
-        if new_probability is not None:
-            opp.probability = new_probability
+        opp.probability = await _stage_probability(db, updates["stage"])
 
     # Stage change event
     if "stage" in updates and updates["stage"] != old_stage:
@@ -452,7 +610,8 @@ async def update_opportunity(
 
     await log_action(db, user_id=current_user.id, action="update", entity_type="opportunity", entity_id=opp.id)
 
-    response = _opp_to_dict(opp)
+    last_by_opp = await _last_activity_max_by_opportunity_ids(db, [int(opp.id)])
+    response = _opp_to_dict(opp, last_activity_at=last_by_opp.get(int(opp.id)))
     if stage_warnings:
         response["stage_warnings"] = stage_warnings
     return response
@@ -491,9 +650,7 @@ async def bulk_action_opportunities(
             raise BadRequestException("Yeni asama belirtilmelidir")
         for opp in opps:
             opp.stage = new_stage
-            new_prob = STAGE_PROBABILITY.get(new_stage)
-            if new_prob is not None:
-                opp.probability = new_prob
+            opp.probability = await _stage_probability(db, new_stage)
         await db.flush()
         return {"message": f"{len(opps)} firsat asamasi guncellendi", "affected_count": len(opps)}
 
@@ -510,7 +667,7 @@ async def bulk_action_opportunities(
         for opp in opps:
             opp.stage = "closed_won"
             opp.status = "closed"
-            opp.probability = STAGE_PROBABILITY.get("closed_won", 1.0)
+            opp.probability = await _stage_probability(db, "closed_won")
         await db.flush()
         return {"message": f"{len(opps)} firsat kazanildi olarak isaretlendi", "affected_count": len(opps)}
 
@@ -519,7 +676,7 @@ async def bulk_action_opportunities(
         for opp in opps:
             opp.stage = "closed_lost"
             opp.status = "closed"
-            opp.probability = STAGE_PROBABILITY.get("closed_lost", 0.0)
+            opp.probability = await _stage_probability(db, "closed_lost")
             if loss_reason:
                 opp.loss_reason = loss_reason
         await db.flush()
@@ -534,7 +691,12 @@ async def bulk_action_opportunities(
         return {"message": f"{len(opps)} firsat silindi", "affected_count": len(opps)}
 
     if action == "export":
-        rows = [_opp_to_dict(o) for o in opps]
+        exp_ids = [int(o.id) for o in opps]
+        last_by_opp = await _last_activity_max_by_opportunity_ids(db, exp_ids)
+        rows = [
+            _opp_to_dict(o, last_activity_at=last_by_opp.get(int(o.id)))
+            for o in opps
+        ]
         return {"message": f"{len(rows)} firsat disa aktarildi", "affected_count": len(rows), "data": rows}
 
     raise BadRequestException(f"Bilinmeyen islem: {action}")
@@ -552,7 +714,9 @@ async def get_opportunity_timeline(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v2_board),
 ):
-    """Get chronological timeline events for an opportunity."""
+    """Get chronological timeline: opportunity_events + linked email_requests (S2)."""
+    from app.models.email_request import EmailRequest
+
     # Verify exists + RBAC
     opp = (await db.execute(select(Opportunity).where(Opportunity.id == opp_id))).scalar_one_or_none()
     if not opp:
@@ -564,24 +728,84 @@ async def get_opportunity_timeline(
         select(OpportunityEvent)
         .where(OpportunityEvent.opportunity_id == opp_id)
         .order_by(OpportunityEvent.occurred_at.desc())
-        .limit(limit)
+        .limit(limit * 2),
     )
     events = events_q.scalars().all()
 
-    return {
-        "opportunity_id": opp_id,
-        "events": [
+    covered_email_ids: set[int] = set()
+    for e in events:
+        if e.entity_id is None:
+            continue
+        et = (e.entity_type or "").lower()
+        if et in ("email", "email_request"):
+            covered_email_ids.add(int(e.entity_id))
+
+    emails_q = await db.execute(
+        select(EmailRequest)
+        .where(EmailRequest.opportunity_id == opp_id)
+        .order_by(EmailRequest.created_at.desc())
+        .limit(limit * 2),
+    )
+    linked_emails = emails_q.scalars().all()
+    linked_email_ids = {int(em.id) for em in linked_emails}
+
+    quote_email_id_rows = (
+        await db.execute(
+            select(Quote.email_request_id).where(
+                Quote.opportunity_id == opp_id,
+                Quote.email_request_id.isnot(None),
+            )
+        )
+    ).all()
+    quote_email_ids = [int(r[0]) for r in quote_email_id_rows if r[0] is not None]
+    quote_emails: list[EmailRequest] = []
+    if quote_email_ids:
+        qem = await db.execute(select(EmailRequest).where(EmailRequest.id.in_(quote_email_ids)))
+        quote_emails = list(qem.scalars().all())
+
+    email_by_id: dict[int, EmailRequest] = {em.id: em for em in linked_emails}
+    for em in quote_emails:
+        email_by_id.setdefault(em.id, em)
+
+    SYNTH_ID_BASE = 2_000_000_000
+    rows: list[dict] = [
+        {
+            "id": e.id,
+            "event_type": e.event_type,
+            "entity_type": e.entity_type,
+            "entity_id": e.entity_id,
+            "description": e.description,
+            "occurred_at": e.occurred_at.isoformat() if e.occurred_at else None,
+            "synthetic": False,
+        }
+        for e in events
+    ]
+
+    for em in email_by_id.values():
+        if em.id in covered_email_ids:
+            continue
+        ts = em.received_at or em.created_at
+        via_quote = em.id not in linked_email_ids and em.id in quote_email_ids
+        suffix = " (teklif uzerinden)" if via_quote else ""
+        rows.append(
             {
-                "id": e.id,
-                "event_type": e.event_type,
-                "entity_type": e.entity_type,
-                "entity_id": e.entity_id,
-                "description": e.description,
-                "occurred_at": e.occurred_at.isoformat() if e.occurred_at else None,
+                "id": SYNTH_ID_BASE + int(em.id),
+                "event_type": "email",
+                "entity_type": "email_request",
+                "entity_id": em.id,
+                "description": (
+                    f"E-posta: {em.subject or '(konu yok)'} — {em.from_address}{suffix}"
+                ),
+                "occurred_at": ts.isoformat() if ts else None,
+                "synthetic": True,
+                "via_quote": via_quote,
             }
-            for e in events
-        ],
-    }
+        )
+
+    rows.sort(key=lambda r: r.get("occurred_at") or "", reverse=True)
+    rows = rows[:limit]
+
+    return {"opportunity_id": opp_id, "events": rows}
 
 
 # ══════════════════════════════════════════
@@ -596,6 +820,9 @@ async def get_board_kanban(
     owner_id: int | None = None,
     stages: str | None = None,
     q: str | None = None,
+    customer_id: int | None = None,
+    min_rotting_days: int | None = Query(None, ge=0, le=3650),
+    min_open_tasks: int | None = Query(None, ge=0, le=500),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v2_board),
@@ -611,14 +838,49 @@ async def get_board_kanban(
     elif owner_id is not None:
         conditions.append(Opportunity.owner_id == owner_id)
 
+    if customer_id is not None:
+        conditions.append(Opportunity.customer_id == customer_id)
+
     if q:
         safe_q = q.replace("%", "\\%").replace("_", "\\_")
         conditions.append(Opportunity.title.ilike(f"%{safe_q}%"))
+
+    staleness_ts = _board_staleness_timestamp()
+
+    dialect = db.bind.dialect.name if db.bind is not None else "postgresql"
+
+    if min_rotting_days is not None:
+        if dialect == "sqlite":
+            # SQLite: avoid mixing func.now() with timezone-aware datetimes (tests use sqlite).
+            now_j = func.julianday("now")
+            st_txt = cast(staleness_ts, String)
+            st_j = case(
+                (st_txt.like("%+%"), func.julianday(func.substr(st_txt, 1, 19), "+00:00")),
+                (st_txt.like("%Z"), func.julianday(func.substr(st_txt, 1, 19), "+00:00")),
+                else_=func.julianday(staleness_ts),
+            )
+            rotting_days_expr = cast(now_j - st_j, Integer)
+        else:
+            rotting_days_expr = func.coalesce(
+                func.floor(func.extract("epoch", func.now() - staleness_ts) / 86400.0),
+                0,
+            )
+        conditions.append(rotting_days_expr >= min_rotting_days)
 
     columns = []
     for stage in requested_stages:
         stage_conds = conditions + [Opportunity.stage == stage]
         combined = and_(*stage_conds)
+
+        if min_open_tasks is not None:
+            open_tasks_cnt = (
+                select(func.count(Task.id))
+                .where(Task.opportunity_id == Opportunity.id, Task.status == "open")
+                .scalar_subquery()
+            )
+            combined = and_(combined, open_tasks_cnt >= min_open_tasks)
+
+        base_stmt = select(Opportunity).where(combined)
 
         count = (await db.execute(select(func.count(Opportunity.id)).where(combined))).scalar() or 0
         total_amount = (await db.execute(
@@ -626,15 +888,44 @@ async def get_board_kanban(
         )).scalar() or 0
 
         items_q = await db.execute(
-            select(Opportunity).where(combined).order_by(Opportunity.updated_at.desc()).limit(50)
+            base_stmt.order_by(Opportunity.updated_at.desc()).limit(50)
         )
         items = items_q.scalars().unique().all()
+        item_ids = [o.id for o in items]
+
+        # Batch: last activity + open task counts for board badges
+        last_activity_map: dict[int, datetime | None] = {}
+        open_tasks_map: dict[int, int] = {}
+        if item_ids:
+            last_activity_map = await _last_activity_max_by_opportunity_ids(
+                db, [int(i) for i in item_ids]
+            )
+
+            task_rows = (
+                await db.execute(
+                    select(Task.opportunity_id, func.count(Task.id))
+                    .where(
+                        Task.opportunity_id.in_(item_ids),
+                        Task.status == "open",
+                    )
+                    .group_by(Task.opportunity_id)
+                )
+            ).all()
+            open_tasks_map = {int(row[0]): int(row[1]) for row in task_rows}
+
+        item_payloads: list[dict] = []
+        for o in items:
+            la = last_activity_map.get(int(o.id))
+            row = _opp_to_dict(o, last_activity_at=la)
+            row["last_activity_at"] = la.isoformat() if la is not None else None
+            row["open_tasks_count"] = open_tasks_map.get(int(o.id), 0)
+            item_payloads.append(row)
 
         columns.append({
             "stage": stage,
             "count": count,
             "total_amount": round(float(total_amount), 2),
-            "items": [_opp_to_dict(o) for o in items],
+            "items": item_payloads,
         })
 
     return {"columns": columns}
@@ -757,11 +1048,12 @@ async def get_board_summary(
     )).scalar() or 0
     win_rate = round(won_count / total_closed * 100, 1) if total_closed > 0 else 0
 
-    # Rotting (no update > 7 days)
+    # Rotting: no last activity (else last update) for > 7 days — same staleness as /board/kanban
     rotting_threshold = now - timedelta(days=7)
+    staleness_ts = _board_staleness_timestamp()
     rotting_count = (await db.execute(
         select(func.count(Opportunity.id)).where(
-            and_(Opportunity.status == "active", Opportunity.updated_at < rotting_threshold)
+            and_(Opportunity.status == "active", staleness_ts < rotting_threshold)
         )
     )).scalar() or 0
 

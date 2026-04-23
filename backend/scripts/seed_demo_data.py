@@ -177,42 +177,121 @@ async def seed():
 
         # ── OPPORTUNITIES ──
         logger.info("Creating opportunities...")
-        opp_data = [
-            ("Anadolu Endustri - HVAC Yenileme", "proposal", 125000, customers[0].id, rep_id),
-            ("Ege Mekatronik - PLC Upgrade", "negotiation", 85000, customers[1].id, rep_id),
-            ("Karadeniz Oto - Sensor Paketi", "qualified", 42000, customers[2].id, rep_id),
-            ("Marmara HVAC - Yillik Bakim", "prospecting", 200000, customers[4].id, admin_id),
-            ("GAP Muhendislik - Proses Otomasyon", "closed_won", 350000, customers[7].id, admin_id),
+        # 20 opportunities with mixed stages + some won/lost samples
+        opp_templates = [
+            "HVAC Yenileme",
+            "PLC Upgrade",
+            "Sensor Paketi",
+            "Yillik Bakim",
+            "Proses Otomasyon",
+            "Filtrasyon Hatti",
+            "DCS Modernizasyon",
+            "Saha Servis Kontrati",
+            "Enerji Optimizasyon",
+            "Gaz Analizor Bakimi",
         ]
+        stage_pool = (
+            ["prospecting"] * 4
+            + ["qualified"] * 5
+            + ["proposal"] * 5
+            + ["negotiation"] * 4
+            + ["closed_won"] * 1
+            + ["closed_lost"] * 1
+        )
         opps = []
-        for title, stage, amount, cust_id, owner_id in opp_data:
+        for i in range(20):
+            cust = random.choice(customers)
+            stage = stage_pool[i % len(stage_pool)]
+            owner_id = rep_id if i % 3 != 0 else admin_id
+            amount = random.choice([18000, 42000, 85000, 125000, 200000, 350000, 520000])
+            title = f"{cust.company} - {random.choice(opp_templates)}"
             o = Opportunity(
-                title=title, stage=stage, amount=amount, currency="TRY",
-                customer_id=cust_id, owner_id=owner_id,
+                title=title,
+                stage=stage,
+                amount=amount,
+                currency="TRY",
+                customer_id=cust.id,
+                owner_id=owner_id,
                 close_date=(now + timedelta(days=random.randint(7, 90))).date(),
                 forecast_category=random.choice(["pipeline", "best_case", "commit"]),
             )
+            if stage in ("closed_won", "closed_lost"):
+                o.status = "closed"
             db.add(o)
             opps.append(o)
         await db.flush()
 
-        # Opportunity events
+        # Opportunity events (timeline-rich)
         for o in opps:
-            db.add(OpportunityEvent(
-                opportunity_id=o.id, event_type="stage_change",
-                description=f"Firsat olusturuldu: {o.stage}",
-            ))
+            db.add(
+                OpportunityEvent(
+                    opportunity_id=o.id,
+                    event_type="stage_change",
+                    description=f"Firsat olusturuldu: {o.stage}",
+                )
+            )
+            db.add(
+                OpportunityEvent(
+                    opportunity_id=o.id,
+                    event_type="note",
+                    description=random.choice(
+                        [
+                            "Musteri fiyat hassasiyeti belirtti.",
+                            "Teknik sartname bekleniyor.",
+                            "Rakip X firmasi devrede.",
+                            "Toplanti sonrasi aksiyonlar belirlendi.",
+                        ]
+                    ),
+                )
+            )
         await db.flush()
 
         # Signals
-        for o in opps[:3]:
-            db.add(OpportunitySignal(
-                opportunity_id=o.id,
-                signal_type=random.choice(["pricing_concern", "no_touch", "positive"]),
-                severity=random.choice(["low", "med", "high"]),
-                evidence="Demo sinyal verisi",
-                source_type="ai",
-            ))
+        signal_types = [
+            "pricing_concern",
+            "competitor",
+            "objection",
+            "no_touch",
+            "discount_risk",
+            "sla_breach",
+            "positive",
+        ]
+        for o in opps:
+            for _ in range(random.randint(0, 3)):
+                db.add(
+                    OpportunitySignal(
+                        opportunity_id=o.id,
+                        signal_type=random.choice(signal_types),
+                        severity=random.choice(["low", "med", "high"]),
+                        evidence="Demo sinyal verisi",
+                        source_type=random.choice(["ai", "email", "quote"]),
+                        is_resolved=random.choice([False, False, True]),
+                    )
+                )
+        await db.flush()
+
+        # Tasks
+        for o in opps:
+            for _ in range(random.randint(1, 3)):
+                db.add(
+                    Task(
+                        owner_id=o.owner_id,
+                        opportunity_id=o.id,
+                        title=random.choice(
+                            [
+                                "Musteri ile follow-up aramasi",
+                                "Teklif revizyonu hazirla",
+                                "Rakip karsilastirma notu",
+                                "Teknik demo planla",
+                            ]
+                        ),
+                        description="Demo task",
+                        due_at=(datetime.now(timezone.utc) + timedelta(days=random.randint(1, 14))),
+                        status=random.choice(["open", "open", "done"]),
+                        source=random.choice(["manual", "rule", "ai"]),
+                        priority=random.choice(["low", "normal", "high"]),
+                    )
+                )
         await db.flush()
         logger.info("Created %d opportunities with events and signals", len(opps))
 
