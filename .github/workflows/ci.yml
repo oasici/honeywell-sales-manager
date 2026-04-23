@@ -7,8 +7,41 @@ on:
     branches: [main]
 
 jobs:
+  backend-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: honeywell_sales
+          POSTGRES_USER: honeywell
+          POSTGRES_PASSWORD: honeywell
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U honeywell"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Alembic upgrade + schema audit (Postgres)
+        env:
+          DATABASE_URL: postgresql+asyncpg://honeywell:honeywell@127.0.0.1:5432/honeywell_sales
+        run: |
+          cd backend
+          python -m alembic upgrade head
+          cd ..
+          bash scripts/db-schema-audit.sh
+
   backend-test:
     runs-on: ubuntu-latest
+    needs: [backend-migrations]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -49,9 +82,27 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+  frontend-e2e-smoke:
+    runs-on: ubuntu-latest
+    needs: [frontend-build, backend-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps
+      - name: Run Playwright smoke (skips if creds missing)
+        working-directory: frontend
+        run: npx playwright test e2e/full-smoke-ui.spec.ts --reporter=line
+
   docker-build:
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-build]
+    needs: [backend-test, frontend-build, frontend-e2e-smoke]
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker images
