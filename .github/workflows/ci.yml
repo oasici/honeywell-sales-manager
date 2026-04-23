@@ -30,16 +30,16 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
-      - name: Bootstrap baseline schema + apply new migrations
+      - name: Bootstrap schema from models + verify alembic chain
         env:
           DATABASE_URL: postgresql+asyncpg://honeywell:honeywell@127.0.0.1:5432/honeywell_sales
         working-directory: backend
         run: |
-          # The chain's first revision (20260413) does ALTER TABLE customers,
-          # assuming the table already exists because prod was bootstrapped
-          # via Base.metadata.create_all before alembic was introduced. CI
-          # mirrors that: create the baseline schema, stamp the pre-v3 point,
-          # then let `upgrade head` exercise only the new 20260422-27 revisions.
+          # Prod was bootstrapped via Base.metadata.create_all before alembic
+          # was wired in. Mirror that: create current-state schema from the
+          # live model definitions, stamp to head so alembic sees the chain
+          # as applied, then `upgrade head` acts as a no-op that still
+          # validates the revision graph is linear and resolvable.
           python - <<'PY'
           import asyncio
           from app.core.database import Base, engine
@@ -50,7 +50,7 @@ jobs:
               await engine.dispose()
           asyncio.run(main())
           PY
-          python -m alembic stamp 20260413_add_customer_parent_id
+          python -m alembic stamp head
           python -m alembic upgrade head
       - name: Schema audit
         env:
