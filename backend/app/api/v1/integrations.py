@@ -215,14 +215,19 @@ async def get_calendar_status(
     """Check calendar integration status."""
     provider = (await db.execute(select(Setting).where(Setting.key == "calendar_provider"))).scalar_one_or_none()
     if not provider or not provider.value:
-        return {"connected": False, "provider": None}
+        return {"connected": False, "provider": None, "status": "not_configured", "token_present": False, "last_sync_at": None}
 
     config_key = f"calendar_{provider.value}_config"
     config = (await db.execute(select(Setting).where(Setting.key == config_key))).scalar_one_or_none()
+    token_setting = (await db.execute(select(Setting).where(Setting.key == "calendar_access_token"))).scalar_one_or_none()
+    last_sync = (await db.execute(select(Setting).where(Setting.key == "calendar_last_sync_at"))).scalar_one_or_none()
 
     return {
         "connected": bool(config and config.value),
         "provider": provider.value,
+        "status": "connected" if (config and config.value) else "configured",
+        "token_present": bool(token_setting and token_setting.value),
+        "last_sync_at": last_sync.value if (last_sync and last_sync.value) else None,
     }
 
 
@@ -309,6 +314,14 @@ async def sync_calendar(
             synced += 1
 
         await db.flush()
+        # Track last successful sync
+        last_sync_setting = (await db.execute(select(Setting).where(Setting.key == "calendar_last_sync_at"))).scalar_one_or_none()
+        ts = now.isoformat()
+        if last_sync_setting:
+            last_sync_setting.value = ts
+        else:
+            db.add(Setting(key="calendar_last_sync_at", value=ts))
+        await db.flush()
         return {
             "message": f"{provider.value} takvim senkronizasyonu tamamlandi",
             "synced_count": synced,
@@ -321,6 +334,31 @@ async def sync_calendar(
             "synced_count": 0,
             "status": "error",
         }
+
+
+@router.get("/calendar/health")
+async def calendar_health(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Health check for calendar integration (safe, read-only)."""
+    provider = (await db.execute(select(Setting).where(Setting.key == "calendar_provider"))).scalar_one_or_none()
+    token = (await db.execute(select(Setting).where(Setting.key == "calendar_access_token"))).scalar_one_or_none()
+    if not provider or not provider.value:
+        return {"ok": False, "status": "not_configured", "provider": None}
+    if not token or not token.value:
+        return {"ok": False, "status": "token_missing", "provider": provider.value}
+
+    try:
+        from datetime import datetime, timedelta, timezone
+        from app.services.calendar_service import CalendarService
+
+        cal = CalendarService(access_token=token.value, provider=provider.value)
+        now = datetime.now(timezone.utc)
+        _ = await cal.list_events(start=now - timedelta(days=1), end=now + timedelta(days=1))
+        return {"ok": True, "status": "ok", "provider": provider.value}
+    except Exception as exc:
+        return {"ok": False, "status": "error", "provider": provider.value, "error": str(exc)[:200]}
 
 
 class CalendarCreateEventRequest(BaseModel):

@@ -1009,11 +1009,21 @@ export interface BreachNotification {
 export interface CalendarStatus {
   connected: boolean;
   provider: string | null;
+  status?: string;
+  token_present?: boolean;
+  last_sync_at?: string | null;
 }
 
 export interface EsignStatus {
   connected: boolean;
   provider: string | null;
+}
+
+export interface CalendarHealth {
+  ok: boolean;
+  status: string;
+  provider: string | null;
+  error?: string;
 }
 
 // ── Custom Fields ───────────────────────────────────

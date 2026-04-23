@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,6 +23,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Modal } from '../../components/ui/Modal';
 import type { Territory, TerritoryAssignment, User } from '../../lib/types';
+import { formatCurrency } from '../../lib/formatters';
 
 // ── Schemas ──────────────────────────────────────────
 
@@ -422,6 +424,7 @@ interface DetailPanelProps {
 
 function DetailPanel({ territory, users }: DetailPanelProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [ruleEditorOpen, setRuleEditorOpen] = useState(false);
 
@@ -443,6 +446,24 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
   });
 
   const assignments = detail?.assignments ?? [];
+
+  const { data: metrics } = useQuery<{
+    territory_id: number;
+    customer_count: number;
+    opportunity_count: number;
+    active_pipeline_total: number;
+    currency: string;
+  }>({
+    queryKey: ['territory-metrics', territory.id],
+    queryFn: () => territoriesApi.getMetrics(territory.id),
+  });
+
+  const { data: oppsData } = useQuery<{ items: Array<Record<string, unknown>>; total: number }>({
+    queryKey: ['territory-opps', territory.id],
+    queryFn: () => territoriesApi.listOpportunities(territory.id, { limit: 20, offset: 0 }),
+  });
+
+  const opps = useMemo(() => oppsData?.items ?? [], [oppsData]);
 
   const roleLabel = (role: string) => ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role;
 
@@ -471,6 +492,73 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
         )}
         {territory.description && (
           <p className="text-xs text-gray-600 dark:text-gray-400">{territory.description}</p>
+        )}
+      </div>
+
+      {/* Metrics */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+            Müşteri
+          </p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+            {metrics ? metrics.customer_count : '—'}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+            Fırsat
+          </p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+            {metrics ? metrics.opportunity_count : '—'}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+            Aktif Pipeline
+          </p>
+          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+            {metrics
+              ? formatCurrency(metrics.active_pipeline_total, metrics.currency || 'TRY')
+              : '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Opportunities drill-down */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-400">
+            Son Güncellenen Fırsatlar
+          </h4>
+          <span className="text-xs text-gray-500">{oppsData?.total ?? opps.length}</span>
+        </div>
+        {opps.length === 0 ? (
+          <p className="text-xs text-gray-500 py-3 text-center">Bu bölgede fırsat bulunamadı</p>
+        ) : (
+          <div className="space-y-2">
+            {opps.slice(0, 8).map((o) => (
+              <button
+                key={String(o.id)}
+                type="button"
+                onClick={() => navigate(`/opportunities/${String(o.id)}`)}
+                className="flex w-full items-start justify-between rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                    {String(o.title ?? '')}
+                  </p>
+                  <p className="text-[10px] text-gray-500">
+                    {String(o.stage ?? '-')}{' '}
+                    {o.amount != null
+                      ? `• ${formatCurrency(Number(o.amount), String(o.currency || 'TRY'))}`
+                      : ''}
+                  </p>
+                </div>
+                <ChevronRight size={14} className="shrink-0 text-gray-400 mt-0.5" />
+              </button>
+            ))}
+          </div>
         )}
       </div>
 

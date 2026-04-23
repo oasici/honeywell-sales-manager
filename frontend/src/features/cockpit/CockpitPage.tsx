@@ -77,7 +77,7 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
       },
       {
         label: t('cockpit.kpi_win_rate'),
-        value: `%${(data.win_rate * 100).toFixed(1)}`,
+        value: `%${data.win_rate.toFixed(1)}`,
         icon: <CheckCircle2 size={18} className="text-green-500" />,
       },
       {

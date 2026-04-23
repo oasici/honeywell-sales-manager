@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { integrationsApi } from '../../lib/api';
 
-import type { CalendarStatus, EsignStatus } from '../../lib/types';
+import type { CalendarHealth, CalendarStatus, EsignStatus } from '../../lib/types';
 
 export default function IntegrationsPage() {
   const queryClient = useQueryClient();
@@ -16,6 +16,11 @@ export default function IntegrationsPage() {
   const calendarQuery = useQuery<CalendarStatus>({
     queryKey: ['integrations', 'calendar'],
     queryFn: () => integrationsApi.getCalendarStatus(),
+  });
+
+  const calendarHealthQuery = useQuery<CalendarHealth>({
+    queryKey: ['integrations', 'calendar', 'health'],
+    queryFn: () => integrationsApi.getCalendarHealth(),
   });
 
   const esignQuery = useQuery<EsignStatus>({
@@ -48,16 +53,14 @@ export default function IntegrationsPage() {
   });
 
   const calendar = calendarQuery.data;
+  const calendarHealth = calendarHealthQuery.data;
   const esign = esignQuery.data;
   const isCalendarConnected = calendar?.connected ?? false;
   const isEsignConnected = esign?.connected ?? false;
 
   return (
     <div>
-      <PageHeader
-        title="Entegrasyonlar"
-        description="Harici servis entegrasyonlarini yonetin"
-      />
+      <PageHeader title="Entegrasyonlar" description="Harici servis entegrasyonlarini yonetin" />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Calendar integration */}
@@ -77,6 +80,45 @@ export default function IntegrationsPage() {
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium text-gray-700">Saglayici:</span>
                   <span className="text-sm text-gray-900">{calendar.provider}</span>
+                </div>
+              )}
+
+              {!isCalendarConnected && calendar?.provider && (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-gray-700">
+                    <span className="font-medium">Yapılandırma:</span>{' '}
+                    <span className="text-gray-900">{calendar.status || 'configured'}</span>
+                  </div>
+                  <Badge variant={calendar.token_present ? 'success' : 'warning'}>
+                    {calendar.token_present ? 'Token var' : 'Token yok'}
+                  </Badge>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm text-gray-700">
+                  <span className="font-medium">Health:</span>{' '}
+                  <span className="text-gray-900">
+                    {calendarHealthQuery.isLoading
+                      ? 'kontrol ediliyor...'
+                      : calendarHealth?.ok
+                        ? 'OK'
+                        : calendarHealth?.status || 'unknown'}
+                  </span>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => calendarHealthQuery.refetch()}
+                  disabled={calendarHealthQuery.isFetching}
+                >
+                  Yeniden Kontrol
+                </Button>
+              </div>
+
+              {calendar?.last_sync_at && (
+                <div className="text-sm text-gray-700">
+                  <span className="font-medium">Son sync:</span>{' '}
+                  <span className="text-gray-900">{calendar.last_sync_at}</span>
                 </div>
               )}
 

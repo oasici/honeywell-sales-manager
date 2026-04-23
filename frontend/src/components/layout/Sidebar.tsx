@@ -183,6 +183,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               <Kanban size={18} className="shrink-0" />
               {t('nav.board')}
             </NavLink>
+            <NavLink to="/opportunities" className={navLinkClass} onClick={onNavigate}>
+              <Layers size={18} className="shrink-0" />
+              {t('nav.opportunities')}
+            </NavLink>
             <NavLink to="/planning-studio" className={navLinkClass} onClick={onNavigate}>
               <ListFilter size={18} className="shrink-0" />
               {t('nav.planning_studio')}

@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -16,6 +16,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.customer import Customer
 from app.models.enums import UserRole
+from app.models.opportunity import Opportunity
 from app.models.territory import Territory, TerritoryAssignment
 from app.models.user import User
 
@@ -221,6 +222,96 @@ async def get_territory(
     return {
         "territory": _serialize_territory(territory),
         "assignments": assignments,
+    }
+
+
+@router.get("/{territory_id}/metrics")
+async def get_territory_metrics(
+    territory_id: int,
+    _: None = Depends(_require_territories),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lightweight territory KPIs for management screens."""
+    terr = (
+        await db.execute(select(Territory.id).where(Territory.id == territory_id))
+    ).scalar_one_or_none()
+    if terr is None:
+        raise NotFoundException("Territory not found")
+
+    cust_count = (
+        await db.execute(
+            select(func.count(Customer.id)).where(Customer.territory_id == territory_id)
+        )
+    ).scalar() or 0
+    opp_count = (
+        await db.execute(
+            select(func.count(Opportunity.id)).where(Opportunity.territory_id == territory_id)
+        )
+    ).scalar() or 0
+    pipeline_total = (
+        await db.execute(
+            select(func.coalesce(func.sum(Opportunity.amount), 0)).where(
+                Opportunity.territory_id == territory_id,
+                Opportunity.status == "active",
+            )
+        )
+    ).scalar() or 0
+
+    return {
+        "territory_id": territory_id,
+        "customer_count": int(cust_count),
+        "opportunity_count": int(opp_count),
+        "active_pipeline_total": float(pipeline_total),
+        "currency": "TRY",
+    }
+
+
+@router.get("/{territory_id}/opportunities")
+async def list_territory_opportunities(
+    territory_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    _: None = Depends(_require_territories),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List opportunities belonging to a territory (for drill-down)."""
+    terr = (
+        await db.execute(select(Territory.id).where(Territory.id == territory_id))
+    ).scalar_one_or_none()
+    if terr is None:
+        raise NotFoundException("Territory not found")
+
+    q = (
+        select(Opportunity)
+        .where(Opportunity.territory_id == territory_id)
+        .order_by(Opportunity.updated_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    total = (
+        await db.execute(
+            select(func.count(Opportunity.id)).where(Opportunity.territory_id == territory_id)
+        )
+    ).scalar() or 0
+    rows = (await db.execute(q)).scalars().all()
+    return {
+        "items": [
+            {
+                "id": o.id,
+                "title": o.title,
+                "stage": o.stage,
+                "amount": o.amount,
+                "currency": o.currency,
+                "status": o.status,
+                "owner_id": o.owner_id,
+                "customer_id": o.customer_id,
+                "updated_at": o.updated_at.isoformat() if o.updated_at else None,
+            }
+            for o in rows
+        ],
+        "total": int(total),
     }
 
 

@@ -172,90 +172,95 @@ async def get_competitor_dashboard(db: AsyncSession, days: int = 90) -> dict:
     """
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
-    # Mentions by competitor with sentiment stats
-    by_competitor_result = await db.execute(
-        select(
-            CompetitorMention.competitor_name,
-            func.count(CompetitorMention.id).label("mention_count"),
-        )
-        .where(CompetitorMention.created_at >= cutoff)
-        .group_by(CompetitorMention.competitor_name)
-        .order_by(func.count(CompetitorMention.id).desc())
-    )
-    competitor_names = [
-        {"name": row[0], "mention_count": row[1]}
-        for row in by_competitor_result.all()
-    ]
-
-    # Sentiment breakdown per competitor
-    sentiment_result = await db.execute(
-        select(
-            CompetitorMention.competitor_name,
-            CompetitorMention.sentiment,
-            func.count(CompetitorMention.id).label("count"),
-        )
-        .where(CompetitorMention.created_at >= cutoff)
-        .group_by(CompetitorMention.competitor_name, CompetitorMention.sentiment)
-    )
-    sentiment_map: dict[str, dict[str, int]] = {}
-    for row in sentiment_result.all():
-        comp = row[0]
-        sent = row[1] or "neutral"
-        cnt = row[2]
-        if comp not in sentiment_map:
-            sentiment_map[comp] = {"positive": 0, "neutral": 0, "negative": 0}
-        sentiment_map[comp][sent] = cnt
-
-    # Recent mentions per competitor (latest 5)
-    recent_map: dict[str, list[dict]] = {}
-    for comp_data in competitor_names:
-        comp_name = comp_data["name"]
-        recent_result = await db.execute(
-            select(CompetitorMention)
-            .where(
-                CompetitorMention.competitor_name == comp_name,
-                CompetitorMention.created_at >= cutoff,
+    # NOTE: In some deployments this table may not exist yet (partial migrations,
+    # read-only replicas, etc.). The cockpit should degrade gracefully.
+    try:
+        # Mentions by competitor with sentiment stats
+        by_competitor_result = await db.execute(
+            select(
+                CompetitorMention.competitor_name,
+                func.count(CompetitorMention.id).label("mention_count"),
             )
-            .order_by(CompetitorMention.created_at.desc())
-            .limit(5)
+            .where(CompetitorMention.created_at >= cutoff)
+            .group_by(CompetitorMention.competitor_name)
+            .order_by(func.count(CompetitorMention.id).desc())
         )
-        recent_map[comp_name] = [
-            {
-                "source_type": m.source_entity_type,
-                "context_snippet": m.context_snippet or "",
-                "created_at": m.created_at.isoformat() if m.created_at else None,
-            }
-            for m in recent_result.scalars().all()
+        competitor_names = [
+            {"name": row[0], "mention_count": row[1]} for row in by_competitor_result.all()
         ]
 
-    # Build response matching frontend CompetitiveIntelData
-    SENTIMENT_SCORES = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}
-    competitors = []
-    for comp_data in competitor_names:
-        name = comp_data["name"]
-        sentiments = sentiment_map.get(name, {"positive": 0, "neutral": 0, "negative": 0})
-        total_sent = sum(sentiments.values()) or 1
-        sentiment_avg = sum(
-            SENTIMENT_SCORES.get(k, 0) * v for k, v in sentiments.items()
-        ) / total_sent
-
-        competitors.append({
-            "name": name,
-            "mention_count": comp_data["mention_count"],
-            "sentiment_avg": round(sentiment_avg, 2),
-            "recent_mentions": recent_map.get(name, []),
-        })
-
-    # Total mentions
-    total = (
-        await db.execute(
-            select(func.count(CompetitorMention.id)).where(
-                CompetitorMention.created_at >= cutoff
+        # Sentiment breakdown per competitor
+        sentiment_result = await db.execute(
+            select(
+                CompetitorMention.competitor_name,
+                CompetitorMention.sentiment,
+                func.count(CompetitorMention.id).label("count"),
             )
+            .where(CompetitorMention.created_at >= cutoff)
+            .group_by(CompetitorMention.competitor_name, CompetitorMention.sentiment)
         )
-    ).scalar() or 0
+        sentiment_map: dict[str, dict[str, int]] = {}
+        for row in sentiment_result.all():
+            comp = row[0]
+            sent = row[1] or "neutral"
+            cnt = row[2]
+            if comp not in sentiment_map:
+                sentiment_map[comp] = {"positive": 0, "neutral": 0, "negative": 0}
+            sentiment_map[comp][sent] = cnt
 
-    return {
-        "competitors": competitors,
-        "total_mentions": total,
-    }
+        # Recent mentions per competitor (latest 5)
+        recent_map: dict[str, list[dict]] = {}
+        for comp_data in competitor_names:
+            comp_name = comp_data["name"]
+            recent_result = await db.execute(
+                select(CompetitorMention)
+                .where(
+                    CompetitorMention.competitor_name == comp_name,
+                    CompetitorMention.created_at >= cutoff,
+                )
+                .order_by(CompetitorMention.created_at.desc())
+                .limit(5)
+            )
+            recent_map[comp_name] = [
+                {
+                    "source_type": m.source_entity_type,
+                    "context_snippet": m.context_snippet or "",
+                    "created_at": m.created_at.isoformat() if m.created_at else None,
+                }
+                for m in recent_result.scalars().all()
+            ]
+
+        # Build response matching frontend CompetitiveIntelData
+        SENTIMENT_SCORES = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}
+        competitors = []
+        for comp_data in competitor_names:
+            name = comp_data["name"]
+            sentiments = sentiment_map.get(name, {"positive": 0, "neutral": 0, "negative": 0})
+            total_sent = sum(sentiments.values()) or 1
+            sentiment_avg = (
+                sum(SENTIMENT_SCORES.get(k, 0) * v for k, v in sentiments.items())
+                / total_sent
+            )
+
+            competitors.append(
+                {
+                    "name": name,
+                    "mention_count": comp_data["mention_count"],
+                    "sentiment_avg": round(sentiment_avg, 2),
+                    "recent_mentions": recent_map.get(name, []),
+                }
+            )
+
+        # Total mentions
+        total = (
+            await db.execute(
+                select(func.count(CompetitorMention.id)).where(
+                    CompetitorMention.created_at >= cutoff
+                )
+            )
+        ).scalar() or 0
+
+        return {"competitors": competitors, "total_mentions": total}
+    except Exception as exc:
+        logger.warning("Competitive intel dashboard unavailable: %s", exc)
+        return {"competitors": [], "total_mentions": 0}

@@ -28,6 +28,7 @@ const PlanningStudioPage = lazy(() => import('../features/planning/PlanningStudi
 const OpportunityDetailPage = lazy(() => import('../features/board/OpportunityDetailPage'));
 const SalesAnalyticsPage = lazy(() => import('../features/board/SalesAnalyticsPage'));
 const DealRoomPage = lazy(() => import('../features/board/DealRoomPage'));
+const OpportunitiesHomePage = lazy(() => import('../features/opportunities/OpportunitiesHomePage'));
 
 // Lead lifecycle (feature-flag controlled at API level)
 const LeadListPage = lazy(() => import('../features/leads/LeadListPage'));
@@ -424,6 +425,16 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <PlanningStudioPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="opportunities"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <OpportunitiesHomePage />
               </ErrorBoundary>
             </Suspense>
           }

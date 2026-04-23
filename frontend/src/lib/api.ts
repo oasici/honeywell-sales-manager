@@ -1546,6 +1546,10 @@ export const integrationsApi = {
     const { data } = await api.get('/integrations/calendar/status');
     return data;
   },
+  getCalendarHealth: async () => {
+    const { data } = await api.get('/integrations/calendar/health');
+    return data;
+  },
   connectCalendar: async (payload: Record<string, unknown>) => {
     const { data } = await api.post('/integrations/calendar/connect', payload);
     return data;
@@ -2124,6 +2128,14 @@ export const territoriesApi = {
   },
   autoAssign: async () => {
     const { data } = await api.post('/territories/auto-assign');
+    return data;
+  },
+  getMetrics: async (territoryId: number) => {
+    const { data } = await api.get(`/territories/${territoryId}/metrics`);
+    return data;
+  },
+  listOpportunities: async (territoryId: number, params?: { limit?: number; offset?: number }) => {
+    const { data } = await api.get(`/territories/${territoryId}/opportunities`, { params });
     return data;
   },
 };
