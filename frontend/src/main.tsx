@@ -4,8 +4,12 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { initSentry } from './lib/sentry';
 import App from './app/App';
 import './index.css';
+
+// Initialize before createRoot so the SDK instruments from first render.
+initSentry();
 
 const queryClient = new QueryClient({
   defaultOptions: {

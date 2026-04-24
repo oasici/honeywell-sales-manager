@@ -126,6 +126,9 @@ class Settings(BaseSettings):
 
     # ── Error Tracking ──
     SENTRY_DSN: str = ""
+    # Random string required to hit /api/debug/sentry-test. Leave empty
+    # in prod once Sentry is verified to disable the endpoint entirely.
+    SENTRY_TEST_TOKEN: str = ""
 
     # ── Google Calendar OAuth ──
     GOOGLE_CLIENT_ID: str = ""

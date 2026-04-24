@@ -48,6 +48,9 @@ cryptography==44.0.0
 python-multipart==0.0.18
 prometheus-client==0.22.0
 
+# Observability
+sentry-sdk[fastapi]==2.18.0
+
 # Vector search
 pgvector==0.3.6
 qdrant-client==1.13.3

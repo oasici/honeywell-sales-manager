@@ -733,3 +733,15 @@ async def health_check():
         "version": "2.0.0",
         "uptime_seconds": round(time.time() - _start_time),
     }
+
+
+@app.get("/api/debug/sentry-test", tags=["debug"])
+async def sentry_test(token: str = ""):
+    """One-shot hook for verifying Sentry event delivery.
+
+    Guarded by a token so it can't be abused as a cheap way to spike the
+    error quota. Expected to be removed once Sentry is confirmed working.
+    """
+    if not settings.SENTRY_DSN or token != settings.SENTRY_TEST_TOKEN:
+        raise HTTPException(status_code=404, detail="Not found")
+    raise RuntimeError("sentry-test — intentional error to verify delivery")

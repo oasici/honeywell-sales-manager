@@ -40,6 +40,9 @@ services:
         value: "false"
       - key: AUTO_SCHEMA_SYNC
         value: "false"
+      # Sentry — backend DSN set manually in Render dashboard (not checked in).
+      - key: SENTRY_DSN
+        sync: false
 
   - type: web
     name: honeywell-frontend
@@ -62,7 +65,7 @@ services:
         value: "camera=(), microphone=(), geolocation=()"
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.onrender.com https://*.ingest.us.sentry.io https://*.ingest.sentry.io https://sentry.io; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
     routes:
       - type: rewrite
         source: /api/*
@@ -76,3 +79,8 @@ services:
       # issues (CORS `*` + withCredentials is rejected by browsers).
       - key: VITE_API_URL
         value: /api/v1
+      # Sentry — frontend DSN set manually in Render dashboard (not checked in).
+      - key: VITE_SENTRY_DSN
+        sync: false
+      - key: VITE_ENV
+        value: production
