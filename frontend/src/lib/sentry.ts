@@ -25,6 +25,10 @@ export function initSentry(): void {
     dsn,
     environment: env,
     release,
+    // Same-origin tunnel — Turkish ISPs + corporate AV + ad blockers all
+    // reset direct *.sentry.io connections. Routing through our backend
+    // keeps the request indistinguishable from any other API call.
+    tunnel: '/api/sentry-tunnel',
     integrations: [
       Sentry.browserTracingIntegration(),
       Sentry.replayIntegration({

@@ -129,6 +129,10 @@ class Settings(BaseSettings):
     # Random string required to hit /api/debug/sentry-test. Leave empty
     # in prod once Sentry is verified to disable the endpoint entirely.
     SENTRY_TEST_TOKEN: str = ""
+    # Comma-separated Sentry project IDs allowed to tunnel through
+    # /api/sentry-tunnel. Prevents our backend from being abused as an
+    # open relay to arbitrary Sentry orgs. Only the frontend project.
+    SENTRY_ALLOWED_PROJECT_IDS: str = ""
 
     # ── Google Calendar OAuth ──
     GOOGLE_CLIENT_ID: str = ""

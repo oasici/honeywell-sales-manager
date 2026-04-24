@@ -43,6 +43,10 @@ services:
       # Sentry — backend DSN set manually in Render dashboard (not checked in).
       - key: SENTRY_DSN
         sync: false
+      # Frontend Sentry project ID(s) authorized to tunnel through
+      # /api/sentry-tunnel. Set to the project ID from VITE_SENTRY_DSN path.
+      - key: SENTRY_ALLOWED_PROJECT_IDS
+        sync: false
 
   - type: web
     name: honeywell-frontend

@@ -438,6 +438,11 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 # ── Routers ──
 app.include_router(v1_router, prefix="/api/v1")
 
+# Sentry tunnel — same-origin relay for browser events so ad blockers
+# and corporate network filters can't drop frontend telemetry.
+from app.api.sentry_tunnel import router as sentry_tunnel_router  # noqa: E402
+app.include_router(sentry_tunnel_router, prefix="/api")
+
 
 @app.post("/api/admin/seed-demo")
 async def seed_demo_data(
