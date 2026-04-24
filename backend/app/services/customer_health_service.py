@@ -91,30 +91,43 @@ class CustomerHealthService:
         Optimized: loads all customers in a single query, then computes
         indicators per customer (still N queries for indicators — full
         batch optimization is a larger refactor tracked separately).
+
+        Resilience: per-customer indicator computation is wrapped so one
+        bad row (missing FK target, unexpected null, mid-migration drift,
+        etc.) cannot take down the whole cockpit. Broken customers are
+        logged and skipped rather than 500'ing the endpoint.
         """
         result = await self._db.execute(select(Customer))
         customers = result.scalars().all()
 
         reports = []
         for customer in customers:
-            indicators = await self._compute_indicators(customer.id)
-            total_weight = sum(i.weight for i in indicators)
-            weighted_sum = sum(i.score * i.weight for i in indicators)
-            raw_score = weighted_sum / total_weight if total_weight > 0 else 0
-            score = max(0, min(100, round(raw_score)))
+            try:
+                indicators = await self._compute_indicators(customer.id)
+                total_weight = sum(i.weight for i in indicators)
+                weighted_sum = sum(i.score * i.weight for i in indicators)
+                raw_score = weighted_sum / total_weight if total_weight > 0 else 0
+                score = max(0, min(100, round(raw_score)))
 
-            risk_level = self._determine_risk_level(score)
-            recommendations = self._generate_recommendations(indicators, risk_level)
+                risk_level = self._determine_risk_level(score)
+                recommendations = self._generate_recommendations(indicators, risk_level)
 
-            reports.append(CustomerHealthReport(
-                customer_id=customer.id,
-                customer_name=customer.name,
-                company=customer.company,
-                score=score,
-                risk_level=risk_level,
-                indicators=indicators,
-                recommendations=recommendations,
-            ))
+                reports.append(CustomerHealthReport(
+                    customer_id=customer.id,
+                    customer_name=customer.name,
+                    company=customer.company,
+                    score=score,
+                    risk_level=risk_level,
+                    indicators=indicators,
+                    recommendations=recommendations,
+                ))
+            except Exception:
+                logger.exception(
+                    "customer_health_compute_failed customer_id=%s", customer.id,
+                )
+                # Skip this customer and keep going. Prevents a single bad row
+                # (missing FK target, unexpected null) from 500'ing /risky-accounts.
+                continue
 
         reports.sort(key=lambda r: r.score)
         return reports
