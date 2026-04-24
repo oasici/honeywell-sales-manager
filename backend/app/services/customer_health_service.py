@@ -37,6 +37,17 @@ class HealthIndicator:
     raw_value: float | str
     description: str
 
+    def __post_init__(self) -> None:
+        # Postgres aggregates (SUM/AVG on NUMERIC columns) return Decimal
+        # via asyncpg. Score downstream is multiplied by `weight: float`,
+        # and Decimal * float raises TypeError. Coerce here so every
+        # compute_* function stays free to pass whatever SQLAlchemy hands
+        # back without each one needing its own cast.
+        if not isinstance(self.score, float):
+            self.score = float(self.score)
+        if not isinstance(self.weight, float):
+            self.weight = float(self.weight)
+
 
 @dataclass
 class CustomerHealthReport:
