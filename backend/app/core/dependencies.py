@@ -60,6 +60,17 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise UnauthorizedException()
 
+    # Bind logging + Sentry context so downstream logs/errors carry user
+    # identity. Kept id-only (no email) to keep Sentry's PII surface minimal.
+    from app.core.logging_config import user_id_var
+    user_id_var.set(user.id)
+    try:
+        import sentry_sdk
+        sentry_sdk.set_user({"id": str(user.id)})
+        sentry_sdk.set_tag("user_role", user.role)
+    except ImportError:
+        pass
+
     return user
 
 

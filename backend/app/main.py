@@ -392,16 +392,52 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-# ── Request ID middleware ──
+# ── Request ID + access log middleware ──
+_access_logger = logging.getLogger("app.access")
+
+
 class RequestIDMiddleware(BaseHTTPMiddleware):
-    """Attach a unique request ID to each request for log correlation."""
+    """Attach a unique request ID to each request + emit structured access log.
+
+    - Accepts inbound X-Request-ID (useful for tracing upstream proxies)
+      or mints a fresh UUID.
+    - Binds request_id as a Sentry tag so issues are searchable by it.
+    - Emits one access log line per request with method/path/status/duration_ms
+      so we can correlate latency + error rate without a full APM.
+    """
 
     async def dispatch(self, request: Request, call_next):
         rid = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         request_id_var.set(rid)
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = rid
-        return response
+
+        # Tag Sentry breadcrumbs/events so the issue UI can be filtered by
+        # request_id and cross-referenced with backend logs.
+        try:
+            import sentry_sdk
+            sentry_sdk.set_tag("request_id", rid)
+        except ImportError:
+            pass
+
+        start = time.perf_counter()
+        status_code = 500
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            response.headers["X-Request-ID"] = rid
+            return response
+        finally:
+            # Skip health probes — they'd 90% of the log volume.
+            if request.url.path not in ("/api/health",):
+                duration_ms = round((time.perf_counter() - start) * 1000, 1)
+                _access_logger.info(
+                    "access",
+                    extra={
+                        "method": request.method,
+                        "path": request.url.path,
+                        "status_code": status_code,
+                        "duration_ms": duration_ms,
+                    },
+                )
 
 
 # ── Middleware (order matters: last added = first executed) ──

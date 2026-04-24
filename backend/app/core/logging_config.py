@@ -19,8 +19,21 @@ SENSITIVE_KEYS = {
 }
 
 
+_STANDARD_LOG_ATTRS: frozenset[str] = frozenset({
+    "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
+    "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
+    "created", "msecs", "relativeCreated", "thread", "threadName",
+    "processName", "process", "message", "asctime", "taskName",
+})
+
+
 class JSONFormatter(logging.Formatter):
-    """Format log records as single-line JSON for structured log aggregation."""
+    """Format log records as single-line JSON for structured log aggregation.
+
+    Anything passed via ``logger.info("x", extra={"key": value})`` is
+    promoted to a top-level field — keeps access logs, task logs, and
+    business events greppable without nested wrappers.
+    """
 
     def format(self, record: logging.LogRecord) -> str:
         log_data: dict = {
@@ -33,6 +46,12 @@ class JSONFormatter(logging.Formatter):
         uid = user_id_var.get(None)
         if uid:
             log_data["user_id"] = uid
+        for key, value in record.__dict__.items():
+            if key in _STANDARD_LOG_ATTRS or key.startswith("_"):
+                continue
+            if key in log_data:
+                continue
+            log_data[key] = value
         if record.exc_info and record.exc_info[0]:
             log_data["exception"] = self.formatException(record.exc_info)
         return json.dumps(log_data, ensure_ascii=False, default=str)
@@ -53,12 +72,17 @@ def mask_sensitive(data: dict) -> dict:
 
 
 def setup_logging(env: str = "development") -> None:
-    """Configure logging based on environment."""
+    """Configure logging based on environment.
+
+    JSON output is used for any non-dev environment (production, sandbox,
+    staging) so log aggregators (Render's built-in search or any downstream
+    pipeline) can parse request_id / user_id without regex gymnastics.
+    """
     root = logging.getLogger()
     root.handlers.clear()
 
     handler = logging.StreamHandler()
-    if env == "production":
+    if env in {"production", "sandbox", "staging"}:
         handler.setFormatter(JSONFormatter())
         root.setLevel(logging.INFO)
     else:
