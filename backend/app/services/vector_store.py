@@ -55,7 +55,12 @@ def _get_embedding_model():
             _embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
             logger.info("Embedding model loaded and cached")
         except ImportError:
-            logger.error("sentence-transformers not installed — RAG unavailable")
+            # Warning, not error: the Docker image intentionally skips
+            # sentence-transformers (it's ~500 MB of CUDA wheels) when
+            # FEATURE_RAG=false. Sentry's LoggingIntegration promotes
+            # ERROR to events; we don't want a Sentry issue every restart
+            # in a configuration that's working as designed.
+            logger.warning("sentence-transformers not installed — RAG unavailable")
             raise RuntimeError("sentence-transformers required for RAG")
     return _embedding_model
 

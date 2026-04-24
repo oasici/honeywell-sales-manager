@@ -32,7 +32,11 @@ def _get_embedding_model():
             _embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
             logger.info("Embedding model loaded and cached (embedding_service)")
         except ImportError:
-            logger.error("sentence-transformers not installed — embeddings unavailable")
+            # Warning, not error: intentional omission in the prod image
+            # when FEATURE_RAG=false. Sentry's LoggingIntegration fires on
+            # logger.error, so a working-as-designed config should stay at
+            # warning level to avoid noisy Sentry issues every deploy.
+            logger.warning("sentence-transformers not installed — embeddings unavailable")
             raise RuntimeError("sentence-transformers required for embeddings")
     return _embedding_model
 
