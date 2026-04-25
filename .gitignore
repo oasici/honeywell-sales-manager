@@ -9,6 +9,14 @@ build/
 venv/
 .venv/
 
+# Test/coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+coverage/
+.pytest_cache/
+
 # Environment — all .env files EXCEPT .env.example
 .env
 .env.*
