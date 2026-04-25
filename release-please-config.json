@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "packages": {
+    ".": {
+      "package-name": "honeywell-sales-suite",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false,
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "draft": false,
+      "prerelease": false
+    }
+  },
+  "changelog-sections": [
+    {"type": "feat", "section": "Added"},
+    {"type": "fix", "section": "Fixed"},
+    {"type": "perf", "section": "Performance"},
+    {"type": "security", "section": "Security"},
+    {"type": "refactor", "section": "Changed", "hidden": false},
+    {"type": "docs", "section": "Documentation", "hidden": false},
+    {"type": "ci", "hidden": true},
+    {"type": "chore", "hidden": true},
+    {"type": "test", "hidden": true},
+    {"type": "build", "hidden": true},
+    {"type": "style", "hidden": true}
+  ]
+}

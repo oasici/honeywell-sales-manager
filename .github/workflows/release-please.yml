@@ -1,0 +1,39 @@
+name: Release Please
+
+# Opens a "release PR" that bumps the version, regenerates the
+# CHANGELOG from conventional commits since the last tag, and tags
+# the merge commit when the PR is squashed in.
+#
+# Triggers on every push to the deploy branch. release-please does
+# nothing when there are no release-eligible commits, so it's safe
+# to fire on every push.
+
+on:
+  push:
+    branches:
+      - deploy/render-sandbox
+      - main
+
+permissions:
+  contents: write       # tag + write CHANGELOG.md
+  pull-requests: write  # open the release PR
+  issues: write         # link issues in PR body
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          # release-please-config.json + .release-please-manifest.json
+          # at repo root configure version + which commit types bump.
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Surface result
+        if: steps.release.outputs.release_created == 'true'
+        run: |
+          echo "::notice::Release ${{ steps.release.outputs.tag_name }} created"
+          echo "Tag: ${{ steps.release.outputs.tag_name }}"
+          echo "PR: ${{ steps.release.outputs.pr }}"
