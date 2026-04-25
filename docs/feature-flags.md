@@ -9,6 +9,10 @@ Auto-generated from inline annotations in `backend/app/core/config.py`. All feat
 | Flag | Default | Section | Depends on |
 |------|---------|---------|------------|
 | `FEATURE_RAG` | `false` | RAG / Vector Search | QDRANT_URL |
+| `FEATURE_V2_BOARD` | `false` | Board & Pipeline | DATABASE_URL |
+| `FEATURE_V4_FEATURE_STORE` | `false` | V4 Intelligence Backbone (Feature Store) | DATABASE_URL |
+| `FEATURE_V4_ADDITIVE_READMODEL` | `false` | V4 additive read-model (no write-path changes) | DATABASE_URL |
+| `FEATURE_V4_SALES_EVENTS_SHADOW` | `false` | V4 shadow sales_events table (nightly sync; no CRM writer changes) | DATABASE_URL |
 | `FEATURE_TASKS` | `false` | Board & Pipeline | DATABASE_URL |
 | `FEATURE_AI_SUMMARIES` | `false` | AI-Powered Features | ANTHROPIC_API_KEY |
 | `FEATURE_AI_PIPELINE_SUGGESTIONS` | `false` | AI-Powered Features | ANTHROPIC_API_KEY, FEATURE_V2_BOARD |
@@ -40,6 +44,7 @@ Auto-generated from inline annotations in `backend/app/core/config.py`. All feat
 | `FEATURE_TERRITORIES` | `false` | Territory Management | DATABASE_URL |
 | `FEATURE_REV_REC` | `false` | Revenue Recognition | DATABASE_URL, contracts |
 | `FEATURE_LIVE_CHAT` | `false` | Live Chat | DATABASE_URL |
+| `FEATURE_SEQUENCES_V2` | `false` | Sequences V2 (Cadence Engine) | DATABASE_URL |
 | `FEATURE_BEHAVIORAL_SCORING` | `false` | Behavioral Scoring | DATABASE_URL, FEATURE_SEQUENCES_V2 |
 | `FEATURE_BUYER_MAP` | `false` | Buyer Relationship Map | DATABASE_URL |
 
@@ -53,6 +58,40 @@ Auto-generated from inline annotations in `backend/app/core/config.py`. All feat
 - **Depends on:** QDRANT_URL
 - **Required by:** semantic search, deal similarity, competitor intel vectors
 - **Rollback:** Set `FEATURE_RAG=false`, restart backend. No migration to revert.
+
+### Board & Pipeline
+
+#### `FEATURE_V2_BOARD`
+
+- **Default:** `false`
+- **Depends on:** DATABASE_URL
+- **Required by:** v2 Kanban board, pipeline snapshot scheduler task
+- **Rollback:** Set `FEATURE_V2_BOARD=false`, restart backend. No migration to revert.
+
+### V4 Intelligence Backbone (Feature Store)
+
+#### `FEATURE_V4_FEATURE_STORE`
+
+- **Default:** `false`
+- **Depends on:** DATABASE_URL
+- **Required by:** daily snapshots (opportunity/account/rep), momentum, buyer state, network benchmarks
+- **Rollback:** Set `FEATURE_V4_FEATURE_STORE=false`, restart backend. No migration to revert.
+
+### V4 additive read-model (no write-path changes)
+
+#### `FEATURE_V4_ADDITIVE_READMODEL`
+
+- **Default:** `false`
+- **Depends on:** DATABASE_URL
+- **Rollback:** Set `FEATURE_V4_ADDITIVE_READMODEL=false`, restart backend. No migration to revert.
+
+### V4 shadow sales_events table (nightly sync; no CRM writer changes)
+
+#### `FEATURE_V4_SALES_EVENTS_SHADOW`
+
+- **Default:** `false`
+- **Depends on:** DATABASE_URL
+- **Rollback:** Set `FEATURE_V4_SALES_EVENTS_SHADOW=false`, restart backend. No migration to revert.
 
 ### Board & Pipeline
 
@@ -304,6 +343,15 @@ Auto-generated from inline annotations in `backend/app/core/config.py`. All feat
 - **Depends on:** DATABASE_URL
 - **Required by:** visitor session creation, agent assignment, message history, auto-response rules
 - **Rollback:** Set `FEATURE_LIVE_CHAT=false`, restart backend. No migration to revert.
+
+### Sequences V2 (Cadence Engine)
+
+#### `FEATURE_SEQUENCES_V2`
+
+- **Default:** `false`
+- **Depends on:** DATABASE_URL
+- **Required by:** idempotent step execution, global exit conditions, step run telemetry,
+- **Rollback:** Set `FEATURE_SEQUENCES_V2=false`, restart backend. No migration to revert.
 
 ### Behavioral Scoring
 

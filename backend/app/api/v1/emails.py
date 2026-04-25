@@ -625,6 +625,7 @@ async def review_email(
         opportunity_id=email.opportunity_id, customer_id=email.customer_id,
         user_id=current_user.id,
         summary=f"Email incelendi ({action}): {email.subject[:80] if email.subject else ''}",
+        source_ref=f"email_review:{email.message_id or email.id}:{action}",
     )
     await event_bus.publish("email.parsed", {
         "email_id": email.id, "action": action,

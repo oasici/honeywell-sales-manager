@@ -3,7 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Calendar } from 'lucide-react';
-import { opportunitiesApi, forecastApi, aiApi, dealRoomsApi, meetingsApi } from '../../lib/api';
+import {
+  opportunitiesApi,
+  forecastApi,
+  aiApi,
+  dealRoomsApi,
+  meetingsApi,
+  v4Api,
+  buyerStateApi,
+  decisionGapsApi,
+  networkBenchmarksApi,
+} from '../../lib/api';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -27,6 +37,7 @@ import type {
   DealRoom,
   OpportunityIntelligenceResponse,
   PipelineSuggestion,
+  OpportunityFeaturesDailyLatest,
 } from '../../lib/types';
 
 const RISK_BADGE_VARIANT: Record<string, 'success' | 'warning' | 'danger'> = {
@@ -91,6 +102,23 @@ function severityVariant(
     case 'med':
     case 'medium':
       return 'warning';
+    default:
+      return 'default';
+  }
+}
+
+function momentumVariant(
+  band: string | null | undefined,
+): 'success' | 'warning' | 'danger' | 'default' {
+  switch (band) {
+    case 'accelerating':
+      return 'success';
+    case 'steady':
+      return 'default';
+    case 'declining':
+      return 'warning';
+    case 'dead':
+      return 'danger';
     default:
       return 'default';
   }
@@ -216,6 +244,54 @@ export default function OpportunityDetailPage() {
     queryKey: ['activity-summary', oppId],
     queryFn: () => opportunitiesApi.getActivitySummary(oppId),
     enabled: !!oppId,
+  });
+
+  const { data: v4LatestFeatures } = useQuery<OpportunityFeaturesDailyLatest | null>({
+    queryKey: ['v4-opp-features-latest', oppId],
+    queryFn: () => v4Api.getLatestOpportunityFeatures(oppId),
+    enabled: !!oppId,
+    retry: false,
+  });
+
+  const { data: buyerStateTimeline } = useQuery<{
+    items: Array<{ snapshot_date: string; state: string; confidence: number; drivers: unknown[] }>;
+    total: number;
+  }>({
+    queryKey: ['buyer-state-timeline', oppId],
+    queryFn: () => buyerStateApi.getTimeline(oppId, 30),
+    enabled: !!oppId,
+    retry: false,
+  });
+
+  const { data: decisionGaps } = useQuery<{
+    opportunity_id: number;
+    items: Array<{
+      id: number;
+      gap_type: string;
+      severity: string;
+      recommended_actions: string[];
+    }>;
+    total: number;
+  }>({
+    queryKey: ['decision-gaps', oppId],
+    queryFn: () => decisionGapsApi.listForOpportunity(oppId),
+    enabled: !!oppId,
+    retry: false,
+  });
+
+  const { data: benchmarkGap } = useQuery<{
+    data: null | {
+      segment_key: string;
+      snapshot_date: string;
+      gap_score: number;
+      drivers: Array<{ label: string; impact: number; value?: unknown }>;
+      recommended_actions: string[];
+    };
+  }>({
+    queryKey: ['benchmarks-gap', oppId],
+    queryFn: () => networkBenchmarksApi.getOpportunityGap(oppId),
+    enabled: !!oppId,
+    retry: false,
   });
 
   const { data: adjustmentsData, isLoading: adjLoading } = useQuery<{
@@ -817,6 +893,229 @@ export default function OpportunityDetailPage() {
                 <p className="text-xs text-gray-400">+{signals.length - 8} daha</p>
               )}
             </div>
+          )}
+        </Card>
+
+        {/* V4 Snapshot (Daily Feature Store) */}
+        <Card title="V4 Günlük Snapshot">
+          {!v4LatestFeatures ? (
+            <p className="py-6 text-center text-sm text-gray-400">
+              Snapshot yok (feature flag kapalı olabilir)
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+                <p className="text-[11px] text-gray-500">Snapshot Tarihi</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {formatDate(v4LatestFeatures.snapshot_date)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+                <p className="text-[11px] text-gray-500">Deal yaşı</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {v4LatestFeatures.deal_age_days} gün
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+                <p className="text-[11px] text-gray-500">Son rep touch</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {v4LatestFeatures.days_since_last_rep_touch} gün
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+                <p className="text-[11px] text-gray-500">Son buyer touch</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {v4LatestFeatures.days_since_last_buyer_touch} gün
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+                <p className="text-[11px] text-gray-500">Rep touch (14g)</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {v4LatestFeatures.rep_touch_count_14d}
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+                <p className="text-[11px] text-gray-500">Buyer reply (14g)</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {v4LatestFeatures.buyer_reply_count_14d}
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+                <p className="text-[11px] text-gray-500">Meeting (30g)</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {v4LatestFeatures.meeting_count_30d}
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
+                <p className="text-[11px] text-gray-500">Negative signals (14g)</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {v4LatestFeatures.negative_signal_count_14d}
+                </p>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* V4 Momentum */}
+        <Card title="Momentum">
+          {!v4LatestFeatures?.momentum_score ? (
+            <p className="py-6 text-center text-sm text-gray-400">Momentum hesaplanmadı</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant={momentumVariant(v4LatestFeatures.momentum_band)} size="sm">
+                    {v4LatestFeatures.momentum_band ?? 'unknown'}
+                  </Badge>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Skor: {v4LatestFeatures.momentum_score}
+                  </span>
+                </div>
+              </div>
+              {v4LatestFeatures.momentum_drivers_json ? (
+                <div className="space-y-2">
+                  {(() => {
+                    try {
+                      const d = JSON.parse(v4LatestFeatures.momentum_drivers_json) as {
+                        drivers?: Array<{ label: string; impact: number; value?: unknown }>;
+                      };
+                      const drivers = d.drivers ?? [];
+                      return drivers.slice(0, 6).map((dr, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                        >
+                          <span className="text-xs text-gray-700 dark:text-gray-300">
+                            {dr.label}
+                          </span>
+                          <Badge
+                            size="sm"
+                            variant={
+                              dr.impact >= 5 ? 'success' : dr.impact <= -5 ? 'danger' : 'default'
+                            }
+                          >
+                            {dr.impact > 0 ? `+${dr.impact}` : String(dr.impact)}
+                          </Badge>
+                        </div>
+                      ));
+                    } catch {
+                      return <p className="text-xs text-gray-400">Drivers okunamadı</p>;
+                    }
+                  })()}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">Drivers yok</p>
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* Buyer State Timeline */}
+        <Card title="Buyer State">
+          {buyerStateTimeline?.items?.length ? (
+            <div className="space-y-2">
+              {buyerStateTimeline.items.slice(0, 10).map((it) => (
+                <div
+                  key={it.snapshot_date}
+                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {it.state}
+                      <span className="ml-2 text-xs text-gray-400">
+                        {(it.confidence * 100).toFixed(0)}%
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-gray-500">{formatDate(it.snapshot_date)}</p>
+                  </div>
+                  <Badge variant={it.state === 'stalling' ? 'warning' : 'default'} size="sm">
+                    {it.state}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-gray-400">Buyer state yok</p>
+          )}
+        </Card>
+
+        {/* Decision Gaps */}
+        <Card title="Eksikler (Decision Gaps)">
+          {decisionGaps?.items?.length ? (
+            <div className="space-y-2">
+              {decisionGaps.items.slice(0, 8).map((g) => (
+                <div
+                  key={g.id}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {g.gap_type}
+                    </p>
+                    {g.recommended_actions?.[0] && (
+                      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                        {g.recommended_actions[0]}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant={severityVariant(g.severity)} size="sm">
+                    {g.severity}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-gray-400">Eksik yok</p>
+          )}
+        </Card>
+
+        {/* Segment Benchmark Gap */}
+        <Card title="Segment Benchmark Gap">
+          {benchmarkGap?.data ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Badge
+                  variant={
+                    benchmarkGap.data.gap_score >= 65
+                      ? 'success'
+                      : benchmarkGap.data.gap_score >= 45
+                        ? 'warning'
+                        : 'danger'
+                  }
+                  size="sm"
+                >
+                  gap: {benchmarkGap.data.gap_score}
+                </Badge>
+                <span className="text-xs text-gray-400">{benchmarkGap.data.segment_key}</span>
+              </div>
+              {benchmarkGap.data.recommended_actions?.[0] && (
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  {benchmarkGap.data.recommended_actions[0]}
+                </p>
+              )}
+              {benchmarkGap.data.drivers?.length ? (
+                <div className="space-y-2">
+                  {benchmarkGap.data.drivers.slice(0, 4).map((d, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                    >
+                      <span className="text-xs text-gray-700 dark:text-gray-300">{d.label}</span>
+                      <Badge
+                        size="sm"
+                        variant={d.impact > 0 ? 'success' : d.impact < 0 ? 'danger' : 'default'}
+                      >
+                        {d.impact > 0 ? `+${d.impact}` : String(d.impact)}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">Driver yok</p>
+              )}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-gray-400">Benchmark verisi yok</p>
           )}
         </Card>
 

@@ -26,10 +26,37 @@ async def log_activity(
     user_id: int | None = None,
     summary: str = "",
     metadata: dict | None = None,
+    source_ref: str | None = None,
 ) -> None:
     """Log an activity event. Fire-and-forget — never raises."""
     try:
         from app.models.activity_log import ActivityLog
+        from sqlalchemy import select
+        from app.core.event_registry import validate_activity_entity, opportunity_event_type_for
+
+        if not validate_activity_entity(activity_type, entity_type):
+            logger.debug(
+                "Activity entity mismatch type=%s entity_type=%s", activity_type, entity_type
+            )
+
+        # Optional idempotency: if source_ref present, skip duplicates.
+        # This is best-effort; no hard uniqueness constraint (yet).
+        if source_ref:
+            existing = await db.execute(
+                select(ActivityLog.id).where(
+                    ActivityLog.source_ref == source_ref,
+                    ActivityLog.activity_type == activity_type,
+                    ActivityLog.entity_type == entity_type,
+                    ActivityLog.entity_id == entity_id,
+                )
+            )
+            if existing.scalar_one_or_none() is not None:
+                return
+
+        if metadata is None:
+            metadata = {}
+        if source_ref:
+            metadata.setdefault("source_ref", source_ref)
 
         entry = ActivityLog(
             activity_type=activity_type,
@@ -40,6 +67,7 @@ async def log_activity(
             user_id=user_id,
             summary=summary[:500] if summary else "",
             metadata_json=json.dumps(metadata, default=str) if metadata else None,
+            source_ref=source_ref,
             created_at=datetime.now(timezone.utc),
         )
         db.add(entry)
@@ -49,7 +77,7 @@ async def log_activity(
             await _create_opportunity_event(
                 db,
                 opportunity_id=opportunity_id,
-                activity_type=activity_type,
+                event_type=opportunity_event_type_for(activity_type),
                 entity_type=entity_type,
                 entity_id=entity_id,
                 summary=summary,
@@ -60,25 +88,11 @@ async def log_activity(
         logger.debug("Activity logging failed (non-critical): %s", exc)
 
 
-_ACTIVITY_TO_EVENT_TYPE = {
-    "email_received": "email",
-    "email_parsed": "email",
-    "quote_created": "quote",
-    "quote_approved": "quote",
-    "quote_sent": "quote",
-    "task_created": "task",
-    "task_completed": "task",
-    "stage_change": "stage_change",
-    "note_added": "note",
-    "transcript_uploaded": "meeting",
-}
-
-
 async def _create_opportunity_event(
     db: AsyncSession,
     *,
     opportunity_id: int,
-    activity_type: str,
+    event_type: str,
     entity_type: str,
     entity_id: int,
     summary: str,
@@ -86,7 +100,6 @@ async def _create_opportunity_event(
     """Create a corresponding OpportunityEvent entry."""
     from app.models.opportunity import OpportunityEvent
 
-    event_type = _ACTIVITY_TO_EVENT_TYPE.get(activity_type, activity_type)
     event = OpportunityEvent(
         opportunity_id=opportunity_id,
         event_type=event_type,

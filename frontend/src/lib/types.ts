@@ -452,6 +452,28 @@ export interface OpportunityEvent {
   via_quote?: boolean;
 }
 
+export interface OpportunityFeaturesDailyLatest {
+  opportunity_id: number;
+  snapshot_date: string;
+  deal_age_days: number;
+  days_since_last_rep_touch: number;
+  days_since_last_buyer_touch: number;
+  rep_touch_count_14d: number;
+  buyer_reply_count_14d: number;
+  meeting_count_30d: number;
+  quote_count: number;
+  latest_discount_pct: number | null;
+  competitor_mentions_30d: number;
+  pricing_objections_30d: number;
+  positive_signal_count_14d: number;
+  negative_signal_count_14d: number;
+  momentum_score: number | null;
+  momentum_band?: string | null;
+  momentum_drivers_json?: string | null;
+  buyer_state: string | null;
+  close_probability: number | null;
+}
+
 export interface KanbanColumn {
   stage: string;
   count: number;
@@ -674,6 +696,33 @@ export interface CockpitRiskyAccount {
   open_tasks_count: number;
   unresolved_high_signals: number;
   last_activity_at: string | null;
+}
+
+export interface CockpitMomentumItem {
+  id: number;
+  title: string;
+  stage: string;
+  amount: number | null;
+  currency: string;
+  owner_id: number | null;
+  customer_id: number | null;
+  momentum_score: number | null;
+  momentum_band: string | null;
+  drivers: Array<{ label: string; impact: number; value?: unknown }>;
+}
+
+export interface CockpitStallingDealItem {
+  id: number;
+  title: string;
+  stage: string;
+  amount: number | null;
+  currency: string;
+  owner_id: number | null;
+  customer_id: number | null;
+  days_since_last_buyer_touch: number | null;
+  buyer_reply_count_14d: number;
+  meeting_count_30d: number;
+  negative_signal_count_14d: number;
 }
 
 export interface CoachingOverview {

@@ -62,7 +62,7 @@ def parse_flags(source: str) -> list[dict]:
                 buffered_comments.append(body)
             continue
 
-        flag_match = re.match(r"(FEATURE_[A-Z_]+):\s*bool\s*=\s*(\w+)", line)
+        flag_match = re.match(r"(FEATURE_[A-Z0-9_]+):\s*bool\s*=\s*(\w+)", line)
         if flag_match:
             depends = []
             required = []

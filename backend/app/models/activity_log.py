@@ -39,6 +39,8 @@ class ActivityLog(Base):
     attendees_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     agenda: Mapped[str | None] = mapped_column(Text, nullable=True)
     metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Optional idempotency key for “same source event” dedupe across retries
+    source_ref: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

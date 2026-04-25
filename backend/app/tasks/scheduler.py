@@ -875,6 +875,42 @@ def start_scheduler():
         id="subscription_renewals",
         replace_existing=True,
     )
+    # V4: nightly feature store builder — gated by FEATURE_V4_FEATURE_STORE
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("v4_feature_store", build_v4_feature_store_task)),
+        "cron",
+        hour=2,
+        minute=0,
+        id="v4_feature_store",
+        replace_existing=True,
+    )
+    # V4: shadow sales_events materialization — gated by FEATURE_V4_SALES_EVENTS_SHADOW
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("v4_sales_events_shadow", build_v4_sales_events_shadow_task)),
+        "cron",
+        hour=3,
+        minute=15,
+        id="v4_sales_events_shadow",
+        replace_existing=True,
+    )
+    # V4: Sales DNA nightly (after feature store) — gated by FEATURE_V4_SALES_DNA
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("v4_sales_dna_nightly", build_v4_sales_dna_nightly_task)),
+        "cron",
+        hour=4,
+        minute=5,
+        id="v4_sales_dna_nightly",
+        replace_existing=True,
+    )
+    # V4: deal replay nightly — gated by FEATURE_V4_DEAL_REPLAY
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("v4_deal_replay_nightly", build_v4_deal_replay_nightly_task)),
+        "cron",
+        hour=4,
+        minute=35,
+        id="v4_deal_replay_nightly",
+        replace_existing=True,
+    )
     # In production, this is started from the FastAPI lifespan where an event loop
     # is guaranteed to be running. In sync unit tests, starting an AsyncIOScheduler
     # can fail if the loop is closed; we keep the jobs registered but skip `start()`.
@@ -898,3 +934,47 @@ def stop_scheduler():
             # Best-effort: in sync contexts the event loop can already be closed.
             pass
         logger.info("Background scheduler stopped")
+
+
+async def build_v4_feature_store_task():
+    """Nightly build of V4 daily feature store snapshots (safe no-op if flag off)."""
+    if not settings.FEATURE_V4_FEATURE_STORE:
+        return
+    from app.core.database import async_session
+    from app.services.feature_store_builder import build_daily_feature_store
+
+    async with async_session() as db:
+        await build_daily_feature_store(db)
+
+
+async def build_v4_sales_events_shadow_task():
+    """Nightly idempotent sync into v4_sales_events_shadow (safe no-op if flag off)."""
+    if not settings.FEATURE_V4_SALES_EVENTS_SHADOW:
+        return
+    from app.core.database import async_session
+    from app.services.sales_events_shadow_sync import sync_sales_events_shadow_yesterday
+
+    async with async_session() as db:
+        await sync_sales_events_shadow_yesterday(db)
+
+
+async def build_v4_sales_dna_nightly_task():
+    """Quota-limited DNA materialization for UTC yesterday (safe no-op if flag off)."""
+    if not settings.FEATURE_V4_SALES_DNA:
+        return
+    from app.core.database import async_session
+    from app.services.v4_learning_nightly import run_v4_sales_dna_nightly
+
+    async with async_session() as db:
+        await run_v4_sales_dna_nightly(db)
+
+
+async def build_v4_deal_replay_nightly_task():
+    """Quota-limited deal replay snapshots for UTC yesterday (safe no-op if flag off)."""
+    if not settings.FEATURE_V4_DEAL_REPLAY:
+        return
+    from app.core.database import async_session
+    from app.services.v4_learning_nightly import run_v4_deal_replay_nightly
+
+    async with async_session() as db:
+        await run_v4_deal_replay_nightly(db)

@@ -21,6 +21,7 @@ import type {
   HealthOverview,
   AtRiskResponse,
   SavedView,
+  OpportunityFeaturesDailyLatest,
 } from './types';
 
 // ── Axios instance ───────────────────────────────────
@@ -849,6 +850,296 @@ export const opportunitiesApi = {
   },
 };
 
+export const v4Api = {
+  buildFeatureStore: async (snapshot_date?: string) => {
+    const { data } = await api.post('/v4/feature-store/build', null, {
+      params: snapshot_date ? { snapshot_date } : undefined,
+    });
+    return data as {
+      snapshot_date: string;
+      opportunities_upserted: number;
+      accounts_upserted: number;
+      reps_upserted: number;
+    };
+  },
+
+  getLatestOpportunityFeatures: async (
+    opportunityId: number,
+  ): Promise<OpportunityFeaturesDailyLatest | null> => {
+    const { data } = await api.get(`/v4/opportunities/${opportunityId}/features/latest`);
+    return (data?.data as OpportunityFeaturesDailyLatest | null) ?? null;
+  },
+};
+
+/** V4 additive alignment: live projections + shadow table reads + manager backfill (flags on backend). */
+export const alignmentApi = {
+  getNormalizedTimeline: async (
+    opportunityId: number,
+    params?: {
+      limit?: number;
+      include_signals?: boolean;
+      include_legacy_opportunity_signals?: boolean;
+    },
+  ) => {
+    const { data } = await api.get(
+      `/v4/alignment/opportunities/${opportunityId}/normalized-timeline`,
+      {
+        params,
+      },
+    );
+    return data as {
+      opportunity_id: number;
+      account_id: number | null;
+      model_version: string;
+      include_signals: boolean;
+      include_legacy_opportunity_signals: boolean;
+      items: Array<Record<string, unknown>>;
+      total: number;
+    };
+  },
+
+  getConversationSignals: async (
+    opportunityId: number,
+    params?: { limit?: number; include_legacy_opportunity_signals?: boolean },
+  ) => {
+    const { data } = await api.get(
+      `/v4/alignment/opportunities/${opportunityId}/conversation-signals`,
+      {
+        params,
+      },
+    );
+    return data as {
+      opportunity_id: number;
+      account_id: number | null;
+      model_version: string;
+      include_legacy_opportunity_signals: boolean;
+      items: Array<Record<string, unknown>>;
+      total: number;
+    };
+  },
+
+  getShadowTimeline: async (opportunityId: number, limit = 500) => {
+    const { data } = await api.get(`/v4/alignment/opportunities/${opportunityId}/shadow-timeline`, {
+      params: { limit },
+    });
+    return data as {
+      opportunity_id: number;
+      model_version: string;
+      items: Array<Record<string, unknown>>;
+      total: number;
+    };
+  },
+
+  /** sales_manager / operations — requires FEATURE_V4_SALES_EVENTS_SHADOW */
+  postShadowSyncWindow: async (days: number) => {
+    const { data } = await api.post('/v4/alignment/shadow/sync-window', { days });
+    return data as {
+      ok: boolean;
+      window_days: number;
+      counts: Record<string, number>;
+    };
+  },
+};
+
+/** V4 deal replay: persisted timeline snapshots (FEATURE_V4_DEAL_REPLAY). */
+export const replayApi = {
+  listSnapshots: async (opportunityId: number, limit = 60) => {
+    const { data } = await api.get(`/v4/replay/opportunities/${opportunityId}/snapshots`, {
+      params: { limit },
+    });
+    return data as {
+      opportunity_id: number;
+      items: Array<{
+        snapshot_date: string;
+        updated_at: string | null;
+        timeline_item_count: number | undefined;
+        feature_daily_present: boolean | undefined;
+      }>;
+      total: number;
+    };
+  },
+
+  getSnapshot: async (opportunityId: number, snapshotDate: string) => {
+    const { data } = await api.get(
+      `/v4/replay/opportunities/${opportunityId}/snapshots/${snapshotDate}`,
+    );
+    return data as {
+      opportunity_id: number;
+      snapshot_date: string;
+      source_timeline_version: string;
+      frames: Record<string, unknown>;
+      meta: Record<string, unknown>;
+      updated_at: string | null;
+    };
+  },
+
+  /** sales_manager / operations */
+  postMaterialize: async (
+    opportunityId: number,
+    params?: {
+      snapshot_date?: string;
+      include_signals?: boolean;
+      include_legacy_opportunity_signals?: boolean;
+      timeline_limit?: number;
+    },
+  ) => {
+    const { data } = await api.post(`/v4/replay/opportunities/${opportunityId}/materialize`, null, {
+      params,
+    });
+    return data as {
+      ok: boolean;
+      opportunity_id: number;
+      snapshot_date: string;
+      timeline_item_count: number | undefined;
+    };
+  },
+};
+
+/** V4 Sales DNA: miner output in v4_sales_dna_snapshots (FEATURE_V4_SALES_DNA). */
+export const dnaApi = {
+  listSnapshots: async (opportunityId: number, limit = 60) => {
+    const { data } = await api.get(`/v4/dna/opportunities/${opportunityId}/snapshots`, {
+      params: { limit },
+    });
+    return data as {
+      opportunity_id: number;
+      items: Array<{
+        snapshot_date: string;
+        updated_at: string | null;
+        miner_version: string;
+        feature_daily_present: boolean | undefined;
+      }>;
+      total: number;
+    };
+  },
+
+  getLatest: async (opportunityId: number) => {
+    const { data } = await api.get(`/v4/dna/opportunities/${opportunityId}/latest`);
+    return data as {
+      opportunity_id: number;
+      snapshot_date: string;
+      traits: Record<string, unknown>;
+      meta: Record<string, unknown>;
+      updated_at: string | null;
+    };
+  },
+
+  getSnapshot: async (opportunityId: number, snapshotDate: string) => {
+    const { data } = await api.get(
+      `/v4/dna/opportunities/${opportunityId}/snapshots/${snapshotDate}`,
+    );
+    return data as {
+      opportunity_id: number;
+      snapshot_date: string;
+      traits: Record<string, unknown>;
+      meta: Record<string, unknown>;
+      updated_at: string | null;
+    };
+  },
+
+  postMaterialize: async (opportunityId: number, snapshot_date?: string) => {
+    const { data } = await api.post(`/v4/dna/opportunities/${opportunityId}/materialize`, null, {
+      params: snapshot_date ? { snapshot_date } : undefined,
+    });
+    return data as {
+      ok: boolean;
+      opportunity_id: number;
+      snapshot_date: string;
+      risk_posture: string | undefined;
+      coaching_hooks: string[] | undefined;
+    };
+  },
+};
+
+export const buyerStateApi = {
+  getTimeline: async (opportunityId: number, limit = 30) => {
+    const { data } = await api.get(`/buyer-state/opportunities/${opportunityId}/timeline`, {
+      params: { limit },
+    });
+    return data as {
+      items: Array<{
+        snapshot_date: string;
+        state: string;
+        confidence: number;
+        drivers: unknown[];
+      }>;
+      total: number;
+    };
+  },
+};
+
+export const decisionGapsApi = {
+  listForOpportunity: async (opportunityId: number) => {
+    const { data } = await api.get(`/decision-gaps/opportunities/${opportunityId}`);
+    return data as {
+      opportunity_id: number;
+      items: Array<{
+        id: number;
+        gap_type: string;
+        severity: string;
+        expected_roles: string[];
+        observed_roles: string[];
+        recommended_actions: string[];
+        drivers: unknown[];
+        created_at: string | null;
+      }>;
+      total: number;
+    };
+  },
+  cockpitList: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get('/decision-gaps/cockpit/list', { params });
+    return data as {
+      items: Array<{
+        id: number;
+        opportunity_id: number;
+        title: string;
+        stage: string;
+        amount: number | null;
+        currency: string;
+        gap_type: string;
+        severity: string;
+        recommended_action: string | null;
+        created_at: string | null;
+      }>;
+      total: number;
+    };
+  },
+};
+
+export const networkBenchmarksApi = {
+  getLatestSegments: async (limit = 50) => {
+    const { data } = await api.get('/v4/benchmarks/segments/latest', { params: { limit } });
+    return data as {
+      snapshot_date: string | null;
+      items: Array<{
+        segment_key: string;
+        sample_size: number;
+        win_rate_90d: number | null;
+        followup_median_days: number | null;
+        avg_discount_pct: number | null;
+        avg_stakeholder_count: number | null;
+        objection_rate_14d: number | null;
+      }>;
+      total: number;
+    };
+  },
+  getOpportunityGap: async (opportunityId: number) => {
+    const { data } = await api.get(`/v4/benchmarks/opportunities/${opportunityId}/gap`);
+    return data as {
+      data: null | {
+        segment_key: string;
+        snapshot_date: string;
+        gap_score: number;
+        drivers: Array<{ label: string; impact: number; value?: unknown }>;
+        benchmark_context: Record<string, unknown>;
+        you: Record<string, unknown>;
+        recommended_actions: string[];
+        model_version: string;
+      };
+    };
+  },
+};
+
 export const boardApi = {
   getKanban: async (params?: Record<string, unknown>) => {
     const { data } = await api.get('/board/kanban', { params });
@@ -1136,6 +1427,14 @@ export const cockpitApi = {
   },
   resolveSignal: async (id: number) => {
     const { data } = await api.post(`/cockpit/signals/${id}/resolve`);
+    return data;
+  },
+  getMomentum: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get('/cockpit/momentum', { params });
+    return data;
+  },
+  getStallingDeals: async (params?: Record<string, unknown>) => {
+    const { data } = await api.get('/cockpit/buyer-state/stalling', { params });
     return data;
   },
 };

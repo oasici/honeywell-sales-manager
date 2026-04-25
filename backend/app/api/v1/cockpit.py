@@ -7,6 +7,7 @@ are minimal. All heavy computation happens in services.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 import sqlalchemy
@@ -21,6 +22,7 @@ from app.models.opportunity import Opportunity, OpportunitySignal, Task
 from app.models.quote import Quote
 from app.models.revenue_signal import RevenueSignal
 from app.models.user import User
+from app.models.feature_store_daily import OpportunityFeaturesDaily
 from app.services.deal_health_service import DealHealthService
 from app.services.customer_health_service import CustomerHealthService
 from app.services import revenue_signal_service
@@ -440,6 +442,158 @@ async def get_risky_accounts(
         })
 
     return {"items": items, "total": len(items)}
+
+
+@router.get("/momentum")
+async def get_momentum_declining(
+    limit: int = Query(20, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_cockpit),
+):
+    """Declining/dead momentum deals based on latest daily snapshot."""
+    owner_filter = None
+    if current_user.role == UserRole.SALES_REP.value:
+        owner_filter = current_user.id
+
+    latest_date = (
+        await db.execute(select(func.max(OpportunityFeaturesDaily.snapshot_date)))
+    ).scalar_one_or_none()
+    if not latest_date:
+        return {"snapshot_date": None, "items": [], "total": 0}
+
+    conditions = [
+        OpportunityFeaturesDaily.snapshot_date == latest_date,
+        OpportunityFeaturesDaily.momentum_band.in_(["declining", "dead"]),
+        Opportunity.status == "active",
+    ]
+    if owner_filter is not None:
+        conditions.append(Opportunity.owner_id == owner_filter)
+
+    rows = (
+        await db.execute(
+            select(
+                Opportunity.id,
+                Opportunity.title,
+                Opportunity.stage,
+                Opportunity.amount,
+                Opportunity.currency,
+                Opportunity.owner_id,
+                Opportunity.customer_id,
+                OpportunityFeaturesDaily.momentum_score,
+                OpportunityFeaturesDaily.momentum_band,
+                OpportunityFeaturesDaily.momentum_drivers_json,
+            )
+            .join(Opportunity, Opportunity.id == OpportunityFeaturesDaily.opportunity_id)
+            .where(and_(*conditions))
+            .order_by(
+                OpportunityFeaturesDaily.momentum_band.desc(),
+                OpportunityFeaturesDaily.momentum_score.asc().nullsfirst(),
+            )
+            .limit(limit)
+        )
+    ).all()
+
+    return {
+        "snapshot_date": latest_date.isoformat(),
+        "items": [
+            {
+                "id": int(r.id),
+                "title": r.title,
+                "stage": r.stage,
+                "amount": float(r.amount) if r.amount is not None else None,
+                "currency": r.currency,
+                "owner_id": int(r.owner_id) if r.owner_id is not None else None,
+                "customer_id": int(r.customer_id) if r.customer_id is not None else None,
+                "momentum_score": int(r.momentum_score) if r.momentum_score is not None else None,
+                "momentum_band": r.momentum_band,
+                "drivers": (
+                    (json.loads(r.momentum_drivers_json).get("drivers", []) if r.momentum_drivers_json else [])
+                ),
+            }
+            for r in rows
+        ],
+        "total": len(rows),
+    }
+
+
+@router.get("/buyer-state/stalling")
+async def get_stalling_deals(
+    limit: int = Query(20, ge=1, le=200),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_cockpit),
+):
+    """Buyer-state stalling deals from latest snapshot."""
+    owner_filter = None
+    if current_user.role == UserRole.SALES_REP.value:
+        owner_filter = current_user.id
+
+    latest_date = (
+        await db.execute(select(func.max(OpportunityFeaturesDaily.snapshot_date)))
+    ).scalar_one_or_none()
+    if not latest_date:
+        return {"snapshot_date": None, "items": [], "total": 0}
+
+    conditions = [
+        OpportunityFeaturesDaily.snapshot_date == latest_date,
+        OpportunityFeaturesDaily.buyer_state == "stalling",
+        Opportunity.status == "active",
+    ]
+    if owner_filter is not None:
+        conditions.append(Opportunity.owner_id == owner_filter)
+
+    rows = (
+        await db.execute(
+            select(
+                Opportunity.id,
+                Opportunity.title,
+                Opportunity.stage,
+                Opportunity.amount,
+                Opportunity.currency,
+                Opportunity.owner_id,
+                Opportunity.customer_id,
+                OpportunityFeaturesDaily.days_since_last_buyer_touch,
+                OpportunityFeaturesDaily.buyer_reply_count_14d,
+                OpportunityFeaturesDaily.meeting_count_30d,
+                OpportunityFeaturesDaily.negative_signal_count_14d,
+            )
+            .join(Opportunity, Opportunity.id == OpportunityFeaturesDaily.opportunity_id)
+            .where(and_(*conditions))
+            .order_by(
+                OpportunityFeaturesDaily.days_since_last_buyer_touch.desc().nullslast(),
+                OpportunityFeaturesDaily.negative_signal_count_14d.desc().nullslast(),
+            )
+            .limit(limit)
+        )
+    ).all()
+
+    return {
+        "snapshot_date": latest_date.isoformat(),
+        "items": [
+            {
+                "id": int(r.id),
+                "title": r.title,
+                "stage": r.stage,
+                "amount": float(r.amount) if r.amount is not None else None,
+                "currency": r.currency,
+                "owner_id": int(r.owner_id) if r.owner_id is not None else None,
+                "customer_id": int(r.customer_id) if r.customer_id is not None else None,
+                "days_since_last_buyer_touch": int(r.days_since_last_buyer_touch)
+                if r.days_since_last_buyer_touch is not None
+                else None,
+                "buyer_reply_count_14d": int(r.buyer_reply_count_14d)
+                if r.buyer_reply_count_14d is not None
+                else 0,
+                "meeting_count_30d": int(r.meeting_count_30d) if r.meeting_count_30d is not None else 0,
+                "negative_signal_count_14d": int(r.negative_signal_count_14d)
+                if r.negative_signal_count_14d is not None
+                else 0,
+            }
+            for r in rows
+        ],
+        "total": len(rows),
+    }
 
 
 @router.post("/signals/{signal_id}/resolve")

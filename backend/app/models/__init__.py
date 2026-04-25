@@ -33,6 +33,13 @@ from app.models.lead_assignment_rule import LeadAssignmentRule
 from app.models.feature_usage import FeatureUsage
 from app.models.stage_requirement import StageRequirement
 from app.models.competitor_mention import CompetitorMention
+from app.models.feature_store_daily import AccountFeaturesDaily, OpportunityFeaturesDaily, RepFeaturesDaily
+from app.models.buyer_state_history import BuyerStateHistory
+from app.models.decision_gap import StakeholderRole, DecisionGap
+from app.models.network_benchmarks import NetworkSegment, SegmentBenchmarksDaily
+from app.models.sales_event_shadow import SalesEventShadow
+from app.models.deal_replay_snapshot import DealReplaySnapshot
+from app.models.sales_dna_snapshot import SalesDnaSnapshot
 from app.models.action_experiment import ActionExperiment
 from app.models.report_folder import ReportFolder
 from app.models.dashboard_config import DashboardConfig
@@ -117,6 +124,17 @@ __all__ = [
     "FeatureUsage",
     "StageRequirement",
     "CompetitorMention",
+    "OpportunityFeaturesDaily",
+    "AccountFeaturesDaily",
+    "RepFeaturesDaily",
+    "BuyerStateHistory",
+    "StakeholderRole",
+    "DecisionGap",
+    "NetworkSegment",
+    "SegmentBenchmarksDaily",
+    "SalesEventShadow",
+    "DealReplaySnapshot",
+    "SalesDnaSnapshot",
     "ActionExperiment",
     "ReportFolder",
     "DashboardConfig",

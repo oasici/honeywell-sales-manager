@@ -28,6 +28,8 @@ import {
   aiApi,
   dealHealthApi,
   analyticsApi,
+  decisionGapsApi,
+  networkBenchmarksApi,
 } from '../../lib/api';
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
@@ -42,6 +44,8 @@ import type {
   ActivityDroughtItem,
   RevenueLeakResult,
   RevenueLeakItem,
+  CockpitMomentumItem,
+  CockpitStallingDealItem,
 } from '../../lib/types';
 
 // ── Severity / priority color helpers ────────────────
@@ -1187,6 +1191,241 @@ function SequencesTab() {
   );
 }
 
+function MomentumDeclinePanel() {
+  const navigate = useNavigate();
+  const { data, isLoading } = useQuery<{
+    snapshot_date: string | null;
+    items: CockpitMomentumItem[];
+    total: number;
+  }>({
+    queryKey: ['cockpit', 'momentum'],
+    queryFn: () => cockpitApi.getMomentum({ limit: 10 }),
+    refetchInterval: 120_000,
+  });
+
+  const items = data?.items ?? [];
+
+  const bandVariant = (band: string | null | undefined): BadgeVariant => {
+    switch (band) {
+      case 'dead':
+        return 'danger';
+      case 'declining':
+        return 'warning';
+      case 'steady':
+        return 'default';
+      case 'accelerating':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
+  return (
+    <Card title="Momentum düşen fırsatlar">
+      {isLoading ? (
+        <Skeleton variant="line" count={4} />
+      ) : items.length === 0 ? (
+        <p className="py-8 text-center text-sm text-gray-400">Düşen momentum yok</p>
+      ) : (
+        <div className="space-y-3">
+          {items.map((o) => (
+            <div
+              key={o.id}
+              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={bandVariant(o.momentum_band)} size="sm">
+                    {o.momentum_band ?? 'unknown'} • {o.momentum_score ?? '-'}
+                  </Badge>
+                  <span className="text-xs text-gray-400">{o.stage}</span>
+                </div>
+                <p className="mt-1 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                  {o.title}
+                </p>
+                {o.drivers?.[0]?.label && (
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                    {o.drivers[0].label}
+                  </p>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/opportunities/${o.id}`)}
+              >
+                Aç
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function StallingDealsPanel() {
+  const navigate = useNavigate();
+  const { data, isLoading } = useQuery<{
+    snapshot_date: string | null;
+    items: CockpitStallingDealItem[];
+    total: number;
+  }>({
+    queryKey: ['cockpit', 'buyer-state', 'stalling'],
+    queryFn: () => cockpitApi.getStallingDeals({ limit: 10 }),
+    refetchInterval: 120_000,
+  });
+
+  const items = data?.items ?? [];
+
+  return (
+    <Card title="Stalling deals (Buyer State)">
+      {isLoading ? (
+        <Skeleton variant="line" count={4} />
+      ) : items.length === 0 ? (
+        <p className="py-8 text-center text-sm text-gray-400">Stalling deal yok</p>
+      ) : (
+        <div className="space-y-3">
+          {items.map((o) => (
+            <div
+              key={o.id}
+              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="warning" size="sm">
+                    stalling
+                  </Badge>
+                  {typeof o.days_since_last_buyer_touch === 'number' && (
+                    <Badge variant="default" size="sm">
+                      buyer sessizliği: {o.days_since_last_buyer_touch}g
+                    </Badge>
+                  )}
+                  {o.negative_signal_count_14d > 0 && (
+                    <Badge variant="danger" size="sm">
+                      neg: {o.negative_signal_count_14d}
+                    </Badge>
+                  )}
+                </div>
+                <p className="mt-1 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                  {o.title}
+                </p>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  stage: {o.stage} • meetings(30g): {o.meeting_count_30d} • replies(14g):{' '}
+                  {o.buyer_reply_count_14d}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/opportunities/${o.id}`)}
+              >
+                Aç
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function DecisionGapsPanel() {
+  const navigate = useNavigate();
+  const { data, isLoading } = useQuery({
+    queryKey: ['cockpit', 'decision-gaps'],
+    queryFn: () => decisionGapsApi.cockpitList({ limit: 10 }),
+    refetchInterval: 120_000,
+  });
+
+  const items = data?.items ?? [];
+  return (
+    <Card title="Decision Gaps (Öncelikli Eksikler)">
+      {isLoading ? (
+        <Skeleton variant="line" count={4} />
+      ) : items.length === 0 ? (
+        <p className="py-8 text-center text-sm text-gray-400">Gap yok</p>
+      ) : (
+        <div className="space-y-3">
+          {items.map((g: any) => (
+            <div
+              key={g.id}
+              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={SEVERITY_VARIANT[g.severity] ?? 'default'} size="sm">
+                    {g.severity}
+                  </Badge>
+                  <span className="text-xs text-gray-400">{g.gap_type}</span>
+                </div>
+                <p className="mt-1 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                  {g.title}
+                </p>
+                {g.recommended_action && (
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                    {g.recommended_action}
+                  </p>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate(`/opportunities/${g.opportunity_id}`)}
+              >
+                Aç
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function SegmentBenchmarksPanel() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['benchmarks', 'segments', 'latest'],
+    queryFn: () => networkBenchmarksApi.getLatestSegments(8),
+    refetchInterval: 300_000,
+  });
+
+  const items = data?.items ?? [];
+  return (
+    <Card title="Segment Benchmarks (Günlük)">
+      {isLoading ? (
+        <Skeleton variant="line" count={4} />
+      ) : items.length === 0 ? (
+        <p className="py-8 text-center text-sm text-gray-400">Benchmark yok</p>
+      ) : (
+        <div className="space-y-3">
+          {items.map((s: any) => (
+            <div
+              key={s.segment_key}
+              className="rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {s.segment_key}
+                </p>
+                <Badge variant="default" size="sm">
+                  n={s.sample_size}
+                </Badge>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
+                <div>followup median: {s.followup_median_days ?? '-'}</div>
+                <div>avg discount: {s.avg_discount_pct ?? '-'}</div>
+                <div>avg stakeholders: {s.avg_stakeholder_count ?? '-'}</div>
+                <div>objection rate: {s.objection_rate_14d ?? '-'}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function CockpitPage() {
   const t = useT();
   const user = useAuthStore((state) => state.user);
@@ -1217,6 +1456,10 @@ export default function CockpitPage() {
       <KpiStrip data={kpis} isLoading={isKpisLoading} />
 
       <RiskyAccountsPanel />
+      <MomentumDeclinePanel />
+      <StallingDealsPanel />
+      <DecisionGapsPanel />
+      {isManager && <SegmentBenchmarksPanel />}
 
       {/* Work Hub — 3 Tab Layout */}
       <div>

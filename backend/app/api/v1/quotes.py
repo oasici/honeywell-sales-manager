@@ -113,6 +113,7 @@ async def create_quote(
         db, activity_type="quote_created", entity_type="quote", entity_id=quote.id,
         opportunity_id=quote.opportunity_id, customer_id=quote.customer_id,
         user_id=current_user.id, summary=f"Teklif olusturuldu: {quote.quote_number}",
+        source_ref=f"quote_created:{quote.quote_number}",
     )
 
     return _quote_to_dict(quote, include_items=True)
@@ -272,6 +273,7 @@ async def approve_quote(
         db, activity_type="quote_approved", entity_type="quote", entity_id=quote.id,
         opportunity_id=quote.opportunity_id, customer_id=quote.customer_id,
         user_id=current_user.id, summary=f"Teklif onaylandi: {quote.quote_number}",
+        source_ref=f"quote_approved:{quote.quote_number}",
     )
     await event_bus.publish("quote.approved", {
         "quote_id": quote.id, "quote_number": quote.quote_number,
@@ -389,6 +391,7 @@ async def send_quote(
         db, activity_type="quote_sent", entity_type="quote", entity_id=quote.id,
         opportunity_id=quote.opportunity_id, customer_id=quote.customer_id,
         user_id=current_user.id, summary=f"Teklif gonderildi: {quote.quote_number} → {recipient}",
+        source_ref=f"quote_sent:{quote.quote_number}:{recipient}",
     )
     await event_bus.publish("quote.sent", {
         "quote_id": quote.id, "quote_number": quote.quote_number,

@@ -1,0 +1,84 @@
+from __future__ import annotations
+
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.core.dependencies import get_current_user, require_role
+from app.models.enums import UserRole
+from app.models.feature_store_daily import OpportunityFeaturesDaily
+from app.models.user import User
+from app.services.feature_store_builder import build_daily_feature_store
+
+
+router = APIRouter(prefix="/v4", tags=["V4 Feature Store"])
+
+
+def _require_v4_feature_store():
+    if not settings.FEATURE_V4_FEATURE_STORE:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+@router.post("/feature-store/build")
+async def build_feature_store(
+    snapshot_date: date | None = Query(default=None),
+    current_user: User = Depends(require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS)),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_v4_feature_store),
+):
+    """Build daily snapshots (idempotent). Manager/Ops only."""
+    result = await build_daily_feature_store(db, snapshot_date=snapshot_date)
+    return {
+        "snapshot_date": result.snapshot_date.isoformat(),
+        "opportunities_upserted": result.opportunities_upserted,
+        "accounts_upserted": result.accounts_upserted,
+        "reps_upserted": result.reps_upserted,
+    }
+
+
+@router.get("/opportunities/{opportunity_id}/features/latest")
+async def get_latest_opportunity_features(
+    opportunity_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_v4_feature_store),
+):
+    """Read latest feature snapshot for an opportunity (rep-scoped by existing RBAC at opp layer)."""
+    row = (
+        await db.execute(
+            select(OpportunityFeaturesDaily)
+            .where(OpportunityFeaturesDaily.opportunity_id == opportunity_id)
+            .order_by(OpportunityFeaturesDaily.snapshot_date.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if not row:
+        return {"data": None}
+    return {
+        "data": {
+            "opportunity_id": row.opportunity_id,
+            "snapshot_date": row.snapshot_date.isoformat(),
+            "deal_age_days": row.deal_age_days,
+            "days_since_last_rep_touch": row.days_since_last_rep_touch,
+            "days_since_last_buyer_touch": row.days_since_last_buyer_touch,
+            "rep_touch_count_14d": row.rep_touch_count_14d,
+            "buyer_reply_count_14d": row.buyer_reply_count_14d,
+            "meeting_count_30d": row.meeting_count_30d,
+            "quote_count": row.quote_count,
+            "latest_discount_pct": row.latest_discount_pct,
+            "competitor_mentions_30d": row.competitor_mentions_30d,
+            "pricing_objections_30d": row.pricing_objections_30d,
+            "positive_signal_count_14d": row.positive_signal_count_14d,
+            "negative_signal_count_14d": row.negative_signal_count_14d,
+            "momentum_score": row.momentum_score,
+            "momentum_band": row.momentum_band,
+            "momentum_drivers_json": row.momentum_drivers_json,
+            "buyer_state": row.buyer_state,
+            "close_probability": row.close_probability,
+        }
+    }
+

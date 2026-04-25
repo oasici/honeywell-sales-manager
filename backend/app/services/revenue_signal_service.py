@@ -54,6 +54,18 @@ async def emit_signal(
             logger.debug("Duplicate signal event_key=%s, skipping", event_key)
             return None
 
+    # V4 convention: if metadata is present, encourage an explainability envelope
+    if metadata is not None and "drivers" not in metadata and "recommended_actions" not in metadata:
+        metadata = {
+            "model_version": "v4-mvp",
+            "value": signal_type,
+            "confidence": confidence,
+            "drivers": [],
+            "benchmark_context": {},
+            "recommended_actions": [recommended_action] if recommended_action else [],
+            "raw": metadata,
+        }
+
     signal = RevenueSignal(
         signal_type=signal_type,
         source_entity_type=source_entity_type,

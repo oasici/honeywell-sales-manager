@@ -187,6 +187,33 @@ class Settings(BaseSettings):
     # Required by: v2 Kanban board, pipeline snapshot scheduler task
     FEATURE_V2_BOARD: bool = False
 
+    # --- V4 Intelligence Backbone (Feature Store) ---
+    # Depends on: DATABASE_URL
+    # Required by: daily snapshots (opportunity/account/rep), momentum, buyer state, network benchmarks
+    FEATURE_V4_FEATURE_STORE: bool = False
+
+    # --- V4 additive read-model (no write-path changes) ---
+    # Depends on: DATABASE_URL
+    # Exposes read-only projection endpoints (e.g. normalized sales_event timeline).
+    FEATURE_V4_ADDITIVE_READMODEL: bool = False
+
+    # --- V4 shadow sales_events table (nightly sync; no CRM writer changes) ---
+    # Depends on: DATABASE_URL
+    # Materializes v4_sales_events_shadow from activity_logs, opportunity_events, revenue_signals.
+    FEATURE_V4_SALES_EVENTS_SHADOW: bool = False
+
+    # --- V4 deal replay snapshots (derived from additive timeline; manager/ops materialize) ---
+    # Depends on: DATABASE_URL (uses same timeline reads as additive read-model; no CRM writer changes)
+    FEATURE_V4_DEAL_REPLAY: bool = False
+
+    # --- V4 Sales DNA (read-only miner → v4_sales_dna_snapshots; manager/ops materialize) ---
+    FEATURE_V4_SALES_DNA: bool = False
+
+    # Nightly learning batch caps (UTC yesterday); scheduler jobs skip when flags off.
+    V4_SALES_DNA_NIGHTLY_MAX_OPPORTUNITIES: int = 300
+    V4_DEAL_REPLAY_NIGHTLY_MAX_OPPORTUNITIES: int = 200
+
+    # --- Board & Pipeline ---
     # Depends on: DATABASE_URL
     # Required by: Tasks CRUD + recommended actions panel (Sprint 2 prerequisite)
     FEATURE_TASKS: bool = False

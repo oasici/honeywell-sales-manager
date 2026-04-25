@@ -48,6 +48,13 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.stakeholders import router as stakeholders_router
 from app.api.v1.customer_health import router as customer_health_router
+from app.api.v1.feature_store import router as feature_store_router
+from app.api.v1.buyer_state import router as buyer_state_router
+from app.api.v1.decision_gaps import router as decision_gaps_router
+from app.api.v1.network_benchmarks import router as network_benchmarks_router
+from app.api.v1.target_alignment import router as target_alignment_router
+from app.api.v1.deal_replay import router as deal_replay_router
+from app.api.v1.sales_dna import router as sales_dna_router
 from app.api.v1.customers import router as customers_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.duplicates import router as duplicates_router
@@ -67,6 +74,13 @@ v1_router.include_router(emails_router)
 v1_router.include_router(parts_router)
 v1_router.include_router(prices_router)
 v1_router.include_router(customer_health_router)
+v1_router.include_router(feature_store_router)
+v1_router.include_router(buyer_state_router)
+v1_router.include_router(decision_gaps_router)
+v1_router.include_router(network_benchmarks_router)
+v1_router.include_router(target_alignment_router)
+v1_router.include_router(deal_replay_router)
+v1_router.include_router(sales_dna_router)
 v1_router.include_router(customers_router)
 v1_router.include_router(quotes_router)
 v1_router.include_router(analytics_router)
