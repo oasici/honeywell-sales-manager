@@ -1,0 +1,81 @@
+# Dependabot config — keeps backend, frontend, and CI dependencies fresh
+# without flooding the PR queue. Critical security advisories ship as
+# their own PRs immediately; everything else lands as a weekly digest.
+#
+# Tuning notes:
+# - "weekly" runs Mondays in repo TZ. Picks the start of the work week
+#   so we triage advisories before doing other work.
+# - "open-pull-requests-limit: 5" caps simultaneous bumps so the queue
+#   doesn't drown a sprint when a major framework rev hits.
+# - npm "groups" merge React/TanStack ecosystems and dev-deps into single
+#   PRs. Each major framework changes together; bumping them in lockstep
+#   matches how we'd manually upgrade them anyway.
+# - Security advisories ignore the limit and the schedule entirely.
+
+version: 2
+
+updates:
+  # ── Backend (Python) ──
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "deps"
+      - "backend"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      python-dev-deps:
+        patterns:
+          - "pytest*"
+          - "ruff"
+          - "black"
+          - "mypy"
+          - "pip-audit"
+
+  # ── Frontend (npm) ──
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "deps"
+      - "frontend"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      react-ecosystem:
+        patterns:
+          - "react*"
+          - "@tanstack/*"
+          - "react-router*"
+      vite-ecosystem:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vitest"
+      sentry-ecosystem:
+        patterns:
+          - "@sentry/*"
+      dev-deps:
+        dependency-type: "development"
+
+  # ── GitHub Actions ──
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "deps"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"

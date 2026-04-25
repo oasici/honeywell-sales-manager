@@ -82,9 +82,73 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: pip install -r requirements.txt pip-audit
-      - name: Dependency audit
+      - name: Dependency audit (JSON report)
+        id: audit
         working-directory: backend
-        run: pip-audit --strict || true
+        # ``pip-audit -f json`` returns non-zero when vulns are found, but
+        # we still want the JSON so the next step can decide severity. The
+        # ``|| true`` here only prevents the command itself from killing the
+        # job; the gate that follows is what actually fails the build.
+        run: pip-audit --strict -f json -o pip-audit.json || true
+      - name: Fail on HIGH or CRITICAL vulnerabilities
+        working-directory: backend
+        run: |
+          # Older pip-audit emits ``[]`` when nothing is found; tolerate that.
+          # Real findings are objects with ``vulns`` keyed by severity-bearing
+          # advisory IDs. We use jq's ``walk`` to find any "fix_versions"-bearing
+          # entry and pull severity off the GHSA/CVE ID heuristically.
+          if [ ! -s pip-audit.json ]; then
+            echo "::warning::pip-audit produced no JSON output"
+            exit 0
+          fi
+          # Most pip-audit JSON shapes expose ``vulns`` per dependency. We
+          # don't have access to severity from pip-audit alone, so we fail
+          # whenever ANY vuln is reported and let the operator triage.
+          # Dependabot security PRs handle the patch flow.
+          VULN_COUNT=$(jq '[.dependencies[]?.vulns[]?] | length' pip-audit.json)
+          echo "Vulnerabilities found: ${VULN_COUNT}"
+          if [ "${VULN_COUNT}" -gt 0 ]; then
+            jq '.dependencies[] | select(.vulns | length > 0) | {name, version, vulns}' pip-audit.json
+            echo "::error::pip-audit found ${VULN_COUNT} vulnerabilities — review and fix before merging."
+            exit 1
+          fi
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-${{ github.sha }}
+          path: backend/pip-audit.json
+          retention-days: 30
+
+  frontend-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: npm audit (HIGH and CRITICAL)
+        working-directory: frontend
+        # ``--audit-level=high`` exits non-zero when HIGH or CRITICAL
+        # vulnerabilities are found. Lower-severity advisories surface in
+        # Dependabot's weekly PRs and don't gate the build.
+        run: npm audit --audit-level=high --omit=dev
+      - name: npm audit JSON report
+        if: always()
+        working-directory: frontend
+        run: npm audit --json --omit=dev > npm-audit.json || true
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-${{ github.sha }}
+          path: frontend/npm-audit.json
+          retention-days: 30
 
   frontend-build:
     runs-on: ubuntu-latest
