@@ -1,0 +1,67 @@
+name: Manual Alembic Upgrade
+
+# One-shot workflow to apply pending alembic migrations against the
+# production DB. Trigger from GitHub Actions UI when the in-container
+# alembic step doesn't run (Render dashboard start command override,
+# cached image, etc.).
+#
+# Required secret:
+#   PROD_DATABASE_URL — postgres URL with write access. Use the
+#   "External Database URL" from Render → Database → Connections.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "MIGRATE" to confirm running alembic upgrade head against PROD'
+        required: true
+        default: ''
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Confirm intent
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "MIGRATE" ]; then
+            echo "::error::Confirmation text mismatch. Type MIGRATE in the input field."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Verify PROD_DATABASE_URL secret is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      - name: Show alembic current state
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: python -m alembic current
+
+      - name: Run alembic upgrade head
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: python -m alembic upgrade head
+
+      - name: Confirm new state
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: python -m alembic current
