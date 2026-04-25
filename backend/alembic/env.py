@@ -46,6 +46,22 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection):
+    # The default ``alembic_version.version_num`` column is ``varchar(32)``,
+    # which truncates revision IDs longer than 32 chars (we have a couple of
+    # 33–34 char V4 IDs). Widen the column up-front so the upgrade can
+    # advance past those revisions. Idempotent — ALTER COLUMN TYPE is a
+    # no-op when the type already matches. Skipped on SQLite (used by
+    # tests) since SQLite doesn't enforce VARCHAR length.
+    if connection.dialect.name == "postgresql":
+        from sqlalchemy import text
+
+        connection.execute(
+            text(
+                "ALTER TABLE IF EXISTS alembic_version "
+                "ALTER COLUMN version_num TYPE varchar(255)"
+            )
+        )
+
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()
