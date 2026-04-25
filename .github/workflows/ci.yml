@@ -82,7 +82,7 @@ jobs:
             -q --tb=short
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.sha }}
           path: backend/coverage.xml
@@ -134,7 +134,7 @@ jobs:
           fi
       - name: Upload audit report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pip-audit-${{ github.sha }}
           path: backend/pip-audit.json
@@ -164,7 +164,7 @@ jobs:
         run: npm audit --json --omit=dev > npm-audit.json || true
       - name: Upload audit report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: npm-audit-${{ github.sha }}
           path: frontend/npm-audit.json
