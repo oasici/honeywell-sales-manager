@@ -45,6 +45,8 @@ import {
   ListFilter,
   Tag,
   UsersRound,
+  Database,
+  History,
 } from 'lucide-react';
 import { approvalsApi } from '../../lib/api';
 
@@ -442,6 +444,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <NavLink to="/admin/chat" className={navLinkClass} onClick={onNavigate}>
               <MessageSquare size={18} className="shrink-0" />
               {t('nav.live_chat')}
+            </NavLink>
+            <NavLink to="/audit" className={navLinkClass} onClick={onNavigate}>
+              <History size={18} className="shrink-0" />
+              Denetim Kayıtları
+            </NavLink>
+            <NavLink to="/kvkk-export" className={navLinkClass} onClick={onNavigate}>
+              <Database size={18} className="shrink-0" />
+              KVKK Veri Aktarma
             </NavLink>
           </>
         )}

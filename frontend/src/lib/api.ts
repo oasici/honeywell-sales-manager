@@ -788,6 +788,17 @@ export const auditApi = {
     const { data } = await api.get('/audit/', { params });
     return data;
   },
+  exportCsv: async (params?: Record<string, unknown>): Promise<Blob> => {
+    const response = await api.get('/audit/export/csv', {
+      params,
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+  exportUserData: async (userId: number) => {
+    const { data } = await api.get(`/audit/data-export/${userId}`);
+    return data;
+  },
 };
 
 // ── v2: Opportunities + Board ──────────────────────

@@ -21,6 +21,7 @@ const SettingsPage = lazy(() => import('../features/settings/SettingsPage'));
 const ReportsPage = lazy(() => import('../features/admin/ReportsPage'));
 const UserManagementPage = lazy(() => import('../features/admin/UserManagementPage'));
 const AuditLogPage = lazy(() => import('../features/admin/AuditLogPage'));
+const DataExportPage = lazy(() => import('../features/admin/DataExportPage'));
 
 // v2 pages (behind FEATURE_V2_BOARD flag)
 const BoardPage = lazy(() => import('../features/board/BoardPage'));
@@ -327,6 +328,16 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <AuditLogPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="kvkk-export"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <DataExportPage />
               </ErrorBoundary>
             </Suspense>
           }
