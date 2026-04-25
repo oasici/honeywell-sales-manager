@@ -124,6 +124,20 @@ class Settings(BaseSettings):
     DB_POOL_TIMEOUT: int = 30
     DB_POOL_RECYCLE: int = 300
 
+    # ── KVKK / Data Retention ──
+    # Off by default — turning this on causes daily auto-anonymization of
+    # PII on records older than the thresholds below. Once anonymized,
+    # the data is unrecoverable, so we make the operator explicitly opt in
+    # per environment instead of relying on a code-default.
+    KVKK_AUTO_ANONYMIZE_ENABLED: bool = False
+    # Email request bodies/subjects/sender addresses older than N days are
+    # nulled. Defaults to 2 years per the runbook.
+    KVKK_EMAIL_RETENTION_DAYS: int = 730
+    # Customers whose latest closed opportunity closed more than N days ago
+    # (and have no active opportunities) get their contact PII anonymized.
+    # Defaults to 3 years.
+    KVKK_OPPORTUNITY_RETENTION_DAYS: int = 1095
+
     # ── Security ──
     ALLOWED_UPLOAD_EXTENSIONS: str = ".csv,.xlsx,.xls"
     MAX_UPLOAD_SIZE_MB: int = 10

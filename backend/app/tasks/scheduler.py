@@ -509,6 +509,38 @@ async def check_data_retention_task():
         logger.error("KVKK retention check failed: %s", e)
 
 
+async def kvkk_anonymization_task():
+    """Daily: auto-anonymize records past their KVKK retention threshold.
+
+    Gated behind ``settings.KVKK_AUTO_ANONYMIZE_ENABLED`` because the
+    operation is irreversible. Operators flip the flag in production
+    after running the same logic in dry-run via the runbook.
+    """
+    from app.core.config import settings as cfg
+    from app.core.database import async_session
+    from app.services.kvkk_retention_service import run_retention_anonymization
+
+    if not cfg.KVKK_AUTO_ANONYMIZE_ENABLED:
+        return
+
+    try:
+        async with async_session() as db:
+            summary = await run_retention_anonymization(
+                db,
+                email_retention_days=cfg.KVKK_EMAIL_RETENTION_DAYS,
+                opportunity_retention_days=cfg.KVKK_OPPORTUNITY_RETENTION_DAYS,
+                dry_run=False,
+            )
+            await db.commit()
+            logger.info(
+                "KVKK auto-anonymize completed: %d email_requests, %d customers",
+                summary["email_count"],
+                summary["customer_count"],
+            )
+    except Exception as e:
+        logger.error("KVKK auto-anonymize failed: %s", e)
+
+
 async def advance_playbook_executions_task():
     """Advance due playbook executions (runs every 15 minutes)."""
     if not settings.FEATURE_REVENUE_COCKPIT:
@@ -797,6 +829,15 @@ def start_scheduler():
         "interval",
         hours=24,
         id="kvkk_retention_check",
+        replace_existing=True,
+    )
+    # Daily 03:00 UTC anonymization sweep — gated by KVKK_AUTO_ANONYMIZE_ENABLED.
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("kvkk_anonymize", kvkk_anonymization_task)),
+        "cron",
+        hour=3,
+        minute=0,
+        id="kvkk_anonymize",
         replace_existing=True,
     )
     scheduler.add_job(
