@@ -524,7 +524,9 @@ export const quotesApi = {
         responseType: 'blob',
         _skipToast: true,
       } as ApiRequestConfig);
-      const blob = new Blob([data], { type: headers['content-type'] || 'application/pdf' });
+      const contentType = headers['content-type'];
+      const mimeType = typeof contentType === 'string' ? contentType : 'application/pdf';
+      const blob = new Blob([data], { type: mimeType });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
