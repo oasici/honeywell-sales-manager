@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.rate_limit import enforce_ai_rate_limit
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.customer import Customer
 from app.models.email_request import EmailRequest
@@ -36,7 +37,11 @@ from app.api.v1.opportunities import _last_activity_max_by_opportunity_ids, _opp
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/ai", tags=["AI (v2)"])
+router = APIRouter(
+    prefix="/ai",
+    tags=["AI (v2)"],
+    dependencies=[Depends(enforce_ai_rate_limit)],
+)
 
 # Summary cache: hash(entity_type+entity_id) → {"summary":..., "ts":...}
 _summary_cache: dict[str, dict] = {}

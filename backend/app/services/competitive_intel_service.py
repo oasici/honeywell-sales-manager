@@ -9,6 +9,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import CircuitOpenError
+from app.core.claude_client import claude_messages_create
 from app.core.config import settings
 from app.models.competitor_mention import CompetitorMention
 
@@ -119,10 +121,6 @@ async def _ai_scan(
 ) -> list[dict] | None:
     """Use Claude to detect competitor mentions with sentiment."""
     try:
-        import anthropic
-
-        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-
         prompt = (
             "Asagidaki metinde rakip firma bahislerini tespit et.\n"
             f"Bilinen rakipler: {', '.join(KNOWN_COMPETITORS)}\n"
@@ -134,7 +132,7 @@ async def _ai_scan(
             "Hicbir rakip yoksa bos array don: []"
         )
 
-        response = await client.messages.create(
+        response = await claude_messages_create(
             model=settings.AI_MODEL_NAME,
             max_tokens=512,
             system="Sen bir rekabet analiz asistanisin. Metinlerde rakip firma bahislerini tespit et.",
@@ -158,6 +156,9 @@ async def _ai_scan(
                     for m in parsed
                     if m.get("competitor_name")
                 ]
+    except CircuitOpenError as exc:
+        logger.warning("Claude breaker open; skipping AI competitor scan: %s", exc)
+        return None
     except Exception as exc:
         logger.error("Claude rekabet analizi hatasi: %s", exc)
 

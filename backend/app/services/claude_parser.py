@@ -5,8 +5,8 @@ import hashlib
 import logging
 from collections import OrderedDict
 
-from anthropic import AsyncAnthropic
-
+from app.core.circuit_breaker import CircuitOpenError
+from app.core.claude_client import claude_messages_create
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -224,10 +224,6 @@ async def parse_email(body: str, subject: str = "") -> dict:
 
     logger.info("Claude parsing initiated")
 
-    client = AsyncAnthropic(
-        api_key=settings.ANTHROPIC_API_KEY,
-        timeout=30.0,
-    )
     model = settings.AI_MODEL_NAME
     max_tokens = settings.AI_MAX_TOKENS
     user_message = f"Subject: {subject}\n\n{body}" if subject else body
@@ -235,7 +231,8 @@ async def parse_email(body: str, subject: str = "") -> dict:
     last_error: Exception | None = None
     for attempt in range(MAX_RETRIES):
         try:
-            response = await client.messages.create(
+            response = await claude_messages_create(
+                timeout=30.0,
                 model=model,
                 max_tokens=max_tokens,
                 system=_SYSTEM_PROMPT,
@@ -266,6 +263,10 @@ async def parse_email(body: str, subject: str = "") -> dict:
                 response.stop_reason,
             )
             return _empty_result()
+
+        except CircuitOpenError as exc:
+            logger.warning("Claude breaker open; skipping retries: %s", exc)
+            raise ClaudeApiError(f"Claude breaker open: {exc}") from exc
 
         except Exception as exc:
             last_error = exc

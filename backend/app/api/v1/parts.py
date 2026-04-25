@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.rate_limit import enforce_upload_rate_limit
 from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.spare_part import SparePart
@@ -182,7 +183,11 @@ async def delete_part(
     return {"message": f"Part {part_id} deactivated"}
 
 
-@router.post("/import", status_code=201)
+@router.post(
+    "/import",
+    status_code=201,
+    dependencies=[Depends(enforce_upload_rate_limit)],
+)
 async def import_catalog(
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.OPERATIONS, UserRole.SALES_MANAGER)),

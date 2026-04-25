@@ -108,6 +108,21 @@ class Settings(BaseSettings):
     # ── Rate Limiting ──
     RATE_LIMIT_LOGIN: str = "5/minute"
     RATE_LIMIT_API: str = "100/minute"
+    # AI endpoints — protect against Claude cost amplification.
+    # Per-user (falls back to IP if unauthenticated).
+    RATE_LIMIT_AI: str = "60/minute"
+    # File uploads — bounds disk/memory pressure on top of size limits + PDF semaphore.
+    RATE_LIMIT_UPLOAD: str = "10/minute"
+
+    # ── Database Pool ──
+    # Sized for gunicorn -w 4 workers. Total ceiling = workers * (pool + overflow).
+    # With defaults: 4 * (20 + 10) = 120 — well below typical pg max_connections=200
+    # while leaving headroom for migrations/admin. Tune down on small Postgres tiers
+    # (Render free = 97 max_connections → use DB_POOL_SIZE=10, DB_MAX_OVERFLOW=5).
+    DB_POOL_SIZE: int = 20
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 300
 
     # ── Security ──
     ALLOWED_UPLOAD_EXTENSIONS: str = ".csv,.xlsx,.xls"

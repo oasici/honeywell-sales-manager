@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
+from app.core.rate_limit import enforce_upload_rate_limit
 from app.models.enums import UserRole
 from app.models.quote import Quote
 from app.models.user import User
@@ -117,7 +118,11 @@ async def create_quote(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.post("/from-pdf", status_code=201)
+@router.post(
+    "/from-pdf",
+    status_code=201,
+    dependencies=[Depends(enforce_upload_rate_limit)],
+)
 async def create_quote_from_pdf(
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),

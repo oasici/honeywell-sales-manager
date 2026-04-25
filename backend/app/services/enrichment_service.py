@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import CircuitOpenError
+from app.core.claude_client import claude_messages_create
 from app.core.config import settings
 from app.models.customer import Customer
 
@@ -50,16 +52,19 @@ class EnrichmentService:
     async def _fetch_enrichment_data(self, prompt: str, domain: str) -> dict:
         """Fetch enrichment data from Claude AI or fall back to basic enrichment."""
         if settings.ANTHROPIC_API_KEY:
-            return await self._call_claude(prompt)
+            try:
+                return await self._call_claude(prompt)
+            except CircuitOpenError as exc:
+                logger.warning(
+                    "Claude breaker open; using basic enrichment fallback: %s", exc
+                )
+                return self._basic_fallback(domain)
 
         return self._basic_fallback(domain)
 
     async def _call_claude(self, prompt: str) -> dict:
         """Call Claude API and parse the JSON response."""
-        import anthropic
-
-        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        response = await client.messages.create(
+        response = await claude_messages_create(
             model=settings.AI_MODEL_NAME,
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}],

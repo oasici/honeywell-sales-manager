@@ -9,6 +9,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import CircuitOpenError
+from app.core.claude_client import claude_messages_create
 from app.core.config import settings
 from app.models.activity_log import ActivityLog
 from app.models.opportunity import Opportunity, Task
@@ -133,12 +135,6 @@ async def _gather_context(db: AsyncSession, opportunity_id: int) -> dict:
 
 async def _generate_via_claude(context: dict, max_actions: int) -> list[dict]:
     """Use Claude tool-use to generate sales actions."""
-    try:
-        import anthropic
-    except ImportError:
-        logger.warning("anthropic package not installed, skipping AI generation")
-        return []
-
     opp = context["opportunity"]
     if not opp:
         return []
@@ -236,8 +232,7 @@ async def _generate_via_claude(context: dict, max_actions: int) -> list[dict]:
     }
 
     try:
-        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        response = await client.messages.create(
+        response = await claude_messages_create(
             model=settings.AI_MODEL_NAME,
             max_tokens=settings.AI_MAX_TOKENS,
             system=(
@@ -252,6 +247,10 @@ async def _generate_via_claude(context: dict, max_actions: int) -> list[dict]:
         for block in response.content:
             if block.type == "tool_use" and block.name == "generate_sales_actions":
                 return block.input.get("actions", [])
+
+    except CircuitOpenError as exc:
+        logger.warning("Claude breaker open; falling back to rule-based actions: %s", exc)
+        return []
 
     except Exception as exc:
         logger.error("Claude action generation failed: %s", exc)

@@ -8,6 +8,8 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import CircuitOpenError
+from app.core.claude_client import claude_messages_create
 from app.core.config import settings
 from app.models.email_request import EmailRequest
 
@@ -64,9 +66,6 @@ async def triage_email(db: AsyncSession, email_id: int) -> dict:
 async def _claude_triage(email: EmailRequest, combined_text: str) -> dict | None:
     """Use Claude to classify email priority."""
     try:
-        import anthropic
-
-        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
         prompt = (
             "Asagidaki satis emailinin oncelik seviyesini belirle.\n"
             f"Gonderen: {email.from_address}\n"
@@ -77,7 +76,7 @@ async def _claude_triage(email: EmailRequest, combined_text: str) -> dict | None
             'JSON formatinda cevap ver: {"priority": "urgent|high|normal|low", "reason": "kisa aciklama"}'
         )
 
-        response = await client.messages.create(
+        response = await claude_messages_create(
             model=settings.AI_MODEL_NAME,
             max_tokens=256,
             system="Sen bir satis email onceliklendirme asistanisin. Her emailin oncelik seviyesini belirle.",
@@ -93,6 +92,9 @@ async def _claude_triage(email: EmailRequest, combined_text: str) -> dict | None
                     "priority": parsed["priority"],
                     "reason": parsed.get("reason", "AI siniflandirma"),
                 }
+    except CircuitOpenError as exc:
+        logger.warning("Claude breaker open; using fallback: %s", exc)
+        return None
     except Exception as exc:
         logger.error("Claude triage hatasi: %s", exc)
 

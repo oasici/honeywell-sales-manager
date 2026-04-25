@@ -18,16 +18,20 @@ else:
     elif not _db_url.startswith("postgresql+asyncpg://"):
         _db_url = f"postgresql+asyncpg://{_db_url}"
 
-    # Pool size per worker — conservative for multi-worker (gunicorn -w 4)
-    # Total connections: 4 workers x (5+10) = 60 max
-    # With PgBouncer: multiplexed, safe for PostgreSQL default max_connections=100
+    # Pool size per worker — env-driven so we can tune without redeploys.
+    # Total ceiling = workers * (DB_POOL_SIZE + DB_MAX_OVERFLOW).
+    # Defaults assume 4 workers + Postgres max_connections >= 150. Drop the
+    # values for free/tiny tiers (see config.py for Render-free guidance).
+    # pool_pre_ping=True catches stale connections after Render's idle drops;
+    # pool_recycle bounds connection age to dodge proxy-side TCP timeouts.
     engine = create_async_engine(
         _db_url,
         echo=False,
-        pool_size=5,
-        max_overflow=10,
+        pool_size=settings.DB_POOL_SIZE,
+        max_overflow=settings.DB_MAX_OVERFLOW,
+        pool_timeout=settings.DB_POOL_TIMEOUT,
         pool_pre_ping=True,
-        pool_recycle=300,
+        pool_recycle=settings.DB_POOL_RECYCLE,
         connect_args={"server_settings": {"client_encoding": "utf8"}},
     )
 

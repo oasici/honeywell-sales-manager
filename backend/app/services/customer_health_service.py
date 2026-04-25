@@ -15,6 +15,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import CircuitOpenError
+from app.core.claude_client import claude_messages_create
 from app.core.config import settings
 from app.models.customer import Customer
 
@@ -217,10 +219,6 @@ class CustomerHealthService:
     async def _claude_churn_prediction(self, health_data: dict) -> dict | None:
         """Use Claude for churn risk prediction."""
         try:
-            import anthropic
-
-            client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-
             indicators_text = "\n".join(
                 f"- {ind['label']}: {ind['score']}/100 ({ind['description']})"
                 for ind in health_data["indicators"]
@@ -238,7 +236,7 @@ class CustomerHealthService:
                 '"retention_actions": ["..."]}'
             )
 
-            response = await client.messages.create(
+            response = await claude_messages_create(
                 model=settings.AI_MODEL_NAME,
                 max_tokens=512,
                 system=(
@@ -261,6 +259,9 @@ class CustomerHealthService:
                         "retention_actions": parsed.get("retention_actions", []),
                         "method": "ai",
                     }
+        except CircuitOpenError as exc:
+            logger.warning("Claude breaker open; using fallback: %s", exc)
+            return None
         except Exception as exc:
             logger.error("Claude churn prediction hatasi: %s", exc)
 

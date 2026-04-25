@@ -8,6 +8,8 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import CircuitOpenError
+from app.core.claude_client import claude_messages_create
 from app.core.config import settings
 from app.models.engagement import Transcript
 
@@ -56,10 +58,6 @@ async def summarize_transcript(db: AsyncSession, transcript_id: int) -> dict:
 async def _claude_summarize(transcript: Transcript, content: str) -> dict | None:
     """Use Claude to summarize transcript."""
     try:
-        import anthropic
-
-        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-
         prompt = (
             f"Baslik: {transcript.title}\n"
             f"Kaynak: {transcript.source}\n"
@@ -74,7 +72,7 @@ async def _claude_summarize(transcript: Transcript, content: str) -> dict | None
             '"key_topics": ["konu 1", "konu 2"]}'
         )
 
-        response = await client.messages.create(
+        response = await claude_messages_create(
             model=settings.AI_MODEL_NAME,
             max_tokens=512,
             system=(
@@ -101,6 +99,8 @@ async def _claude_summarize(transcript: Transcript, content: str) -> dict | None
                 "key_topics": parsed.get("key_topics", []),
                 "method": "ai",
             }
+    except CircuitOpenError as exc:
+        logger.warning("Claude breaker open; falling back to rule-based: %s", exc)
     except Exception as exc:
         logger.error("Claude transkript ozet hatasi: %s", exc)
 

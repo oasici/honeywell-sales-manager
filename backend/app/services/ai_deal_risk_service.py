@@ -10,6 +10,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.circuit_breaker import CircuitOpenError
+from app.core.claude_client import claude_messages_create
 from app.core.config import settings
 from app.models.activity_log import ActivityLog
 from app.models.opportunity import Opportunity, OpportunitySignal
@@ -108,10 +110,6 @@ async def _gather_deal_context(db: AsyncSession, opp: Opportunity) -> dict:
 async def _claude_risk_assessment(opp: Opportunity, context: dict) -> dict | None:
     """Use Claude for risk assessment with structured output."""
     try:
-        import anthropic
-
-        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-
         signal_summary = ", ".join(
             f"{s.signal_type}({s.severity})" for s in context["signals"][:10]
         )
@@ -151,7 +149,7 @@ async def _claude_risk_assessment(opp: Opportunity, context: dict) -> dict | Non
 
         prompt = "\n".join(prompt_parts)
 
-        response = await client.messages.create(
+        response = await claude_messages_create(
             model=settings.AI_MODEL_NAME,
             max_tokens=512,
             system=(
@@ -188,6 +186,9 @@ async def _claude_risk_assessment(opp: Opportunity, context: dict) -> dict | Non
                 })
 
                 return result
+    except CircuitOpenError as exc:
+        logger.warning("Claude breaker open; using rule-based fallback: %s", exc)
+        return None
     except Exception as exc:
         logger.error("Claude risk assessment hatasi: %s", exc)
 
@@ -361,10 +362,6 @@ async def predict_close_probability(db: AsyncSession, opportunity_id: int) -> di
 async def _claude_close_prediction(opp: Opportunity, context: dict) -> dict | None:
     """Use Claude for close probability prediction."""
     try:
-        import anthropic
-
-        client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-
         owner_name = opp.owner.full_name if opp.owner else "Bilinmiyor"
         customer_name = opp.customer.name if opp.customer else "Bilinmiyor"
 
@@ -387,7 +384,7 @@ async def _claude_close_prediction(opp: Opportunity, context: dict) -> dict | No
             '"next_steps": ["..."]}'
         )
 
-        response = await client.messages.create(
+        response = await claude_messages_create(
             model=settings.AI_MODEL_NAME,
             max_tokens=512,
             system=(
@@ -410,6 +407,9 @@ async def _claude_close_prediction(opp: Opportunity, context: dict) -> dict | No
                     "next_steps": parsed.get("next_steps", []),
                     "method": "ai",
                 }
+    except CircuitOpenError as exc:
+        logger.warning("Claude breaker open; using rule-based fallback: %s", exc)
+        return None
     except Exception as exc:
         logger.error("Claude close prediction hatasi: %s", exc)
 

@@ -47,6 +47,22 @@ services:
       # /api/sentry-tunnel. Set to the project ID from VITE_SENTRY_DSN path.
       - key: SENTRY_ALLOWED_PROJECT_IDS
         sync: false
+      # ── DB pool — sized for Render Postgres free tier (max_connections=97).
+      # 4 workers * (10+5) = 60 connections, leaves headroom for migrations.
+      # Bump these when upgrading to a paid tier with higher connection ceiling.
+      - key: DB_POOL_SIZE
+        value: "10"
+      - key: DB_MAX_OVERFLOW
+        value: "5"
+      - key: DB_POOL_TIMEOUT
+        value: "30"
+      - key: DB_POOL_RECYCLE
+        value: "300"
+      # ── Rate limits — production defaults (per-user)
+      - key: RATE_LIMIT_AI
+        value: "60/minute"
+      - key: RATE_LIMIT_UPLOAD
+        value: "10/minute"
 
   - type: web
     name: honeywell-frontend

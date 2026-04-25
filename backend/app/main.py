@@ -727,16 +727,17 @@ async def health_check():
     except Exception:
         checks["database"] = "error"
 
-    # Redis check
+    # Redis check — get_redis() is sync; the connection itself is lazy so
+    # ping() is what actually exercises the wire.
     try:
         from app.core.redis_client import get_redis
 
-        redis = await get_redis()
-        if redis:
+        redis = get_redis()
+        if redis is None:
+            checks["redis"] = "unavailable"
+        else:
             await redis.ping()
             checks["redis"] = "ok"
-        else:
-            checks["redis"] = "unavailable"
     except Exception:
         checks["redis"] = "error"
 
@@ -767,10 +768,37 @@ async def health_check():
     except Exception:
         checks["event_bus"] = "unknown"
 
+    # Circuit breaker states — operational visibility for external API health
+    circuits: dict[str, dict[str, str | int]] = {}
+    try:
+        from app.core.circuit_breaker import (
+            claude_breaker,
+            currency_breaker,
+            graph_breaker,
+            qdrant_breaker,
+        )
+
+        for breaker in (claude_breaker, graph_breaker, currency_breaker, qdrant_breaker):
+            circuits[breaker.name] = {
+                "state": breaker.state,
+                "failure_count": breaker._failure_count,
+            }
+    except Exception:
+        circuits = {"error": "unavailable"}
+
     is_healthy = checks["database"] == "ok"
+    any_breaker_open = any(
+        isinstance(c, dict) and c.get("state") == "open" for c in circuits.values()
+    )
+    if any_breaker_open and is_healthy:
+        status = "degraded"
+    else:
+        status = "healthy" if is_healthy else "degraded"
+
     return {
-        "status": "healthy" if is_healthy else "degraded",
+        "status": status,
         "checks": checks,
+        "circuits": circuits,
         "version": "2.0.0",
         "uptime_seconds": round(time.time() - _start_time),
     }

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import require_role
 from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.rate_limit import enforce_upload_rate_limit
 from app.core.security import hash_password, validate_password_strength
 from app.models.enums import UserRole
 from app.models.user import User
@@ -158,7 +159,10 @@ async def reset_user_password(
     return {"message": "Sifre sifirlandi", "user_id": user.id, "email": user.email}
 
 
-@router.post("/bulk-import")
+@router.post(
+    "/bulk-import",
+    dependencies=[Depends(enforce_upload_rate_limit)],
+)
 async def bulk_import_users(
     file: UploadFile,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
