@@ -1,0 +1,84 @@
+name: Weekly Load Test
+
+# Sunday 02:00 UTC. Picks the lowest-traffic window so the staging
+# baseline isn't poisoned by overlap with deploy/QA work.
+on:
+  schedule:
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Which load test to run"
+        type: choice
+        options: [smoke, baseline, stress, soak]
+        default: "baseline"
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      BASE_URL: ${{ secrets.LOAD_TEST_BASE_URL }}
+      TEST_USER_EMAIL: ${{ secrets.LOAD_TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.LOAD_TEST_USER_PASSWORD }}
+      SCRIPT: ${{ github.event.inputs.script || 'baseline' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required secrets
+        run: |
+          for var in BASE_URL TEST_USER_EMAIL TEST_USER_PASSWORD; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Required secret $var is not set."
+              echo "::error::Configure it under Settings → Secrets → Actions."
+              exit 1
+            fi
+          done
+          # Defense in depth: the k6 guard.js will also check, but failing
+          # earlier here surfaces misconfig in the workflow log directly.
+          case "$BASE_URL" in
+            *honeywell-backend.onrender.com*|*production*|*PROD*)
+              echo "::error::BASE_URL '$BASE_URL' looks like production."
+              exit 1
+              ;;
+          esac
+
+      - name: Install k6
+        run: |
+          curl https://dl.k6.io/key.gpg | sudo apt-key add -
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -qq
+          sudo apt-get install -yqq k6
+
+      - name: Run k6 load test
+        working-directory: load-test
+        run: |
+          k6 run \
+            --summary-export=summary.json \
+            --out json=metrics.json \
+            "${SCRIPT}.js"
+
+      - name: Upload k6 reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-${{ env.SCRIPT }}-${{ github.sha }}
+          path: |
+            load-test/summary.json
+            load-test/metrics.json
+          retention-days: 90
+
+      - name: Surface summary
+        if: always()
+        working-directory: load-test
+        run: |
+          if [ -f summary.json ]; then
+            echo "## Load test summary (${SCRIPT})" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            jq '.metrics | {
+              http_req_duration: .http_req_duration.values,
+              http_req_failed: .http_req_failed.values,
+              checks: .checks.values
+            }' summary.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
