@@ -714,6 +714,18 @@ async def _run_seed(results: dict) -> dict:
     return {"status": "ok", "results": results}
 
 
+@app.api_route("/", methods=["GET", "HEAD"], tags=["health"], include_in_schema=False)
+async def root():
+    """Cheap liveness probe at the domain root.
+
+    UptimeRobot's free tier defaults to monitoring the root URL of the
+    monitored host. Returning 200 here gives a second up/down signal
+    independent of /api/health (which can flip to ``degraded`` when a
+    breaker is open). Intentionally minimal — no DB, no Redis, no I/O.
+    """
+    return {"service": "honeywell-sales-suite", "status": "ok"}
+
+
 @app.api_route("/api/health", methods=["GET", "HEAD"], tags=["health"])
 async def health_check():
     """Enhanced health check with dependency status."""
