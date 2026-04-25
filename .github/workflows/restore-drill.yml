@@ -1,0 +1,74 @@
+name: Monthly Restore Drill
+
+# Proves prod backups actually restore. A backup that has never been
+# restored is a hope, not a recovery plan.
+on:
+  schedule:
+    # First of each month at 03:00 UTC (06:00 TR). Picks the lowest-traffic
+    # window so a long-running pg_restore doesn't bump production latency.
+    - cron: "0 3 1 * *"
+  workflow_dispatch:
+    inputs:
+      min_users:
+        description: "Override minimum users floor"
+        required: false
+        default: "1"
+      min_opportunities:
+        description: "Override minimum opportunities floor"
+        required: false
+        default: "0"
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROD_DB_BACKUP_URL: ${{ secrets.PROD_DB_BACKUP_URL }}
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      MIN_USERS: ${{ github.event.inputs.min_users || '1' }}
+      MIN_OPPORTUNITIES: ${{ github.event.inputs.min_opportunities || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required secrets are set
+        run: |
+          if [ -z "$PROD_DB_BACKUP_URL" ]; then
+            echo "::error::PROD_DB_BACKUP_URL secret is not set."
+            echo "::error::Configure it under Settings → Secrets → Actions before this drill can run."
+            exit 1
+          fi
+          if [ -z "$STAGING_DATABASE_URL" ]; then
+            echo "::error::STAGING_DATABASE_URL secret is not set."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Postgres client
+        run: |
+          # Use the official PGDG repo so pg_dump/pg_restore version matches
+          # the production cluster (16). Default Ubuntu repos lag behind.
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update -qq
+          sudo apt-get install -yqq postgresql-client-16
+
+      - name: Install Python dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Run drill
+        run: bash backend/scripts/restore_drill.sh
+
+      - name: Record success
+        if: success()
+        run: |
+          echo "::notice::Restore drill PASSED $(date -u +%Y-%m-%d)"
+
+      - name: Record failure
+        if: failure()
+        run: |
+          echo "::error::Restore drill FAILED $(date -u +%Y-%m-%d) — backup integrity is at risk."
+          echo "::error::See job logs and update docs/runbooks/last-restore-drill.md."
