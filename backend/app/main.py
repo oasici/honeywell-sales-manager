@@ -714,7 +714,7 @@ async def _run_seed(results: dict) -> dict:
     return {"status": "ok", "results": results}
 
 
-@app.get("/api/health", tags=["health"])
+@app.api_route("/api/health", methods=["GET", "HEAD"], tags=["health"])
 async def health_check():
     """Enhanced health check with dependency status."""
     checks: dict[str, str] = {"database": "unknown", "redis": "unknown"}
