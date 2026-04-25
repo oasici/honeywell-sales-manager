@@ -28,7 +28,7 @@ jobs:
       MIN_USERS: ${{ github.event.inputs.min_users || '1' }}
       MIN_OPPORTUNITIES: ${{ github.event.inputs.min_opportunities || '0' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Verify required secrets are set
         run: |

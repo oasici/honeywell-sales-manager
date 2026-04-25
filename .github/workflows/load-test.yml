@@ -23,7 +23,7 @@ jobs:
       TEST_USER_PASSWORD: ${{ secrets.LOAD_TEST_USER_PASSWORD }}
       SCRIPT: ${{ github.event.inputs.script || 'baseline' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Verify required secrets
         run: |
