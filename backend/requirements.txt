@@ -1,8 +1,11 @@
 # Web framework
-fastapi==0.115.6
+# fastapi must move in lockstep with starlette; we pin starlette below to
+# clear CVE-2025-54121 / CVE-2025-62727 (fix at 0.49.1), so fastapi needs
+# to support starlette >= 0.49.
+fastapi==0.122.1
 uvicorn[standard]==0.34.0
 gunicorn==23.0.0
-python-multipart==0.0.18
+python-multipart==0.0.26  # CVE-2026-24486, CVE-2026-40347
 
 # Database
 sqlalchemy[asyncio]==2.0.36
@@ -15,7 +18,7 @@ pydantic-settings==2.7.0
 email-validator==2.2.0
 
 # Auth
-PyJWT[crypto]==2.10.1
+PyJWT[crypto]==2.12.1  # CVE-2026-32597
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 
@@ -28,15 +31,15 @@ anthropic==0.40.0
 numpy>=1.24.0
 
 # Microsoft Graph API
-msal==1.31.0
+msal==1.36.0  # accepts cryptography 46.x for CVE chain
 httpx>=0.27.0
 
 # Fuzzy matching
 rapidfuzz==3.10.1
 
 # PDF generation
-weasyprint==63.1
-jinja2==3.1.5
+weasyprint==68.0  # CVE-2025-68616
+jinja2==3.1.6  # CVE-2025-27516
 
 # Email
 aiosmtplib==3.0.2
@@ -44,8 +47,7 @@ aiosmtplib==3.0.2
 # Security
 slowapi==0.1.9
 redis[hiredis]==5.2.1
-cryptography==44.0.0
-python-multipart==0.0.18
+cryptography==46.0.7  # CVE-2024-12797, CVE-2026-26007, CVE-2026-34073, CVE-2026-39892
 prometheus-client==0.22.0
 
 # Observability
@@ -59,15 +61,34 @@ qdrant-client==1.13.3
 apscheduler==3.10.4
 arq==0.26.1
 
-# Web crawling
-crawl4ai==0.4.248
+# Web crawling — moved to optional install (requirements-optional.txt) because
+# crawl4ai pins lxml~=5.3 which blocks the lxml 6.x bump needed to clear
+# CVE-2026-41066. FEATURE_AI_COMPETITIVE_INTEL (the only consumer) is off by
+# default; enable it only after installing crawl4ai separately and accepting
+# the older lxml in that deployment.
 
 # Data processing
 pandas==2.2.3
 openpyxl==3.1.5
-pdfplumber==0.11.4
+pdfplumber==0.11.9  # pulls pdfminer.six 20251107 to clear CVE-2025-64512 / CVE-2025-70559
 
 # Testing
-pytest==8.3.4
-pytest-asyncio==0.24.0
+pytest==9.0.3  # CVE-2025-71176 (major bump)
+pytest-asyncio==1.3.0  # required by pytest 9.x
 aiosqlite==0.20.0
+
+# ─────────────────────────────────────────────────────────────────────────
+# Transitive dependency pins for CVE remediation. These packages enter
+# our graph through fastapi / weasyprint / crawl4ai etc.; pinning them
+# here forces the security-fixed version. Re-evaluate on each upstream
+# bump — when fastapi 0.116+ pulls starlette 0.47.2+ natively, drop
+# the explicit pin.
+# ─────────────────────────────────────────────────────────────────────────
+starlette==0.49.1          # CVE-2025-54121, CVE-2025-62727
+pillow==12.2.0             # CVE-2026-25990, CVE-2026-40192 (via weasyprint)
+lxml==6.1.0                # CVE-2026-41066 (via weasyprint/pdfplumber)
+pdfminer.six==20251230     # CVE-2025-64512, CVE-2025-70559 (matches pdfplumber 0.11.9 pin)
+pyOpenSSL==26.0.0          # CVE-2026-27448, CVE-2026-27459 (via cryptography graph)
+# litellm — only consumed by crawl4ai which is now optional. Drop the
+# explicit pin; the CVE (GHSA-xqmj-j6mv-4862) only applies when litellm
+# is actually installed for the competitive-intel path.

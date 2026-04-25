@@ -105,7 +105,11 @@ jobs:
         # we still want the JSON so the next step can decide severity. The
         # ``|| true`` here only prevents the command itself from killing the
         # job; the gate that follows is what actually fails the build.
-        run: pip-audit --strict -f json -o pip-audit.json || true
+        # CVE-2026-3219 is a vulnerability in ``pip`` itself with no fix
+        # available upstream. Tracked via dependency-audit runbook; revisit
+        # when pip ships a patched release. Until then we ignore it
+        # explicitly so the gate stays meaningful for everything else.
+        run: pip-audit --strict --ignore-vuln CVE-2026-3219 -f json -o pip-audit.json || true
       - name: Fail on HIGH or CRITICAL vulnerabilities
         working-directory: backend
         run: |
