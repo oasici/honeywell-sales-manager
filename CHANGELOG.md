@@ -9,6 +9,18 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.1.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.0.0...v1.1.0) (2026-04-25)
+
+
+### Added
+
+* **v4:** Intelligence Backbone — feature store, sales DNA, deal replay, decision gaps ([6d69592](https://github.com/oasici/honeywell-sales-manager/commit/6d6959211d014551464e4400bdf745b195976762))
+
+
+### Fixed
+
+* **deploy:** run alembic upgrade head before gunicorn start ([c2b3bd8](https://github.com/oasici/honeywell-sales-manager/commit/c2b3bd823e5ae7f7f3b78785d7b83389008029a5))
+
 ## 1.0.0 (2026-04-25)
 
 
