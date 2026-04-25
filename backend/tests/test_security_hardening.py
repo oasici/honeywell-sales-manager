@@ -279,6 +279,28 @@ class TestSecurityHeaders:
         assert "default-src 'self'" in csp
         assert "object-src 'none'" in csp
         assert "frame-ancestors 'none'" in csp
+        # New directives added in PR-4.2 hardening pass
+        assert "frame-src 'none'" in csp
+        assert "manifest-src 'self'" in csp
+        assert "upgrade-insecure-requests" in csp
+
+    @pytest.mark.asyncio
+    async def test_hsts_two_year_with_preload(self, client: AsyncClient):
+        """PR-4.2 raises HSTS to 2 years and adds the preload directive."""
+        r = await client.get("/api/health")
+        hsts = r.headers.get("strict-transport-security", "")
+        assert "max-age=63072000" in hsts
+        assert "includeSubDomains" in hsts
+        assert "preload" in hsts
+
+    @pytest.mark.asyncio
+    async def test_cross_origin_isolation_headers_present(self, client: AsyncClient):
+        """COOP + CORP + cross-domain-policies block legacy/embed attack surfaces."""
+        r = await client.get("/api/health")
+        h = {k.lower(): v for k, v in r.headers.items()}
+        assert h.get("x-permitted-cross-domain-policies") == "none"
+        assert h.get("cross-origin-opener-policy") == "same-origin"
+        assert h.get("cross-origin-resource-policy") == "same-site"
 
 
 # ── Error message masking ───────────────────────────────

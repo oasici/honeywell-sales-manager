@@ -32,10 +32,14 @@ def _build_csp() -> str:
         "img-src 'self' data: blob:; "
         "font-src 'self' https://fonts.gstatic.com; "
         f"{connect_src}; "
+        "manifest-src 'self'; "
+        "worker-src 'self' blob:; "
         "object-src 'none'; "
         "base-uri 'self'; "
         "form-action 'self'; "
-        "frame-ancestors 'none'"
+        "frame-src 'none'; "
+        "frame-ancestors 'none'; "
+        "upgrade-insecure-requests"
     )
 
 
@@ -69,8 +73,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        )
+        # 2-year HSTS with includeSubDomains + preload, matching the
+        # static-site headers in render.yaml. Once a browser caches
+        # this it can take up to ``max-age`` to clear, so we do not
+        # downgrade casually.
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=63072000; includeSubDomains; preload"
+        )
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-site"
         response.headers["Content-Security-Policy"] = _CSP_VALUE
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
         response.headers["Pragma"] = "no-cache"

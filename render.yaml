@@ -82,10 +82,35 @@ services:
         value: strict-origin-when-cross-origin
       - path: /*
         name: Permissions-Policy
-        value: "camera=(), microphone=(), geolocation=()"
+        value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+      # 2-year HSTS with includeSubDomains + preload. Required for the
+      # securityheaders.com A+ rating. Once deployed, revoking takes
+      # 2 years to clear from browser caches — keep us on HTTPS.
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=63072000; includeSubDomains; preload"
+      # Block the legacy Adobe / Flash cross-domain policy file lookup.
+      - path: /*
+        name: X-Permitted-Cross-Domain-Policies
+        value: none
+      # Window isolation: top-level documents only, no popup channels.
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: same-origin
+      # Restricts whether other origins can fetch our resources via
+      # <img>/<script>. ``same-site`` keeps Render-internal sharing.
+      - path: /*
+        name: Cross-Origin-Resource-Policy
+        value: same-site
+      # CSP — ``'self'`` script-src + tight directives. ``'unsafe-inline'``
+      # style-src is unavoidable for Tailwind-generated styles; revisit
+      # when we move to a build pipeline that emits external stylesheets
+      # only. Sentry hosts whitelisted in connect-src.
+      # frame-src 'none' complements X-Frame-Options DENY; manifest-src
+      # is needed by PWA manifest.json.
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.onrender.com https://*.ingest.us.sentry.io https://*.ingest.sentry.io https://sentry.io; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.onrender.com https://*.ingest.us.sentry.io https://*.ingest.sentry.io https://sentry.io; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests;"
     routes:
       - type: rewrite
         source: /api/*
