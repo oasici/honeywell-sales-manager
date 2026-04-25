@@ -59,7 +59,7 @@ qdrant-client==1.13.3
 
 # Background jobs
 apscheduler==3.10.4
-arq==0.26.1
+arq==0.28.0
 
 # Web crawling — moved to optional install (requirements-optional.txt) because
 # crawl4ai pins lxml~=5.3 which blocks the lxml 6.x bump needed to clear
