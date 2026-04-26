@@ -1,0 +1,65 @@
+name: Alembic Stamp Head
+
+# Marks all migrations as applied in ``alembic_version`` WITHOUT running
+# any DDL. Use when the schema and the alembic state have drifted
+# (e.g. after running ``Base.metadata.create_all`` to backfill missing
+# tables, alembic_version still says those revisions are pending).
+#
+# Required secret: PROD_DATABASE_URL
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "STAMP" to confirm marking all migrations applied without DDL'
+        required: true
+        default: ''
+
+jobs:
+  stamp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Confirm intent
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "STAMP" ]; then
+            echo "::error::Confirmation text mismatch. Type STAMP in the input field."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Verify PROD_DATABASE_URL
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      - name: Show alembic current BEFORE
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: python -m alembic current
+
+      - name: Stamp head
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: python -m alembic stamp head
+
+      - name: Show alembic current AFTER
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: python -m alembic current
