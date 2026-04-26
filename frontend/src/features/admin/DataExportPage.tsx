@@ -57,7 +57,9 @@ export default function DataExportPage() {
 
   const { data: usersData, isLoading: usersLoading } = useQuery<UsersListResponse>({
     queryKey: ['users-for-export'],
-    queryFn: () => usersApi.getUsers({ page_size: 500 }),
+    // Backend caps page_size at 100. If we ever need to handle more
+    // users, paginate here instead of bumping the cap.
+    queryFn: () => usersApi.getUsers({ page_size: 100 }),
   });
 
   const users = usersData?.items ?? usersData?.users ?? [];
