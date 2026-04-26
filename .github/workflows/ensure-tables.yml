@@ -1,0 +1,146 @@
+name: Ensure DB Tables Match Models
+
+# One-shot workflow that runs ``Base.metadata.create_all()`` against the
+# production DB. SQLAlchemy's ``create_all`` only creates tables that
+# DON'T exist — it's safe to run when alembic state is out of sync with
+# the actual schema (e.g. some V4 migrations marked applied but the
+# tables aren't there).
+#
+# Use after the manual alembic upgrade workflow if endpoints are still
+# erroring on UndefinedTableError.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "ENSURE" to confirm running create_all on PROD'
+        required: true
+        default: ''
+
+jobs:
+  ensure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Confirm intent
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "ENSURE" ]; then
+            echo "::error::Confirmation text mismatch. Type ENSURE in the input field."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Verify PROD_DATABASE_URL
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      - name: List V4 tables BEFORE
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import asyncio
+          from sqlalchemy import text
+          from app.core.database import engine
+
+          V4_TABLES = [
+              "feature_store_daily",
+              "opportunity_features_daily",
+              "buyer_state_history",
+              "decision_gaps",
+              "stakeholder_roles",
+              "network_segments",
+              "segment_benchmarks_daily",
+              "sales_event_shadow",
+              "sales_events_shadow",
+              "deal_replay_snapshots",
+              "sales_dna_snapshots",
+          ]
+
+          async def main():
+              async with engine.connect() as conn:
+                  for t in V4_TABLES:
+                      result = await conn.execute(
+                          text("SELECT to_regclass(:t)"), {"t": f"public.{t}"}
+                      )
+                      exists = result.scalar() is not None
+                      print(f"  {'✓' if exists else '✗'} {t}")
+              await engine.dispose()
+          asyncio.run(main())
+          PY
+
+      - name: Run Base.metadata.create_all (idempotent — only creates missing tables)
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import asyncio
+          from app.core.database import Base, engine
+          from app.models import *  # noqa: F401,F403 — load all models
+
+          async def main():
+              async with engine.begin() as conn:
+                  await conn.run_sync(Base.metadata.create_all)
+              await engine.dispose()
+              print("create_all completed.")
+
+          asyncio.run(main())
+          PY
+
+      - name: List V4 tables AFTER
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import asyncio
+          from sqlalchemy import text
+          from app.core.database import engine
+
+          V4_TABLES = [
+              "feature_store_daily",
+              "opportunity_features_daily",
+              "buyer_state_history",
+              "decision_gaps",
+              "stakeholder_roles",
+              "network_segments",
+              "segment_benchmarks_daily",
+              "sales_event_shadow",
+              "sales_events_shadow",
+              "deal_replay_snapshots",
+              "sales_dna_snapshots",
+          ]
+
+          async def main():
+              missing = []
+              async with engine.connect() as conn:
+                  for t in V4_TABLES:
+                      result = await conn.execute(
+                          text("SELECT to_regclass(:t)"), {"t": f"public.{t}"}
+                      )
+                      exists = result.scalar() is not None
+                      print(f"  {'✓' if exists else '✗'} {t}")
+                      if not exists:
+                          missing.append(t)
+              await engine.dispose()
+              if missing:
+                  print(f"\n::warning::Still missing: {missing}")
+                  print("These tables aren't in Base.metadata either. Check models/__init__.py imports.")
+          asyncio.run(main())
+          PY
