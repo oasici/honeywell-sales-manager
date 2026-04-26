@@ -68,7 +68,11 @@ services:
     name: honeywell-frontend
     runtime: static
     rootDir: frontend
-    buildCommand: npm ci && npm run build
+    # Re-export Render's commit SHA as VITE_GIT_COMMIT so Vite inlines it
+    # into the bundle (import.meta.env reads VITE_*-prefixed vars only).
+    # This keeps the Sentry SDK reporter and the source-map uploader on
+    # the exact same release identifier.
+    buildCommand: VITE_GIT_COMMIT="$RENDER_GIT_COMMIT" npm ci && VITE_GIT_COMMIT="$RENDER_GIT_COMMIT" npm run build
     staticPublishPath: dist
     headers:
       - path: /*
@@ -129,3 +133,15 @@ services:
         sync: false
       - key: VITE_ENV
         value: production
+      # Sentry release source map upload (build-time only). Token is
+      # set in Render dashboard with `sync: false` so it's never checked
+      # in. Org + project are static and safe to commit. The release
+      # name comes from VITE_GIT_COMMIT (already set by Render's commit
+      # SHA injection in the index env block above) so the SDK reporter
+      # and the uploader use the same identifier.
+      - key: SENTRY_AUTH_TOKEN
+        sync: false
+      - key: SENTRY_ORG
+        value: onur-asc
+      - key: SENTRY_PROJECT
+        value: honeywell-frontend
