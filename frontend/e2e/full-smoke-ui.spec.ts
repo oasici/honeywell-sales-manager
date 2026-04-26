@@ -116,6 +116,24 @@ test.describe('Full UI smoke (by role)', () => {
       await page.goto('/admin/workflow-rules/flow/new', { waitUntil: 'domcontentloaded' });
       await expectNotStuckLoading(page, testInfo);
       await expect(page.getByText('Flow', { exact: false })).toBeVisible({ timeout: 15_000 });
+
+      // PR-2.2: extended audit page with CSV export button
+      await page.goto('/audit', { waitUntil: 'domcontentloaded' });
+      await expectNotStuckLoading(page, testInfo);
+      await expect(page.getByRole('heading', { name: 'Denetim Kayıtları' })).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(
+        page.getByRole('button', { name: /CSV İndir/i }),
+        'CSV export button missing on audit page',
+      ).toBeVisible({ timeout: 5_000 });
+
+      // PR-2.2: KVKK Article 15 data export page
+      await page.goto('/kvkk-export', { waitUntil: 'domcontentloaded' });
+      await expectNotStuckLoading(page, testInfo);
+      await expect(page.getByRole('heading', { name: /KVKK Veri/i })).toBeVisible({
+        timeout: 15_000,
+      });
     }
 
     // Engagement sequences & segments — strict: should not be 404-backed empty page

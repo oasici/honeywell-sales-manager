@@ -186,10 +186,25 @@ test.describe('Security Headers', () => {
     expect(xcto.includes('nosniff')).toBe(true);
     const xfo = (headers['x-frame-options'] ?? '').split(',').map((s) => s.trim());
     expect(xfo.includes('DENY')).toBe(true);
-    expect(headers['content-security-policy']).toContain("default-src 'self'");
-    expect(headers['content-security-policy']).toContain("object-src 'none'");
-    expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
-    expect(headers['strict-transport-security']).toContain('max-age');
+    const csp = headers['content-security-policy'] ?? '';
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    // PR-4.2: tightened CSP additions
+    expect(csp).toContain("frame-src 'none'");
+    expect(csp).toContain("manifest-src 'self'");
+    expect(csp).toContain('upgrade-insecure-requests');
+
+    // PR-4.2: 2-year HSTS with preload (raised from 1-year)
+    const hsts = headers['strict-transport-security'] ?? '';
+    expect(hsts).toContain('max-age=63072000');
+    expect(hsts).toContain('includeSubDomains');
+    expect(hsts).toContain('preload');
+
+    // PR-4.2: cross-origin isolation trio
+    expect(headers['x-permitted-cross-domain-policies']).toBe('none');
+    expect(headers['cross-origin-opener-policy']).toBe('same-origin');
+    expect(headers['cross-origin-resource-policy']).toBe('same-site');
   });
 });
 
@@ -222,5 +237,14 @@ test.describe('Rate Limiting', () => {
     // First 5 are 401 (invalid creds); 6th+ should be 429
     expect(codes.slice(0, 5).every((c) => c === 401)).toBe(true);
     expect(codes[5]).toBe(429);
+  });
+
+  // PR-1.2: AI endpoints carry their own per-user limit (60/min default).
+  // Just confirm an unauthenticated probe is rejected with 401, not 5xx —
+  // exercising the actual cap requires a real token + 60 sequential calls,
+  // which we don't want to burn in CI.
+  test('AI rate limit dependency does not 5xx unauthenticated probes', async ({ page }) => {
+    const r = await page.request.get(`${BASE_URL}/api/v1/ai/signals/1`);
+    expect([401, 403, 429]).toContain(r.status());
   });
 });
