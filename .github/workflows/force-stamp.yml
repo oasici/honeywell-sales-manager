@@ -1,0 +1,77 @@
+name: Force Stamp Alembic Version
+
+# Bypasses alembic entirely and runs a raw UPDATE against alembic_version.
+# Use when ``alembic stamp head`` runs but doesn't actually persist
+# (transaction not committed because of env.py mods or async engine
+# semantics).
+#
+# This sets alembic_version to the hard-coded latest head revision.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_revision:
+        description: "Revision to stamp into alembic_version"
+        required: true
+        default: "20260429_v4_sales_dna_snapshots"
+      confirm:
+        description: 'Type "FORCE" to confirm raw UPDATE on alembic_version'
+        required: true
+        default: ''
+
+jobs:
+  force-stamp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm intent
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "FORCE" ]; then
+            echo "::error::Confirmation text mismatch. Type FORCE in the input field."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install asyncpg
+        run: pip install asyncpg
+
+      - name: Force-update alembic_version
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          TARGET: ${{ github.event.inputs.target_revision }}
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import re
+
+          import asyncpg
+
+          dsn = os.environ["DATABASE_URL"]
+          # asyncpg expects ``postgresql://`` (not ``postgresql+asyncpg://``)
+          dsn = re.sub(r"^postgresql\+asyncpg://", "postgresql://", dsn)
+          target = os.environ["TARGET"]
+
+          async def main():
+              conn = await asyncpg.connect(dsn)
+              try:
+                  before = await conn.fetch("SELECT version_num FROM alembic_version")
+                  print(f"BEFORE: {[r['version_num'] for r in before]}")
+
+                  # If multiple rows somehow, replace them all with target.
+                  await conn.execute("DELETE FROM alembic_version")
+                  await conn.execute(
+                      "INSERT INTO alembic_version (version_num) VALUES ($1)",
+                      target,
+                  )
+
+                  after = await conn.fetch("SELECT version_num FROM alembic_version")
+                  print(f"AFTER:  {[r['version_num'] for r in after]}")
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
