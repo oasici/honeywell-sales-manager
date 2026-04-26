@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
@@ -21,6 +22,49 @@ from app.core.config import settings
 from app.models.customer import Customer
 
 logger = logging.getLogger(__name__)
+
+
+# Strips ```json ... ``` (or plain ``` ... ```) wrappers Claude likes to
+# add even when prompted for raw JSON. Matched non-greedy so we capture
+# only the inner block.
+_FENCED_JSON_RE = re.compile(
+    r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL | re.IGNORECASE
+)
+
+
+def _extract_json_object(text: str) -> str | None:
+    """Best-effort JSON object extraction from a Claude completion.
+
+    Handles the three shapes we've actually observed in production:
+
+    1. Raw JSON: ``{"k": "v"}`` — return as-is.
+    2. Markdown-fenced: ``\\`\\`\\`json\\n{...}\\n\\`\\`\\``` — strip the fence.
+    3. Prose-prefixed: ``"Here is the JSON: {...}"`` — slice from first ``{``
+       to the matching closing ``}`` (greedy to the last ``}``).
+
+    Returns the extracted JSON string, or ``None`` if no plausible
+    object boundary was found.
+    """
+    if not text:
+        return None
+    cleaned = text.strip()
+
+    # Shape 2: fenced code block
+    m = _FENCED_JSON_RE.search(cleaned)
+    if m:
+        return m.group(1).strip()
+
+    # Shape 1: already a raw object
+    if cleaned.startswith("{") and cleaned.endswith("}"):
+        return cleaned
+
+    # Shape 3: object embedded in prose
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end > start:
+        return cleaned[start : end + 1]
+
+    return None
 
 HEALTHY_THRESHOLD = 70
 AT_RISK_THRESHOLD = 40
@@ -247,22 +291,65 @@ class CustomerHealthService:
             )
 
             text = response.content[0].text if response.content else None
-            if text:
-                parsed = json.loads(text.strip())
-                valid_levels = {"high", "medium", "low"}
-                if parsed.get("risk_level") in valid_levels:
-                    return {
-                        "customer_id": health_data["customer_id"],
-                        "churn_probability": min(100, max(0, int(parsed.get("churn_probability", 50)))),
-                        "risk_level": parsed["risk_level"],
-                        "risk_factors": parsed.get("risk_factors", []),
-                        "retention_actions": parsed.get("retention_actions", []),
-                        "method": "ai",
-                    }
+            if not text:
+                # Empty completion — circuit-breaker might be half-open
+                # or the model returned a content-block we can't read.
+                # Fall through to rule-based.
+                logger.warning(
+                    "Claude churn prediction returned empty content for customer %s",
+                    health_data.get("customer_id"),
+                )
+                return None
+
+            json_blob = _extract_json_object(text)
+            if not json_blob:
+                # No `{...}` boundary anywhere in the response — Claude
+                # ignored the JSON instruction. Log a truncated preview
+                # of the raw response so we can refine the prompt.
+                logger.warning(
+                    "Claude churn prediction had no JSON object; "
+                    "raw preview=%r",
+                    text[:200],
+                )
+                return None
+
+            try:
+                parsed = json.loads(json_blob)
+            except json.JSONDecodeError as exc:
+                # The boundary was a `{` but contents weren't valid JSON
+                # (truncated mid-string, single-quoted, comments, etc.).
+                # Logged with the offending blob for prompt iteration.
+                logger.warning(
+                    "Claude churn prediction JSON decode failed (%s); "
+                    "blob preview=%r",
+                    exc,
+                    json_blob[:200],
+                )
+                return None
+
+            valid_levels = {"high", "medium", "low"}
+            if parsed.get("risk_level") in valid_levels:
+                return {
+                    "customer_id": health_data["customer_id"],
+                    "churn_probability": min(
+                        100, max(0, int(parsed.get("churn_probability", 50)))
+                    ),
+                    "risk_level": parsed["risk_level"],
+                    "risk_factors": parsed.get("risk_factors", []),
+                    "retention_actions": parsed.get("retention_actions", []),
+                    "method": "ai",
+                }
+            # Schema-shaped but `risk_level` outside the allowed enum —
+            # treat as malformed, fall through to rule-based.
+            logger.warning(
+                "Claude churn prediction risk_level invalid: %r",
+                parsed.get("risk_level"),
+            )
         except CircuitOpenError as exc:
             logger.warning("Claude breaker open; using fallback: %s", exc)
             return None
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover — defensive
+            # Network / SDK / unexpected shape; rule-based path covers.
             logger.error("Claude churn prediction hatasi: %s", exc)
 
         return None

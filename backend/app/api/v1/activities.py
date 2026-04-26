@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
@@ -185,8 +186,22 @@ async def get_activity_feed(
     db: AsyncSession = Depends(get_db),
     _current_user: User = Depends(get_current_user),
 ):
-    """Return recent activities across all entities for the dashboard feed."""
-    query = select(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(limit)
+    """Return recent activities across all entities for the dashboard feed.
+
+    `source_ref` is excluded from the SELECT list via ``defer()`` because
+    it's an INSERT-side dedupe key with no read path in the feed
+    serializer — and a partially-applied migration once left this column
+    missing on production, which crashed the entire feed endpoint
+    (Sentry HONEYWELL-BACKEND-2/7/8/9). Skipping it from the default
+    column list keeps the feed healthy regardless of schema drift, and
+    it can still be loaded explicitly in code paths that need it.
+    """
+    query = (
+        select(ActivityLog)
+        .options(defer(ActivityLog.source_ref))
+        .order_by(ActivityLog.created_at.desc())
+        .limit(limit)
+    )
     if since:
         since_dt = datetime.fromisoformat(since)
         query = query.where(ActivityLog.created_at > since_dt)
