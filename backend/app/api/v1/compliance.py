@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from app.core.database import get_db
 from app.core.dependencies import require_role
@@ -242,9 +243,12 @@ async def export_customer_data(
         for o in opps_result.scalars().all()
     ]
 
-    # Activity logs
+    # Activity logs — `source_ref` is excluded from the SELECT list to
+    # survive partial schema-drift; this serializer doesn't read it.
     activities_result = await db.execute(
-        select(ActivityLog).where(ActivityLog.customer_id == customer_id)
+        select(ActivityLog)
+        .options(defer(ActivityLog.source_ref))
+        .where(ActivityLog.customer_id == customer_id)
     )
     activities = [
         {

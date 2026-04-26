@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from app.core.circuit_breaker import CircuitOpenError
 from app.core.claude_client import claude_messages_create
@@ -99,6 +100,7 @@ async def _gather_context(db: AsyncSession, opportunity_id: int) -> dict:
     activities = (
         await db.execute(
             select(ActivityLog)
+            .options(defer(ActivityLog.source_ref))
             .where(ActivityLog.opportunity_id == opportunity_id)
             .order_by(ActivityLog.created_at.desc())
             .limit(ACTIVITY_LOOKBACK_COUNT)

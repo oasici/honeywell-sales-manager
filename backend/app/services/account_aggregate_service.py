@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from app.models.account_enrichment import AccountEnrichment
 from app.models.activity_log import ActivityLog
@@ -242,9 +243,12 @@ class AccountAggregateService:
                 }
             )
 
+        # `defer(source_ref)` keeps the column out of the SELECT list —
+        # see api/v1/activities.py for the schema-drift rationale.
         log_rows = (
             await self._db.execute(
                 select(ActivityLog)
+                .options(defer(ActivityLog.source_ref))
                 .where(
                     or_(
                         ActivityLog.customer_id == customer_id,

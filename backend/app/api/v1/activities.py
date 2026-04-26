@@ -94,7 +94,13 @@ async def list_activities(
     _current_user: User = Depends(get_current_user),
 ):
     """List activities with optional filters and pagination."""
-    stmt = select(ActivityLog).order_by(ActivityLog.created_at.desc())
+    # `source_ref` is excluded from the SELECT list — see the feed
+    # endpoint below for the schema-drift rationale.
+    stmt = (
+        select(ActivityLog)
+        .options(defer(ActivityLog.source_ref))
+        .order_by(ActivityLog.created_at.desc())
+    )
 
     if entity_type:
         stmt = stmt.where(ActivityLog.entity_type == entity_type)

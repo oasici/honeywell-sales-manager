@@ -650,14 +650,19 @@ async def get_customer_activity_timeline(
 ):
     """Unified activity timeline — auto-captured events from all entity types."""
     from app.models.activity_log import ActivityLog
+    from sqlalchemy.orm import defer
 
     # Verify customer exists
     cust = await db.execute(select(Customer).where(Customer.id == customer_id))
     if not cust.scalar_one_or_none():
         raise NotFoundException("Musteri bulunamadi")
 
+    # `source_ref` is excluded from the SELECT list — see the activity
+    # feed endpoint (api/v1/activities.py) for the rationale; same
+    # schema-drift guard applies here.
     result = await db.execute(
         select(ActivityLog)
+        .options(defer(ActivityLog.source_ref))
         .where(ActivityLog.customer_id == customer_id)
         .order_by(ActivityLog.created_at.desc())
         .limit(limit)
