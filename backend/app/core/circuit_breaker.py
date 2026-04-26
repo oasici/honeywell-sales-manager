@@ -67,13 +67,26 @@ class CircuitBreaker:
     def _on_failure(self) -> None:
         self._failure_count += 1
         self._last_failure_time = time.time()
-        if self._failure_count >= self.failure_threshold:
+        if self._failure_count >= self.failure_threshold and self._state != "open":
             logger.warning(
                 "Circuit breaker '%s' acildi (%d ardisik hata)",
                 self.name,
                 self._failure_count,
             )
             self._state = "open"
+            # Sentry metric — counts every transition to open. Lets the
+            # operator graph "how often does Claude trip" without grepping
+            # logs. No-op when sentry-sdk is missing or DSN unset.
+            try:
+                from sentry_sdk import metrics as _sentry_metrics
+
+                _sentry_metrics.count(
+                    "circuit_breaker.opened",
+                    1,
+                    tags={"breaker": self.name},
+                )
+            except Exception:
+                pass
 
     def reset(self) -> None:
         """Manually reset the circuit breaker to closed state."""

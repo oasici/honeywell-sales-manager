@@ -26,12 +26,27 @@ Sentry and breaks the SLO loop.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import anthropic
 
 from app.core.circuit_breaker import claude_breaker
 from app.core.config import settings
+
+
+def _emit_metric(name: str, value: float, *, kind: str, tags: dict[str, str]) -> None:
+    """Best-effort Sentry metric emit. No-op when sentry-sdk is unavailable
+    or DSN is unset, so this can sit on hot paths without risk."""
+    try:
+        from sentry_sdk import metrics as _sentry_metrics
+
+        if kind == "count":
+            _sentry_metrics.count(name, int(value), tags=tags)
+        elif kind == "distribution":
+            _sentry_metrics.distribution(name, value, tags=tags)
+    except Exception:
+        pass
 
 
 def _build_client(timeout: float | None) -> anthropic.AsyncAnthropic:
@@ -53,11 +68,38 @@ async def claude_messages_create(
     uses ``timeout=30.0`` for fast email triage).
     """
 
+    model = str(kwargs.get("model", "unknown"))
+
     async def _do_call() -> Any:
         client = _build_client(timeout)
         return await client.messages.create(**kwargs)
 
-    return await claude_breaker.call(_do_call)
+    started = time.monotonic()
+    try:
+        result = await claude_breaker.call(_do_call)
+    except Exception:
+        _emit_metric(
+            "claude.request",
+            1,
+            kind="count",
+            tags={"model": model, "status": "error"},
+        )
+        raise
+
+    elapsed_ms = (time.monotonic() - started) * 1000
+    _emit_metric(
+        "claude.request",
+        1,
+        kind="count",
+        tags={"model": model, "status": "ok"},
+    )
+    _emit_metric(
+        "claude.request.duration_ms",
+        elapsed_ms,
+        kind="distribution",
+        tags={"model": model},
+    )
+    return result
 
 
 def claude_breaker_status() -> dict[str, str | int]:
