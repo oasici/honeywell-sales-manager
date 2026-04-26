@@ -170,7 +170,7 @@ export default function RetentionPoliciesPage() {
                 type="checkbox"
                 checked={form.is_active}
                 onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                className="rounded border-gray-300"
+                className="rounded border-slate-200"
               />
               Aktif
             </label>
@@ -188,7 +188,7 @@ export default function RetentionPoliciesPage() {
       header: 'Olusturulma',
       sortable: true,
       render: (row: RetentionPolicy) => (
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-slate-500">
           {row.created_at ? formatDateTime(row.created_at) : '-'}
         </span>
       ),
@@ -274,12 +274,12 @@ export default function RetentionPoliciesPage() {
             value={form.action}
             onChange={(e) => setForm({ ...form, action: e.target.value })}
           />
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={form.is_active}
               onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-              className="rounded border-gray-300"
+              className="rounded border-slate-200"
             />
             Aktif
           </label>

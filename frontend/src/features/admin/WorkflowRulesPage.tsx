@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Plus, Trash2, X, Workflow, Zap } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -10,6 +11,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { workflowRulesApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
@@ -208,77 +210,111 @@ export default function WorkflowRulesPage() {
 
   return (
     <div>
-      <PageHeader title="İş Kuralları" description="Olay tabanli otomasyon kuralları">
+      <PageHeader title="İş Kuralları" description="Olay tabanlı otomasyon kuralları">
         <Button variant="secondary" onClick={() => navigate('/admin/workflow-rules/flow/new')}>
-          Yeni Gorsel Kural
+          <Workflow size={14} />
+          Yeni Görsel Kural
         </Button>
-        <Button onClick={() => setIsCreateOpen(true)}>Yeni Kural</Button>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus size={14} />
+          Yeni Kural
+        </Button>
       </PageHeader>
 
       {isLoading && <Skeleton variant="table" />}
 
       {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
-          <p className="text-red-600 font-medium">Is kuralları yuklenemedi</p>
-          <p className="text-sm text-red-500 mt-1">Sayfa yeniden yuklenmeyi deneyin</p>
+        <div className="rounded-2xl border border-red-100 bg-red-50/40 p-8 text-center dark:border-red-900/40 dark:bg-red-950/20">
+          <p className="text-[14px] font-medium text-red-700 dark:text-red-400">
+            İş kuralları yüklenemedi
+          </p>
+          <p className="mt-1 text-[12px] text-red-600 dark:text-red-500">
+            Sayfayı yeniden yüklemeyi deneyin
+          </p>
         </div>
       )}
 
       {!isLoading && !isError && items.length === 0 && (
-        <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">Henüz is kuralı tanimlanmamis</p>
-          <Button className="mt-4" onClick={() => setIsCreateOpen(true)}>
-            İlk Kuralı Oluştur
-          </Button>
+        <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <EmptyState
+            variant="default"
+            icon={<Workflow size={20} />}
+            title="Henüz iş kuralı tanımlanmamış"
+            description="Olaylara göre otomatik aksiyon tetiklemek için ilk kuralı oluşturun."
+            action={
+              <Button onClick={() => setIsCreateOpen(true)} variant="secondary">
+                <Plus size={14} />
+                İlk Kuralı Oluştur
+              </Button>
+            }
+          />
         </div>
       )}
 
       {!isLoading && !isError && items.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {items.map((rule) => (
-            <div key={rule.id} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-              <div className="flex items-start justify-between">
-                <h3 className="font-semibold text-gray-900">{rule.name}</h3>
-                <Badge variant={rule.is_active ? 'success' : 'default'}>
+            <div
+              key={rule.id}
+              className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                    <Zap size={14} />
+                  </span>
+                  <h3 className="truncate text-[14px] font-semibold text-slate-900 dark:text-white">
+                    {rule.name}
+                  </h3>
+                </div>
+                <Badge variant={rule.is_active ? 'success' : 'default'} size="sm" dot>
                   {rule.is_active ? 'Aktif' : 'Pasif'}
                 </Badge>
               </div>
 
-              <div className="mt-3 space-y-1 text-sm text-gray-600">
-                <p>
-                  <span className="font-medium">Varlık:</span> {entityLabel(rule.entity_type)}
-                </p>
-                <p>
-                  <span className="font-medium">Tetikleyici:</span>{' '}
-                  {triggerLabel(rule.entity_type, rule.trigger_event)}
-                </p>
+              <dl className="mt-4 space-y-2 text-[12px]">
+                <div className="flex items-center gap-2">
+                  <dt className="text-overline text-slate-400 dark:text-slate-500">Varlık</dt>
+                  <dd className="text-[12px] text-slate-700 dark:text-slate-200">
+                    {entityLabel(rule.entity_type)}
+                  </dd>
+                </div>
+                <div className="flex items-center gap-2">
+                  <dt className="text-overline text-slate-400 dark:text-slate-500">Tetik</dt>
+                  <dd className="text-[12px] text-slate-700 dark:text-slate-200">
+                    {triggerLabel(rule.entity_type, rule.trigger_event)}
+                  </dd>
+                </div>
                 {rule.created_at && (
-                  <p className="text-xs text-gray-400">{formatDateTime(rule.created_at)}</p>
+                  <p className="text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
+                    {formatDateTime(rule.created_at)}
+                  </p>
                 )}
-              </div>
+              </dl>
 
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3 dark:border-slate-800">
                 <Button
                   size="sm"
-                  variant="secondary"
+                  variant="tertiary"
                   onClick={() => navigate(`/admin/workflow-rules/flow/${rule.id}`)}
                 >
-                  Gorsel Editor
+                  Görsel Editor
                 </Button>
                 <Button
                   size="sm"
-                  variant="secondary"
-                  onClick={() =>
-                    toggleMutation.mutate({
-                      id: rule.id,
-                      is_active: !rule.is_active,
-                    })
-                  }
+                  variant="tertiary"
+                  onClick={() => toggleMutation.mutate({ id: rule.id, is_active: !rule.is_active })}
                 >
-                  {rule.is_active ? 'Devre Disi Birak' : 'Etkinlestir'}
+                  {rule.is_active ? 'Devre Dışı' : 'Etkinleştir'}
                 </Button>
-                <Button size="sm" variant="danger" onClick={() => setDeleteTarget(rule.id)}>
-                  Sil
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setDeleteTarget(rule.id)}
+                  aria-label="Sil"
+                  className="ml-auto"
+                >
+                  <Trash2 size={13} className="text-red-500" />
                 </Button>
               </div>
             </div>
@@ -287,130 +323,162 @@ export default function WorkflowRulesPage() {
       )}
 
       {/* Create modal */}
-      <Modal isOpen={isCreateOpen} onClose={resetForm} title="Yeni İş Kuralı">
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-          <Input
-            label="Kural Adi"
-            placeholder="Örneğin: Yüksek tutar bildirimi"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-
-          <Select
-            label="Varlık Tipi"
-            options={ENTITY_TYPE_OPTIONS}
-            value={form.entity_type}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                entity_type: e.target.value,
-                trigger_event: TRIGGER_EVENT_OPTIONS[e.target.value]?.[0]?.value ?? '',
-              })
-            }
-          />
-
-          <Select
-            label="Tetikleyici Olay"
-            options={currentTriggerOptions}
-            value={form.trigger_event}
-            onChange={(e) => setForm({ ...form, trigger_event: e.target.value })}
-          />
-
-          {/* Conditions */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Kosullar</label>
-              <Button size="sm" variant="secondary" onClick={addCondition}>
-                Kosul Ekle
-              </Button>
-            </div>
-            {conditions.length === 0 && (
-              <p className="text-xs text-gray-400">Kosul yok - her zaman calisir</p>
-            )}
-            {conditions.map((cond, idx) => (
-              <div key={idx} className="flex gap-2 mb-2 items-end">
-                <Input
-                  label={idx === 0 ? 'Alan' : undefined}
-                  placeholder="stage"
-                  value={cond.field}
-                  onChange={(e) => updateCondition(idx, 'field', e.target.value)}
-                />
-                <Select
-                  label={idx === 0 ? 'Operator' : undefined}
-                  options={OPERATOR_OPTIONS}
-                  value={cond.operator}
-                  onChange={(e) => updateCondition(idx, 'operator', e.target.value)}
-                />
-                <Input
-                  label={idx === 0 ? 'Değer' : undefined}
-                  placeholder="negotiation"
-                  value={cond.value}
-                  onChange={(e) => updateCondition(idx, 'value', e.target.value)}
-                />
-                <Button size="sm" variant="danger" onClick={() => removeCondition(idx)}>
-                  X
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Aksiyonlar</label>
-              <Button size="sm" variant="secondary" onClick={addAction}>
-                Aksiyon Ekle
-              </Button>
-            </div>
-            {actions.map((action, idx) => (
-              <div key={idx} className="rounded border border-gray-200 p-3 mb-2 space-y-2">
-                <div className="flex gap-2 items-end">
-                  <Select
-                    label="Tip"
-                    options={ACTION_TYPE_OPTIONS}
-                    value={action.type}
-                    onChange={(e) => updateAction(idx, 'type', e.target.value)}
-                  />
-                  {actions.length > 1 && (
-                    <Button size="sm" variant="danger" onClick={() => removeAction(idx)}>
-                      X
-                    </Button>
-                  )}
-                </div>
-                <Input
-                  label="Baslik"
-                  placeholder="Bildirim basligi"
-                  value={action.title}
-                  onChange={(e) => updateAction(idx, 'title', e.target.value)}
-                />
-                <Input
-                  label="Mesaj"
-                  placeholder="Detay mesaji"
-                  value={action.message}
-                  onChange={(e) => updateAction(idx, 'message', e.target.value)}
-                />
-              </div>
-            ))}
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={form.is_active}
-              onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-              className="rounded border-gray-300"
-            />
-            Aktif
-          </label>
-
-          <div className="flex justify-end gap-2 pt-2">
+      <Modal
+        isOpen={isCreateOpen}
+        onClose={resetForm}
+        title="Yeni İş Kuralı"
+        size="lg"
+        footer={
+          <>
             <Button variant="secondary" onClick={resetForm}>
               İptal
             </Button>
             <Button onClick={handleCreate} loading={createMutation.isPending}>
               Oluştur
             </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            label="Kural Adı"
+            placeholder="Örneğin: Yüksek tutar bildirimi"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Select
+              label="Varlık Tipi"
+              options={ENTITY_TYPE_OPTIONS}
+              value={form.entity_type}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  entity_type: e.target.value,
+                  trigger_event: TRIGGER_EVENT_OPTIONS[e.target.value]?.[0]?.value ?? '',
+                })
+              }
+            />
+            <Select
+              label="Tetikleyici Olay"
+              options={currentTriggerOptions}
+              value={form.trigger_event}
+              onChange={(e) => setForm({ ...form, trigger_event: e.target.value })}
+            />
           </div>
+
+          {/* Conditions */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/40 p-4 dark:border-slate-800 dark:bg-slate-900/30">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-overline text-slate-500 dark:text-slate-400">Koşullar</span>
+              <Button size="sm" variant="tertiary" onClick={addCondition}>
+                <Plus size={12} />
+                Koşul Ekle
+              </Button>
+            </div>
+            {conditions.length === 0 ? (
+              <p className="text-[12px] text-slate-500 dark:text-slate-400">
+                Koşul yok — kural her zaman çalışır
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {conditions.map((cond, idx) => (
+                  <div key={idx} className="flex items-end gap-2">
+                    <Input
+                      label={idx === 0 ? 'Alan' : undefined}
+                      placeholder="stage"
+                      value={cond.field}
+                      onChange={(e) => updateCondition(idx, 'field', e.target.value)}
+                    />
+                    <Select
+                      label={idx === 0 ? 'Operatör' : undefined}
+                      options={OPERATOR_OPTIONS}
+                      value={cond.operator}
+                      onChange={(e) => updateCondition(idx, 'operator', e.target.value)}
+                    />
+                    <Input
+                      label={idx === 0 ? 'Değer' : undefined}
+                      placeholder="negotiation"
+                      value={cond.value}
+                      onChange={(e) => updateCondition(idx, 'value', e.target.value)}
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeCondition(idx)}
+                      aria-label="Koşulu kaldır"
+                    >
+                      <X size={14} className="text-red-500" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/40 p-4 dark:border-slate-800 dark:bg-slate-900/30">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-overline text-slate-500 dark:text-slate-400">Aksiyonlar</span>
+              <Button size="sm" variant="tertiary" onClick={addAction}>
+                <Plus size={12} />
+                Aksiyon Ekle
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {actions.map((action, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
+                >
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Select
+                        label="Tip"
+                        options={ACTION_TYPE_OPTIONS}
+                        value={action.type}
+                        onChange={(e) => updateAction(idx, 'type', e.target.value)}
+                      />
+                    </div>
+                    {actions.length > 1 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeAction(idx)}
+                        aria-label="Aksiyonu kaldır"
+                      >
+                        <X size={14} className="text-red-500" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <Input
+                      label="Başlık"
+                      placeholder="Bildirim başlığı"
+                      value={action.title}
+                      onChange={(e) => updateAction(idx, 'title', e.target.value)}
+                    />
+                    <Input
+                      label="Mesaj"
+                      placeholder="Detay mesajı"
+                      value={action.message}
+                      onChange={(e) => updateAction(idx, 'message', e.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex cursor-pointer select-none items-center gap-2.5 rounded-[10px] border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-[13px] text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200">
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+              className="h-4 w-4 cursor-pointer rounded-[4px] border-slate-300 text-honeywell-red focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800"
+            />
+            Aktif
+          </label>
         </div>
       </Modal>
 

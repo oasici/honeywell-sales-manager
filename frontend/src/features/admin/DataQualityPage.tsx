@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart2, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { analyticsApi } from '../../lib/api';
 import type { DataQualityOverview } from '../../lib/types';
 
@@ -9,40 +13,60 @@ const SCORE_THRESHOLDS = {
 };
 
 function getCircleColor(score: number): string {
-  if (score >= SCORE_THRESHOLDS.good) return '#22c55e';
-  if (score >= SCORE_THRESHOLDS.fair) return '#eab308';
+  if (score >= SCORE_THRESHOLDS.good) return '#10b981';
+  if (score >= SCORE_THRESHOLDS.fair) return '#f59e0b';
   return '#ef4444';
 }
 
 function getBarColor(pct: number): string {
-  if (pct >= SCORE_THRESHOLDS.good) return 'bg-green-500';
-  if (pct >= SCORE_THRESHOLDS.fair) return 'bg-yellow-500';
+  if (pct >= SCORE_THRESHOLDS.good) return 'bg-emerald-500';
+  if (pct >= SCORE_THRESHOLDS.fair) return 'bg-amber-500';
   return 'bg-red-500';
 }
 
 function getScoreLabel(score: number): string {
-  if (score >= SCORE_THRESHOLDS.good) return 'Iyi';
+  if (score >= SCORE_THRESHOLDS.good) return 'İyi';
   if (score >= SCORE_THRESHOLDS.fair) return 'Orta';
   return 'Düşük';
 }
 
-function getScoreTextClass(score: number): string {
-  if (score >= SCORE_THRESHOLDS.good) return 'text-green-600';
-  if (score >= SCORE_THRESHOLDS.fair) return 'text-yellow-600';
-  return 'text-red-600';
+function getScoreTone(score: number): { text: string; chip: string } {
+  if (score >= SCORE_THRESHOLDS.good) {
+    return {
+      text: 'text-emerald-700 dark:text-emerald-400',
+      chip: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:ring-emerald-900/40',
+    };
+  }
+  if (score >= SCORE_THRESHOLDS.fair) {
+    return {
+      text: 'text-amber-700 dark:text-amber-400',
+      chip: 'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-950/30 dark:ring-amber-900/40',
+    };
+  }
+  return {
+    text: 'text-red-700 dark:text-red-400',
+    chip: 'bg-red-50 text-red-700 ring-red-100 dark:bg-red-950/30 dark:ring-red-900/40',
+  };
 }
 
+/**
+ * CompletenessCard — KPI tile with circular progress + tone chip.
+ *
+ * Layout intentionally avoids a separate "Düşük/Orta/İyi" word column on the
+ * right; the tone chip carries that information and saves a row of space.
+ */
 function CompletenessCard({ label, pct }: { label: string; pct: number }) {
   const rounded = Math.round(pct);
   const circ = 97.4;
   const dash = (rounded / 100) * circ;
+  const tone = getScoreTone(rounded);
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-overline text-slate-500 dark:text-slate-400">{label}</p>
       <div className="mt-3 flex items-center gap-4">
-        <div className="relative h-16 w-16">
+        <div className="relative h-16 w-16 shrink-0">
           <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90" aria-hidden="true">
-            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e2e8f0" strokeWidth="3" />
             <circle
               cx="18"
               cy="18"
@@ -54,13 +78,27 @@ function CompletenessCard({ label, pct }: { label: string; pct: number }) {
               strokeLinecap="round"
             />
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900">
+          <span className="absolute inset-0 flex items-center justify-center text-[15px] font-bold tabular-nums text-slate-900 dark:text-white">
             {rounded}
           </span>
         </div>
-        <p className={`text-sm font-medium ${getScoreTextClass(rounded)}`}>
-          {getScoreLabel(rounded)}
-        </p>
+        <div className="min-w-0">
+          <span
+            className={[
+              'inline-flex h-6 items-center rounded-full px-2 text-[12px] font-semibold ring-1 ring-inset',
+              tone.chip,
+            ].join(' ')}
+          >
+            {getScoreLabel(rounded)}
+          </span>
+          <p className="mt-1.5 text-[12px] text-slate-500 dark:text-slate-400">
+            {rounded < SCORE_THRESHOLDS.fair
+              ? 'Acil iyileştirme gerekli'
+              : rounded < SCORE_THRESHOLDS.good
+                ? 'İyileştirme önerilir'
+                : 'Kayıtlar sağlıklı'}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -72,24 +110,32 @@ interface MissingFieldRow {
   total: number;
 }
 
+/**
+ * MissingFieldBar — labeled progress bar showing fill percentage.
+ *
+ * Displays count + label on the right; tabular-nums keeps stacked rows
+ * aligned even when one row reads "Tamam" and another "127 eksik".
+ */
 function MissingFieldBar({ label, missing, total }: MissingFieldRow) {
   const presentPct = total > 0 ? ((total - missing) / total) * 100 : 100;
   return (
     <div className="flex items-center gap-3">
-      <span className="w-40 text-sm text-gray-600 shrink-0">{label}</span>
+      <span className="w-40 shrink-0 text-[13px] font-medium text-slate-700 dark:text-slate-300">
+        {label}
+      </span>
       <div className="flex-1">
-        <div className="h-5 overflow-hidden rounded-full bg-gray-100">
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
           <div
             className={`h-full rounded-full transition-all ${getBarColor(presentPct)}`}
             style={{ width: `${Math.min(presentPct, 100)}%` }}
           />
         </div>
       </div>
-      <span className="w-20 text-right text-sm text-gray-500 shrink-0">
+      <span className="w-24 shrink-0 text-right text-[12px] tabular-nums">
         {missing > 0 ? (
-          <span className="text-red-500 font-medium">{missing} eksik</span>
+          <span className="font-medium text-red-600 dark:text-red-400">{missing} eksik</span>
         ) : (
-          <span className="text-green-600 font-medium">Tamam</span>
+          <span className="font-medium text-emerald-600 dark:text-emerald-400">Tamam</span>
         )}
       </span>
     </div>
@@ -125,33 +171,52 @@ export default function DataQualityPage() {
     : [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <BarChart2 size={24} className="text-honeywell-red" />
-        <h1 className="text-2xl font-bold text-gray-900">Veri Kalitesi</h1>
-      </div>
+    <div>
+      <PageHeader
+        title="Veri Kalitesi"
+        description="Müşteri ve teklif kayıtlarındaki eksiklikleri gözden geçir"
+      />
 
       {isLoading ? (
-        <div className="py-12 text-center text-gray-400">Yükleniyor...</div>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-[120px] rounded-2xl" />
+            ))}
+          </div>
+          <Skeleton variant="card" />
+        </div>
       ) : !qualityData ? (
-        <div className="py-12 text-center text-gray-400">Veri bulunamadi</div>
+        <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <EmptyState
+            variant="default"
+            icon={<AlertCircle size={20} />}
+            title="Veri bulunamadı"
+            description="Sistem henüz veri kalitesi raporu oluşturmadı."
+          />
+        </div>
       ) : (
-        <>
+        <div className="space-y-6">
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <CompletenessCard label="Müşteri Tamamlanma" pct={customerPct} />
             <CompletenessCard label="Teklif Tamamlanma" pct={quotePct} />
             <CompletenessCard label="Genel Ortalama" pct={overallPct} />
           </div>
 
           {/* Field Completion Rates */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Alan Tamamlanma Oranlari</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-heading-3 text-slate-900 dark:text-white">
+              Alan Tamamlanma Oranları
+            </h2>
 
             {customerFields.length > 0 && (
-              <div className="mb-5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                  Müşteri Alanları ({customers?.total ?? 0} kayıt)
+              <div className="mt-5">
+                <p className="mb-3 flex items-center gap-2 text-overline text-slate-500 dark:text-slate-400">
+                  Müşteri Alanları
+                  <span className="inline-flex h-5 min-w-[28px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[10px] font-bold tabular-nums text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    {customers?.total ?? 0}
+                  </span>
                 </p>
                 <div className="space-y-3">
                   {customerFields.map((row) => (
@@ -162,9 +227,12 @@ export default function DataQualityPage() {
             )}
 
             {quoteFields.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                  Teklif Alanları ({quotes?.total ?? 0} kayıt)
+              <div className="mt-6 border-t border-slate-100 pt-5 dark:border-slate-800">
+                <p className="mb-3 flex items-center gap-2 text-overline text-slate-500 dark:text-slate-400">
+                  Teklif Alanları
+                  <span className="inline-flex h-5 min-w-[28px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[10px] font-bold tabular-nums text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    {quotes?.total ?? 0}
+                  </span>
                 </p>
                 <div className="space-y-3">
                   {quoteFields.map((row) => (
@@ -175,24 +243,30 @@ export default function DataQualityPage() {
             )}
           </div>
 
-          {/* Worst Records — not available from this API */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">En Eksik Kayıtlar</h2>
-            <div className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 p-4">
-              <AlertCircle size={18} className="text-amber-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm text-amber-800 font-medium">Detayli analiz mevcut değil</p>
-                <p className="text-sm text-amber-700 mt-0.5">
-                  Kayıt bazli veri kalitesi analizi icin{' '}
-                  <a href="/reports" className="underline font-medium hover:text-amber-900">
-                    rapor olusturun
-                  </a>
+          {/* Worst Records — pointer to deeper analysis */}
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-5 dark:border-amber-900/40 dark:bg-amber-950/20">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-900/60">
+                <AlertCircle size={16} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-semibold text-amber-900 dark:text-amber-200">
+                  En Eksik Kayıtlar
+                </p>
+                <p className="mt-0.5 text-[13px] leading-5 text-amber-800/90 dark:text-amber-300/80">
+                  Kayıt bazlı veri kalitesi analizi için{' '}
+                  <Link
+                    to="/reports"
+                    className="font-medium underline-offset-2 hover:underline"
+                  >
+                    rapor oluşturun
+                  </Link>
                   .
                 </p>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

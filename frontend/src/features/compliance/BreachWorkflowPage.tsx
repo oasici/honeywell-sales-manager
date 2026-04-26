@@ -148,13 +148,13 @@ export default function BreachWorkflowPage() {
             <Card key={breach.id}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-gray-900">
+                  <h3 className="text-sm font-semibold text-slate-900">
                     {breach.breach_type}
                   </h3>
                   {breach.description && (
-                    <p className="text-sm text-gray-600">{breach.description}</p>
+                    <p className="text-sm text-slate-600">{breach.description}</p>
                   )}
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-slate-400">
                     {breach.created_at ? formatDateTime(breach.created_at) : '-'}
                   </p>
                 </div>

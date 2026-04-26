@@ -10,8 +10,21 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { customersApi, quotesApi, customerHealthApi, aiApi, opportunitiesApi } from '../../lib/api';
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
-import { STATUS_COLORS } from '../../lib/constants';
 import { translateStatus } from '../../lib/labelTranslations';
+
+// Map quote status → Badge variant. Mirrors QuoteListPage so the visual
+// language stays identical across surfaces.
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'default';
+const QUOTE_STATUS_TONE: Record<string, BadgeTone> = {
+  draft: 'default',
+  pending_approval: 'warning',
+  approved: 'success',
+  sent: 'info',
+  accepted: 'success',
+  rejected: 'danger',
+  expired: 'warning',
+  cancelled: 'default',
+};
 import { useT } from '../../hooks/useT';
 import {
   Mail,
@@ -264,14 +277,31 @@ export default function CustomerDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton variant="card" count={2} />
+      <div>
+        <PageHeader title="…" />
+        <div className="space-y-4">
+          <Skeleton variant="card" count={2} />
+        </div>
       </div>
     );
   }
 
   if (!customer) {
-    return <div className="py-16 text-center text-gray-500">{t('customer_detail.not_found')}</div>;
+    return (
+      <div>
+        <PageHeader title={t('customer_detail.not_found')} />
+        <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-[14px] text-slate-500 dark:text-slate-400">
+            {t('customer_detail.not_found')}
+          </p>
+          <div className="mt-5">
+            <Button variant="secondary" onClick={() => navigate('/customers')}>
+              {t('customer_detail.back')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const quotes = quotesData?.items || [];
@@ -285,7 +315,7 @@ export default function CustomerDetailPage() {
         <button
           type="button"
           onClick={() => navigate(`/quotes/${row.id}`)}
-          className="font-semibold text-honeywell-red hover:underline"
+          className="text-[13px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-honeywell-red dark:text-white"
         >
           {row.quote_number}
         </button>
@@ -294,27 +324,34 @@ export default function CustomerDetailPage() {
     {
       key: 'status',
       header: t('customer_detail.status'),
-      render: (row: Quote) => (
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-            STATUS_COLORS[row.status] || 'bg-gray-100 text-gray-700'
-          }`}
-        >
-          {translateStatus(row.status, t)}
-        </span>
-      ),
+      render: (row: Quote) => {
+        const tone = QUOTE_STATUS_TONE[row.status] ?? 'default';
+        return (
+          <Badge variant={tone} size="sm" dot>
+            {translateStatus(row.status, t)}
+          </Badge>
+        );
+      },
     },
     {
       key: 'grand_total',
       header: t('customer_detail.total'),
+      align: 'right' as const,
+      numeric: true,
       render: (row: Quote) => (
-        <span className="font-medium text-sm">{formatCurrency(row.grand_total, row.currency)}</span>
+        <span className="text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
+          {formatCurrency(row.grand_total, row.currency)}
+        </span>
       ),
     },
     {
       key: 'created_at',
       header: t('customer_detail.date'),
-      render: (row: Quote) => <span className="text-sm">{formatDate(row.created_at)}</span>,
+      render: (row: Quote) => (
+        <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+          {formatDate(row.created_at)}
+        </span>
+      ),
     },
   ];
 
@@ -435,79 +472,125 @@ export default function CustomerDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Customer hero */}
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {customer.company || customer.name}
-                </h3>
-                {customer.company && (
-                  <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{customer.name}</p>
-                )}
+            <div className="space-y-5">
+              {/* Customer hero — avatar + name stack so the page anchor is
+                  unambiguous even when a long company name wraps. */}
+              <div className="flex items-start gap-3.5">
+                <span
+                  aria-hidden
+                  className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-honeywell-red/10 text-[16px] font-bold text-honeywell-red ring-1 ring-inset ring-honeywell-red/20"
+                >
+                  {(customer.company || customer.name)?.trim()?.[0]?.toUpperCase() ?? '?'}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-heading-3 text-slate-900 dark:text-white">
+                    {customer.company || customer.name}
+                  </h3>
+                  {customer.company && (
+                    <p className="mt-0.5 text-[13px] text-slate-500 dark:text-slate-400">
+                      {customer.name}
+                    </p>
+                  )}
+                  {customer.pinned && (
+                    <div className="mt-2">
+                      <Badge variant="warning" size="sm">
+                        <Pin size={10} />
+                        Sabitli
+                      </Badge>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Contact info with icons */}
+              {/* Contact info — icon medallions for visual rhythm. Empty
+                  values render an em-dash so columns line up cleanly. */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="flex items-center gap-2.5">
-                  <Mail size={14} className="shrink-0 text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {customer.email || '-'}
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                    <Mail size={14} />
                   </span>
+                  <div className="min-w-0">
+                    <p className="text-overline text-slate-400 dark:text-slate-500">E-posta</p>
+                    <p className="truncate text-[13px] text-slate-800 dark:text-slate-200">
+                      {customer.email || '—'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <Phone size={14} className="shrink-0 text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {customer.phone || '-'}
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                    <Phone size={14} />
                   </span>
+                  <div className="min-w-0">
+                    <p className="text-overline text-slate-400 dark:text-slate-500">Telefon</p>
+                    <p className="truncate text-[13px] text-slate-800 dark:text-slate-200">
+                      {customer.phone || '—'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <FileText size={14} className="shrink-0 text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    VKN: {customer.tax_id || '-'}
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                    <FileText size={14} />
                   </span>
+                  <div className="min-w-0">
+                    <p className="text-overline text-slate-400 dark:text-slate-500">VKN</p>
+                    <p className="truncate text-[13px] tabular-nums text-slate-800 dark:text-slate-200">
+                      {customer.tax_id || '—'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="shrink-0 text-xs font-bold text-gray-400">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-[11px] font-bold text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
                     {customer.preferred_lang === 'tr'
                       ? 'TR'
                       : customer.preferred_lang === 'en'
                         ? 'EN'
-                        : customer.preferred_lang || '-'}
+                        : '—'}
                   </span>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {customer.preferred_lang === 'tr'
-                      ? 'Turkce'
-                      : customer.preferred_lang === 'en'
-                        ? 'Ingilizce'
-                        : 'Dil'}
-                  </span>
+                  <div className="min-w-0">
+                    <p className="text-overline text-slate-400 dark:text-slate-500">Tercih Dili</p>
+                    <p className="truncate text-[13px] text-slate-800 dark:text-slate-200">
+                      {customer.preferred_lang === 'tr'
+                        ? 'Türkçe'
+                        : customer.preferred_lang === 'en'
+                          ? 'İngilizce'
+                          : 'Belirtilmedi'}
+                    </p>
+                  </div>
                 </div>
                 {customer.address && (
-                  <div className="flex items-start gap-2.5 sm:col-span-2">
-                    <MapPin size={14} className="mt-0.5 shrink-0 text-gray-400" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {customer.address}
+                  <div className="flex items-start gap-3 sm:col-span-2">
+                    <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                      <MapPin size={14} />
                     </span>
+                    <div className="min-w-0">
+                      <p className="text-overline text-slate-400 dark:text-slate-500">Adres</p>
+                      <p className="text-[13px] leading-5 text-slate-800 dark:text-slate-200">
+                        {customer.address}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Enrichment data */}
+              {/* AI Enrichment data — brand-tinted divider so it visually
+                  separates "facts we entered" from "facts AI inferred". */}
               {customer.enriched_at && (
-                <div className="mt-4 space-y-3 border-t border-gray-200 pt-4 dark:border-gray-700">
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={14} className="text-honeywell-red" />
-                    <Badge variant="info" size="sm">
+                <div className="mt-2 rounded-2xl border border-honeywell-red/15 bg-honeywell-red/4 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-[10px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                      <Sparkles size={14} />
+                    </span>
+                    <Badge variant="default" size="sm">
                       {t('customer_detail.ai_enriched')}
                     </Badge>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
                       {formatDate(customer.enriched_at)}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {customer.industry && (
                       <div className="flex items-center gap-2.5">
-                        <Building2 size={14} className="shrink-0 text-gray-400" />
+                        <Building2 size={14} className="shrink-0 text-slate-400" />
                         <Badge variant="default" size="sm">
                           {customer.industry}
                         </Badge>
@@ -515,8 +598,8 @@ export default function CustomerDetailPage() {
                     )}
                     {customer.employee_count != null && (
                       <div className="flex items-center gap-2.5">
-                        <Users size={14} className="shrink-0 text-gray-400" />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                        <Users size={14} className="shrink-0 text-slate-400" />
+                        <span className="text-[13px] tabular-nums text-slate-700 dark:text-slate-200">
                           {customer.employee_count.toLocaleString()}{' '}
                           {t('customer_detail.employees_suffix')}
                         </span>
@@ -524,20 +607,20 @@ export default function CustomerDetailPage() {
                     )}
                     {customer.annual_revenue && (
                       <div className="flex items-center gap-2.5">
-                        <TrendingUp size={14} className="shrink-0 text-gray-400" />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                        <TrendingUp size={14} className="shrink-0 text-slate-400" />
+                        <span className="text-[13px] tabular-nums text-slate-700 dark:text-slate-200">
                           {customer.annual_revenue}
                         </span>
                       </div>
                     )}
                     {customer.website && (
                       <div className="flex items-center gap-2.5">
-                        <Globe size={14} className="shrink-0 text-gray-400" />
+                        <Globe size={14} className="shrink-0 text-slate-400" />
                         <a
                           href={customer.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-honeywell-red hover:underline"
+                          className="truncate text-[13px] font-medium text-honeywell-red hover:underline"
                         >
                           {customer.website}
                         </a>
@@ -545,12 +628,12 @@ export default function CustomerDetailPage() {
                     )}
                     {customer.linkedin_url && (
                       <div className="flex items-center gap-2.5">
-                        <ExternalLink size={14} className="shrink-0 text-gray-400" />
+                        <ExternalLink size={14} className="shrink-0 text-slate-400" />
                         <a
                           href={customer.linkedin_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-honeywell-red hover:underline"
+                          className="text-[13px] font-medium text-honeywell-red hover:underline"
                         >
                           {t('customer_detail.linkedin')}
                         </a>
@@ -608,33 +691,33 @@ export default function CustomerDetailPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
-                <p className="text-xs text-gray-500">{t('account360.pipeline_open')}</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                <p className="text-xs text-slate-500">{t('account360.pipeline_open')}</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {formatCurrency(
                     account360.enrichment.pipeline_open_amount,
                     account360.enrichment.currency || 'TRY',
                   )}
                 </p>
               </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
-                <p className="text-xs text-gray-500">{t('account360.closed_won')}</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                <p className="text-xs text-slate-500">{t('account360.closed_won')}</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {formatCurrency(
                     account360.enrichment.closed_won_revenue,
                     account360.enrichment.currency || 'TRY',
                   )}
                 </p>
               </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
-                <p className="text-xs text-gray-500">{t('account360.risk_index')}</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                <p className="text-xs text-slate-500">{t('account360.risk_index')}</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {account360.enrichment.risk_index}
                 </p>
               </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
-                <p className="text-xs text-gray-500">{t('account360.engagement')}</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                <p className="text-xs text-slate-500">{t('account360.engagement')}</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {account360.enrichment.engagement_score}
                 </p>
               </div>
@@ -642,19 +725,19 @@ export default function CustomerDetailPage() {
 
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 text-sm">
               <div>
-                <span className="text-gray-500">{t('account360.deals_active')}</span>{' '}
+                <span className="text-slate-500">{t('account360.deals_active')}</span>{' '}
                 <span className="font-semibold">{account360.enrichment.active_deal_count}</span>
               </div>
               <div>
-                <span className="text-gray-500">{t('account360.deals_won')}</span>{' '}
+                <span className="text-slate-500">{t('account360.deals_won')}</span>{' '}
                 <span className="font-semibold">{account360.enrichment.won_deal_count}</span>
               </div>
               <div>
-                <span className="text-gray-500">{t('account360.deals_lost')}</span>{' '}
+                <span className="text-slate-500">{t('account360.deals_lost')}</span>{' '}
                 <span className="font-semibold">{account360.enrichment.lost_deal_count}</span>
               </div>
               <div>
-                <span className="text-gray-500">{t('account360.computed')}</span>{' '}
+                <span className="text-slate-500">{t('account360.computed')}</span>{' '}
                 <span className="font-semibold">
                   {account360.enrichment.computed_at
                     ? formatDate(account360.enrichment.computed_at)
@@ -663,50 +746,50 @@ export default function CustomerDetailPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+            <div className="mt-4 rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
                 {t('account360.last_touch')}
               </p>
-              <p className="text-sm text-gray-800 dark:text-gray-200">
+              <p className="text-sm text-slate-800 dark:text-slate-200">
                 {account360.last_touch.summary}
               </p>
               {account360.last_touch.at && (
-                <p className="text-xs text-gray-400 mt-1">{formatDate(account360.last_touch.at)}</p>
+                <p className="text-xs text-slate-400 mt-1">{formatDate(account360.last_touch.at)}</p>
               )}
             </div>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
                   {t('account360.risk_block')}
                 </p>
-                <ul className="list-disc pl-4 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                <ul className="list-disc pl-4 text-sm text-slate-700 dark:text-slate-300 space-y-1">
                   {(account360.risk_summary.recommendations || []).slice(0, 4).map((r, i) => (
                     <li key={i}>{r}</li>
                   ))}
                   {(!account360.risk_summary.recommendations ||
                     account360.risk_summary.recommendations.length === 0) && (
-                    <li className="text-gray-400">{t('account360.no_recommendations')}</li>
+                    <li className="text-slate-400">{t('account360.no_recommendations')}</li>
                   )}
                 </ul>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
                   {t('account360.open_deals')}
                 </p>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {account360.open_deals.length === 0 ? (
-                    <p className="text-sm text-gray-400">{t('account360.no_open_deals')}</p>
+                    <p className="text-sm text-slate-400">{t('account360.no_open_deals')}</p>
                   ) : (
                     account360.open_deals.slice(0, 8).map((o) => (
                       <button
                         key={o.id}
                         type="button"
                         onClick={() => navigate(`/opportunities/${o.id}`)}
-                        className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-2 py-1.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
                       >
-                        <span className="font-medium text-gray-900 dark:text-white">{o.title}</span>
-                        <span className="text-xs text-gray-500 ml-2">{o.stage}</span>
+                        <span className="font-medium text-slate-900 dark:text-white">{o.title}</span>
+                        <span className="text-xs text-slate-500 ml-2">{o.stage}</span>
                       </button>
                     ))
                   )}
@@ -715,25 +798,25 @@ export default function CustomerDetailPage() {
             </div>
 
             <div className="mt-4">
-              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
                 {t('account360.multi_timeline')}
               </p>
-              <div className="max-h-56 overflow-y-auto space-y-2 border border-gray-100 dark:border-gray-800 rounded-lg p-2">
+              <div className="max-h-56 overflow-y-auto space-y-2 border border-slate-100 dark:border-slate-800 rounded-lg p-2">
                 {account360.timeline.length === 0 ? (
-                  <p className="text-sm text-gray-400 py-2">{t('account360.timeline_empty')}</p>
+                  <p className="text-sm text-slate-400 py-2">{t('account360.timeline_empty')}</p>
                 ) : (
                   account360.timeline.slice(0, 20).map((ev, idx) => (
                     <div
                       key={`${ev.kind}-${idx}-${ev.occurred_at || ''}`}
-                      className="text-xs border-b border-gray-100 dark:border-gray-800 pb-2 last:border-0"
+                      className="text-xs border-b border-slate-100 dark:border-slate-800 pb-2 last:border-0"
                     >
-                      <div className="flex justify-between gap-2 text-gray-500">
+                      <div className="flex justify-between gap-2 text-slate-500">
                         <span>{ev.occurred_at ? formatDate(ev.occurred_at) : '—'}</span>
                         <span className="truncate">
                           {ev.opportunity_title || `#${ev.opportunity_id}`}
                         </span>
                       </div>
-                      <p className="text-gray-800 dark:text-gray-200 mt-0.5">
+                      <p className="text-slate-800 dark:text-slate-200 mt-0.5">
                         <span className="font-medium">{ev.event_type}</span>
                         {ev.description ? ` — ${ev.description}` : ''}
                       </p>
@@ -748,7 +831,7 @@ export default function CustomerDetailPage() {
                 <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-2">
                   {t('account360.meeting_prep_result')}
                 </p>
-                <pre className="text-sm whitespace-pre-wrap font-sans text-gray-800 dark:text-gray-200">
+                <pre className="text-sm whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200">
                   {meetingPrepText}
                 </pre>
               </div>
@@ -760,15 +843,15 @@ export default function CustomerDetailPage() {
         {intelligence && (
           <Card title="Account Intelligence">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
-                <p className="text-xs text-gray-500">Aktif fırsat</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                <p className="text-xs text-slate-500">Aktif fırsat</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {intelligence.opportunities.length}
                 </p>
               </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
-                <p className="text-xs text-gray-500">Açık task</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                <p className="text-xs text-slate-500">Açık task</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {intelligence.open_tasks_count}
                 </p>
               </div>
@@ -776,17 +859,17 @@ export default function CustomerDetailPage() {
 
             {intelligence.signals.length > 0 && (
               <div className="mt-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Son sinyaller</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Son sinyaller</p>
                 <div className="space-y-2">
                   {intelligence.signals.slice(0, 6).map((s) => (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => navigate(`/opportunities/${s.opportunity_id}`)}
-                      className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800"
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                           {s.signal_type}
                         </p>
                         <Badge
@@ -803,7 +886,7 @@ export default function CustomerDetailPage() {
                         </Badge>
                       </div>
                       {s.evidence && (
-                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                           {s.evidence}
                         </p>
                       )}
@@ -815,24 +898,24 @@ export default function CustomerDetailPage() {
 
             {intelligence.opportunities.length > 0 && (
               <div className="mt-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Fırsatlar</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Fırsatlar</p>
                 <div className="space-y-2">
                   {intelligence.opportunities.slice(0, 5).map((o) => (
                     <button
                       key={o.id}
                       type="button"
                       onClick={() => navigate(`/opportunities/${o.id}`)}
-                      className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800"
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                           {o.title}
                         </p>
                         <Badge variant="default" size="sm">
                           {o.stage}
                         </Badge>
                       </div>
-                      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                         {o.amount != null ? formatCurrency(o.amount, o.currency) : '-'}
                       </p>
                     </button>
@@ -851,7 +934,7 @@ export default function CustomerDetailPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={14} className="text-honeywell-red" />
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-slate-400">
                   {t('customer_detail.ai_generated_by_claude')}
                 </span>
                 {aiSummary.cached && (
@@ -860,12 +943,12 @@ export default function CustomerDetailPage() {
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                 {aiSummary.summary}
               </p>
               {aiSummary.sources && aiSummary.sources.length > 0 && (
                 <div className="space-y-1 pt-2">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {t('opp_detail.sources')}
                   </p>
                   <SummarySourceLinks sources={aiSummary.sources} />
@@ -873,7 +956,7 @@ export default function CustomerDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-4 text-center text-sm text-gray-400">
+            <p className="py-4 text-center text-sm text-slate-400">
               {t('customer_detail.ai_summary_empty')}
             </p>
           )}
@@ -908,19 +991,19 @@ export default function CustomerDetailPage() {
             <Skeleton variant="line" count={3} />
           ) : aiChanges && changesOpen ? (
             <div className="space-y-2">
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                 {aiChanges.summary}
               </p>
               {aiChanges.sources && aiChanges.sources.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {t('opp_detail.sources')}
                   </p>
                   <SummarySourceLinks sources={aiChanges.sources} />
                 </div>
               )}
               {aiChanges.generated_at && (
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-slate-400">
                   {formatDateTime(aiChanges.generated_at)}
                 </p>
               )}
@@ -931,7 +1014,7 @@ export default function CustomerDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-4 text-center text-sm text-gray-400">
+            <p className="py-4 text-center text-sm text-slate-400">
               {changesOpen ? t('customer_detail.ai_summary_empty') : t('opp_detail.changes_hint')}
             </p>
           )}
@@ -955,7 +1038,7 @@ export default function CustomerDetailPage() {
                           : 'text-green-500'
                     }
                   />
-                  <span className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                  <span className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
                     %{churnPrediction.data.churn_probability}
                   </span>
                 </div>
@@ -975,22 +1058,22 @@ export default function CustomerDetailPage() {
                         ? t('customer_detail.risk_medium')
                         : t('customer_detail.risk_low')}
                   </Badge>
-                  <p className="mt-1 text-xs text-gray-500">{t('customer_detail.churn_hint')}</p>
+                  <p className="mt-1 text-xs text-slate-500">{t('customer_detail.churn_hint')}</p>
                 </div>
               </div>
 
               {churnPrediction.data.risk_factors &&
                 churnPrediction.data.risk_factors.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase">
+                    <h4 className="text-xs font-semibold text-slate-500 uppercase">
                       {t('customer_detail.risk_factors')}
                     </h4>
                     {churnPrediction.data.risk_factors.map((rf, i) => (
-                      <div key={i} className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <div key={i} className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">
                           {rf.name}
                         </p>
-                        <p className="text-xs text-gray-500">{rf.description}</p>
+                        <p className="text-xs text-slate-500">{rf.description}</p>
                       </div>
                     ))}
                   </div>
@@ -999,14 +1082,14 @@ export default function CustomerDetailPage() {
               {churnPrediction.data.retention_actions &&
                 churnPrediction.data.retention_actions.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                    <h4 className="text-xs font-semibold text-slate-500 uppercase mb-1">
                       {t('customer_detail.retention_actions')}
                     </h4>
                     <ul className="space-y-1">
                       {churnPrediction.data.retention_actions.map((action, i) => (
                         <li
                           key={i}
-                          className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
+                          className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
                         >
                           <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-honeywell-red" />
                           {action}
@@ -1017,7 +1100,7 @@ export default function CustomerDetailPage() {
                 )}
             </div>
           ) : (
-            <p className="py-4 text-center text-sm text-gray-400">
+            <p className="py-4 text-center text-sm text-slate-400">
               {t('customer_detail.churn_empty')}
             </p>
           )}
@@ -1037,13 +1120,13 @@ export default function CustomerDetailPage() {
                   key={opp.id}
                   type="button"
                   onClick={() => navigate(`/opportunities/${opp.id}`)}
-                  className="flex w-full items-center justify-between rounded-lg border border-gray-200 px-4 py-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
+                  className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="min-w-0 text-left">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                       {opp.title}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-slate-500">
                       {opp.stage} &middot; {opp.status}
                     </p>
                   </div>
@@ -1061,7 +1144,7 @@ export default function CustomerDetailPage() {
                       {opp.stage}
                     </Badge>
                     {opp.amount != null && (
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                         {formatCurrency(opp.amount, opp.currency)}
                       </span>
                     )}
@@ -1074,18 +1157,18 @@ export default function CustomerDetailPage() {
 
         {/* Quote Summary */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border-l-4 border-l-blue-500 border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-xl border-l-4 border-l-blue-500 border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-800">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 {t('customer_detail.total_quotes')}
               </span>
               <TrendingUp size={16} className="text-blue-400" />
             </div>
-            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{quotes.length}</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{quotes.length}</p>
           </div>
-          <div className="rounded-xl border-l-4 border-l-red-500 border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-xl border-l-4 border-l-red-500 border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-800">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 {t('customer_detail.total_value')}
               </span>
               <TrendingUp size={16} className="text-red-400" />
@@ -1114,7 +1197,7 @@ export default function CustomerDetailPage() {
               {timelineData.events.map((event, idx) => (
                 <div key={`${event.type}-${event.id}`} className="relative flex gap-3 pb-4">
                   {idx < timelineData.events.length - 1 && (
-                    <div className="absolute left-[11px] top-6 h-full w-0.5 bg-gray-200 dark:bg-gray-700" />
+                    <div className="absolute left-[11px] top-6 h-full w-0.5 bg-gray-200 dark:bg-slate-800" />
                   )}
                   <div
                     className="relative z-10 mt-1 h-6 w-6 shrink-0 rounded-full flex items-center justify-center"
@@ -1139,14 +1222,14 @@ export default function CustomerDetailPage() {
                           ? t('customer_detail.timeline_email')
                           : t('customer_detail.timeline_quote')}
                       </span>
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[10px] text-slate-400">
                         {formatDate(event.timestamp)}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-sm text-gray-900 dark:text-white truncate">
+                    <p className="mt-0.5 text-sm text-slate-900 dark:text-white truncate">
                       {event.title}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                       {event.detail}
                     </p>
                   </div>
@@ -1154,7 +1237,7 @@ export default function CustomerDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-400">
+            <p className="py-8 text-center text-sm text-slate-400">
               {t('customer_detail.timeline_empty')}
             </p>
           )}
@@ -1179,21 +1262,21 @@ export default function CustomerDetailPage() {
                 return (
                   <div key={activity.id} className="relative flex gap-3 pb-4">
                     {idx < activityData.activities.length - 1 && (
-                      <div className="absolute left-[11px] top-6 h-full w-0.5 bg-gray-200 dark:bg-gray-700" />
+                      <div className="absolute left-[11px] top-6 h-full w-0.5 bg-gray-200 dark:bg-slate-800" />
                     )}
-                    <div className="relative z-10 mt-1 h-6 w-6 shrink-0 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <div className="relative z-10 mt-1 h-6 w-6 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                       <div className={`h-2.5 w-2.5 rounded-full ${dotColor}`} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:text-gray-300">
+                        <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
                           {activity.activity_type.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-[10px] text-slate-400">
                           {formatDate(activity.created_at)}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-sm text-gray-900 dark:text-white truncate">
+                      <p className="mt-0.5 text-sm text-slate-900 dark:text-white truncate">
                         {activity.summary}
                       </p>
                     </div>
@@ -1208,13 +1291,13 @@ export default function CustomerDetailPage() {
         {hierarchy && (hierarchy.parents.length > 0 || hierarchy.subsidiaries.length > 0) && (
           <Card>
             <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                 <Building2 size={16} />
                 Hesap Hiyerarsisi
               </h3>
               {hierarchy.parents.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1">
+                  <p className="text-xs font-medium text-slate-500 mb-1">
                     {t('customer_detail.parent_accounts')}
                   </p>
                   {hierarchy.parents.map((p) => (
@@ -1230,7 +1313,7 @@ export default function CustomerDetailPage() {
               )}
               {hierarchy.subsidiaries.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">
+                  <p className="text-xs font-medium text-slate-500 mb-1">
                     Alt Hesaplar ({hierarchy.subsidiaries.length})
                   </p>
                   {hierarchy.subsidiaries.map((s) => (
@@ -1243,20 +1326,20 @@ export default function CustomerDetailPage() {
                     </button>
                   ))}
                   {rollup && (
-                    <div className="mt-3 grid grid-cols-2 gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
+                    <div className="mt-3 grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                       <div className="text-center">
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        <p className="text-lg font-bold text-slate-900 dark:text-white">
                           {rollup.total_opportunities}
                         </p>
-                        <p className="text-[10px] text-gray-500">
+                        <p className="text-[10px] text-slate-500">
                           {t('customer_detail.total_opps')}
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        <p className="text-lg font-bold text-slate-900 dark:text-white">
                           {formatCurrency(rollup.total_quote_value)}
                         </p>
-                        <p className="text-[10px] text-gray-500">
+                        <p className="text-[10px] text-slate-500">
                           {t('customer_detail.total_quotes')}
                         </p>
                       </div>

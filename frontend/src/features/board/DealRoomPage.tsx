@@ -122,7 +122,7 @@ export default function DealRoomPage() {
   }
 
   if (!room) {
-    return <div className="py-16 text-center text-gray-500">{t('deal_room.not_found')}</div>;
+    return <div className="py-16 text-center text-slate-500">{t('deal_room.not_found')}</div>;
   }
 
   const currentSharedItems = sharedItems ?? [];
@@ -157,7 +157,7 @@ export default function DealRoomPage() {
             value={welcomeMessage ?? ''}
             onChange={(e) => setWelcomeMessage(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
             placeholder={t('deal_room.welcome_placeholder')}
           />
         </Card>
@@ -168,17 +168,17 @@ export default function DealRoomPage() {
         <Card title={t('deal_room.shared_items')}>
           <div className="space-y-3">
             {currentSharedItems.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-400">
+              <p className="py-4 text-center text-sm text-slate-400">
                 {t('deal_room.shared_items_empty')}
               </p>
             ) : (
               currentSharedItems.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
                       {item.title}
                     </p>
                     <a
@@ -207,24 +207,24 @@ export default function DealRoomPage() {
             )}
 
             {/* Add item form */}
-            <div className="border-t border-gray-100 pt-3 dark:border-gray-700">
+            <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <input
                   value={newItem.title}
                   onChange={(e) => setNewItem((p) => ({ ...p, title: e.target.value }))}
                   placeholder={t('deal_room.item_title')}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                 />
                 <input
                   value={newItem.url}
                   onChange={(e) => setNewItem((p) => ({ ...p, url: e.target.value }))}
                   placeholder={t('deal_room.item_url')}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                 />
                 <select
                   value={newItem.type}
                   onChange={(e) => setNewItem((p) => ({ ...p, type: e.target.value }))}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                 >
                   <option value="document">{t('deal_room.type_document')}</option>
                   <option value="quote">{t('deal_room.type_quote')}</option>
@@ -249,28 +249,28 @@ export default function DealRoomPage() {
         <Card title={t('deal_room.action_plan')}>
           <div className="space-y-3">
             {currentActionPlan.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-400">
+              <p className="py-4 text-center text-sm text-slate-400">
                 {t('deal_room.action_plan_empty')}
               </p>
             ) : (
               currentActionPlan.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700"
+                  className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800"
                 >
                   <input
                     type="checkbox"
                     checked={item.completed}
                     onChange={() => handleToggleAction(idx)}
-                    className="h-4 w-4 rounded border-gray-300"
+                    className="h-4 w-4 rounded border-slate-200"
                   />
                   <div className="min-w-0 flex-1">
                     <p
-                      className={`text-sm font-medium ${item.completed ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}`}
+                      className={`text-sm font-medium ${item.completed ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}`}
                     >
                       {item.task}
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
                       {item.due_date && (
                         <span>
                           {t('deal_room.date')}: {item.due_date}
@@ -295,25 +295,25 @@ export default function DealRoomPage() {
             )}
 
             {/* Add action form */}
-            <div className="border-t border-gray-100 pt-3 dark:border-gray-700">
+            <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <input
                   value={newAction.task}
                   onChange={(e) => setNewAction((p) => ({ ...p, task: e.target.value }))}
                   placeholder={t('deal_room.task')}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                 />
                 <input
                   type="date"
                   value={newAction.due_date}
                   onChange={(e) => setNewAction((p) => ({ ...p, due_date: e.target.value }))}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                 />
                 <input
                   value={newAction.owner}
                   onChange={(e) => setNewAction((p) => ({ ...p, owner: e.target.value }))}
                   placeholder={t('deal_room.owner')}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                 />
               </div>
               <div className="mt-2 flex justify-end">

@@ -12,14 +12,16 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { Printer } from 'lucide-react';
+import { Printer, FileText, AlertCircle } from 'lucide-react';
 
-import { Card } from '../../components/ui/Card';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { analyticsApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type { TopPart, TrendData } from '../../lib/types';
 
-/* ── Period options ───────────────────────────────────── */
 interface PeriodOption {
   label: string;
   days: number;
@@ -27,15 +29,14 @@ interface PeriodOption {
 }
 
 const PERIOD_OPTIONS: PeriodOption[] = [
-  { label: 'Son 30 Gun', days: 30, months: 1 },
-  { label: 'Son 90 Gun', days: 90, months: 3 },
+  { label: 'Son 30 Gün', days: 30, months: 1 },
+  { label: 'Son 90 Gün', days: 90, months: 3 },
   { label: 'Son 6 Ay', days: 180, months: 6 },
-  { label: 'Son 1 Yil', days: 365, months: 12 },
+  { label: 'Son 1 Yıl', days: 365, months: 12 },
 ];
 
 const TOP_PARTS_LIMIT = 20;
 
-/* ── Category breakdown item type ────────────────────── */
 interface CategoryItem {
   category: string;
   item_count: number;
@@ -43,7 +44,6 @@ interface CategoryItem {
   total_value: number;
 }
 
-/* ── Parts without price item type ───────────────────── */
 interface NoPricePart {
   id: number | null;
   honeywell_code: string;
@@ -53,11 +53,42 @@ interface NoPricePart {
   status: string;
 }
 
-/* ── Main component ──────────────────────────────────── */
+const TOOLTIP_STYLE = {
+  fontSize: 12,
+  borderRadius: 12,
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 8px 24px rgba(15,23,42,0.08)',
+};
+
+/**
+ * SectionCard — wrapper that gives every report block the same shell.
+ * Title sits on a slate-tinted header strip; body is plain so charts/tables
+ * can use the full width without nested padding.
+ */
+function SectionCard({
+  title,
+  children,
+  className = '',
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900 ${className}`}
+    >
+      <div className="border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
+        <h3 className="text-overline text-slate-500 dark:text-slate-400">{title}</h3>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
 
-  /* ── Queries ── */
   const { data: trendData, isLoading: isTrendLoading } = useQuery<TrendData[]>({
     queryKey: ['reports-monthly-trend', selectedPeriod.months],
     queryFn: () => analyticsApi.getMonthlyTrend(selectedPeriod.months),
@@ -67,7 +98,6 @@ export default function ReportsPage() {
     queryKey: ['reports-category-breakdown', selectedPeriod.days],
     queryFn: async () => {
       const raw = await analyticsApi.getCategoryBreakdown(selectedPeriod.days);
-      // API may return Record<string, number> or array depending on backend version
       if (Array.isArray(raw)) return raw;
       return Object.entries(raw).map(([category, count]) => ({
         category,
@@ -92,7 +122,6 @@ export default function ReportsPage() {
     },
   });
 
-  /* ── Derived chart data ── */
   const trendChartData = useMemo(() => {
     if (!trendData) return [];
     return trendData.map((t) => ({
@@ -106,259 +135,272 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6 print:space-y-4">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Raporlar</h1>
-          <p className="text-sm text-gray-500">Satış Raporlari</p>
-        </div>
-
-        <div className="flex items-center gap-3 print:hidden">
-          {/* Period selector */}
-          <div className="flex rounded-lg border border-gray-200 bg-white shadow-sm">
-            {PERIOD_OPTIONS.map((option) => (
+    <div className="print:space-y-4">
+      <PageHeader title="Raporlar" description="Satış raporları ve dönemsel kırılımlar">
+        {/* Period selector — segmented control */}
+        <div className="hidden rounded-[12px] border border-slate-200 bg-slate-50/80 p-1 sm:inline-flex sm:gap-1 dark:border-slate-800 dark:bg-slate-900/40 print:hidden">
+          {PERIOD_OPTIONS.map((option) => {
+            const isActive = selectedPeriod.days === option.days;
+            return (
               <button
                 key={option.days}
+                type="button"
                 onClick={() => setSelectedPeriod(option)}
-                className={`px-3 py-2 text-sm font-medium transition-colors first:rounded-l-lg last:rounded-r-lg ${
-                  selectedPeriod.days === option.days
-                    ? 'bg-honeywell-red text-white'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
+                className={[
+                  'inline-flex h-8 items-center rounded-[10px] px-3 text-[12px] font-medium transition-all',
+                  'focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20',
+                  isActive
+                    ? 'bg-white text-slate-900 shadow-(--shadow-xs) dark:bg-slate-800 dark:text-white'
+                    : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200',
+                ].join(' ')}
               >
                 {option.label}
               </button>
-            ))}
-          </div>
-
-          {/* PDF / Print button */}
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-          >
-            <Printer size={16} />
-            PDF Rapor Indir
-          </button>
+            );
+          })}
         </div>
+
+        <Button variant="secondary" onClick={handlePrint} className="print:hidden">
+          <Printer size={14} />
+          PDF İndir
+        </Button>
+      </PageHeader>
+
+      <div className="space-y-6">
+        {/* Section 1: Monthly Trend */}
+        <SectionCard title="Aylık Teklif & Gelir Trendi">
+          {isTrendLoading ? (
+            <div className="flex h-[300px] items-center justify-center">
+              <p className="text-[13px] text-slate-400">Yükleniyor...</p>
+            </div>
+          ) : trendChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={trendChartData}>
+                <defs>
+                  <linearGradient id="rptGradRed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#E53935" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#E53935" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="rptGradBlue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1976D2" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#1976D2" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Area
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="quote_count"
+                  stroke="#E53935"
+                  fill="url(#rptGradRed)"
+                  name="Teklif Sayısı"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: '#E53935' }}
+                />
+                <Area
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#1976D2"
+                  fill="url(#rptGradBlue)"
+                  name="Gelir"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: '#1976D2' }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState variant="compact" icon={<FileText size={18} />} title="Henüz veri yok" />
+          )}
+        </SectionCard>
+
+        {/* Section 2: Category Breakdown */}
+        <SectionCard title="Kategori Dağılımı">
+          {isCategoryLoading ? (
+            <div className="flex h-[300px] items-center justify-center">
+              <p className="text-[13px] text-slate-400">Yükleniyor...</p>
+            </div>
+          ) : categoryData && categoryData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={categoryData}>
+                <defs>
+                  <linearGradient id="catBarGradRed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#E53935" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#B71C1C" stopOpacity={0.85} />
+                  </linearGradient>
+                  <linearGradient id="catBarGradBlue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#1976D2" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#0D47A1" stopOpacity={0.85} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="category"
+                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  interval={0}
+                  angle={-15}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar
+                  yAxisId="left"
+                  dataKey="item_count"
+                  fill="url(#catBarGradRed)"
+                  name="Kalem Sayısı"
+                  radius={[6, 6, 0, 0]}
+                />
+                <Bar
+                  yAxisId="right"
+                  dataKey="total_value"
+                  fill="url(#catBarGradBlue)"
+                  name="Toplam Değer (USD)"
+                  radius={[6, 6, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState variant="compact" icon={<FileText size={18} />} title="Henüz veri yok" />
+          )}
+        </SectionCard>
+
+        {/* Section 3: Top Requested Parts */}
+        <div className="print-page-break" />
+        <SectionCard title="En Çok Talep Edilen Parçalar">
+          {isTopPartsLoading ? (
+            <p className="py-8 text-center text-[13px] text-slate-400">Yükleniyor...</p>
+          ) : topParts && topParts.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <th className="px-3 py-2.5 text-overline text-slate-500 dark:text-slate-400">
+                      #
+                    </th>
+                    <th className="px-3 py-2.5 text-overline text-slate-500 dark:text-slate-400">
+                      Honeywell Kodu
+                    </th>
+                    <th className="px-3 py-2.5 text-overline text-slate-500 dark:text-slate-400">
+                      Parça Adı
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-overline text-slate-500 dark:text-slate-400">
+                      Talep
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-overline text-slate-500 dark:text-slate-400">
+                      Toplam Miktar
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-overline text-slate-500 dark:text-slate-400">
+                      Toplam Değer
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {topParts.map((part: TopPart, index: number) => (
+                    <tr
+                      key={part.honeywell_code}
+                      className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                    >
+                      <td className="px-3 py-2.5 text-[12px] tabular-nums text-slate-400">
+                        {index + 1}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-[13px] font-semibold text-slate-900 dark:text-white">
+                        {part.honeywell_code}
+                      </td>
+                      <td className="px-3 py-2.5 text-[13px] text-slate-700 dark:text-slate-200">
+                        {part.name_tr || part.name_en || part.name || '—'}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-[13px] tabular-nums text-slate-900 dark:text-white">
+                        {part.request_count}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-[13px] tabular-nums text-slate-700 dark:text-slate-200">
+                        {part.total_quantity}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
+                        {part.total_value != null ? formatCurrency(part.total_value) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState variant="compact" icon={<FileText size={18} />} title="Henüz veri yok" />
+          )}
+        </SectionCard>
+
+        {/* Section 4: Parts Without Price */}
+        <SectionCard title="Fiyatsız Parçalar">
+          {isNoPriceLoading ? (
+            <p className="py-8 text-center text-[13px] text-slate-400">Yükleniyor...</p>
+          ) : noPriceParts && noPriceParts.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <th className="px-3 py-2.5 text-overline text-slate-500 dark:text-slate-400">
+                      Honeywell Kodu
+                    </th>
+                    <th className="px-3 py-2.5 text-overline text-slate-500 dark:text-slate-400">
+                      Parça Adı
+                    </th>
+                    <th className="px-3 py-2.5 text-overline text-slate-500 dark:text-slate-400">
+                      Kategori
+                    </th>
+                    <th className="px-3 py-2.5 text-overline text-slate-500 dark:text-slate-400">
+                      Durum
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {noPriceParts.map((part, index) => (
+                    <tr
+                      key={part.honeywell_code + '-' + index}
+                      className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                    >
+                      <td className="px-3 py-2.5 font-mono text-[13px] font-semibold text-slate-900 dark:text-white">
+                        {part.honeywell_code}
+                      </td>
+                      <td className="px-3 py-2.5 text-[13px] text-slate-700 dark:text-slate-200">
+                        {part.name_tr || part.name_en || '—'}
+                      </td>
+                      <td className="px-3 py-2.5 text-[12px] text-slate-500 dark:text-slate-400">
+                        {part.category || '—'}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge
+                          variant={part.status === 'unknown_part' ? 'danger' : 'warning'}
+                          size="sm"
+                          dot
+                        >
+                          {part.status === 'unknown_part' ? 'Bilinmeyen Parça' : 'Fiyat Yok'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-3 flex items-center gap-2 text-[12px] text-slate-500 dark:text-slate-400">
+                <AlertCircle size={12} className="text-amber-500" />
+                Toplam {noPriceParts.length} parça fiyat bilgisi eksik
+              </div>
+            </div>
+          ) : (
+            <EmptyState
+              variant="compact"
+              icon={<FileText size={18} />}
+              title="Tüm parçaların fiyat bilgisi mevcut"
+            />
+          )}
+        </SectionCard>
       </div>
-
-      {/* Section 1: Monthly Trend */}
-      <Card title="Aylik Teklif & Gelir Trendi">
-        {isTrendLoading ? (
-          <div className="flex h-[300px] items-center justify-center">
-            <p className="text-sm text-gray-400">Yükleniyor...</p>
-          </div>
-        ) : trendChartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={trendChartData}>
-              <defs>
-                <linearGradient id="rptGradRed" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#D32F2F" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#D32F2F" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="rptGradBlue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1976D2" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#1976D2" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 12,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                }}
-              />
-              <Legend />
-              <Area
-                yAxisId="left"
-                type="monotone"
-                dataKey="quote_count"
-                stroke="#D32F2F"
-                fill="url(#rptGradRed)"
-                name="Teklif Sayisi"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: '#D32F2F' }}
-              />
-              <Area
-                yAxisId="right"
-                type="monotone"
-                dataKey="revenue"
-                stroke="#1976D2"
-                fill="url(#rptGradBlue)"
-                name="Gelir"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: '#1976D2' }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
-        )}
-      </Card>
-
-      {/* Section 2: Category Breakdown */}
-      <Card title="Kategori Dagilimi">
-        {isCategoryLoading ? (
-          <div className="flex h-[300px] items-center justify-center">
-            <p className="text-sm text-gray-400">Yükleniyor...</p>
-          </div>
-        ) : categoryData && categoryData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={categoryData}>
-              <defs>
-                <linearGradient id="catBarGradRed" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#D32F2F" stopOpacity={1} />
-                  <stop offset="100%" stopColor="#B71C1C" stopOpacity={0.8} />
-                </linearGradient>
-                <linearGradient id="catBarGradBlue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#1976D2" stopOpacity={1} />
-                  <stop offset="100%" stopColor="#0D47A1" stopOpacity={0.8} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="category"
-                tick={{ fontSize: 10 }}
-                interval={0}
-                angle={-15}
-                textAnchor="end"
-                height={60}
-              />
-              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 12,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                }}
-              />
-              <Legend />
-              <Bar
-                yAxisId="left"
-                dataKey="item_count"
-                fill="url(#catBarGradRed)"
-                name="Kalem Sayisi"
-                radius={[6, 6, 0, 0]}
-                label={{ position: 'top', fontSize: 10, fill: '#94a3b8' }}
-              />
-              <Bar
-                yAxisId="right"
-                dataKey="total_value"
-                fill="url(#catBarGradBlue)"
-                name="Toplam Değer (USD)"
-                radius={[6, 6, 0, 0]}
-                label={{ position: 'top', fontSize: 10, fill: '#94a3b8' }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
-        )}
-      </Card>
-
-      {/* Section 3: Top Requested Parts */}
-      <div className="print-page-break" />
-      <Card title="En Çok Talep Edilen Parçalar">
-        {isTopPartsLoading ? (
-          <p className="py-8 text-center text-sm text-gray-400">Yükleniyor...</p>
-        ) : topParts && topParts.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  <th className="px-3 py-3">#</th>
-                  <th className="px-3 py-3">Honeywell Kodu</th>
-                  <th className="px-3 py-3">Parça Adi</th>
-                  <th className="px-3 py-3 text-right">Talep Sayisi</th>
-                  <th className="px-3 py-3 text-right">Toplam Miktar</th>
-                  <th className="px-3 py-3 text-right">Toplam Değer</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topParts.map((part: TopPart, index: number) => (
-                  <tr
-                    key={part.honeywell_code}
-                    className="border-b border-gray-100 transition-colors hover:bg-gray-50"
-                  >
-                    <td className="px-3 py-3 text-gray-400">{index + 1}</td>
-                    <td className="px-3 py-3 font-mono text-xs font-medium">
-                      {part.honeywell_code}
-                    </td>
-                    <td className="px-3 py-3">
-                      {part.name_tr || part.name_en || part.name || '-'}
-                    </td>
-                    <td className="px-3 py-3 text-right">{part.request_count}</td>
-                    <td className="px-3 py-3 text-right">{part.total_quantity}</td>
-                    <td className="px-3 py-3 text-right">
-                      {part.total_value != null ? formatCurrency(part.total_value) : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
-        )}
-      </Card>
-
-      {/* Section 4: Parts Without Price */}
-      <Card title="Fiyatsiz Parçalar">
-        {isNoPriceLoading ? (
-          <p className="py-8 text-center text-sm text-gray-400">Yükleniyor...</p>
-        ) : noPriceParts && noPriceParts.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  <th className="px-3 py-3">Honeywell Kodu</th>
-                  <th className="px-3 py-3">Parça Adi</th>
-                  <th className="px-3 py-3">Kategori</th>
-                  <th className="px-3 py-3">Durum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {noPriceParts.map((part, index) => (
-                  <tr
-                    key={part.honeywell_code + '-' + index}
-                    className="border-b border-gray-100 transition-colors hover:bg-gray-50"
-                  >
-                    <td className="px-3 py-3 font-mono text-xs font-medium">
-                      {part.honeywell_code}
-                    </td>
-                    <td className="px-3 py-3">{part.name_tr || part.name_en || '-'}</td>
-                    <td className="px-3 py-3">{part.category || '-'}</td>
-                    <td className="px-3 py-3">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                          part.status === 'unknown_part'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-amber-100 text-amber-700'
-                        }`}
-                      >
-                        {part.status === 'unknown_part' ? 'Bilinmeyen Parça' : 'Fiyat Yok'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="mt-3 text-xs text-gray-400">
-              Toplam {noPriceParts.length} parça fiyat bilgisi eksik
-            </p>
-          </div>
-        ) : (
-          <p className="py-8 text-center text-sm text-gray-400">
-            Tüm parcalarin fiyat bilgisi mevcut
-          </p>
-        )}
-      </Card>
     </div>
   );
 }

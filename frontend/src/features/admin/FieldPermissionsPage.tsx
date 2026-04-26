@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Plus, Trash2 } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -132,45 +133,56 @@ export default function FieldPermissionsPage() {
       header: 'Rol',
       sortable: true,
       render: (row: FieldPermission) => (
-        <span className="font-medium text-gray-900">{roleLabel(row.role)}</span>
+        <Badge variant="default" size="sm">{roleLabel(row.role)}</Badge>
       ),
     },
     {
       key: 'entity_type',
       header: 'Varlık Tipi',
       sortable: true,
-      render: (row: FieldPermission) => <span>{entityLabel(row.entity_type)}</span>,
+      render: (row: FieldPermission) => (
+        <span className="text-[13px] text-slate-700 dark:text-slate-200">
+          {entityLabel(row.entity_type)}
+        </span>
+      ),
     },
     {
       key: 'field_name',
-      header: 'Alan Adi',
+      header: 'Alan Adı',
       sortable: true,
+      render: (row: FieldPermission) => (
+        <span className="font-mono text-[13px] font-semibold text-slate-900 dark:text-white">
+          {row.field_name}
+        </span>
+      ),
     },
     {
       key: 'access_level',
       header: 'Erişim Seviyesi',
       render: (row: FieldPermission) => (
-        <Badge variant={ACCESS_VARIANT[row.access_level] ?? 'default'}>
+        <Badge variant={ACCESS_VARIANT[row.access_level] ?? 'default'} size="sm" dot>
           {accessLabel(row.access_level)}
         </Badge>
       ),
     },
     {
       key: 'created_at',
-      header: 'Olusturulma',
+      header: 'Oluşturulma',
       sortable: true,
       render: (row: FieldPermission) => (
-        <span className="text-sm text-gray-500">
-          {row.created_at ? formatDateTime(row.created_at) : '-'}
+        <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+          {row.created_at ? formatDateTime(row.created_at) : '—'}
         </span>
       ),
     },
     {
       key: 'actions',
-      header: 'İşlemler',
+      header: '',
+      align: 'right' as const,
+      width: '80px',
       render: (row: FieldPermission) => (
-        <Button size="sm" variant="danger" onClick={() => setDeleteTarget(row.id)}>
-          Sil
+        <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(row.id)} aria-label="Sil">
+          <Trash2 size={14} className="text-red-500" />
         </Button>
       ),
     },
@@ -179,15 +191,18 @@ export default function FieldPermissionsPage() {
   return (
     <div>
       <PageHeader
-        title="Alan Izinleri"
-        description="Rol bazinda alan erişim izinlerini yonetin"
+        title="Alan İzinleri"
+        description="Rol bazında alan erişim izinlerini yönetin"
       >
-        <Button onClick={() => setIsCreateOpen(true)}>Yeni İzin</Button>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus size={14} />
+          Yeni İzin
+        </Button>
       </PageHeader>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-4">
-        <div className="w-48">
+      <div className="mb-6 flex flex-wrap items-end gap-3">
+        <div className="w-52">
           <Select
             label="Rol"
             options={ROLE_OPTIONS}
@@ -195,7 +210,7 @@ export default function FieldPermissionsPage() {
             onChange={(e) => setRoleFilter(e.target.value)}
           />
         </div>
-        <div className="w-48">
+        <div className="w-52">
           <Select
             label="Varlık Tipi"
             options={ENTITY_TYPE_OPTIONS}
@@ -208,18 +223,25 @@ export default function FieldPermissionsPage() {
       {isLoading && <Skeleton variant="table" />}
 
       {!isLoading && (
-        <DataTable
-          columns={columns}
-          data={permissions}
-          emptyMessage="Alan izni bulunamadi"
-        />
+        <DataTable columns={columns} data={permissions} emptyMessage="Alan izni bulunamadı" />
       )}
 
       {/* Create modal */}
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Yeni Alan Izni"
+        title="Yeni Alan İzni"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleCreate} loading={createMutation.isPending}>
+              Oluştur
+            </Button>
+          </>
+        }
       >
         <div className="space-y-4">
           <Select
@@ -235,7 +257,7 @@ export default function FieldPermissionsPage() {
             onChange={(e) => setForm({ ...form, entity_type: e.target.value })}
           />
           <Input
-            label="Alan Adi"
+            label="Alan Adı"
             placeholder="Örneğin: email"
             value={form.field_name}
             onChange={(e) => setForm({ ...form, field_name: e.target.value })}
@@ -246,14 +268,6 @@ export default function FieldPermissionsPage() {
             value={form.access_level}
             onChange={(e) => setForm({ ...form, access_level: e.target.value })}
           />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              İptal
-            </Button>
-            <Button onClick={handleCreate} loading={createMutation.isPending}>
-              Oluştur
-            </Button>
-          </div>
         </div>
       </Modal>
 

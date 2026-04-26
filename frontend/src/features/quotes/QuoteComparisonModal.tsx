@@ -57,10 +57,10 @@ export default function QuoteComparisonModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-gray-900 p-6">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-slate-900 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
             Versiyon Karsilastirmasi
           </h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -71,12 +71,12 @@ export default function QuoteComparisonModal({
         {versionsLoading ? (
           <Skeleton variant="card" count={2} />
         ) : versions.length < 2 ? (
-          <p className="py-12 text-center text-sm text-gray-500">Bu teklifin tek versiyonu var</p>
+          <p className="py-12 text-center text-sm text-slate-500">Bu teklifin tek versiyonu var</p>
         ) : (
           <>
             {/* Version selector */}
             <div className="mb-4 flex items-center gap-3 text-sm">
-              <label className="text-gray-500 dark:text-gray-400">Önceki:</label>
+              <label className="text-slate-500 dark:text-slate-400">Önceki:</label>
               <select
                 value={compPrev ?? ''}
                 onChange={(e) =>
@@ -85,7 +85,7 @@ export default function QuoteComparisonModal({
                     curr: p?.curr ?? compCurr ?? 0,
                   }))
                 }
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               >
                 {versions.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -93,7 +93,7 @@ export default function QuoteComparisonModal({
                   </option>
                 ))}
               </select>
-              <label className="text-gray-500 dark:text-gray-400">Sonraki:</label>
+              <label className="text-slate-500 dark:text-slate-400">Sonraki:</label>
               <select
                 value={compCurr ?? ''}
                 onChange={(e) =>
@@ -102,7 +102,7 @@ export default function QuoteComparisonModal({
                     curr: Number(e.target.value),
                   }))
                 }
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               >
                 {versions.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -119,16 +119,16 @@ export default function QuoteComparisonModal({
                 {/* Changed items */}
                 {comparison.changed_items.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                       Degisen Kalemler
                     </h3>
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="py-2 px-3 text-left text-xs text-gray-500">Ürün</th>
-                          <th className="py-2 px-3 text-left text-xs text-gray-500">Alan</th>
-                          <th className="py-2 px-3 text-right text-xs text-gray-500">Önceki</th>
-                          <th className="py-2 px-3 text-right text-xs text-gray-500">Yeni</th>
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                          <th className="py-2 px-3 text-left text-xs text-slate-500">Ürün</th>
+                          <th className="py-2 px-3 text-left text-xs text-slate-500">Alan</th>
+                          <th className="py-2 px-3 text-right text-xs text-slate-500">Önceki</th>
+                          <th className="py-2 px-3 text-right text-xs text-slate-500">Yeni</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -136,16 +136,16 @@ export default function QuoteComparisonModal({
                           Object.entries(item.changes).map(([field, change]) => (
                             <tr
                               key={`${item.key}-${field}`}
-                              className="border-b border-gray-50 dark:border-gray-800 bg-yellow-50 dark:bg-yellow-900/10"
+                              className="border-b border-gray-50 dark:border-slate-800 bg-yellow-50 dark:bg-yellow-900/10"
                             >
-                              <td className="py-2 px-3 text-gray-900 dark:text-white">
+                              <td className="py-2 px-3 text-slate-900 dark:text-white">
                                 {item.description}
                               </td>
-                              <td className="py-2 px-3 text-gray-600 dark:text-gray-400">
+                              <td className="py-2 px-3 text-slate-600 dark:text-slate-400">
                                 {field}
                               </td>
-                              <td className="py-2 px-3 text-right text-gray-500">{change.from}</td>
-                              <td className="py-2 px-3 text-right font-semibold text-gray-900 dark:text-white">
+                              <td className="py-2 px-3 text-right text-slate-500">{change.from}</td>
+                              <td className="py-2 px-3 text-right font-semibold text-slate-900 dark:text-white">
                                 {change.to}
                               </td>
                             </tr>
@@ -159,15 +159,15 @@ export default function QuoteComparisonModal({
                 {/* Added items */}
                 {comparison.added_items.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                       Eklenen Kalemler
                     </h3>
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="py-2 px-3 text-left text-xs text-gray-500">Ürün</th>
-                          <th className="py-2 px-3 text-right text-xs text-gray-500">Miktar</th>
-                          <th className="py-2 px-3 text-right text-xs text-gray-500">
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                          <th className="py-2 px-3 text-left text-xs text-slate-500">Ürün</th>
+                          <th className="py-2 px-3 text-right text-xs text-slate-500">Miktar</th>
+                          <th className="py-2 px-3 text-right text-xs text-slate-500">
                             Birim Fiyat
                           </th>
                         </tr>
@@ -176,9 +176,9 @@ export default function QuoteComparisonModal({
                         {comparison.added_items.map((item) => (
                           <tr
                             key={item.key}
-                            className="border-b border-gray-50 dark:border-gray-800 bg-green-50 dark:bg-green-900/10"
+                            className="border-b border-gray-50 dark:border-slate-800 bg-green-50 dark:bg-green-900/10"
                           >
-                            <td className="py-2 px-3 text-gray-900 dark:text-white">
+                            <td className="py-2 px-3 text-slate-900 dark:text-white">
                               {item.description}
                             </td>
                             <td className="py-2 px-3 text-right">{item.quantity}</td>
@@ -195,15 +195,15 @@ export default function QuoteComparisonModal({
                 {/* Removed items */}
                 {comparison.removed_items.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                       Kaldirilan Kalemler
                     </h3>
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="py-2 px-3 text-left text-xs text-gray-500">Ürün</th>
-                          <th className="py-2 px-3 text-right text-xs text-gray-500">Miktar</th>
-                          <th className="py-2 px-3 text-right text-xs text-gray-500">
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                          <th className="py-2 px-3 text-left text-xs text-slate-500">Ürün</th>
+                          <th className="py-2 px-3 text-right text-xs text-slate-500">Miktar</th>
+                          <th className="py-2 px-3 text-right text-xs text-slate-500">
                             Birim Fiyat
                           </th>
                         </tr>
@@ -212,9 +212,9 @@ export default function QuoteComparisonModal({
                         {comparison.removed_items.map((item) => (
                           <tr
                             key={item.key}
-                            className="border-b border-gray-50 dark:border-gray-800 bg-red-50 dark:bg-red-900/10"
+                            className="border-b border-gray-50 dark:border-slate-800 bg-red-50 dark:bg-red-900/10"
                           >
-                            <td className="py-2 px-3 text-gray-900 dark:text-white line-through">
+                            <td className="py-2 px-3 text-slate-900 dark:text-white line-through">
                               {item.description}
                             </td>
                             <td className="py-2 px-3 text-right line-through">{item.quantity}</td>
@@ -229,9 +229,9 @@ export default function QuoteComparisonModal({
                 )}
 
                 {/* Summary */}
-                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-slate-600 dark:text-slate-400">
                       +{addedCount} ürün eklendi, -{removedCount} ürün kaldırıldı
                     </span>
                     <span
@@ -241,7 +241,7 @@ export default function QuoteComparisonModal({
                       {formatCurrency(totalDiff, currency)}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                     <span>
                       Onceki toplam:{' '}
                       {formatCurrency(comparison.summary_diff.grand_total.from, currency)}

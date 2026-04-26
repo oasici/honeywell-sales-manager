@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { duplicatesApi } from '../../lib/api';
@@ -45,7 +46,7 @@ const RELATED_LABELS: Record<string, string> = {
   opportunities: 'Fırsat',
   emails: 'Email',
   activities: 'Aktivite',
-  team_members: 'Takim Uyesi',
+  team_members: 'Takım Üyesi',
 };
 
 const DISPLAY_FIELDS: string[] = [
@@ -58,6 +59,97 @@ const DISPLAY_FIELDS: string[] = [
   'preferred_lang',
   'created_at',
 ];
+
+interface RecordCardProps {
+  title: string;
+  record: RecordFields;
+  variant: 'winner' | 'loser';
+  highlightDifferentFrom?: RecordFields;
+}
+
+/**
+ * RecordCard — side-by-side comparison panel for the merge preview.
+ *
+ * Visual:
+ *   - Winner gets a brand-emerald accent strip + CheckCircle medallion.
+ *   - Loser gets a red accent strip + XCircle medallion. Diff fields are
+ *     highlighted with a subtle red tint so the user can see exactly what
+ *     will be lost without scanning every row character-by-character.
+ */
+function RecordCard({ title, record, variant, highlightDifferentFrom }: RecordCardProps) {
+  const isWinner = variant === 'winner';
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+      <div
+        className={[
+          'flex items-center gap-2.5 border-b px-5 py-3.5',
+          isWinner
+            ? 'border-emerald-100 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20'
+            : 'border-red-100 bg-red-50/40 dark:border-red-900/40 dark:bg-red-950/20',
+        ].join(' ')}
+      >
+        <span
+          className={[
+            'inline-flex h-8 w-8 items-center justify-center rounded-[10px] ring-1 ring-inset',
+            isWinner
+              ? 'bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:ring-emerald-900/60'
+              : 'bg-red-100 text-red-700 ring-red-200 dark:bg-red-900/40 dark:text-red-300 dark:ring-red-900/60',
+          ].join(' ')}
+        >
+          {isWinner ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3
+            className={[
+              'text-[13px] font-semibold',
+              isWinner
+                ? 'text-emerald-800 dark:text-emerald-200'
+                : 'text-red-800 dark:text-red-200',
+            ].join(' ')}
+          >
+            {title}
+          </h3>
+          <p
+            className={[
+              'text-[11px]',
+              isWinner
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-red-600 dark:text-red-400',
+            ].join(' ')}
+          >
+            {isWinner ? 'Bu kayıt korunacak' : 'Bu kayıt silinecek'}
+          </p>
+        </div>
+      </div>
+      <dl className="divide-y divide-slate-100 dark:divide-slate-800">
+        {DISPLAY_FIELDS.map((field) => {
+          const value = String(record[field] ?? '') || '—';
+          const otherValue = highlightDifferentFrom
+            ? String(highlightDifferentFrom[field] ?? '') || '—'
+            : null;
+          const isDifferent = otherValue != null && otherValue !== value;
+          return (
+            <div key={field} className="flex items-baseline gap-3 px-5 py-2.5">
+              <dt className="w-40 shrink-0 text-overline text-slate-400 dark:text-slate-500">
+                {FIELD_LABELS[field] || field}
+              </dt>
+              <dd
+                className={[
+                  'min-w-0 flex-1 truncate text-[13px]',
+                  isDifferent
+                    ? 'font-semibold text-red-700 dark:text-red-400'
+                    : 'text-slate-800 dark:text-slate-200',
+                ].join(' ')}
+              >
+                {value}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
+}
 
 export default function MergeRecordsPage() {
   const { entityType, winnerId, loserId } = useParams<{
@@ -87,11 +179,11 @@ export default function MergeRecordsPage() {
         loser_id: Number(loserId),
       }),
     onSuccess: () => {
-      toast.success('Kayıtlar başarıyla birlestirildi');
+      toast.success('Kayıtlar başarıyla birleştirildi');
       navigate(`/customers/${winnerId}`);
     },
     onError: () => {
-      toast.error('Birlestirme işlemi başarısız oldu');
+      toast.error('Birleştirme işlemi başarısız oldu');
     },
   });
 
@@ -105,8 +197,19 @@ export default function MergeRecordsPage() {
 
   if (isError || !data?.data) {
     return (
-      <div className="py-20 text-center text-gray-500">
-        Onizleme yuklenemedi. Kayıtlar bulunamadi.
+      <div>
+        <PageHeader title="Kayıt Birleştirme" />
+        <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-[14px] text-slate-500 dark:text-slate-400">
+            Önizleme yüklenemedi. Kayıtlar bulunamadı.
+          </p>
+          <div className="mt-4">
+            <Button variant="secondary" onClick={() => navigate(-1)}>
+              <ArrowLeft size={14} />
+              Geri Dön
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -120,103 +223,69 @@ export default function MergeRecordsPage() {
 
   const transferSummary =
     transferSummaryParts.length > 0
-      ? transferSummaryParts.join(', ') + ' aktarilacak'
-      : 'Aktarilacak iliskili kayıt bulunmuyor';
+      ? transferSummaryParts.join(', ') + ' aktarılacak'
+      : 'Aktarılacak ilişkili kayıt bulunmuyor';
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
-        title="Kayıt Birlestirme"
-        description={`${entityType === 'customer' ? 'Müşteri' : 'Lead'} kayitlarini birlestir`}
+        title="Kayıt Birleştirme"
+        description={`${entityType === 'customer' ? 'Müşteri' : 'Lead'} kayıtlarını birleştir`}
       >
         <Button variant="secondary" onClick={() => navigate(-1)}>
-          Geri Don
+          <ArrowLeft size={14} />
+          Geri Dön
         </Button>
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Winner Card */}
-        <Card>
-          <div className="border-b-2 border-green-500 px-5 py-3">
-            <h3 className="text-base font-semibold text-green-700">
-              Kazanan Kayıt (Korunacak)
-            </h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {DISPLAY_FIELDS.map((field) => (
-              <div key={field} className="flex items-center px-5 py-3">
-                <span className="w-40 shrink-0 text-sm font-medium text-gray-500">
-                  {FIELD_LABELS[field] || field}
-                </span>
-                <span className="text-sm text-gray-900">
-                  {String(winner[field] ?? '') || '-'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Loser Card */}
-        <Card>
-          <div className="border-b-2 border-red-500 px-5 py-3">
-            <h3 className="text-base font-semibold text-red-700">
-              Kaybeden Kayıt (Silinecek)
-            </h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {DISPLAY_FIELDS.map((field) => {
-              const winnerVal = String(String(winner[field] ?? '') || '');
-              const loserVal = String(String(loser[field] ?? '') || '');
-              const isDifferent = winnerVal !== loserVal;
-              return (
-                <div key={field} className="flex items-center px-5 py-3">
-                  <span className="w-40 shrink-0 text-sm font-medium text-gray-500">
-                    {FIELD_LABELS[field] || field}
-                  </span>
-                  <span
-                    className={`text-sm ${isDifferent ? 'text-red-700 font-medium' : 'text-gray-900'}`}
-                  >
-                    {String(loser[field] ?? '') || '-'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      </div>
-
-      {/* Related Records Summary */}
-      <Card>
-        <div className="px-5 py-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
-            Iliskili Kayıtlar
-          </h3>
-          <div className="flex flex-wrap gap-4">
-            {Object.entries(relatedCounts).map(([key, count]) => (
-              <div
-                key={key}
-                className="flex items-center gap-2 rounded-lg bg-gray-50 px-4 py-2"
-              >
-                <span className="text-sm text-gray-600">
-                  {RELATED_LABELS[key] || key}:
-                </span>
-                <span className="text-sm font-bold text-gray-900">{count}</span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-sm text-gray-500">{transferSummary}</p>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <RecordCard title="Kazanan Kayıt" record={winner} variant="winner" />
+          <RecordCard
+            title="Kaybeden Kayıt"
+            record={loser}
+            variant="loser"
+            highlightDifferentFrom={winner}
+          />
         </div>
-      </Card>
 
-      {/* Merge Button */}
-      <div className="flex justify-end">
-        <Button
-          onClick={() => setIsConfirmOpen(true)}
-          loading={mergeMutation.isPending}
-          className="px-8"
-        >
-          Birlestir
-        </Button>
+        {/* Related records summary */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="text-overline text-slate-500 dark:text-slate-400">İlişkili Kayıtlar</h3>
+          {Object.keys(relatedCounts).length === 0 ? (
+            <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
+              {transferSummary}
+            </p>
+          ) : (
+            <>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {Object.entries(relatedCounts).map(([key, count]) => (
+                  <Badge key={key} variant={count > 0 ? 'info' : 'default'} size="md">
+                    <span className="text-slate-700 dark:text-slate-200">
+                      {RELATED_LABELS[key] || key}
+                    </span>
+                    <span className="ml-1.5 inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-bold tabular-nums ring-1 ring-inset ring-slate-200 dark:bg-slate-900 dark:ring-slate-700">
+                      {count}
+                    </span>
+                  </Badge>
+                ))}
+              </div>
+              <p className="mt-3 text-[12px] text-slate-500 dark:text-slate-400">
+                {transferSummary}
+              </p>
+            </>
+          )}
+        </div>
+
+        <div className="flex justify-end">
+          <Button
+            variant="danger"
+            onClick={() => setIsConfirmOpen(true)}
+            loading={mergeMutation.isPending}
+          >
+            Birleştir
+          </Button>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -226,9 +295,9 @@ export default function MergeRecordsPage() {
           mergeMutation.mutate();
           setIsConfirmOpen(false);
         }}
-        title="Birlestirme Onayi"
-        message={`"${loser.name}" kaydi silinecek ve tüm iliskili kayitlar "${winner.name}" kaydina aktarilacak. Bu işlem geri alinamaz.`}
-        confirmLabel="Birlestir"
+        title="Birleştirme Onayı"
+        message={`"${loser.name}" kaydı silinecek ve tüm ilişkili kayıtlar "${winner.name}" kaydına aktarılacak. Bu işlem geri alınamaz.`}
+        confirmLabel="Birleştir"
         confirmVariant="danger"
         isLoading={mergeMutation.isPending}
       />

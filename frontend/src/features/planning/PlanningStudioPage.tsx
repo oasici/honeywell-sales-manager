@@ -63,7 +63,7 @@ export default function PlanningStudioPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title={t('planning.rules_title')}>
-          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
             {t('planning.rules_hint')}
           </p>
           <div className="flex flex-col gap-2">
@@ -100,10 +100,10 @@ export default function PlanningStudioPage() {
                 {t('planning.preset_at_risk')}
               </Button>
             </div>
-            <p className="pt-2 text-xs text-gray-500 dark:text-gray-400">
+            <p className="pt-2 text-xs text-slate-500 dark:text-slate-400">
               {t('planning.deal_health_note')}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+            <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
               <Button
                 type="button"
                 size="sm"
@@ -131,12 +131,12 @@ export default function PlanningStudioPage() {
         </Card>
 
         <Card title={t('planning.segments_title')}>
-          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
             {t('planning.segments_hint')}
           </p>
           <Link
             to="/engagement/segments"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-800"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800"
           >
             <UsersRound className="h-4 w-4 text-honeywell-red" aria-hidden />
             {t('planning.link_segments')}
@@ -148,9 +148,9 @@ export default function PlanningStudioPage() {
         {isLoading ? (
           <Skeleton variant="line" count={4} />
         ) : views.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t('planning.empty_views')}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t('planning.empty_views')}</p>
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {views.map((v: SavedView) => {
               let params: Record<string, string> = {};
               try {
@@ -161,8 +161,8 @@ export default function PlanningStudioPage() {
               return (
                 <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{v.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{v.name}</p>
+                    <p className="text-xs text-slate-500">
                       {v.route}
                       {v.query_json && v.query_json !== '{}' ? ` · ${v.query_json}` : ''}
                     </p>

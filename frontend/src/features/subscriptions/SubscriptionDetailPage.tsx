@@ -12,7 +12,7 @@ const STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   paused: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  expired: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+  expired: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
 };
 
 const STATUS_KEYS: Record<string, TranslationKey> = {
@@ -88,7 +88,7 @@ export default function SubscriptionDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-400">{t('subscription.loading')}</p>
+        <p className="text-slate-400">{t('subscription.loading')}</p>
       </div>
     );
   }
@@ -96,7 +96,7 @@ export default function SubscriptionDetailPage() {
   if (!sub) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-400">{t('subscription.not_found')}</p>
+        <p className="text-slate-400">{t('subscription.not_found')}</p>
       </div>
     );
   }
@@ -109,7 +109,7 @@ export default function SubscriptionDetailPage() {
         <button
           type="button"
           onClick={() => navigate('/subscriptions')}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
         >
           <ArrowLeft size={16} />
           {t('subscription.back_list')}
@@ -168,49 +168,49 @@ export default function SubscriptionDetailPage() {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
-            <p className="text-xs text-gray-500">{t('subscription.lbl_billing_period')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.lbl_billing_period')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {cycleLabel(sub.billing_cycle)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('subscription.lbl_mrr_short')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.lbl_mrr_short')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(sub.mrr, sub.currency)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('subscription.lbl_start_date')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.lbl_start_date')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.start_date}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('subscription.lbl_end_date')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.lbl_end_date')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.end_date ?? '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('subscription.lbl_next_renewal')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.lbl_next_renewal')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.next_renewal_date ?? '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('subscription.lbl_auto_renew_long')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.lbl_auto_renew_long')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.auto_renew ? t('subscription.yes') : t('subscription.no')}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('subscription.lbl_currency_short')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.lbl_currency_short')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.currency}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('subscription.lbl_created')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.lbl_created')}</p>
             <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
               {sub.created_at ? formatDate(sub.created_at) : '-'}
             </p>
@@ -230,16 +230,16 @@ export default function SubscriptionDetailPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left" style={{ borderColor: 'var(--border)' }}>
-                  <th className="px-4 py-2 font-medium text-gray-500">
+                  <th className="px-4 py-2 font-medium text-slate-500">
                     {t('subscription.lbl_description')}
                   </th>
-                  <th className="px-4 py-2 font-medium text-gray-500">
+                  <th className="px-4 py-2 font-medium text-slate-500">
                     {t('subscription.col_qty')}
                   </th>
-                  <th className="px-4 py-2 font-medium text-gray-500">
+                  <th className="px-4 py-2 font-medium text-slate-500">
                     {t('subscription.col_unit_price')}
                   </th>
-                  <th className="px-4 py-2 font-medium text-gray-500">
+                  <th className="px-4 py-2 font-medium text-slate-500">
                     {t('subscription.col_recurring')}
                   </th>
                 </tr>
@@ -254,8 +254,8 @@ export default function SubscriptionDetailPage() {
                           String(item.spare_part_id ?? idx + 1),
                         )}
                     </td>
-                    <td className="px-4 py-2 text-gray-500">{item.quantity ?? '-'}</td>
-                    <td className="px-4 py-2 text-gray-500">
+                    <td className="px-4 py-2 text-slate-500">{item.quantity ?? '-'}</td>
+                    <td className="px-4 py-2 text-slate-500">
                       {item.unit_price != null
                         ? formatCurrency(item.unit_price, sub.currency)
                         : '-'}

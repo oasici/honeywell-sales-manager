@@ -57,15 +57,15 @@ function FunnelWidget({ data }: { data: unknown }) {
     <div className="space-y-1.5">
       {stages.map((stage, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="w-24 truncate text-right text-xs text-gray-500">{stage.label}</span>
+          <span className="w-24 truncate text-right text-xs text-slate-500">{stage.label}</span>
           <div
             className="h-6 rounded bg-honeywell-red/80 transition-all"
             style={{ width: `${(stage.value / maxVal) * 100}%` }}
           />
-          <span className="text-xs font-medium text-gray-700">{stage.value}</span>
+          <span className="text-xs font-medium text-slate-700">{stage.value}</span>
         </div>
       ))}
-      {stages.length === 0 && <p className="text-xs text-gray-400">Veri yok</p>}
+      {stages.length === 0 && <p className="text-xs text-slate-400">Veri yok</p>}
     </div>
   );
 }
@@ -98,7 +98,7 @@ function GaugeWidget({ data }: { data: unknown }) {
           strokeLinecap="round"
         />
       </svg>
-      <span className="text-xl font-bold text-gray-800">{Math.round(pct)}%</span>
+      <span className="text-xl font-bold text-slate-800">{Math.round(pct)}%</span>
     </div>
   );
 }
@@ -108,21 +108,21 @@ function LeaderboardWidget({ data }: { data: unknown }) {
   const items = extractWidgetItems(data);
   const rows = items.map((i) => ({ name: i.label, value: i.value }));
   const sorted = [...rows].sort((a, b) => b.value - a.value).slice(0, 10);
-  const medalColors = ['text-yellow-500', 'text-gray-400', 'text-amber-700'];
+  const medalColors = ['text-yellow-500', 'text-slate-400', 'text-amber-700'];
   return (
     <div className="space-y-1">
       {sorted.map((row, i) => (
-        <div key={i} className="flex items-center gap-2 rounded px-2 py-1 hover:bg-gray-50">
+        <div key={i} className="flex items-center gap-2 rounded px-2 py-1 hover:bg-slate-50">
           <span
-            className={`w-5 text-center text-xs font-bold ${medalColors[i] ?? 'text-gray-400'}`}
+            className={`w-5 text-center text-xs font-bold ${medalColors[i] ?? 'text-slate-400'}`}
           >
             {i + 1}
           </span>
-          <span className="flex-1 truncate text-sm text-gray-700">{row.name}</span>
-          <span className="text-sm font-semibold text-gray-800">{row.value}</span>
+          <span className="flex-1 truncate text-sm text-slate-700">{row.name}</span>
+          <span className="text-sm font-semibold text-slate-800">{row.value}</span>
         </div>
       ))}
-      {sorted.length === 0 && <p className="text-xs text-gray-400">Veri yok</p>}
+      {sorted.length === 0 && <p className="text-xs text-slate-400">Veri yok</p>}
     </div>
   );
 }
@@ -136,7 +136,7 @@ function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: str
     total?: number;
   } | null;
 
-  if (!reportData) return <p className="text-xs text-gray-400">Veri yok</p>;
+  if (!reportData) return <p className="text-xs text-slate-400">Veri yok</p>;
 
   const rows = reportData.rows ?? [];
   const columns = reportData.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
@@ -150,9 +150,9 @@ function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: str
           const label = String(Object.values(row)[0] ?? '');
           const value = Object.values(row)[1];
           return (
-            <div key={i} className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-              <p className="text-xs text-gray-500 truncate">{label}</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">
+            <div key={i} className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
+              <p className="text-xs text-slate-500 truncate">{label}</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">
                 {typeof value === 'number' ? value.toLocaleString('tr-TR') : String(value ?? '-')}
               </p>
             </div>
@@ -192,9 +192,9 @@ function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: str
       <div className="max-h-48 overflow-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-gray-200">
+            <tr className="border-b border-slate-200">
               {columns.map((col) => (
-                <th key={col} className="px-2 py-1 text-left font-medium text-gray-500">
+                <th key={col} className="px-2 py-1 text-left font-medium text-slate-500">
                   {col}
                 </th>
               ))}
@@ -202,9 +202,9 @@ function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: str
           </thead>
           <tbody>
             {rows.slice(0, 20).map((row, i) => (
-              <tr key={i} className="border-b border-gray-100">
+              <tr key={i} className="border-b border-slate-100">
                 {columns.map((col) => (
-                  <td key={col} className="px-2 py-1 text-gray-700 truncate max-w-[120px]">
+                  <td key={col} className="px-2 py-1 text-slate-700 truncate max-w-[120px]">
                     {row[col] != null ? String(row[col]) : '-'}
                   </td>
                 ))}
@@ -213,13 +213,13 @@ function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: str
           </tbody>
         </table>
         {rows.length > 20 && (
-          <p className="text-[10px] text-gray-400 mt-1 px-2">+{rows.length - 20} satir daha</p>
+          <p className="text-[10px] text-slate-400 mt-1 px-2">+{rows.length - 20} satir daha</p>
         )}
       </div>
     );
   }
 
-  return <p className="text-xs text-gray-400">Veri yok</p>;
+  return <p className="text-xs text-slate-400">Veri yok</p>;
 }
 
 interface WidgetDef {
@@ -372,7 +372,7 @@ export default function DashboardEditorPage() {
 
       {/* Widget List */}
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700">Widget&apos;lar ({widgets.length})</h2>
+        <h2 className="text-sm font-semibold text-slate-700">Widget&apos;lar ({widgets.length})</h2>
         <Button variant="secondary" size="sm" onClick={addWidget}>
           <Plus size={14} className="mr-1" /> Widget Ekle
         </Button>
@@ -380,7 +380,7 @@ export default function DashboardEditorPage() {
 
       {widgets.length === 0 ? (
         <Card>
-          <div className="p-8 text-center text-sm text-gray-500">
+          <div className="p-8 text-center text-sm text-slate-500">
             Henüz widget eklenmedi. &quot;Widget Ekle&quot; butonuna tiklayarak baslayabilirsiniz.
           </div>
         </Card>
@@ -394,23 +394,23 @@ export default function DashboardEditorPage() {
                     <Badge variant="info" size="sm">
                       Widget {index + 1}
                     </Badge>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-slate-400">
                       Konum: ({widget.position?.x ?? 0}, {widget.position?.y ?? 0}) Boyut:{' '}
                       {widget.position?.w ?? 6}x{widget.position?.h ?? 2}
                     </span>
                   </div>
                   <button
                     onClick={() => removeWidget(index)}
-                    className="rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="rounded p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Tip</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Tip</label>
                     <select
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                       value={widget.type}
                       onChange={(e) => updateWidget(index, { type: e.target.value })}
                     >
@@ -423,11 +423,11 @@ export default function DashboardEditorPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
                       Rapor Şablonu
                     </label>
                     <select
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                       value={widget.report_id ?? ''}
                       onChange={(e) =>
                         updateWidget(index, {
@@ -453,7 +453,7 @@ export default function DashboardEditorPage() {
       {/* Execute Results */}
       {executeResult && (
         <div className="mt-8">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Calistirma Sonuclari</h2>
+          <h2 className="text-sm font-semibold text-slate-700 mb-3">Calistirma Sonuclari</h2>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {executeResult.widgets.map((w, i) => (
               <Card key={i}>
@@ -479,7 +479,7 @@ export default function DashboardEditorPage() {
                   ) : w.data != null ? (
                     <ReportDataWidget data={w.data} widgetType={w.type} />
                   ) : w.report_id ? (
-                    <div className="text-sm text-gray-500 space-y-1">
+                    <div className="text-sm text-slate-500 space-y-1">
                       <p>
                         <span className="font-medium">Tip:</span> {w.type}
                       </p>
@@ -491,7 +491,7 @@ export default function DashboardEditorPage() {
                       </p>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 italic">
+                    <p className="text-sm text-slate-400 italic">
                       Widget için rapor sablonu secilmedi.
                     </p>
                   )}

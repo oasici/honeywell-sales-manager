@@ -575,12 +575,12 @@ export default function FlowBuilderPage() {
             onChange={(e) => setRuleName(e.target.value)}
           />
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 mt-5">
+        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 mt-5">
           <input
             type="checkbox"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="rounded border-gray-300"
+            className="rounded border-slate-200"
           />
           Aktif
         </label>
@@ -589,8 +589,8 @@ export default function FlowBuilderPage() {
       <div className="flex gap-4">
         {/* Left sidebar: node palette */}
         <div className="w-48 shrink-0 space-y-3">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Dugumler</h3>
-          <p className="text-xs text-gray-400">Tuval uzerine surukleyin</p>
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Dugumler</h3>
+          <p className="text-xs text-slate-400">Tuval uzerine surukleyin</p>
           {PALETTE_ITEMS.map((item) => (
             <div
               key={item.type}
@@ -609,7 +609,7 @@ export default function FlowBuilderPage() {
         {/* Main canvas */}
         <div
           ref={reactFlowWrapper}
-          className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-900"
+          className="flex-1 rounded-lg border border-slate-200 dark:border-slate-800 dark:bg-slate-900"
           style={{ height: '70vh' }}
         >
           <ReactFlow
@@ -629,8 +629,8 @@ export default function FlowBuilderPage() {
           >
             <Controls />
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-            <MiniMap nodeStrokeWidth={3} className="!bg-gray-50 dark:!bg-gray-800" />
-            <Panel position="top-right" className="text-xs text-gray-400">
+            <MiniMap nodeStrokeWidth={3} className="!bg-slate-50 dark:!bg-gray-800" />
+            <Panel position="top-right" className="text-xs text-slate-400">
               {nodes.length} dugum, {edges.length} baglanti
             </Panel>
           </ReactFlow>
@@ -639,9 +639,9 @@ export default function FlowBuilderPage() {
         {/* Right sidebar: node editor */}
         <div className="w-64 shrink-0">
           {selectedNode ? (
-            <div className="space-y-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div className="space-y-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Dugum Ozellikleri
                 </h3>
                 <button
@@ -654,7 +654,7 @@ export default function FlowBuilderPage() {
                 </button>
               </div>
 
-              <div className="text-xs text-gray-400 uppercase">
+              <div className="text-xs text-slate-400 uppercase">
                 {DEFAULT_NODE_LABELS[selectedNode.type || ''] || selectedNode.type}
               </div>
 
@@ -737,7 +737,7 @@ export default function FlowBuilderPage() {
               )}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-4 text-center text-sm text-gray-400">
+            <div className="rounded-lg border border-dashed border-slate-200 dark:border-slate-700 p-4 text-center text-sm text-slate-400">
               Bir dugum seçin veya yeni dugum surukleyin
             </div>
           )}

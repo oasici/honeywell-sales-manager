@@ -143,7 +143,7 @@ export default function SharingRulesSection() {
       key: 'name',
       header: 'Kural Adi',
       render: (row: SharingRule) => (
-        <span className="font-medium text-gray-900 dark:text-white">{row.name}</span>
+        <span className="font-medium text-slate-900 dark:text-white">{row.name}</span>
       ),
     },
     {
@@ -168,7 +168,7 @@ export default function SharingRulesSection() {
               </Badge>
             ))}
             {criteria.length === 0 && (
-              <span className="text-xs text-gray-400">-</span>
+              <span className="text-xs text-slate-400">-</span>
             )}
           </div>
         );
@@ -193,7 +193,7 @@ export default function SharingRulesSection() {
             e.stopPropagation();
             setDeleteTarget(row);
           }}
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
+          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
           title="Sil"
         >
           <Trash2 size={14} />
@@ -215,8 +215,8 @@ export default function SharingRulesSection() {
       >
         {rules.length === 0 ? (
           <div className="flex flex-col items-center py-8 text-center">
-            <Shield size={32} className="mb-2 text-gray-300 dark:text-gray-600" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <Shield size={32} className="mb-2 text-slate-300 dark:text-slate-600" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Henüz paylasim kuralı tanimlanmamis
             </p>
           </div>
@@ -245,8 +245,8 @@ export default function SharingRulesSection() {
             onChange={(e) => updateField('entity_type', e.target.value)}
           />
 
-          <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Kriter
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

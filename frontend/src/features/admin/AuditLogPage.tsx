@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
+import { Download, RotateCcw } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import { Select } from '../../components/ui/Select';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import { auditApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 
@@ -137,13 +138,25 @@ export default function AuditLogPage() {
     }
   };
 
+  // Map common audit action prefixes → Badge variants. Login/auth events
+  // get `info`, KVKK gets `warning` (sensitive), exports get `default`.
+  const actionTone = (action: string): 'default' | 'info' | 'warning' | 'success' | 'danger' => {
+    if (action.startsWith('kvkk_')) return 'warning';
+    if (action.startsWith('login') || action.startsWith('logout')) return 'info';
+    if (action.includes('delete') || action.includes('reject')) return 'danger';
+    if (action.includes('approve') || action.includes('create')) return 'success';
+    return 'default';
+  };
+
   const columns = [
     {
       key: 'created_at',
       header: 'Tarih',
       sortable: true,
       render: (row: AuditLog) => (
-        <span className="text-sm text-gray-700">{formatDateTime(row.created_at)}</span>
+        <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+          {formatDateTime(row.created_at)}
+        </span>
       ),
     },
     {
@@ -151,7 +164,7 @@ export default function AuditLogPage() {
       header: 'Kullanıcı',
       sortable: true,
       render: (row: AuditLog) => (
-        <span className="text-sm font-medium text-gray-900">
+        <span className="text-[13px] font-medium text-slate-900 dark:text-white">
           {row.user_email ?? (row.user_id !== null ? `#${row.user_id}` : 'Sistem')}
         </span>
       ),
@@ -161,19 +174,21 @@ export default function AuditLogPage() {
       header: 'İşlem',
       sortable: true,
       render: (row: AuditLog) => (
-        <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-          {row.action}
-        </span>
+        <Badge variant={actionTone(row.action)} size="sm" dot>
+          <span className="font-mono text-[11px]">{row.action}</span>
+        </Badge>
       ),
     },
     {
       key: 'entity_type',
       header: 'Varlık',
       render: (row: AuditLog) => (
-        <span className="text-sm text-gray-600">
+        <span className="text-[13px] text-slate-600 dark:text-slate-300">
           {row.entity_type}
           {row.entity_id != null && (
-            <span className="ml-1 text-gray-400">#{row.entity_id}</span>
+            <span className="ml-1 tabular-nums text-slate-400 dark:text-slate-500">
+              #{row.entity_id}
+            </span>
           )}
         </span>
       ),
@@ -182,7 +197,9 @@ export default function AuditLogPage() {
       key: 'ip_address',
       header: 'IP',
       render: (row: AuditLog) => (
-        <span className="font-mono text-xs text-gray-500">{row.ip_address || '-'}</span>
+        <span className="font-mono text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+          {row.ip_address || '—'}
+        </span>
       ),
     },
   ];
@@ -191,73 +208,78 @@ export default function AuditLogPage() {
     <div>
       <PageHeader
         title="Denetim Kayıtları"
-        description={`Sistem işlem gecmisi (${totalCount} kayıt)`}
+        description={`Sistem işlem geçmişi · ${totalCount.toLocaleString('tr-TR')} kayıt`}
       >
         <Button
           variant="secondary"
           size="sm"
           onClick={handleCsvExport}
-          disabled={exporting || totalCount === 0}
+          loading={exporting}
+          disabled={totalCount === 0}
         >
-          <Download size={16} className="mr-1.5" />
-          {exporting ? 'Indiriliyor...' : 'CSV İndir'}
+          <Download size={14} />
+          CSV İndir
         </Button>
       </PageHeader>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Select
-          label="Varlık Tipi"
-          options={ENTITY_TYPE_OPTIONS}
-          value={filters.entityType}
-          onChange={(e) => updateFilter('entityType', e.target.value)}
-        />
-        <Select
-          label="İşlem Tipi"
-          options={ACTION_PREFIX_OPTIONS}
-          value={filters.actionPrefix}
-          onChange={(e) => updateFilter('actionPrefix', e.target.value)}
-        />
-        <Input
-          label="Varlık ID"
-          type="number"
-          inputMode="numeric"
-          value={filters.entityId}
-          onChange={(e) => updateFilter('entityId', e.target.value)}
-          placeholder="örn. 42"
-        />
-        <Input
-          label="Kullanıcı ID"
-          type="number"
-          inputMode="numeric"
-          value={filters.userId}
-          onChange={(e) => updateFilter('userId', e.target.value)}
-          placeholder="örn. 7"
-        />
-        <Input
-          label="Başlangıç"
-          type="datetime-local"
-          value={filters.since}
-          onChange={(e) => updateFilter('since', e.target.value)}
-        />
-        <Input
-          label="Bitiş"
-          type="datetime-local"
-          value={filters.until}
-          onChange={(e) => updateFilter('until', e.target.value)}
-        />
-      </div>
-
-      <div className="mb-4 flex justify-end">
-        <Button variant="ghost" size="sm" onClick={resetFilters}>
-          Filtreleri temizle
-        </Button>
+      {/* Filter card — keeps all 6 filter inputs visually grouped on a
+          slate-tinted surface. Reset button anchors to the bottom-right. */}
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Select
+            label="Varlık Tipi"
+            options={ENTITY_TYPE_OPTIONS}
+            value={filters.entityType}
+            onChange={(e) => updateFilter('entityType', e.target.value)}
+          />
+          <Select
+            label="İşlem Tipi"
+            options={ACTION_PREFIX_OPTIONS}
+            value={filters.actionPrefix}
+            onChange={(e) => updateFilter('actionPrefix', e.target.value)}
+          />
+          <Input
+            label="Varlık ID"
+            type="number"
+            inputMode="numeric"
+            value={filters.entityId}
+            onChange={(e) => updateFilter('entityId', e.target.value)}
+            placeholder="örn. 42"
+          />
+          <Input
+            label="Kullanıcı ID"
+            type="number"
+            inputMode="numeric"
+            value={filters.userId}
+            onChange={(e) => updateFilter('userId', e.target.value)}
+            placeholder="örn. 7"
+          />
+          <Input
+            label="Başlangıç"
+            type="datetime-local"
+            value={filters.since}
+            onChange={(e) => updateFilter('since', e.target.value)}
+          />
+          <Input
+            label="Bitiş"
+            type="datetime-local"
+            value={filters.until}
+            onChange={(e) => updateFilter('until', e.target.value)}
+          />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button variant="tertiary" size="sm" onClick={resetFilters}>
+            <RotateCcw size={13} />
+            Filtreleri temizle
+          </Button>
+        </div>
       </div>
 
       <DataTable
         columns={columns}
         data={logs}
         loading={isLoading}
-        emptyMessage="Denetim kaydi bulunamadi"
+        emptyMessage="Denetim kaydı bulunamadı"
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}

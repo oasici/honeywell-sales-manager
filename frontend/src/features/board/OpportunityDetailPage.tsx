@@ -73,7 +73,7 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xl font-bold text-gray-900 dark:text-white">{score}</span>
+        <span className="text-xl font-bold text-slate-900 dark:text-white">{score}</span>
       </div>
     </div>
   );
@@ -436,7 +436,7 @@ export default function OpportunityDetailPage() {
   }
 
   if (!opp) {
-    return <div className="py-16 text-center text-gray-500">{t('opp_detail.not_found')}</div>;
+    return <div className="py-16 text-center text-slate-500">{t('opp_detail.not_found')}</div>;
   }
 
   const events = timelineData?.events || [];
@@ -460,51 +460,51 @@ export default function OpportunityDetailPage() {
           <Card title={t('opp_detail.card_info')}>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.lbl_stage')}
                 </span>
-                <p className="font-semibold text-gray-900 dark:text-white">
+                <p className="font-semibold text-slate-900 dark:text-white">
                   {STAGE_LABELS[opp.stage as keyof typeof STAGE_LABELS] || opp.stage}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.lbl_amount')}
                 </span>
-                <p className="font-semibold text-gray-900 dark:text-white">
+                <p className="font-semibold text-slate-900 dark:text-white">
                   {opp.amount != null ? formatCurrency(opp.amount, opp.currency) : '-'}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.lbl_close')}
                 </span>
-                <p className="text-gray-700 dark:text-gray-300">{opp.close_date || '-'}</p>
+                <p className="text-slate-700 dark:text-slate-300">{opp.close_date || '-'}</p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.lbl_owner')}
                 </span>
-                <p className="text-gray-700 dark:text-gray-300">{opp.owner?.full_name || '-'}</p>
+                <p className="text-slate-700 dark:text-slate-300">{opp.owner?.full_name || '-'}</p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.lbl_customer')}
                 </span>
-                <p className="text-gray-700 dark:text-gray-300">
+                <p className="text-slate-700 dark:text-slate-300">
                   {opp.customer ? `${opp.customer.name} (${opp.customer.company})` : '-'}
                 </p>
               </div>
               <div className="col-span-2">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.lbl_rotting')}
                 </span>
                 <p
-                  className={`font-semibold ${opp.rotting_days > 7 ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}
+                  className={`font-semibold ${opp.rotting_days > 7 ? 'text-red-600' : 'text-slate-700 dark:text-slate-300'}`}
                 >
                   {opp.rotting_days} {t('opp_detail.days_suffix')}
                 </p>
-                <p className="mt-1 text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
                   {t('opp_detail.rotting_hint')}
                 </p>
               </div>
@@ -513,7 +513,7 @@ export default function OpportunityDetailPage() {
 
           <Card title={t('opp_detail.meeting_stub_title')}>
             <div className="space-y-3">
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {t('opp_detail.meeting_stub_desc')}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -542,7 +542,7 @@ export default function OpportunityDetailPage() {
           {!['closed_won', 'closed_lost'].includes(opp.stage) && (
             <Card title={t('opp_detail.pipeline_suggest_title')}>
               <div className="space-y-3 p-1">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.pipeline_suggest_desc')}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -571,19 +571,19 @@ export default function OpportunityDetailPage() {
                     )}
                 </div>
                 {pipelineSuggestion && (
-                  <div className="space-y-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                  <div className="space-y-2 border-t border-slate-100 pt-3 dark:border-slate-800">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{opp.stage}</span>
-                      <span className="text-gray-400">→</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
+                      <span className="text-slate-600 dark:text-slate-400">{opp.stage}</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
                         {pipelineSuggestion.suggested_stage}
                       </span>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                         {t('opp_detail.pipeline_suggested_steps')}
                       </p>
-                      <ul className="mt-1 list-inside list-disc text-sm text-gray-700 dark:text-gray-300">
+                      <ul className="mt-1 list-inside list-disc text-sm text-slate-700 dark:text-slate-300">
                         {pipelineSuggestion.suggested_next_steps.map((step, i) => (
                           <li key={i}>{step}</li>
                         ))}
@@ -591,7 +591,7 @@ export default function OpportunityDetailPage() {
                     </div>
                     {pipelineSuggestion.factors.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                           {t('opp_detail.pipeline_factors')}
                         </p>
                         <div className="mt-1 flex flex-wrap gap-1">
@@ -618,16 +618,16 @@ export default function OpportunityDetailPage() {
                     key={q.id}
                     type="button"
                     onClick={() => navigate(`/quotes/${q.id}`)}
-                    className="flex w-full items-center justify-between rounded-lg border border-gray-200 px-4 py-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
                   >
-                    <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                    <span className="font-mono text-sm font-semibold text-slate-900 dark:text-white">
                       {q.quote_number}
                     </span>
                     <div className="flex items-center gap-3">
                       <Badge variant="default" size="sm">
                         {q.status}
                       </Badge>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                         {formatCurrency(q.grand_total, opp.currency)}
                       </span>
                     </div>
@@ -642,7 +642,7 @@ export default function OpportunityDetailPage() {
         <div>
           <Card title={t('opp_detail.timeline')}>
             {events.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-400">
+              <p className="py-8 text-center text-sm text-slate-400">
                 {t('opp_detail.timeline_empty')}
               </p>
             ) : (
@@ -658,10 +658,10 @@ export default function OpportunityDetailPage() {
                   >
                     {/* Line */}
                     {idx < events.length - 1 && (
-                      <div className="absolute left-[11px] top-6 h-full w-0.5 bg-gray-200 dark:bg-gray-700" />
+                      <div className="absolute left-[11px] top-6 h-full w-0.5 bg-gray-200 dark:bg-slate-800" />
                     )}
                     {/* Dot */}
-                    <div className="relative z-10 mt-1 h-6 w-6 shrink-0 rounded-full bg-gray-100 flex items-center justify-center dark:bg-gray-700">
+                    <div className="relative z-10 mt-1 h-6 w-6 shrink-0 rounded-full bg-slate-100 flex items-center justify-center dark:bg-slate-800">
                       <div
                         className={`h-2.5 w-2.5 rounded-full ${
                           event.event_type === 'stage_change' ? 'bg-blue-500' : 'bg-gray-400'
@@ -670,10 +670,10 @@ export default function OpportunityDetailPage() {
                     </div>
                     {/* Content */}
                     <div className="min-w-0">
-                      <p className="text-sm text-gray-900 dark:text-white">
+                      <p className="text-sm text-slate-900 dark:text-white">
                         {event.description || event.event_type}
                       </p>
-                      <p className="text-[10px] text-gray-400">
+                      <p className="text-[10px] text-slate-400">
                         {event.occurred_at ? formatDateTime(event.occurred_at) : '—'}
                       </p>
                     </div>
@@ -700,7 +700,7 @@ export default function OpportunityDetailPage() {
                     {RISK_LABELS[dealHealth.risk_level as keyof typeof RISK_LABELS] ||
                       dealHealth.risk_level}
                   </Badge>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     {t('opp_detail.health_score_hint')}
                   </p>
                 </div>
@@ -708,18 +708,18 @@ export default function OpportunityDetailPage() {
 
               {/* Indicators */}
               <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                   {t('opp_detail.indicators')}
                 </h4>
                 {dealHealth.indicators.map((ind) => (
                   <div key={ind.name}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{ind.label}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{ind.label}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
                         {ind.score}/100 ({t('opp_detail.weight')}: {ind.weight})
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800">
+                    <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800">
                       <div
                         className={`h-2 rounded-full transition-all duration-500 ${
                           ind.score >= 70
@@ -738,14 +738,14 @@ export default function OpportunityDetailPage() {
               {/* Recommendations */}
               {dealHealth.recommendations.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     {t('opp_detail.recommendations')}
                   </h4>
                   <ul className="space-y-1.5">
                     {dealHealth.recommendations.map((rec, idx) => (
                       <li
                         key={idx}
-                        className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
+                        className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
                       >
                         <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
                         {rec}
@@ -756,7 +756,7 @@ export default function OpportunityDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-400">{t('opp_detail.health_empty')}</p>
+            <p className="py-8 text-center text-sm text-slate-400">{t('opp_detail.health_empty')}</p>
           )}
         </Card>
       </div>
@@ -789,24 +789,24 @@ export default function OpportunityDetailPage() {
                           ? t('opp_detail.ai_risk_high')
                           : t('opp_detail.ai_risk_critical')}
                   </Badge>
-                  <p className="mt-1 text-xs text-gray-500">{t('opp_detail.claude_evaluated')}</p>
+                  <p className="mt-1 text-xs text-slate-500">{t('opp_detail.claude_evaluated')}</p>
                 </div>
               </div>
               {aiRisk.factors && aiRisk.factors.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase">
+                  <h4 className="text-xs font-semibold text-slate-500 uppercase">
                     {t('opp_detail.risk_factors')}
                   </h4>
                   {aiRisk.factors.map((f, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2"
+                      className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">
                           {f.name}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">{f.description}</p>
+                        <p className="text-xs text-slate-500 truncate">{f.description}</p>
                       </div>
                       <span
                         className={`text-sm font-bold ${f.score >= 70 ? 'text-red-600' : f.score >= 40 ? 'text-amber-600' : 'text-green-600'}`}
@@ -819,14 +819,14 @@ export default function OpportunityDetailPage() {
               )}
               {aiRisk.recommendations && aiRisk.recommendations.length > 0 && (
                 <div>
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                  <h4 className="text-xs font-semibold text-slate-500 uppercase mb-1">
                     {t('opp_detail.ai_suggestions')}
                   </h4>
                   <ul className="space-y-1">
                     {aiRisk.recommendations.map((r, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
+                        className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
                       >
                         <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-honeywell-red" />
                         {r}
@@ -845,7 +845,7 @@ export default function OpportunityDetailPage() {
               </Button>
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">
+            <p className="py-6 text-center text-sm text-slate-400">
               {t('opp_detail.ai_risk_empty')}
             </p>
           )}
@@ -854,21 +854,21 @@ export default function OpportunityDetailPage() {
         {/* Signals */}
         <Card title={t('opp_detail.indicators')}>
           {signals.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">Sinyal yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">Sinyal yok</p>
           ) : (
             <div className="space-y-2">
               {signals.slice(0, 8).map((s) => (
                 <div
                   key={s.id}
-                  className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                  className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                         {s.signal_type}
                       </p>
                       {s.evidence && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                           {s.evidence}
                         </p>
                       )}
@@ -885,12 +885,12 @@ export default function OpportunityDetailPage() {
                     </div>
                   </div>
                   {s.created_at && (
-                    <p className="mt-1 text-[10px] text-gray-400">{formatDateTime(s.created_at)}</p>
+                    <p className="mt-1 text-[10px] text-slate-400">{formatDateTime(s.created_at)}</p>
                   )}
                 </div>
               ))}
               {signals.length > 8 && (
-                <p className="text-xs text-gray-400">+{signals.length - 8} daha</p>
+                <p className="text-xs text-slate-400">+{signals.length - 8} daha</p>
               )}
             </div>
           )}
@@ -899,56 +899,56 @@ export default function OpportunityDetailPage() {
         {/* V4 Snapshot (Daily Feature Store) */}
         <Card title="V4 Günlük Snapshot">
           {!v4LatestFeatures ? (
-            <p className="py-6 text-center text-sm text-gray-400">
+            <p className="py-6 text-center text-sm text-slate-400">
               Snapshot yok (feature flag kapalı olabilir)
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
-                <p className="text-[11px] text-gray-500">Snapshot Tarihi</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                <p className="text-[11px] text-slate-500">Snapshot Tarihi</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {formatDate(v4LatestFeatures.snapshot_date)}
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
-                <p className="text-[11px] text-gray-500">Deal yaşı</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                <p className="text-[11px] text-slate-500">Deal yaşı</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.deal_age_days} gün
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
-                <p className="text-[11px] text-gray-500">Son rep touch</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                <p className="text-[11px] text-slate-500">Son rep touch</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.days_since_last_rep_touch} gün
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
-                <p className="text-[11px] text-gray-500">Son buyer touch</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                <p className="text-[11px] text-slate-500">Son buyer touch</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.days_since_last_buyer_touch} gün
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
-                <p className="text-[11px] text-gray-500">Rep touch (14g)</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                <p className="text-[11px] text-slate-500">Rep touch (14g)</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.rep_touch_count_14d}
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
-                <p className="text-[11px] text-gray-500">Buyer reply (14g)</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                <p className="text-[11px] text-slate-500">Buyer reply (14g)</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.buyer_reply_count_14d}
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
-                <p className="text-[11px] text-gray-500">Meeting (30g)</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                <p className="text-[11px] text-slate-500">Meeting (30g)</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.meeting_count_30d}
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2">
-                <p className="text-[11px] text-gray-500">Negative signals (14g)</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                <p className="text-[11px] text-slate-500">Negative signals (14g)</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.negative_signal_count_14d}
                 </p>
               </div>
@@ -959,7 +959,7 @@ export default function OpportunityDetailPage() {
         {/* V4 Momentum */}
         <Card title="Momentum">
           {!v4LatestFeatures?.momentum_score ? (
-            <p className="py-6 text-center text-sm text-gray-400">Momentum hesaplanmadı</p>
+            <p className="py-6 text-center text-sm text-slate-400">Momentum hesaplanmadı</p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -967,7 +967,7 @@ export default function OpportunityDetailPage() {
                   <Badge variant={momentumVariant(v4LatestFeatures.momentum_band)} size="sm">
                     {v4LatestFeatures.momentum_band ?? 'unknown'}
                   </Badge>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
                     Skor: {v4LatestFeatures.momentum_score}
                   </span>
                 </div>
@@ -983,9 +983,9 @@ export default function OpportunityDetailPage() {
                       return drivers.slice(0, 6).map((dr, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                          className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
                         >
-                          <span className="text-xs text-gray-700 dark:text-gray-300">
+                          <span className="text-xs text-slate-700 dark:text-slate-300">
                             {dr.label}
                           </span>
                           <Badge
@@ -999,12 +999,12 @@ export default function OpportunityDetailPage() {
                         </div>
                       ));
                     } catch {
-                      return <p className="text-xs text-gray-400">Drivers okunamadı</p>;
+                      return <p className="text-xs text-slate-400">Drivers okunamadı</p>;
                     }
                   })()}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400">Drivers yok</p>
+                <p className="text-xs text-slate-400">Drivers yok</p>
               )}
             </div>
           )}
@@ -1017,16 +1017,16 @@ export default function OpportunityDetailPage() {
               {buyerStateTimeline.items.slice(0, 10).map((it) => (
                 <div
                   key={it.snapshot_date}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
                       {it.state}
-                      <span className="ml-2 text-xs text-gray-400">
+                      <span className="ml-2 text-xs text-slate-400">
                         {(it.confidence * 100).toFixed(0)}%
                       </span>
                     </p>
-                    <p className="text-[11px] text-gray-500">{formatDate(it.snapshot_date)}</p>
+                    <p className="text-[11px] text-slate-500">{formatDate(it.snapshot_date)}</p>
                   </div>
                   <Badge variant={it.state === 'stalling' ? 'warning' : 'default'} size="sm">
                     {it.state}
@@ -1035,7 +1035,7 @@ export default function OpportunityDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">Buyer state yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">Buyer state yok</p>
           )}
         </Card>
 
@@ -1046,14 +1046,14 @@ export default function OpportunityDetailPage() {
               {decisionGaps.items.slice(0, 8).map((g) => (
                 <div
                   key={g.id}
-                  className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                  className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
                       {g.gap_type}
                     </p>
                     {g.recommended_actions?.[0] && (
-                      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                         {g.recommended_actions[0]}
                       </p>
                     )}
@@ -1065,7 +1065,7 @@ export default function OpportunityDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">Eksik yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">Eksik yok</p>
           )}
         </Card>
 
@@ -1086,10 +1086,10 @@ export default function OpportunityDetailPage() {
                 >
                   gap: {benchmarkGap.data.gap_score}
                 </Badge>
-                <span className="text-xs text-gray-400">{benchmarkGap.data.segment_key}</span>
+                <span className="text-xs text-slate-400">{benchmarkGap.data.segment_key}</span>
               </div>
               {benchmarkGap.data.recommended_actions?.[0] && (
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <p className="text-sm text-slate-700 dark:text-slate-300">
                   {benchmarkGap.data.recommended_actions[0]}
                 </p>
               )}
@@ -1098,9 +1098,9 @@ export default function OpportunityDetailPage() {
                   {benchmarkGap.data.drivers.slice(0, 4).map((d, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                      className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
                     >
-                      <span className="text-xs text-gray-700 dark:text-gray-300">{d.label}</span>
+                      <span className="text-xs text-slate-700 dark:text-slate-300">{d.label}</span>
                       <Badge
                         size="sm"
                         variant={d.impact > 0 ? 'success' : d.impact < 0 ? 'danger' : 'default'}
@@ -1111,11 +1111,11 @@ export default function OpportunityDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400">Driver yok</p>
+                <p className="text-xs text-slate-400">Driver yok</p>
               )}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">Benchmark verisi yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">Benchmark verisi yok</p>
           )}
         </Card>
 
@@ -1156,7 +1156,7 @@ export default function OpportunityDetailPage() {
                                 ? t('opp_detail.conf_medium')
                                 : t('opp_detail.conf_low')}
                           </Badge>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
                             {t('opp_detail.stage_probability')}:{' '}
                             <span className="font-semibold">{stagePct}%</span>{' '}
                             <span className={delta >= 0 ? 'text-green-600' : 'text-red-600'}>
@@ -1166,13 +1166,13 @@ export default function OpportunityDetailPage() {
                           </div>
                         </div>
 
-                        <div className="mt-2 h-2 rounded-full bg-gray-100 dark:bg-gray-800">
+                        <div className="mt-2 h-2 rounded-full bg-slate-100 dark:bg-slate-800">
                           <div
                             className="h-2 rounded-full bg-blue-600 transition-all duration-700"
                             style={{ width: `${Math.max(2, Math.min(100, pct))}%` }}
                           />
                         </div>
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-slate-500">
                           {t('opp_detail.close_prob_hint')}
                         </p>
                       </div>
@@ -1182,19 +1182,19 @@ export default function OpportunityDetailPage() {
               })()}
               {closePrediction.data.factors && closePrediction.data.factors.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase">
+                  <h4 className="text-xs font-semibold text-slate-500 uppercase">
                     {t('opp_detail.influencing_factors')}
                   </h4>
                   {closePrediction.data.factors.map((f, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2"
+                      className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">
                           {f.name || f.label || '-'}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">{f.evidence}</p>
+                        <p className="text-xs text-slate-500 truncate">{f.evidence}</p>
                       </div>
                       <Badge
                         variant={
@@ -1218,14 +1218,14 @@ export default function OpportunityDetailPage() {
               )}
               {closePrediction.data.next_steps && closePrediction.data.next_steps.length > 0 && (
                 <div>
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                  <h4 className="text-xs font-semibold text-slate-500 uppercase mb-1">
                     {t('opp_detail.next_steps')}
                   </h4>
                   <ul className="space-y-1">
                     {closePrediction.data.next_steps.map((step, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
+                        className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
                       >
                         <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
                         {step}
@@ -1236,7 +1236,7 @@ export default function OpportunityDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">
+            <p className="py-6 text-center text-sm text-slate-400">
               {t('opp_detail.close_data_empty')}
             </p>
           )}
@@ -1265,19 +1265,19 @@ export default function OpportunityDetailPage() {
             <Skeleton variant="card" />
           ) : aiSummary && summaryOpen ? (
             <div className="space-y-3">
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                 {aiSummary.summary}
               </p>
               {aiSummary.sources && aiSummary.sources.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {t('opp_detail.sources')}
                   </p>
                   <SummarySourceLinks sources={aiSummary.sources} />
                 </div>
               )}
               {aiSummary.generated_at && (
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-slate-400">
                   {formatDateTime(aiSummary.generated_at)}
                 </p>
               )}
@@ -1298,7 +1298,7 @@ export default function OpportunityDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">
+            <p className="py-6 text-center text-sm text-slate-400">
               {summaryOpen ? t('opp_detail.ai_summary_empty') : t('opp_detail.ai_summary_open')}
             </p>
           )}
@@ -1327,19 +1327,19 @@ export default function OpportunityDetailPage() {
             <Skeleton variant="card" />
           ) : aiChanges && changesOpen ? (
             <div className="space-y-3">
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                 {aiChanges.summary}
               </p>
               {aiChanges.sources && aiChanges.sources.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {t('opp_detail.sources')}
                   </p>
                   <SummarySourceLinks sources={aiChanges.sources} />
                 </div>
               )}
               {aiChanges.generated_at && (
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-slate-400">
                   {formatDateTime(aiChanges.generated_at)}
                 </p>
               )}
@@ -1350,7 +1350,7 @@ export default function OpportunityDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-400">
+            <p className="py-6 text-center text-sm text-slate-400">
               {changesOpen ? t('opp_detail.ai_summary_empty') : t('opp_detail.changes_hint')}
             </p>
           )}
@@ -1361,7 +1361,7 @@ export default function OpportunityDetailPage() {
       <div className="mt-6">
         <Card title="Aksiyonlar (Tasks)">
           {tasks.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">Task yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">Task yok</p>
           ) : (
             <div className="space-y-2">
               {tasks.slice(0, 12).map((task) => {
@@ -1369,22 +1369,22 @@ export default function OpportunityDetailPage() {
                 return (
                   <div
                     key={task.id}
-                    className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                    className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
                   >
                     <div className="min-w-0">
                       <p
                         className={`text-sm font-semibold ${
-                          isDone ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'
+                          isDone ? 'text-slate-400 line-through' : 'text-slate-900 dark:text-white'
                         }`}
                       >
                         {task.title}
                       </p>
                       {task.description && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                           {task.description}
                         </p>
                       )}
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-gray-400">
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
                         {task.due_at && <span>due: {formatDate(task.due_at)}</span>}
                         {task.source && <span>source: {task.source}</span>}
                         {task.priority && <span>prio: {task.priority}</span>}
@@ -1414,7 +1414,7 @@ export default function OpportunityDetailPage() {
                 );
               })}
               {tasks.length > 12 && (
-                <p className="text-xs text-gray-400">+{tasks.length - 12} daha</p>
+                <p className="text-xs text-slate-400">+{tasks.length - 12} daha</p>
               )}
             </div>
           )}
@@ -1433,28 +1433,28 @@ export default function OpportunityDetailPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="py-2 px-3 text-left text-xs text-gray-500">
+                      <tr className="border-b border-slate-200 dark:border-slate-800">
+                        <th className="py-2 px-3 text-left text-xs text-slate-500">
                           {t('opp_detail.tbl_date')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                        <th className="py-2 px-3 text-right text-xs text-slate-500">
                           {t('opp_detail.tbl_orig_amount')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                        <th className="py-2 px-3 text-right text-xs text-slate-500">
                           {t('opp_detail.tbl_new_amount')}
                         </th>
-                        <th className="py-2 px-3 text-left text-xs text-gray-500">
+                        <th className="py-2 px-3 text-left text-xs text-slate-500">
                           {t('opp_detail.tbl_category')}
                         </th>
-                        <th className="py-2 px-3 text-left text-xs text-gray-500">
+                        <th className="py-2 px-3 text-left text-xs text-slate-500">
                           {t('opp_detail.tbl_reason')}
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       {adjustmentsData.adjustments.map((adj) => (
-                        <tr key={adj.id} className="border-b border-gray-50 dark:border-gray-800">
-                          <td className="py-2 px-3 text-xs text-gray-600 dark:text-gray-400">
+                        <tr key={adj.id} className="border-b border-gray-50 dark:border-slate-800">
+                          <td className="py-2 px-3 text-xs text-slate-600 dark:text-slate-400">
                             {adj.created_at ? formatDate(adj.created_at) : '-'}
                           </td>
                           <td className="py-2 px-3 text-right text-xs">
@@ -1472,7 +1472,7 @@ export default function OpportunityDetailPage() {
                               adj.adjusted_category
                             )}
                           </td>
-                          <td className="py-2 px-3 text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate">
+                          <td className="py-2 px-3 text-xs text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
                             {adj.reason || '-'}
                           </td>
                         </tr>
@@ -1481,30 +1481,30 @@ export default function OpportunityDetailPage() {
                   </table>
                 </div>
               ) : (
-                <p className="py-4 text-center text-sm text-gray-400">{t('opp_detail.adj_none')}</p>
+                <p className="py-4 text-center text-sm text-slate-400">{t('opp_detail.adj_none')}</p>
               )}
 
               {/* Adjustment form (manager only) */}
               {isManager && (
-                <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
                     {t('opp_detail.new_adj')}
                   </h4>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
                         {t('opp_detail.lbl_new_amount')}
                       </label>
                       <input
                         type="number"
                         value={adjForm.new_amount}
                         onChange={(e) => setAdjForm((f) => ({ ...f, new_amount: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                         placeholder="0.00"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
                         {t('opp_detail.lbl_category')}
                       </label>
                       <select
@@ -1512,7 +1512,7 @@ export default function OpportunityDetailPage() {
                         onChange={(e) =>
                           setAdjForm((f) => ({ ...f, new_category: e.target.value }))
                         }
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                       >
                         {FORECAST_CATEGORIES.map((cat) => (
                           <option key={cat.value} value={cat.value}>
@@ -1522,14 +1522,14 @@ export default function OpportunityDetailPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
                         {t('opp_detail.lbl_reason')}
                       </label>
                       <textarea
                         value={adjForm.reason}
                         onChange={(e) => setAdjForm((f) => ({ ...f, reason: e.target.value }))}
                         rows={1}
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                         placeholder={t('opp_detail.reason_ph')}
                       />
                     </div>
@@ -1566,33 +1566,33 @@ export default function OpportunityDetailPage() {
           ) : activitySummary ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.total_activities')}
                 </span>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
                   {activitySummary.total_activities}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.since_last')}
                 </span>
                 <p
-                  className={`text-xl font-bold ${activitySummary.days_since_last_activity > 7 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}
+                  className={`text-xl font-bold ${activitySummary.days_since_last_activity > 7 ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}
                 >
                   {activitySummary.days_since_last_activity} {t('opp_detail.days_suffix')}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.avg_stage')}
                 </span>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
                   {activitySummary.avg_activities_for_stage}
                 </p>
               </div>
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.by_type')}
                 </span>
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -1602,13 +1602,13 @@ export default function OpportunityDetailPage() {
                     </Badge>
                   ))}
                   {Object.keys(activitySummary.by_type).length === 0 && (
-                    <span className="text-xs text-gray-400">-</span>
+                    <span className="text-xs text-slate-400">-</span>
                   )}
                 </div>
               </div>
             </div>
           ) : (
-            <p className="py-4 text-center text-sm text-gray-400">
+            <p className="py-4 text-center text-sm text-slate-400">
               {t('opp_detail.activity_empty')}
             </p>
           )}
@@ -1627,9 +1627,9 @@ export default function OpportunityDetailPage() {
                   key={room.id}
                   type="button"
                   onClick={() => navigate(`/deal-rooms/${room.id}`)}
-                  className="flex w-full items-center justify-between rounded-lg border border-gray-200 px-4 py-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                  className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
                 >
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
                     {room.name}
                   </span>
                   <div className="flex items-center gap-2">
@@ -1648,7 +1648,7 @@ export default function OpportunityDetailPage() {
             </div>
           ) : (
             <div className="py-4 text-center">
-              <p className="mb-3 text-sm text-gray-400">{t('opp_detail.dr_empty')}</p>
+              <p className="mb-3 text-sm text-slate-400">{t('opp_detail.dr_empty')}</p>
               <Button
                 size="sm"
                 loading={createDealRoomMutation.isPending}

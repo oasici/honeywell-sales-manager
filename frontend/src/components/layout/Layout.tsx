@@ -47,13 +47,13 @@ export function Layout() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
             aria-label={t('layout.mobile_open_menu')}
           >
             <Menu size={22} />
           </button>
           <span className="ml-2 text-sm font-bold text-honeywell-red">Honeywell</span>
-          <span className="ml-1 text-xs text-gray-400">Sales Suite</span>
+          <span className="ml-1 text-xs text-slate-400">Sales Suite</span>
         </header>
 
         {/* Desktop header */}

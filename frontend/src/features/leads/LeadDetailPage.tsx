@@ -63,7 +63,7 @@ function ScoreHistory({ leadId }: { leadId: number }) {
 
   return (
     <div className="border-t mt-3 pt-3">
-      <p className="text-xs font-medium text-gray-500 mb-2">{t('lead_detail.score_history')}</p>
+      <p className="text-xs font-medium text-slate-500 mb-2">{t('lead_detail.score_history')}</p>
       <div className="space-y-1.5 max-h-40 overflow-y-auto">
         {events.map((e: Record<string, unknown>) => {
           const payload = e.payload as Record<string, number | string>;
@@ -82,10 +82,10 @@ function ScoreHistory({ leadId }: { leadId: number }) {
                 {delta > 0 ? '+' : ''}
                 {delta}
               </span>
-              <span className="text-gray-500">
+              <span className="text-slate-500">
                 {payload?.old_score} → {payload?.new_score}
               </span>
-              <span className="text-gray-400 truncate">
+              <span className="text-slate-400 truncate">
                 {SCORE_REASON_LABELS[reason] || reason}
               </span>
             </div>
@@ -97,7 +97,7 @@ function ScoreHistory({ leadId }: { leadId: number }) {
 }
 
 function ScoreRing({ score }: { score: number }) {
-  const color = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
+  const color = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444';
   const pct = Math.min(score, 100);
   const circumference = 2 * Math.PI * 36;
   const offset = circumference - (pct / 100) * circumference;
@@ -120,7 +120,7 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xl font-bold text-gray-900 dark:text-white">{score}</span>
+        <span className="text-xl font-bold text-slate-900 dark:text-white">{score}</span>
       </div>
     </div>
   );
@@ -180,7 +180,7 @@ export default function LeadDetailPage() {
   });
 
   if (isLoading) return <Skeleton variant="card" count={3} />;
-  if (!lead) return <p className="p-8 text-center text-gray-500">{t('lead_detail.not_found')}</p>;
+  if (!lead) return <p className="p-8 text-center text-slate-500">{t('lead_detail.not_found')}</p>;
 
   const canConvert = ['qualified', 'contacted'].includes(lead.status);
   const isConverted = lead.status === 'converted';
@@ -222,7 +222,7 @@ export default function LeadDetailPage() {
             <Badge variant={STATUS_COLORS[lead.status] || 'default'} size="md">
               {translateLeadStatus(lead.status, t)}
             </Badge>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {t('lead_detail.source_prefix')}: {lead.source}
             </p>
           </div>
@@ -233,45 +233,49 @@ export default function LeadDetailPage() {
         <Card title={t('lead_detail.contact_title')} className="lg:col-span-2">
           <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
             <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4 text-gray-400" />
+              <Mail className="h-4 w-4 text-slate-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('lead_detail.email')}</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{lead.email}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('lead_detail.email')}
+                </p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">{lead.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-gray-400" />
+              <Phone className="h-4 w-4 text-slate-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('leads.phone')}</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t('leads.phone')}</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
                   {lead.phone || '-'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Building2 className="h-4 w-4 text-gray-400" />
+              <Building2 className="h-4 w-4 text-slate-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('leads.company')}</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t('leads.company')}</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
                   {lead.company || '-'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Briefcase className="h-4 w-4 text-gray-400" />
+              <Briefcase className="h-4 w-4 text-slate-400" />
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('leads.job_title')}</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t('leads.job_title')}</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
                   {lead.title || '-'}
                 </p>
               </div>
             </div>
           </div>
           {lead.owner_name && (
-            <div className="border-t border-gray-100 px-4 py-3 dark:border-gray-700">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t('lead_detail.assigned_to')}:{' '}
-                <span className="font-medium text-gray-900 dark:text-white">{lead.owner_name}</span>
+                <span className="font-medium text-slate-900 dark:text-white">
+                  {lead.owner_name}
+                </span>
               </p>
             </div>
           )}
@@ -301,14 +305,14 @@ export default function LeadDetailPage() {
           <Card title={t('lead_detail.conversion_info')} className="lg:col-span-3">
             <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
               <div>
-                <p className="text-xs text-gray-500">{t('lead_detail.conversion_date')}</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <p className="text-xs text-slate-500">{t('lead_detail.conversion_date')}</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
                   {formatDate(lead.converted_at)}
                 </p>
               </div>
               {lead.converted_customer_id && (
                 <div>
-                  <p className="text-xs text-gray-500">{t('lead_detail.customer')}</p>
+                  <p className="text-xs text-slate-500">{t('lead_detail.customer')}</p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -320,7 +324,7 @@ export default function LeadDetailPage() {
               )}
               {lead.converted_opportunity_id && (
                 <div>
-                  <p className="text-xs text-gray-500">{t('lead_detail.opportunity')}</p>
+                  <p className="text-xs text-slate-500">{t('lead_detail.opportunity')}</p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -337,7 +341,7 @@ export default function LeadDetailPage() {
         {/* Notes */}
         {lead.notes && (
           <Card title={t('lead_detail.notes')} className="lg:col-span-3">
-            <p className="p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+            <p className="p-4 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
               {lead.notes}
             </p>
           </Card>
@@ -357,7 +361,7 @@ export default function LeadDetailPage() {
           }}
           className="space-y-4"
         >
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             <strong>
               {lead.first_name} {lead.last_name}
             </strong>{' '}
@@ -370,9 +374,9 @@ export default function LeadDetailPage() {
               onChange={(e) =>
                 setConvertForm({ ...convertForm, create_opportunity: e.target.checked })
               }
-              className="rounded border-gray-300"
+              className="rounded border-slate-200"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">
+            <span className="text-sm text-slate-700 dark:text-slate-300">
               {t('lead_detail.create_opportunity')}
             </span>
           </label>

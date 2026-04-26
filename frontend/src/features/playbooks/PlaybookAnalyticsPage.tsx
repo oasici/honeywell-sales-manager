@@ -12,8 +12,8 @@ function KpiCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card>
       <div className="p-4 text-center">
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
       </div>
     </Card>
   );
@@ -68,7 +68,7 @@ export default function PlaybookAnalyticsPage() {
 
       {/* Win rate comparison */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
           Kazanma Orani Karsilastirmasi
         </h2>
         <div className="flex gap-4">
@@ -80,7 +80,7 @@ export default function PlaybookAnalyticsPage() {
           <WinRateCard
             label="Playbook'suz"
             rate={data.win_rate_without_playbook}
-            bgClass="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+            bgClass="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
           />
         </div>
       </div>
@@ -88,30 +88,30 @@ export default function PlaybookAnalyticsPage() {
       {/* Per-playbook table */}
       <Card>
         <div className="p-4">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
             Playbook Bazinda Performans
           </h2>
           {data.per_playbook.length === 0 ? (
-            <p className="text-sm text-gray-500">Veri bulunmuyor.</p>
+            <p className="text-sm text-slate-500">Veri bulunmuyor.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="pb-2 font-medium text-gray-500">Playbook</th>
-                    <th className="pb-2 font-medium text-gray-500">Yürütme</th>
-                    <th className="pb-2 font-medium text-gray-500">Tamamlanan</th>
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <th className="pb-2 font-medium text-slate-500">Playbook</th>
+                    <th className="pb-2 font-medium text-slate-500">Yürütme</th>
+                    <th className="pb-2 font-medium text-slate-500">Tamamlanan</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.per_playbook.map((item) => (
                     <tr
                       key={item.playbook_id}
-                      className="border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                      className="border-b border-slate-100 dark:border-slate-800 last:border-b-0"
                     >
-                      <td className="py-2 text-gray-900 dark:text-white">{item.name}</td>
-                      <td className="py-2 text-gray-700 dark:text-gray-300">{item.executions}</td>
-                      <td className="py-2 text-gray-700 dark:text-gray-300">{item.completed}</td>
+                      <td className="py-2 text-slate-900 dark:text-white">{item.name}</td>
+                      <td className="py-2 text-slate-700 dark:text-slate-300">{item.executions}</td>
+                      <td className="py-2 text-slate-700 dark:text-slate-300">{item.completed}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -124,22 +124,22 @@ export default function PlaybookAnalyticsPage() {
       {/* Most triggered */}
       <Card>
         <div className="p-4">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
             En Çok Tetiklenenler
           </h2>
           {data.most_triggered.length === 0 ? (
-            <p className="text-sm text-gray-500">Veri bulunmuyor.</p>
+            <p className="text-sm text-slate-500">Veri bulunmuyor.</p>
           ) : (
             <ul className="space-y-2">
               {data.most_triggered.map((item) => (
                 <li
                   key={item.playbook_id}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-2 dark:border-gray-700"
+                  className="flex items-center justify-between rounded-lg border border-slate-100 px-4 py-2 dark:border-slate-800"
                 >
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  <span className="text-sm font-medium text-slate-900 dark:text-white">
                     {item.name}
                   </span>
-                  <span className="text-sm font-bold text-gray-600 dark:text-gray-400">
+                  <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
                     {item.count} kez
                   </span>
                 </li>

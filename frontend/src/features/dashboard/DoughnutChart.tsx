@@ -34,8 +34,8 @@ export const DoughnutChart = React.memo(function DoughnutChart({
   const gradId = `doughnutGrad-${uid}`;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm h-full dark:border-gray-700 dark:bg-gray-800">
-      <p className="mb-3 text-sm font-medium text-gray-500 text-center dark:text-gray-400">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm h-full dark:border-slate-800 dark:bg-slate-800">
+      <p className="mb-3 text-sm font-medium text-slate-500 text-center dark:text-slate-400">
         {title}
       </p>
       <div className="flex items-center justify-center">
@@ -76,12 +76,12 @@ export const DoughnutChart = React.memo(function DoughnutChart({
               </Pie>
             </PieChart>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-2xl font-bold text-gray-900 dark:text-white">%{pct}</span>
+            <span className="text-2xl font-bold text-slate-900 dark:text-white">%{pct}</span>
           </div>
         </div>
       </div>
-      <div className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
-        <span className="font-semibold text-gray-700 dark:text-gray-200">
+      <div className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">
+        <span className="font-semibold text-slate-700 dark:text-slate-200">
           {typeof filled === 'number' && filled > 1000
             ? filled.toLocaleString('tr-TR', { maximumFractionDigits: 0 })
             : filled}

@@ -27,7 +27,31 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <App />
-          <Toaster position="top-right" richColors closeButton />
+          {/* Toast styling tuned to design system: 12px radius, slate-200
+              border, --shadow-lg elevation, white surface (light) / slate-900
+              (dark). richColors keeps the colored variants (success/error/
+              warning/info) but they inherit our token border + shadow. */}
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton
+            duration={4500}
+            offset={20}
+            toastOptions={{
+              style: {
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-lg)',
+                background: 'var(--surface)',
+                color: 'var(--text-primary)',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '13px',
+                fontWeight: 500,
+                padding: '12px 14px',
+              },
+              className: 'sonner-toast-modern',
+            }}
+          />
         </QueryClientProvider>
       </BrowserRouter>
     </ErrorBoundary>

@@ -44,7 +44,7 @@ const RISK_COLORS: Record<string, string> = {
 };
 
 const ENTITY_DROPDOWN_CLASS =
-  'rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm w-full min-w-[250px]';
+  'rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm w-full min-w-[250px]';
 
 function SummarizeTab() {
   const [entityType, setEntityType] = useState('opportunity');
@@ -93,11 +93,11 @@ function SummarizeTab() {
     <div className="space-y-4">
       <div className="flex gap-3 items-end flex-wrap">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Varlık Tipi
           </label>
           <select
-            className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
             value={entityType}
             onChange={(e) => handleEntityTypeChange(e.target.value)}
           >
@@ -108,7 +108,7 @@ function SummarizeTab() {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Varlık Seç
           </label>
           <select
@@ -132,16 +132,16 @@ function SummarizeTab() {
         <Card>
           <div className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-sm font-semibold text-gray-900">AI Özeti</h3>
+              <h3 className="text-sm font-semibold text-slate-900">AI Özeti</h3>
               {result.cached && (
                 <Badge variant="default" size="sm">
                   Onbellek
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{result.summary}</p>
+            <p className="text-sm text-slate-700 whitespace-pre-wrap">{result.summary}</p>
             {result.sources.length > 0 && (
-              <p className="text-xs text-gray-400 mt-2">Kaynaklar: {result.sources.join(', ')}</p>
+              <p className="text-xs text-slate-400 mt-2">Kaynaklar: {result.sources.join(', ')}</p>
             )}
           </div>
         </Card>
@@ -173,7 +173,7 @@ function PipelineTab() {
     <div className="space-y-4">
       <div className="flex gap-3 items-end flex-wrap">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Fırsat Seç
           </label>
           <select
@@ -198,25 +198,25 @@ function PipelineTab() {
           <div className="p-4 space-y-3">
             <div className="flex items-center gap-4">
               <div>
-                <span className="text-xs text-gray-500">Mevcut Aşama</span>
+                <span className="text-xs text-slate-500">Mevcut Aşama</span>
                 <p className="text-sm font-medium">{result.current_stage}</p>
               </div>
-              <span className="text-gray-300">→</span>
+              <span className="text-slate-300">→</span>
               <div>
-                <span className="text-xs text-gray-500">Önerilen Aşama</span>
+                <span className="text-xs text-slate-500">Önerilen Aşama</span>
                 <p className="text-sm font-semibold text-honeywell-red">{result.suggested_stage}</p>
               </div>
             </div>
             <div>
-              <h4 className="text-xs font-medium text-gray-500 mb-1">Önerilen Sonraki Adımlar</h4>
-              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+              <h4 className="text-xs font-medium text-slate-500 mb-1">Önerilen Sonraki Adımlar</h4>
+              <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
                 {result.suggested_next_steps.map((step, i) => (
                   <li key={i}>{step}</li>
                 ))}
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-medium text-gray-500 mb-1">Faktorler</h4>
+              <h4 className="text-xs font-medium text-slate-500 mb-1">Faktorler</h4>
               <div className="flex flex-wrap gap-1">
                 {result.factors.map((f, i) => (
                   <Badge key={i} variant="info" size="sm">
@@ -255,7 +255,7 @@ function RiskTab() {
     <div className="space-y-4">
       <div className="flex gap-3 items-end flex-wrap">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Fırsat Seç
           </label>
           <select
@@ -280,9 +280,9 @@ function RiskTab() {
           <div className="p-4 space-y-3">
             <div className="flex items-center gap-4">
               <div>
-                <span className="text-xs text-gray-500">Risk Skoru</span>
+                <span className="text-xs text-slate-500">Risk Skoru</span>
                 <p
-                  className={`text-2xl font-bold ${RISK_COLORS[result.risk_level] ?? 'text-gray-900'}`}
+                  className={`text-2xl font-bold ${RISK_COLORS[result.risk_level] ?? 'text-slate-900'}`}
                 >
                   {result.risk_score}
                 </p>
@@ -300,16 +300,16 @@ function RiskTab() {
               </Badge>
             </div>
             <div>
-              <h4 className="text-xs font-medium text-gray-500 mb-2">Risk Faktorleri</h4>
+              <h4 className="text-xs font-medium text-slate-500 mb-2">Risk Faktorleri</h4>
               <div className="space-y-2">
                 {result.factors.map((f, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
                   >
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{f.name}</p>
-                      <p className="text-xs text-gray-500">{f.description}</p>
+                      <p className="text-sm font-medium text-slate-900">{f.name}</p>
+                      <p className="text-xs text-slate-500">{f.description}</p>
                     </div>
                     <span className="text-sm font-semibold">{f.score}</span>
                   </div>
@@ -318,8 +318,8 @@ function RiskTab() {
             </div>
             {result.recommendations.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-500 mb-1">Öneriler</h4>
-                <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                <h4 className="text-xs font-medium text-slate-500 mb-1">Öneriler</h4>
+                <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
                   {result.recommendations.map((r, i) => (
                     <li key={i}>{r}</li>
                   ))}
@@ -343,9 +343,9 @@ function CompetitiveTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <label className="text-sm text-gray-600">Son</label>
+        <label className="text-sm text-slate-600">Son</label>
         <select
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+          className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
           value={days}
           onChange={(e) => setDays(Number(e.target.value))}
         >
@@ -355,7 +355,7 @@ function CompetitiveTab() {
           <option value={180}>180 gun</option>
         </select>
         {data && (
-          <span className="text-sm text-gray-500">Toplam: {data.total_mentions} bahsetme</span>
+          <span className="text-sm text-slate-500">Toplam: {data.total_mentions} bahsetme</span>
         )}
       </div>
 
@@ -373,20 +373,20 @@ function CompetitiveTab() {
             <Card key={comp.name}>
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-gray-900">{comp.name}</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">{comp.name}</h3>
                   <Badge variant="info" size="sm">
                     {comp.mention_count} bahsetme
                   </Badge>
                 </div>
-                <div className="text-xs text-gray-500 mb-3">
+                <div className="text-xs text-slate-500 mb-3">
                   Ortalama duygu:{' '}
                   {comp.sentiment_avg > 0 ? 'Pozitif' : comp.sentiment_avg < 0 ? 'Negatif' : 'Notr'}
                 </div>
                 {comp.recent_mentions.length > 0 && (
                   <div className="space-y-2">
                     {comp.recent_mentions.slice(0, 3).map((m, i) => (
-                      <div key={i} className="rounded bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                        <span className="text-gray-400">[{m.source_type}]</span> {m.context_snippet}
+                      <div key={i} className="rounded bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                        <span className="text-slate-400">[{m.source_type}]</span> {m.context_snippet}
                       </div>
                     ))}
                   </div>
@@ -410,15 +410,15 @@ export default function AiInsightsPage() {
       </PageHeader>
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
+      <div className="mb-6 flex gap-1 rounded-lg bg-slate-100 p-1">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             {tab.icon}

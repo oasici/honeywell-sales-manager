@@ -1,12 +1,14 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Upload, Info } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
+import { Badge } from '../../components/ui/Badge';
 import { partsApi } from '../../lib/api';
 import { useT } from '../../hooks/useT';
 import type { SparePart, PaginatedResponse } from '../../lib/types';
@@ -40,80 +42,79 @@ function PartDetailModal({ part, onClose }: { part: SparePart | null; onClose: (
   const createdDate = part.created_at?.split('T')[0];
 
   return (
-    <Modal isOpen={!!part} onClose={onClose} title="" size="lg">
+    <Modal isOpen={!!part} onClose={onClose} title={part.honeywell_code} description={part.model_number || undefined} size="lg">
       <div className="space-y-5">
-        {/* Gradient header banner */}
-        <div className="-mx-6 -mt-6 rounded-t-2xl bg-gradient-to-r from-red-700 to-red-500 px-6 py-6">
-          <h3 className="text-2xl font-bold tracking-tight text-white">{part.honeywell_code}</h3>
-          {part.model_number && <p className="mt-1 text-sm text-red-100">{part.model_number}</p>}
-        </div>
-
-        {/* Info highlight box */}
+        {/* Info highlight (only when present). Amber tint signals "advisory"
+            content that's still useful but not destructive. */}
         {part.info && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
-            <span className="font-semibold">{t('parts.modal_info')} </span>
-            {part.info}
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-900/60">
+              <Info size={14} />
+            </span>
+            <div className="min-w-0 flex-1 text-[13px] text-amber-900 dark:text-amber-200">
+              <span className="font-semibold">{t('parts.modal_info')} </span>
+              {part.info}
+            </div>
           </div>
         )}
 
-        {/* Price section */}
-        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-800">
+        {/* Price section — slate-tinted well, big tabular-nums values so the
+            two prices align even with different magnitudes. Currency reads
+            as a label badge, not a competing data point. */}
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 dark:border-slate-800 dark:bg-slate-900/40">
           {hasPriceInfo ? (
             <div className="flex flex-wrap items-end gap-8">
               {part.transfer_price != null && (
                 <div>
-                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <span className="text-overline text-slate-500 dark:text-slate-400">
                     {t('parts.tp_label')}
                   </span>
-                  <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
+                  <p className="mt-1.5 text-[28px] font-bold leading-none tracking-tight tabular-nums text-slate-900 dark:text-white">
                     {formatPrice(part.transfer_price)}
                   </p>
                 </div>
               )}
               {part.supplier_price != null && (
                 <div>
-                  <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <span className="text-overline text-slate-500 dark:text-slate-400">
                     {t('parts.lp_label')}
                   </span>
-                  <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
+                  <p className="mt-1.5 text-[28px] font-bold leading-none tracking-tight tabular-nums text-slate-900 dark:text-white">
                     {formatPrice(part.supplier_price)}
                   </p>
                 </div>
               )}
               {part.price_currency && (
-                <span className="mb-1 inline-flex items-center rounded-full bg-gradient-to-r from-gray-200 to-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 dark:from-gray-600 dark:to-gray-700 dark:text-gray-200">
-                  {part.price_currency}
+                <span className="mb-1.5">
+                  <Badge variant="default" size="md">
+                    {part.price_currency}
+                  </Badge>
                 </span>
               )}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic">{t('parts.no_price')}</p>
+            <p className="text-[13px] italic text-slate-400">{t('parts.no_price')}</p>
           )}
         </div>
 
-        {/* Gradient divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-red-200 to-transparent dark:via-red-800" />
-
-        {/* Description card */}
+        {/* Description card — language-tagged so TR/EN coexistence stays
+            scannable. The chips use Badge primitives for visual consistency
+            with the rest of the system. */}
         {(descriptionTr || descriptionEn) && (
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+            <h4 className="text-overline text-slate-500 dark:text-slate-400">
               {t('parts.description_heading')}
             </h4>
-            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+            <div className="mt-3 space-y-2.5 text-[13px] leading-6 text-slate-700 dark:text-slate-300">
               {descriptionTr && (
-                <div className="flex gap-2">
-                  <span className="inline-flex h-5 items-center rounded bg-blue-100 px-1.5 text-[10px] font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                    TR
-                  </span>
+                <div className="flex items-start gap-2">
+                  <Badge variant="info" size="sm">TR</Badge>
                   <span>{descriptionTr}</span>
                 </div>
               )}
               {descriptionEn && (
-                <div className="flex gap-2">
-                  <span className="inline-flex h-5 items-center rounded bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                    EN
-                  </span>
+                <div className="flex items-start gap-2">
+                  <Badge variant="success" size="sm">EN</Badge>
                   <span>{descriptionEn}</span>
                 </div>
               )}
@@ -121,23 +122,21 @@ function PartDetailModal({ part, onClose }: { part: SparePart | null; onClose: (
           </div>
         )}
 
-        {/* Metadata: Category & Subcategory pills */}
-        <div className="flex flex-wrap gap-2">
-          {part.category && (
-            <span className="inline-flex items-center rounded-full bg-gradient-to-r from-indigo-50 to-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 dark:text-indigo-300 dark:ring-indigo-700">
-              {part.category}
-            </span>
-          )}
-          {part.subcategory && (
-            <span className="inline-flex items-center rounded-full bg-gradient-to-r from-violet-50 to-violet-100 px-3 py-1 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200 dark:from-violet-900/30 dark:to-violet-800/30 dark:text-violet-300 dark:ring-violet-700">
-              {part.subcategory}
-            </span>
-          )}
-        </div>
+        {/* Category + subcategory chips */}
+        {(part.category || part.subcategory) && (
+          <div className="flex flex-wrap gap-2">
+            {part.category && (
+              <Badge variant="default" size="md">{part.category}</Badge>
+            )}
+            {part.subcategory && (
+              <Badge variant="default" size="md">{part.subcategory}</Badge>
+            )}
+          </div>
+        )}
 
-        {/* Created date footer */}
+        {/* Created date — quietly anchored at the bottom */}
         {createdDate && (
-          <p className="text-xs text-gray-400">
+          <p className="text-[12px] tabular-nums text-slate-400 dark:text-slate-500">
             {t('parts.created_label')} {createdDate}
           </p>
         )}
@@ -216,7 +215,7 @@ export default function PartsPage() {
         header: t('parts.col_model'),
         sortable: true,
         render: (row: SparePart) => (
-          <span className="font-mono text-sm font-semibold text-gray-900">
+          <span className="font-mono text-[13px] font-semibold text-slate-900 dark:text-white">
             {row.model_number || row.honeywell_code}
           </span>
         ),
@@ -226,42 +225,56 @@ export default function PartsPage() {
         header: t('parts.col_hw_code'),
         sortable: true,
         render: (row: SparePart) => (
-          <span className="font-mono text-xs text-gray-600">{row.honeywell_code}</span>
+          <span className="font-mono text-[12px] text-slate-500 dark:text-slate-400">
+            {row.honeywell_code}
+          </span>
         ),
       },
       {
         key: 'name_tr',
         header: t('parts.col_name'),
         render: (row: SparePart) => (
-          <span className="text-sm" title={row.description_tr || row.name_tr || ''}>
-            {row.name_tr || row.name_en || '-'}
+          <span
+            className="text-[13px] text-slate-700 dark:text-slate-200"
+            title={row.description_tr || row.name_tr || ''}
+          >
+            {row.name_tr || row.name_en || '—'}
           </span>
         ),
       },
       {
         key: 'category',
         header: t('parts.col_category'),
-        render: (row: SparePart) => <span className="text-sm">{row.category || '-'}</span>,
+        render: (row: SparePart) =>
+          row.category ? (
+            <Badge variant="default" size="sm">{row.category}</Badge>
+          ) : (
+            <span className="text-[12px] text-slate-400">—</span>
+          ),
       },
       {
         key: 'transfer_price',
         header: t('parts.col_tp'),
+        align: 'right' as const,
+        numeric: true,
         render: (row: SparePart) => (
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
             {row.transfer_price != null
-              ? `${formatPrice(row.transfer_price)} ${row.price_currency || ''}`
-              : '-'}
+              ? `${formatPrice(row.transfer_price)}${row.price_currency ? ` ${row.price_currency}` : ''}`
+              : '—'}
           </span>
         ),
       },
       {
         key: 'supplier_price',
         header: t('parts.col_lp'),
+        align: 'right' as const,
+        numeric: true,
         render: (row: SparePart) => (
-          <span className="text-sm text-gray-700">
+          <span className="text-[13px] tabular-nums text-slate-600 dark:text-slate-300">
             {row.supplier_price != null
-              ? `${formatPrice(row.supplier_price)} ${row.price_currency || ''}`
-              : '-'}
+              ? `${formatPrice(row.supplier_price)}${row.price_currency ? ` ${row.price_currency}` : ''}`
+              : '—'}
           </span>
         ),
       },
@@ -280,17 +293,25 @@ export default function PartsPage() {
           className="hidden"
         />
         <Button loading={importMutation.isPending} onClick={() => fileRef.current?.click()}>
+          <Upload size={14} />
           {t('parts.import_btn')}
         </Button>
       </PageHeader>
 
-      {/* Info banner */}
-      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-        {t('parts.excel_format_banner')}
+      {/* Format hint banner — slate-tinted info row, calmer than the old
+          blue alert. Icon medallion makes it clear this is advisory,
+          not a CTA. */}
+      <div className="mb-4 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-900/40">
+        <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] bg-white text-slate-500 ring-1 ring-inset ring-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700">
+          <Info size={14} />
+        </span>
+        <p className="min-w-0 flex-1 text-[13px] leading-5 text-slate-600 dark:text-slate-300">
+          {t('parts.excel_format_banner')}
+        </p>
       </div>
 
       {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-end gap-4">
+      <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="w-72">
           <Input
             placeholder={t('parts.search_ph')}
@@ -301,7 +322,7 @@ export default function PartsPage() {
             }}
           />
         </div>
-        <div className="w-48">
+        <div className="w-52">
           <Select
             options={categoryOptions}
             value={category}

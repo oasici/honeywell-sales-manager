@@ -28,9 +28,9 @@ export function ConditionNode({ data, selected }: NodeProps) {
     >
       <Handle type="target" position={Position.Top} className="!bg-amber-500 !w-3 !h-3" />
       <div className="text-[10px] font-bold text-amber-600 uppercase mb-1">Kosul</div>
-      <div className="text-sm font-semibold text-gray-900">{nodeData.label || 'Kosul Belirle'}</div>
+      <div className="text-sm font-semibold text-slate-900">{nodeData.label || 'Kosul Belirle'}</div>
       {nodeData.field && (
-        <div className="text-xs text-gray-500 mt-0.5">
+        <div className="text-xs text-slate-500 mt-0.5">
           {nodeData.field} {operatorLabel} {nodeData.value}
         </div>
       )}

@@ -29,7 +29,7 @@ function StageChevron({
   const _isCompleted = stage.order < getStageOrder(stage) && !stage.is_current;
   void _isCompleted;
 
-  let bgClass = 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+  let bgClass = 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
   if (stage.is_current) {
     bgClass = 'bg-honeywell-red text-white';
   } else if (stage.completion_pct === 100 && !isClosed) {
@@ -76,18 +76,18 @@ function ExpandedPanel({ stage }: { stage: StageRequirementStatus }) {
   const filledPct = Math.max(stage.completion_pct, 2);
 
   return (
-    <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+    <div className="mt-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
           {stage.label} - Gereksinimler
         </h4>
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
           %{stage.completion_pct} tamamlandi
         </span>
       </div>
 
       {/* Completion bar */}
-      <div className="mb-4 h-2 w-full rounded-full bg-gray-100 dark:bg-gray-800">
+      <div className="mb-4 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800">
         <div
           className={`h-2 rounded-full transition-all duration-500 ${
             stage.completion_pct === 100
@@ -103,7 +103,7 @@ function ExpandedPanel({ stage }: { stage: StageRequirementStatus }) {
       {/* Required fields */}
       {stage.required_fields.length > 0 && (
         <div className="space-y-2 mb-4">
-          <h5 className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+          <h5 className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
             Zorunlu Alanlar
           </h5>
           {stage.required_fields.map((field) => (
@@ -129,7 +129,7 @@ function ExpandedPanel({ stage }: { stage: StageRequirementStatus }) {
               <span
                 className={
                   field.completed
-                    ? 'text-gray-700 dark:text-gray-300'
+                    ? 'text-slate-700 dark:text-slate-300'
                     : 'text-red-600 dark:text-red-400 font-medium'
                 }
               >
@@ -143,13 +143,13 @@ function ExpandedPanel({ stage }: { stage: StageRequirementStatus }) {
       {/* Coaching tips */}
       {stage.coaching_tips.length > 0 && (
         <div className="space-y-1.5">
-          <h5 className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+          <h5 className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
             Ipuclari
           </h5>
           {stage.coaching_tips.map((tip, idx) => (
             <div
               key={idx}
-              className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400"
+              className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
             >
               <svg
                 className="mt-0.5 h-4 w-4 shrink-0 text-blue-500"

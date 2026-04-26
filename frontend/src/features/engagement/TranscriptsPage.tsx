@@ -71,7 +71,7 @@ function TranscriptSignals({ opportunityId }: { opportunityId: number }) {
 
   const signals = signalsQuery.data?.signals ?? [];
   if (signalsQuery.isLoading) {
-    return <span className="text-xs text-gray-400">{t('transcripts.signals_loading')}</span>;
+    return <span className="text-xs text-slate-400">{t('transcripts.signals_loading')}</span>;
   }
   if (signals.length === 0) return null;
 
@@ -84,7 +84,7 @@ function TranscriptSignals({ opportunityId }: { opportunityId: number }) {
 
   return (
     <div className="mt-3">
-      <p className="mb-1 text-xs font-semibold text-gray-600">
+      <p className="mb-1 text-xs font-semibold text-slate-600">
         {signals.length} sinyal tespit edildi
       </p>
       <div className="flex flex-wrap gap-1">
@@ -214,7 +214,7 @@ export default function TranscriptsPage() {
       key: 'expand',
       header: '',
       render: (row: Transcript) => (
-        <span className="text-gray-400">
+        <span className="text-slate-400">
           {expandedId === row.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </span>
       ),
@@ -223,14 +223,14 @@ export default function TranscriptsPage() {
       key: 'title',
       header: t('transcripts.col_title'),
       render: (row: Transcript) => (
-        <span className="text-sm font-medium text-gray-900">{row.title}</span>
+        <span className="text-sm font-medium text-slate-900">{row.title}</span>
       ),
     },
     {
       key: 'source',
       header: t('transcripts.col_source'),
       render: (row: Transcript) => (
-        <span className="text-sm text-gray-600">{row.source || '-'}</span>
+        <span className="text-sm text-slate-600">{row.source || '-'}</span>
       ),
     },
     {
@@ -326,9 +326,9 @@ export default function TranscriptsPage() {
               if (!transcript) return null;
               const summary = expandedSummaries[transcript.id] ?? transcript.summary;
               return (
-                <div className="mt-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="mt-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-900">{transcript.title}</h3>
+                    <h3 className="text-sm font-semibold text-slate-900">{transcript.title}</h3>
                     <div className="flex items-center gap-2">
                       {transcript.opportunity_id && (
                         <button
@@ -364,15 +364,15 @@ export default function TranscriptsPage() {
                       <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-700">
                         {t('transcripts.summary')}
                       </div>
-                      <p className="text-sm leading-relaxed text-gray-700">{summary}</p>
+                      <p className="text-sm leading-relaxed text-slate-700">{summary}</p>
                     </div>
                   )}
 
-                  <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                    <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                    <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {t('transcripts.content')}
                     </div>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
                       {transcript.content
                         ? highlightKeywords(transcript.content, keywordPacks)
                         : transcript.summary || t('common.error')}
@@ -395,7 +395,7 @@ export default function TranscriptsPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
               {t('transcripts.col_title')}
             </label>
             <Input
@@ -405,11 +405,11 @@ export default function TranscriptsPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
               {t('transcripts.lbl_content')}
             </label>
             <textarea
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               rows={6}
               value={form.content}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
@@ -418,7 +418,7 @@ export default function TranscriptsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-slate-700">
                 {t('transcripts.col_source')}
               </label>
               <Input
@@ -428,7 +428,7 @@ export default function TranscriptsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-slate-700">
                 {t('transcripts.lbl_duration')}
               </label>
               <Input
@@ -441,7 +441,7 @@ export default function TranscriptsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-slate-700">
                 {t('transcripts.lbl_opp_id')}
               </label>
               <Input
@@ -452,7 +452,7 @@ export default function TranscriptsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-slate-700">
                 {t('transcripts.lbl_cust_id')}
               </label>
               <Input

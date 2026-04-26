@@ -80,7 +80,7 @@ function TreeNode({ territory, depth, selectedId, onSelect }: TreeNodeProps) {
         className={`w-full flex items-center gap-2 py-2 pr-3 rounded-lg text-left text-sm font-medium transition-colors ${
           isSelected
             ? 'bg-honeywell-red/10 text-honeywell-red'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
+            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
         }`}
       >
         {hasChildren ? (
@@ -90,7 +90,7 @@ function TreeNode({ territory, depth, selectedId, onSelect }: TreeNodeProps) {
               e.stopPropagation();
               setOpen((o) => !o);
             }}
-            className="shrink-0 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+            className="shrink-0 text-slate-500 hover:text-slate-900 dark:hover:text-white"
           >
             {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
@@ -100,7 +100,7 @@ function TreeNode({ territory, depth, selectedId, onSelect }: TreeNodeProps) {
         <Building2 size={14} className="shrink-0" />
         <span className="truncate">{territory.name}</span>
         {territory.region && (
-          <span className="ml-auto shrink-0 text-[10px] text-gray-500">{territory.region}</span>
+          <span className="ml-auto shrink-0 text-[10px] text-slate-500">{territory.region}</span>
         )}
       </button>
 
@@ -157,24 +157,24 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
       <form onSubmit={handleSubmit((v) => createMutation.mutate(v))}>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Bölge Adi <span className="text-red-400">*</span>
             </label>
             <input
               {...register('name')}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] text-slate-900 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               placeholder="Örneğin: Marmara Bolgesi"
             />
             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Üst Bölge
             </label>
             <select
               {...register('parent_id', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] text-slate-900 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="">Yok (Kök Bölge)</option>
               {territories.map((t) => (
@@ -186,24 +186,24 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Bölge
             </label>
             <input
               {...register('region')}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] text-slate-900 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               placeholder="Örneğin: TR-IST"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Açıklama
             </label>
             <textarea
               {...register('description')}
               rows={2}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red resize-none dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] text-slate-900 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 resize-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
           </div>
         </div>
@@ -254,12 +254,12 @@ function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
       <form onSubmit={handleSubmit((v) => assignMutation.mutate(v))}>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Kullanıcı <span className="text-red-400">*</span>
             </label>
             <select
               {...register('user_id', { setValueAs: (v) => Number(v) })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] text-slate-900 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="">Kullanıcı seçin...</option>
               {users.map((u) => (
@@ -274,12 +274,12 @@ function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Rol <span className="text-red-400">*</span>
             </label>
             <select
               {...register('role')}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] text-slate-900 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               {ROLE_OPTIONS.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -348,7 +348,7 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
 
   return (
     <Modal isOpen onClose={onClose} title={`Atama Kuralları — ${territory.name}`}>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+      <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
         Bu kurallara uyan müşteriler ve fırsatlar otomatik olarak bu bolgeye atanir.
       </p>
 
@@ -359,12 +359,12 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
               value={rule.field}
               onChange={(e) => updateRule(index, 'field', e.target.value)}
               placeholder="alan (örneğin: city)"
-              className="flex-1 rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="flex-1 rounded border border-slate-200 px-2.5 py-1.5 text-[12px] focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
             <select
               value={rule.operator}
               onChange={(e) => updateRule(index, 'operator', e.target.value)}
-              className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="rounded border border-slate-200 px-2.5 py-1.5 text-[12px] focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="eq">esit</option>
               <option value="neq">esit değil</option>
@@ -375,12 +375,12 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
               value={rule.value}
               onChange={(e) => updateRule(index, 'value', e.target.value)}
               placeholder="değer"
-              className="flex-1 rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="flex-1 rounded border border-slate-200 px-2.5 py-1.5 text-[12px] focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
             <button
               type="button"
               onClick={() => removeRule(index)}
-              className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
+              className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
               disabled={rules.length === 1}
             >
               <Trash2 size={14} />
@@ -472,52 +472,52 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
       owner: 'bg-amber-400/15 text-amber-400',
       manager: 'bg-blue-400/15 text-blue-400',
       rep: 'bg-green-400/15 text-green-400',
-      viewer: 'bg-gray-400/15 text-gray-400',
+      viewer: 'bg-gray-400/15 text-slate-400',
     };
-    return colors[role] ?? 'bg-gray-400/15 text-gray-400';
+    return colors[role] ?? 'bg-gray-400/15 text-slate-400';
   };
 
   return (
     <div className="space-y-5">
       {/* Header info */}
-      <div className="rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 p-4 space-y-2">
+      <div className="rounded-xl bg-slate-50/60 dark:bg-white/5 border border-slate-200 dark:border-slate-800 p-4 space-y-2">
         <div className="flex items-center gap-2">
           <Map size={16} className="text-honeywell-red shrink-0" />
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{territory.name}</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{territory.name}</h3>
         </div>
         {territory.region && (
-          <p className="text-xs text-gray-600 dark:text-gray-400">
-            <span className="text-gray-500">Bölge:</span> {territory.region}
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            <span className="text-slate-500">Bölge:</span> {territory.region}
           </p>
         )}
         {territory.description && (
-          <p className="text-xs text-gray-600 dark:text-gray-400">{territory.description}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">{territory.description}</p>
         )}
       </div>
 
       {/* Metrics */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
             Müşteri
           </p>
-          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+          <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
             {metrics ? metrics.customer_count : '—'}
           </p>
         </div>
-        <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
             Fırsat
           </p>
-          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+          <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
             {metrics ? metrics.opportunity_count : '—'}
           </p>
         </div>
-        <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
             Aktif Pipeline
           </p>
-          <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+          <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
             {metrics
               ? formatCurrency(metrics.active_pipeline_total, metrics.currency || 'TRY')
               : '—'}
@@ -528,13 +528,13 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
       {/* Opportunities drill-down */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-400">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-400">
             Son Güncellenen Fırsatlar
           </h4>
-          <span className="text-xs text-gray-500">{oppsData?.total ?? opps.length}</span>
+          <span className="text-xs text-slate-500">{oppsData?.total ?? opps.length}</span>
         </div>
         {opps.length === 0 ? (
-          <p className="text-xs text-gray-500 py-3 text-center">Bu bölgede fırsat bulunamadı</p>
+          <p className="text-xs text-slate-500 py-3 text-center">Bu bölgede fırsat bulunamadı</p>
         ) : (
           <div className="space-y-2">
             {opps.slice(0, 8).map((o) => (
@@ -542,20 +542,20 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
                 key={String(o.id)}
                 type="button"
                 onClick={() => navigate(`/opportunities/${String(o.id)}`)}
-                className="flex w-full items-start justify-between rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                className="flex w-full items-start justify-between rounded-lg bg-slate-50/60 dark:bg-white/5 border border-slate-200 dark:border-slate-800 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                  <p className="text-xs font-medium text-slate-900 dark:text-white truncate">
                     {String(o.title ?? '')}
                   </p>
-                  <p className="text-[10px] text-gray-500">
+                  <p className="text-[10px] text-slate-500">
                     {String(o.stage ?? '-')}{' '}
                     {o.amount != null
                       ? `• ${formatCurrency(Number(o.amount), String(o.currency || 'TRY'))}`
                       : ''}
                   </p>
                 </div>
-                <ChevronRight size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                <ChevronRight size={14} className="shrink-0 text-slate-400 mt-0.5" />
               </button>
             ))}
           </div>
@@ -565,7 +565,7 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
       {/* Assignments */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-400">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-400">
             Atanan Kullanıcılar
           </h4>
           <Button variant="secondary" size="sm" onClick={() => setAssignModalOpen(true)}>
@@ -575,20 +575,20 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
         </div>
 
         {assignments.length === 0 ? (
-          <p className="text-xs text-gray-500 py-3 text-center">Bu bolgeye kullanıcı atanmamis</p>
+          <p className="text-xs text-slate-500 py-3 text-center">Bu bolgeye kullanıcı atanmamis</p>
         ) : (
           <div className="space-y-2">
             {assignments.map((a) => (
               <div
                 key={a.id}
-                className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-3 py-2"
+                className="flex items-center justify-between rounded-lg bg-slate-50/60 dark:bg-white/5 border border-slate-200 dark:border-slate-800 px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                  <p className="text-xs font-medium text-slate-900 dark:text-white truncate">
                     {a.user?.full_name ?? `Kullanıcı #${a.user_id}`}
                   </p>
                   {a.user?.email && (
-                    <p className="text-[10px] text-gray-500 truncate">{a.user.email}</p>
+                    <p className="text-[10px] text-slate-500 truncate">{a.user.email}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
@@ -599,7 +599,7 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
                   </span>
                   <button
                     onClick={() => removeAssignmentMutation.mutate(a.user_id)}
-                    className="rounded p-1 text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                    className="rounded p-1 text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -613,7 +613,7 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
       {/* Rule editor button */}
       <button
         onClick={() => setRuleEditorOpen(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 dark:border-white/10 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:border-honeywell-red hover:text-honeywell-red dark:hover:border-white/20 dark:hover:text-white transition-colors"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-white/10 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 hover:border-honeywell-red hover:text-honeywell-red dark:hover:border-white/20 dark:hover:text-white transition-colors"
       >
         <Code2 size={14} />
         Atama Kurallarini Düzenle
@@ -712,7 +712,7 @@ export default function TerritoryPage() {
           <button
             onClick={() => autoAssignMutation.mutate()}
             disabled={autoAssignMutation.isPending}
-            className="flex items-center gap-2 rounded-xl border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-50 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 transition-colors"
+            className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 disabled:opacity-50 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 transition-colors"
           >
             <RefreshCw size={15} className={autoAssignMutation.isPending ? 'animate-spin' : ''} />
             Otomatik Ata
@@ -729,7 +729,7 @@ export default function TerritoryPage() {
         <div className="lg:col-span-1">
           <Card>
             <div className="p-4">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Bölge Agaci
               </h3>
               {isLoading ? (
@@ -737,14 +737,14 @@ export default function TerritoryPage() {
                   {[1, 2, 3].map((n) => (
                     <div
                       key={n}
-                      className="h-8 rounded bg-gray-100 dark:bg-gray-800 animate-pulse"
+                      className="h-8 rounded bg-slate-100 dark:bg-slate-800 animate-pulse"
                     />
                   ))}
                 </div>
               ) : treeData.length === 0 ? (
                 <div className="py-8 text-center">
-                  <Map className="mx-auto mb-2 text-gray-400" size={24} />
-                  <p className="text-xs text-gray-400">Henüz bölge yok</p>
+                  <Map className="mx-auto mb-2 text-slate-400" size={24} />
+                  <p className="text-xs text-slate-400">Henüz bölge yok</p>
                 </div>
               ) : (
                 <div className="space-y-0.5">
@@ -772,13 +772,13 @@ export default function TerritoryPage() {
               </div>
             </Card>
           ) : (
-            <div className="flex h-full min-h-[300px] items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+            <div className="flex h-full min-h-[300px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
               <div className="text-center">
-                <Map className="mx-auto mb-3 text-gray-300 dark:text-gray-600" size={32} />
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                <Map className="mx-auto mb-3 text-slate-300 dark:text-slate-600" size={32} />
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   Bir bölge seçin
                 </p>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-slate-400">
                   Detaylar ve kullanıcı atamalarini goruntuleyin
                 </p>
               </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Plus, Trash2 } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -97,10 +98,12 @@ export default function CustomFieldsPage() {
   const columns = [
     {
       key: 'field_name',
-      header: 'Alan Adi',
+      header: 'Alan Adı',
       sortable: true,
       render: (row: CustomFieldDefinition) => (
-        <span className="font-medium text-gray-900">{row.field_name}</span>
+        <span className="font-mono text-[13px] font-semibold text-slate-900 dark:text-white">
+          {row.field_name}
+        </span>
       ),
     },
     {
@@ -109,39 +112,49 @@ export default function CustomFieldsPage() {
       sortable: true,
       render: (row: CustomFieldDefinition) => {
         const label = FIELD_TYPE_OPTIONS.find((o) => o.value === row.field_type)?.label ?? row.field_type;
-        return <Badge variant="info">{label}</Badge>;
+        return <Badge variant="info" size="sm">{label}</Badge>;
       },
     },
     {
       key: 'is_required',
       header: 'Zorunlu',
+      align: 'center' as const,
       render: (row: CustomFieldDefinition) => (
-        <Badge variant={row.is_required ? 'warning' : 'default'}>
-          {row.is_required ? 'Evet' : 'Hayir'}
+        <Badge variant={row.is_required ? 'warning' : 'default'} size="sm" dot>
+          {row.is_required ? 'Evet' : 'Hayır'}
         </Badge>
       ),
     },
     {
       key: 'sort_order',
-      header: 'Sira',
+      header: 'Sıra',
       sortable: true,
+      align: 'right' as const,
+      numeric: true,
+      render: (row: CustomFieldDefinition) => (
+        <span className="text-[13px] tabular-nums text-slate-700 dark:text-slate-300">
+          {row.sort_order}
+        </span>
+      ),
     },
     {
       key: 'created_at',
-      header: 'Olusturulma',
+      header: 'Oluşturulma',
       sortable: true,
       render: (row: CustomFieldDefinition) => (
-        <span className="text-sm text-gray-500">
-          {row.created_at ? formatDateTime(row.created_at) : '-'}
+        <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+          {row.created_at ? formatDateTime(row.created_at) : '—'}
         </span>
       ),
     },
     {
       key: 'actions',
-      header: 'İşlemler',
+      header: '',
+      align: 'right' as const,
+      width: '80px',
       render: (row: CustomFieldDefinition) => (
-        <Button size="sm" variant="danger" onClick={() => setDeleteTarget(row.id)}>
-          Sil
+        <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(row.id)} aria-label="Sil">
+          <Trash2 size={14} className="text-red-500" />
         </Button>
       ),
     },
@@ -151,9 +164,12 @@ export default function CustomFieldsPage() {
     <div>
       <PageHeader
         title="Özel Alanlar"
-        description="Varlık tipine gore özel alan tanimlamalari"
+        description="Varlık tipine göre özel alan tanımlamaları"
       >
-        <Button onClick={() => setIsCreateOpen(true)}>Yeni Alan</Button>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus size={14} />
+          Yeni Alan
+        </Button>
       </PageHeader>
 
       {/* Entity type selector */}
@@ -169,11 +185,7 @@ export default function CustomFieldsPage() {
       {isLoading && <Skeleton variant="table" />}
 
       {!isLoading && (
-        <DataTable
-          columns={columns}
-          data={items}
-          emptyMessage="Özel alan bulunamadi"
-        />
+        <DataTable columns={columns} data={items} emptyMessage="Özel alan bulunamadı" />
       )}
 
       {/* Create modal */}
@@ -181,10 +193,21 @@ export default function CustomFieldsPage() {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="Yeni Özel Alan"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleCreate} loading={createMutation.isPending}>
+              Oluştur
+            </Button>
+          </>
+        }
       >
         <div className="space-y-4">
           <Input
-            label="Alan Adi"
+            label="Alan Adı"
             placeholder="Örneğin: vergi_no"
             value={form.field_name}
             onChange={(e) => setForm({ ...form, field_name: e.target.value })}
@@ -197,29 +220,21 @@ export default function CustomFieldsPage() {
           />
           {form.field_type === 'select' && (
             <Input
-              label="Secenekler (JSON)"
+              label="Seçenekler (JSON)"
               placeholder='["Seçenek 1", "Seçenek 2"]'
               value={form.options_json}
               onChange={(e) => setForm({ ...form, options_json: e.target.value })}
             />
           )}
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex cursor-pointer select-none items-center gap-2.5 rounded-[10px] border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-[13px] text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200">
             <input
               type="checkbox"
               checked={form.is_required}
               onChange={(e) => setForm({ ...form, is_required: e.target.checked })}
-              className="rounded border-gray-300"
+              className="h-4 w-4 cursor-pointer rounded-[4px] border-slate-300 text-honeywell-red focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800"
             />
             Zorunlu Alan
           </label>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              İptal
-            </Button>
-            <Button onClick={handleCreate} loading={createMutation.isPending}>
-              Oluştur
-            </Button>
-          </div>
         </div>
       </Modal>
 

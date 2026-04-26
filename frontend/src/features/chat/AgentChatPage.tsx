@@ -1,8 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, UserCheck, X, Send } from 'lucide-react';
+import { MessageSquare, UserCheck, X, Send, Search, Settings2, Inbox, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { chatApi } from '../../lib/api';
 import type { ChatSession, ChatMessage } from '../../lib/types';
@@ -12,17 +15,26 @@ import { translateChatSessionStatus } from '../../lib/labelTranslations';
 const SESSIONS_POLL_MS = 10_000;
 const MESSAGES_POLL_MS = 5_000;
 
-const STATUS_BADGES: Record<string, string> = {
-  open: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  assigned: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  closed: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
+/**
+ * Map session status → Badge variant. Open = success (live), assigned =
+ * info (handled), closed = default (resolved).
+ */
+const STATUS_TONE: Record<string, 'success' | 'info' | 'default'> = {
+  open: 'success',
+  assigned: 'info',
+  closed: 'default',
 };
+
+type FilterTab = 'open' | 'assigned' | 'mine' | 'closed';
 
 export default function AgentChatPage() {
   const t = useT();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [messageInput, setMessageInput] = useState('');
+  const [filterTab, setFilterTab] = useState<FilterTab>('open');
+  const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -76,6 +88,46 @@ export default function AgentChatPage() {
   const messages = Array.isArray(messagesData) ? messagesData : [];
   const selectedSession = sessions.find((s) => s.id === selectedSessionId) ?? null;
 
+  // Filter + search the session list. Tabs are inclusive: "open" matches
+  // unassigned active sessions, "assigned" any session that has an agent,
+  // "mine" is "assigned to current user" (best-effort heuristic if the
+  // backend exposes a `mine` flag), "closed" is the resolved bucket.
+  const filteredSessions = useMemo(() => {
+    let list = sessions;
+    if (filterTab === 'open') {
+      list = list.filter((s) => s.status === 'open');
+    } else if (filterTab === 'assigned') {
+      list = list.filter((s) => s.status === 'assigned');
+    } else if (filterTab === 'mine') {
+      list = list.filter(
+        (s) =>
+          (s as { assigned_to_me?: boolean }).assigned_to_me === true || s.status === 'assigned',
+      );
+    } else if (filterTab === 'closed') {
+      list = list.filter((s) => s.status === 'closed');
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length > 0) {
+      list = list.filter(
+        (s) =>
+          s.visitor_id.toLowerCase().includes(q) || s.agent?.full_name?.toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [sessions, filterTab, searchQuery]);
+
+  const tabCounts = useMemo(() => {
+    return {
+      open: sessions.filter((s) => s.status === 'open').length,
+      assigned: sessions.filter((s) => s.status === 'assigned').length,
+      mine: sessions.filter(
+        (s) =>
+          (s as { assigned_to_me?: boolean }).assigned_to_me === true || s.status === 'assigned',
+      ).length,
+      closed: sessions.filter((s) => s.status === 'closed').length,
+    };
+  }, [sessions]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
@@ -96,129 +148,262 @@ export default function AgentChatPage() {
 
   if (isSessionsError) {
     return (
-      <div className="space-y-6">
+      <div>
         <PageHeader title={t('chat.agent_title')} description={t('chat.agent_description')} />
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-          <div className="p-8 text-center">
-            <p className="text-sm text-red-500">{t('chat.load_error')}</p>
-          </div>
+        <div className="rounded-2xl border border-red-100 bg-red-50/40 p-8 text-center dark:border-red-900/40 dark:bg-red-950/20">
+          <p className="text-[14px] font-medium text-red-700 dark:text-red-400">
+            {t('chat.load_error')}
+          </p>
         </div>
       </div>
     );
   }
 
+  const TABS: Array<{ key: FilterTab; label: string; count: number }> = [
+    { key: 'open', label: 'Aktif', count: tabCounts.open },
+    { key: 'assigned', label: 'Atanan', count: tabCounts.assigned },
+    { key: 'mine', label: 'Bende', count: tabCounts.mine },
+    { key: 'closed', label: 'Kapanan', count: tabCounts.closed },
+  ];
+
+  const isInboxEmpty = !isSessionsLoading && filteredSessions.length === 0;
+  const isFullyEmpty = !isSessionsLoading && sessions.length === 0;
+
   return (
-    <div className="animate-fade-in h-full flex flex-col">
-      <PageHeader title={t('chat.agent_title')} description={t('chat.agent_description')} />
+    <div className="flex h-full animate-fade-in flex-col">
+      <PageHeader title={t('chat.agent_title')} description={t('chat.agent_description')}>
+        <Button variant="secondary" onClick={() => navigate('/integrations')}>
+          <Settings2 size={14} />
+          Chat Widget Ayarları
+        </Button>
+      </PageHeader>
 
-      <div className="flex flex-1 gap-4 overflow-hidden min-h-0">
-        {/* Session list */}
-        <div className="w-72 shrink-0 flex flex-col gap-2 overflow-y-auto">
-          {isSessionsLoading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-xl" />
-            ))
-          ) : sessions.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 text-center">
-              <MessageSquare size={32} className="mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-              <p className="text-sm text-gray-500">{t('chat.no_sessions')}</p>
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row">
+        {/* ─── Left panel — session inbox ─────────────────────────────── */}
+        <aside className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) lg:w-[320px] lg:shrink-0 dark:border-slate-800 dark:bg-slate-900">
+          {/* Search */}
+          <div className="border-b border-slate-100 p-3 dark:border-slate-800">
+            <div className="relative">
+              <Search
+                size={14}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                aria-hidden
+              />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Ziyaretçi veya temsilci ara"
+                className="block h-9 w-full rounded-[10px] border border-slate-200 bg-white pl-8 pr-3 text-[13px] text-slate-900 placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
+              />
             </div>
-          ) : (
-            sessions.map((session) => (
-              <button
-                key={session.id}
-                type="button"
-                onClick={() => setSelectedSessionId(session.id)}
-                className={`text-left rounded-xl border p-3 transition-colors cursor-pointer ${
-                  selectedSessionId === session.id
-                    ? 'border-honeywell-red bg-honeywell-red/5 dark:bg-honeywell-red/10'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {session.visitor_id}
-                  </span>
-                  <span
-                    className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_BADGES[session.status] ?? ''}`}
-                  >
-                    {translateChatSessionStatus(session.status, t)}
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                  {session.agent && (
-                    <span>
-                      {t('chat.agent_prefix')} {session.agent.full_name}
-                    </span>
-                  )}
-                  {(session.unread_count ?? 0) > 0 && (
-                    <span className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-honeywell-red px-1 text-[10px] font-bold text-white">
-                      {session.unread_count}
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))
-          )}
-        </div>
+          </div>
 
-        {/* Message thread */}
-        <div className="flex-1 flex flex-col rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden min-h-0">
+          {/* Status filter tabs */}
+          <div className="border-b border-slate-100 px-2 py-2 dark:border-slate-800">
+            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Sohbet filtresi">
+              {TABS.map((tab) => {
+                const isActive = filterTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setFilterTab(tab.key)}
+                    className={[
+                      'inline-flex h-7 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] font-medium transition-colors',
+                      'focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20',
+                      isActive
+                        ? 'bg-honeywell-red/10 text-honeywell-red'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200',
+                    ].join(' ')}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span
+                        className={[
+                          'inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums',
+                          isActive
+                            ? 'bg-honeywell-red text-white'
+                            : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
+                        ].join(' ')}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Session list */}
+          <div className="flex-1 overflow-y-auto">
+            {isSessionsLoading ? (
+              <div className="space-y-2 p-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[68px] rounded-xl" />
+                ))}
+              </div>
+            ) : isFullyEmpty ? (
+              // Top-level empty inbox — copy reassures the agent that this
+              // is the expected state and points at config + history paths.
+              <div className="flex flex-col items-center px-6 py-12 text-center">
+                <span className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-500 dark:ring-slate-800">
+                  <Inbox size={20} />
+                </span>
+                <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+                  Aktif sohbet yok
+                </p>
+                <p className="mt-1 max-w-[240px] text-[12px] text-slate-500 dark:text-slate-400">
+                  Yeni ziyaretçi konuşmaları burada görünecek.
+                </p>
+                <div className="mt-4 flex flex-col gap-1.5 sm:flex-row">
+                  <Button variant="tertiary" size="sm" onClick={() => navigate('/integrations')}>
+                    <Settings2 size={13} />
+                    Widget Ayarları
+                  </Button>
+                  <Button variant="tertiary" size="sm" onClick={() => setFilterTab('closed')}>
+                    <History size={13} />
+                    Geçmiş Konuşmalar
+                  </Button>
+                </div>
+              </div>
+            ) : isInboxEmpty ? (
+              <p className="px-4 py-8 text-center text-[12px] text-slate-500 dark:text-slate-400">
+                Bu filtreye uyan sohbet yok.
+              </p>
+            ) : (
+              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredSessions.map((session) => {
+                  const tone = STATUS_TONE[session.status] ?? 'default';
+                  const unread = session.unread_count ?? 0;
+                  const isActive = selectedSessionId === session.id;
+                  return (
+                    <li key={session.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSessionId(session.id)}
+                        className={[
+                          'flex w-full flex-col gap-1.5 px-3 py-2.5 text-left transition-colors',
+                          isActive
+                            ? 'bg-honeywell-red/4'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/40',
+                        ].join(' ')}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span
+                            className={[
+                              'truncate text-[13px]',
+                              unread > 0
+                                ? 'font-semibold text-slate-900 dark:text-white'
+                                : 'font-medium text-slate-700 dark:text-slate-200',
+                            ].join(' ')}
+                          >
+                            {session.visitor_id}
+                          </span>
+                          <Badge variant={tone} size="sm" dot>
+                            {translateChatSessionStatus(session.status, t)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                          <span className="truncate">
+                            {session.agent
+                              ? `${t('chat.agent_prefix')} ${session.agent.full_name}`
+                              : 'Atanmadı'}
+                          </span>
+                          {unread > 0 && (
+                            <span className="ml-auto inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-honeywell-red px-1 text-[10px] font-bold tabular-nums text-white">
+                              {unread}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </aside>
+
+        {/* ─── Right panel — message thread ───────────────────────────── */}
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
           {selectedSession === null ? (
-            <div className="flex flex-1 items-center justify-center text-gray-400">
-              <div className="text-center">
-                <MessageSquare
-                  size={40}
-                  className="mx-auto mb-3 text-gray-300 dark:text-gray-600"
-                />
-                <p className="text-sm">{t('chat.select_session')}</p>
+            <div className="flex flex-1 items-center justify-center px-6 py-12 text-center">
+              <div>
+                <span className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-500 dark:ring-slate-800">
+                  <MessageSquare size={20} />
+                </span>
+                <p className="text-[13px] font-medium text-slate-700 dark:text-slate-200">
+                  {t('chat.select_session')}
+                </p>
+                <p className="mt-1 max-w-[300px] text-[12px] text-slate-500 dark:text-slate-400">
+                  Sol panelden bir sohbet seçtiğinizde mesajlar ve müşteri bilgisi burada görünecek.
+                </p>
               </div>
             </div>
           ) : (
             <>
               {/* Thread header */}
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {selectedSession.visitor_id}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {t('common.status')}:{' '}
-                    <span
-                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_BADGES[selectedSession.status] ?? ''}`}
-                    >
-                      {translateChatSessionStatus(selectedSession.status, t)}
-                    </span>
-                  </p>
+              <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-honeywell-red/10 text-[12px] font-semibold text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                    {selectedSession.visitor_id.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-semibold text-slate-900 dark:text-white">
+                      {selectedSession.visitor_id}
+                    </p>
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <Badge
+                        variant={STATUS_TONE[selectedSession.status] ?? 'default'}
+                        size="sm"
+                        dot
+                      >
+                        {translateChatSessionStatus(selectedSession.status, t)}
+                      </Badge>
+                      {selectedSession.agent && (
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          · {selectedSession.agent.full_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {selectedSession.status !== 'closed' && (
                     <>
-                      <button
+                      <Button
+                        variant="tertiary"
+                        size="sm"
                         onClick={() => assignMutation.mutate(selectedSession.id)}
-                        disabled={assignMutation.isPending}
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 disabled:opacity-50 transition-colors cursor-pointer"
+                        loading={assignMutation.isPending}
                       >
                         <UserCheck size={13} />
                         {t('chat.assign_to_me')}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => closeMutation.mutate(selectedSession.id)}
-                        disabled={closeMutation.isPending}
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 disabled:opacity-50 transition-colors cursor-pointer"
+                        loading={closeMutation.isPending}
                       >
-                        <X size={13} />
+                        <X size={13} className="text-red-500" />
                         {t('chat.close_session')}
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+              <div className="flex-1 space-y-2 overflow-y-auto bg-slate-50/40 px-5 py-4 dark:bg-slate-900/40">
                 {messages.length === 0 ? (
-                  <p className="text-center text-xs text-gray-400 pt-8">{t('chat.no_messages')}</p>
+                  <p className="pt-8 text-center text-[12px] text-slate-400">
+                    {t('chat.no_messages')}
+                  </p>
                 ) : (
                   messages.map((msg) => {
                     const isAgent = msg.sender_type === 'agent';
@@ -228,11 +413,12 @@ export default function AgentChatPage() {
                         className={`flex ${isAgent ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
-                          className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                          className={[
+                            'max-w-[70%] rounded-2xl px-3 py-2 text-[13px] leading-5 shadow-(--shadow-xs)',
                             isAgent
-                              ? 'bg-honeywell-red text-white rounded-br-sm'
-                              : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-sm'
-                          }`}
+                              ? 'rounded-br-md bg-honeywell-red text-white'
+                              : 'rounded-bl-md border border-slate-200 bg-white text-slate-800 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-100',
+                          ].join(' ')}
                         >
                           {msg.content}
                         </div>
@@ -245,7 +431,7 @@ export default function AgentChatPage() {
 
               {/* Input */}
               {selectedSession.status !== 'closed' && (
-                <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-2">
+                <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-3 dark:border-slate-800">
                   <input
                     type="text"
                     value={messageInput}
@@ -253,13 +439,14 @@ export default function AgentChatPage() {
                     onKeyDown={handleKeyDown}
                     placeholder={t('chat.input_placeholder')}
                     disabled={sendMutation.isPending}
-                    className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-red disabled:opacity-50"
+                    className="h-10 flex-1 rounded-[12px] border border-slate-200 bg-white px-3.5 text-[13px] text-slate-900 placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
                     aria-label={t('chat.aria_message_input')}
                   />
                   <button
+                    type="button"
                     onClick={handleSend}
                     disabled={!messageInput.trim() || sendMutation.isPending}
-                    className="rounded-lg p-2 bg-honeywell-red text-white hover:bg-honeywell-red/90 disabled:opacity-40 transition-colors cursor-pointer"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] bg-honeywell-red text-white transition-colors hover:bg-honeywell-dark disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20"
                     aria-label={t('chat.aria_send')}
                   >
                     <Send size={16} />
@@ -268,7 +455,7 @@ export default function AgentChatPage() {
               )}
             </>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

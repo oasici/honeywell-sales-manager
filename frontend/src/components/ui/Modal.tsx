@@ -1,23 +1,36 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
-type ModalSize = 'sm' | 'md' | 'lg';
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  /** Optional subtitle shown under the title (e.g. context such as "3 öğe seçildi"). */
+  description?: string;
   children: ReactNode;
   size?: ModalSize;
+  /** Optional footer slot — typically Cancel + primary action buttons. */
+  footer?: ReactNode;
 }
 
 const sizeClasses: Record<ModalSize, string> = {
   sm: 'max-w-md',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
 };
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
+  size = 'md',
+  footer,
+}: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
@@ -85,37 +98,56 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       role="dialog"
       aria-labelledby="modal-title"
     >
-      {/* Backdrop */}
+      {/* Backdrop — slate-tinted, slight blur. The tint reads softer than pure
+          black/50 against light surfaces and matches the rest of the system. */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-[2px] animate-fade-in"
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[3px] animate-fade-in"
         onClick={stableClose}
         aria-hidden="true"
       />
 
-      {/* Modal panel */}
+      {/* Modal panel — 16px radius (same family as Card), shadow-xl token,
+          slate-200 border. Footer is its own border-top section so the body
+          area can scroll without losing the action row. */}
       <div
         ref={panelRef}
-        className={`relative z-10 w-full ${sizeClasses[size]} mx-4
-          rounded-2xl bg-white dark:bg-gray-900 shadow-xl
-          border border-gray-200 dark:border-gray-700
+        className={`relative z-10 mx-4 w-full ${sizeClasses[size]}
+          flex max-h-[85vh] flex-col overflow-hidden
+          rounded-2xl border border-slate-200 bg-white
+          shadow-(--shadow-xl)
+          dark:border-slate-800 dark:bg-slate-900
           animate-slide-up`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-          <h2 id="modal-title" className="text-heading-2 text-gray-900 dark:text-white">
-            {title}
-          </h2>
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5 dark:border-slate-800">
+          <div className="min-w-0 flex-1 pr-4">
+            <h2 id="modal-title" className="text-heading-3 text-slate-900 dark:text-white">
+              {title}
+            </h2>
+            {description && (
+              <p className="mt-1 text-[13px] leading-5 text-slate-500 dark:text-slate-400">
+                {description}
+              </p>
+            )}
+          </div>
           <button
             onClick={stableClose}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+            className="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label="Kapat"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+
+        {/* Footer (optional) */}
+        {footer && (
+          <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/60 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/40">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

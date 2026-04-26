@@ -85,7 +85,7 @@ function DeliveryHistory({ webhookId }: { webhookId: number }) {
 
   if (deliveries.length === 0) {
     return (
-      <p className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
+      <p className="px-4 py-3 text-xs text-slate-400 dark:text-slate-500">
         {t('webhooks.no_deliveries')}
       </p>
     );
@@ -95,26 +95,26 @@ function DeliveryHistory({ webhookId }: { webhookId: number }) {
     <div className="overflow-x-auto">
       <table className="w-full text-left text-xs">
         <thead>
-          <tr className="border-b border-gray-100 dark:border-gray-700">
-            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">
+          <tr className="border-b border-slate-100 dark:border-slate-800">
+            <th className="px-4 py-2 font-semibold text-slate-500 dark:text-slate-400">
               {t('webhooks.table_event')}
             </th>
-            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">
+            <th className="px-4 py-2 font-semibold text-slate-500 dark:text-slate-400">
               {t('webhooks.table_status')}
             </th>
-            <th className="px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">
+            <th className="px-4 py-2 font-semibold text-slate-500 dark:text-slate-400">
               {t('webhooks.table_date')}
             </th>
           </tr>
         </thead>
         <tbody>
           {deliveries.map((d) => (
-            <tr key={d.id} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
-              <td className="px-4 py-2 text-gray-700 dark:text-gray-300">{d.event_type}</td>
+            <tr key={d.id} className="border-b border-gray-50 dark:border-slate-800 last:border-0">
+              <td className="px-4 py-2 text-slate-700 dark:text-slate-300">{d.event_type}</td>
               <td className="px-4 py-2">
                 <StatusCodeBadge code={d.status_code} />
               </td>
-              <td className="px-4 py-2 text-gray-500 dark:text-gray-400">
+              <td className="px-4 py-2 text-slate-500 dark:text-slate-400">
                 {d.delivered_at ? formatDateTime(d.delivered_at) : '-'}
               </td>
             </tr>
@@ -157,11 +157,11 @@ function WebhookCard({
   });
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-800">
       <div className="flex items-start justify-between p-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
               {webhook.name}
             </h4>
             {webhook.is_active ? (
@@ -175,7 +175,7 @@ function WebhookCard({
             )}
           </div>
           <p
-            className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
+            className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-mono truncate"
             title={webhook.url}
           >
             <ExternalLink size={10} className="mr-1 inline" />
@@ -212,7 +212,7 @@ function WebhookCard({
           <button
             type="button"
             onClick={() => testMutation.mutate()}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors dark:hover:bg-blue-900/20"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-500 transition-colors dark:hover:bg-blue-900/20"
             title={t('common.test')}
           >
             <PlayCircle size={16} />
@@ -220,7 +220,7 @@ function WebhookCard({
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
             title={t('common.delete')}
           >
             <Trash2 size={14} />
@@ -228,11 +228,11 @@ function WebhookCard({
         </div>
       </div>
 
-      <div className="border-t border-gray-100 dark:border-gray-700">
+      <div className="border-t border-slate-100 dark:border-slate-800">
         <button
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
-          className="flex w-full items-center justify-between px-4 py-2 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors dark:text-gray-400 dark:hover:text-gray-200"
+          className="flex w-full items-center justify-between px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors dark:text-slate-400 dark:hover:text-slate-200"
         >
           {t('webhooks.deliveries')}
           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -314,8 +314,8 @@ export default function WebhookSettings() {
       >
         {webhooks.length === 0 ? (
           <div className="flex flex-col items-center py-8 text-center">
-            <Webhook size={32} className="mb-2 text-gray-300 dark:text-gray-600" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('webhooks.empty')}</p>
+            <Webhook size={32} className="mb-2 text-slate-300 dark:text-slate-600" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('webhooks.empty')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -348,22 +348,22 @@ export default function WebhookSettings() {
           />
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
+            <label className="mb-2 block text-sm font-medium text-slate-700">
               {t('webhooks.event_types')}
             </label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {AVAILABLE_EVENTS.map((event) => (
                 <label
                   key={event.value}
-                  className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm cursor-pointer hover:bg-slate-50 transition-colors dark:border-slate-800 dark:hover:bg-slate-800"
                 >
                   <input
                     type="checkbox"
                     checked={form.event_types.includes(event.value)}
                     onChange={() => toggleEvent(event.value)}
-                    className="h-4 w-4 rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
+                    className="h-4 w-4 rounded border-slate-200 text-honeywell-red focus:ring-honeywell-red"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">{t(event.labelKey)}</span>
+                  <span className="text-slate-700 dark:text-slate-300">{t(event.labelKey)}</span>
                 </label>
               ))}
             </div>

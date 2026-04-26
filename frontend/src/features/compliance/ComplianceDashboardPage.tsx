@@ -92,7 +92,7 @@ export default function ComplianceDashboardPage() {
       key: 'retention_until',
       header: 'Saklama Tarihi',
       render: (row: { id: number; name: string; retention_until: string }) => (
-        <span className="text-sm text-gray-500">{formatDateTime(row.retention_until)}</span>
+        <span className="text-sm text-slate-500">{formatDateTime(row.retention_until)}</span>
       ),
     },
   ];
@@ -127,28 +127,28 @@ export default function ComplianceDashboardPage() {
         <Card title="Onay Durumu" className="mb-6">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div>
-              <p className="text-xs font-medium text-gray-500">Onay Durumu</p>
+              <p className="text-xs font-medium text-slate-500">Onay Durumu</p>
               <Badge variant={consent.has_consent ? 'success' : 'danger'}>
                 {consent.has_consent ? 'Onay Var' : 'Onay Yok'}
               </Badge>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500">Onay Tarihi</p>
-              <p className="text-sm text-gray-900">
+              <p className="text-xs font-medium text-slate-500">Onay Tarihi</p>
+              <p className="text-sm text-slate-900">
                 {consent.consent_date ? formatDateTime(consent.consent_date) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500">Yontem</p>
-              <p className="text-sm text-gray-900">{consent.method ?? '-'}</p>
+              <p className="text-xs font-medium text-slate-500">Yontem</p>
+              <p className="text-sm text-slate-900">{consent.method ?? '-'}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500">Amac</p>
-              <p className="text-sm text-gray-900">{consent.purpose ?? '-'}</p>
+              <p className="text-xs font-medium text-slate-500">Amac</p>
+              <p className="text-sm text-slate-900">{consent.purpose ?? '-'}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500">Saklama Bitis</p>
-              <p className="text-sm text-gray-900">
+              <p className="text-xs font-medium text-slate-500">Saklama Bitis</p>
+              <p className="text-sm text-slate-900">
                 {consent.retention_until ? formatDateTime(consent.retention_until) : '-'}
               </p>
             </div>

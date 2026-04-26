@@ -21,11 +21,11 @@ export function DecisionNode({ data, selected }: NodeProps) {
     >
       <Handle type="target" position={Position.Top} className="!bg-orange-500 !w-3 !h-3" />
       <div className="text-[10px] font-bold text-orange-600 uppercase mb-1 text-center">Karar</div>
-      <div className="text-sm font-semibold text-gray-900 text-center">
+      <div className="text-sm font-semibold text-slate-900 text-center">
         {nodeData.label || 'Karar Ver'}
       </div>
       {nodeData.condition_text && (
-        <div className="text-xs text-gray-500 mt-0.5 text-center">{nodeData.condition_text}</div>
+        <div className="text-xs text-slate-500 mt-0.5 text-center">{nodeData.condition_text}</div>
       )}
       <Handle
         type="source"

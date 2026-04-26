@@ -62,7 +62,7 @@ export function SummarySourceLinks({
           return (
             <span
               key={key}
-              className="inline-flex max-w-[220px] truncate rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+              className="inline-flex max-w-[220px] truncate rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
               title={s.label}
             >
               {s.label || s.type}

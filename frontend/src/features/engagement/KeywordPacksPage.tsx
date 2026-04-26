@@ -112,7 +112,7 @@ export default function KeywordPacksPage() {
             <Card key={pack.id}>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-gray-900">{pack.name}</h4>
+                  <h4 className="text-sm font-semibold text-slate-900">{pack.name}</h4>
                   <Badge variant={pack.is_active ? 'success' : 'default'} size="sm">
                     {pack.is_active ? 'Aktif' : 'Pasif'}
                   </Badge>
@@ -121,7 +121,7 @@ export default function KeywordPacksPage() {
                   <Badge variant={CATEGORY_BADGE_VARIANT[pack.category] ?? 'default'} size="sm">
                     {getCategoryLabel(pack.category)}
                   </Badge>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-slate-500">
                     {pack.keywords.length} kelime
                   </span>
                 </div>
@@ -129,7 +129,7 @@ export default function KeywordPacksPage() {
                   {pack.keywords.map((keyword, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
+                      className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-700"
                     >
                       {keyword}
                     </span>
@@ -148,7 +148,7 @@ export default function KeywordPacksPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Paket Adi</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Paket Adi</label>
             <Input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -156,9 +156,9 @@ export default function KeywordPacksPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Kategori</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Kategori</label>
             <select
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
             >
@@ -170,7 +170,7 @@ export default function KeywordPacksPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
               Anahtar Kelimeler (virgul ile ayirin)
             </label>
             <Input

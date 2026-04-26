@@ -26,7 +26,7 @@ const ROLE_OPTIONS = [
 const ROLE_BADGE_CLASSES: Record<string, string> = {
   owner: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
   member: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-  viewer: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  viewer: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -98,28 +98,28 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
       >
         {members.length === 0 ? (
           <div className="flex flex-col items-center py-8 text-center">
-            <Users size={32} className="mb-2 text-gray-300 dark:text-gray-600" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <Users size={32} className="mb-2 text-slate-300 dark:text-slate-600" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Henüz ekip uyesi eklenmemis
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {members.map((member) => (
               <li
                 key={member.user_id}
                 className="flex items-center justify-between py-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                     {getInitials(member.user_full_name)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
                       {member.user_full_name || `Kullanıcı #${member.user_id}`}
                     </p>
                     {member.user_email && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                         {member.user_email}
                       </p>
                     )}
@@ -136,7 +136,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
                   <button
                     type="button"
                     onClick={() => setRemoveTarget(member)}
-                    className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
                     title="Kaldir"
                   >
                     <Trash2 size={14} />

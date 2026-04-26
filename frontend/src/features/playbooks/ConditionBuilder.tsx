@@ -27,10 +27,10 @@ interface ConditionBuilderProps {
 }
 
 const SELECT_CLASS =
-  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white';
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white';
 
 function getFieldLabel(value: string): string {
   return FIELD_OPTIONS.find((o) => o.value === value)?.label ?? value;
@@ -55,7 +55,7 @@ export function ConditionBuilder({ conditions, onChange, readOnly }: ConditionBu
 
   if (readOnly) {
     if (conditions.length === 0) {
-      return <p className="text-sm text-gray-500">Tanimlanmis kosul bulunmuyor.</p>;
+      return <p className="text-sm text-slate-500">Tanimlanmis kosul bulunmuyor.</p>;
     }
 
     return (
@@ -63,10 +63,10 @@ export function ConditionBuilder({ conditions, onChange, readOnly }: ConditionBu
         {conditions.map((c, index) => (
           <span
             key={index}
-            className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+            className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300"
           >
             <span className="font-medium">{getFieldLabel(c.field)}</span>
-            <span className="text-gray-500 dark:text-gray-400">{getOperatorLabel(c.operator)}</span>
+            <span className="text-slate-500 dark:text-slate-400">{getOperatorLabel(c.operator)}</span>
             <span>{c.value}</span>
           </span>
         ))}
@@ -124,7 +124,7 @@ export function ConditionBuilder({ conditions, onChange, readOnly }: ConditionBu
       <button
         type="button"
         onClick={handleAdd}
-        className="inline-flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-gray-400 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300"
+        className="inline-flex items-center gap-1 rounded-lg border border-dashed border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-slate-300 hover:text-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:border-gray-500 dark:hover:text-slate-300"
       >
         <Plus className="h-4 w-4" />
         Kosul Ekle

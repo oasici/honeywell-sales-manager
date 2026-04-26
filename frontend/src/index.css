@@ -169,6 +169,24 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+/* ── Sonner toast tweaks ──
+   richColors variants keep their semantic backgrounds; we just tighten
+   typography + spacing for a Linear/Stripe feel. */
+.sonner-toast-modern [data-title] {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.sonner-toast-modern [data-description] {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.sonner-toast-modern [data-icon] {
+  align-self: center;
+}
+
 /* ── Glass effect ── */
 .glass {
   background: rgba(255, 255, 255, 0.85);

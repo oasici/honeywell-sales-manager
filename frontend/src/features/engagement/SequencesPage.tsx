@@ -10,6 +10,10 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Plus,
+  Sparkles,
+  RotateCcw,
+  HandHeart,
 } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -19,7 +23,6 @@ import { Modal } from '../../components/ui/Modal';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { EmptyState } from '../../components/ui/EmptyState';
 import { engagementApi, sequenceV2Api } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import type { Sequence, SequenceEnrollment } from '../../lib/types';
@@ -179,27 +182,136 @@ export default function SequencesPage() {
     cancelled: { variant: 'default', label: t('sequences.status_cancelled'), icon: XCircle },
   };
 
+  /**
+   * Sequence template ideas surfaced in the empty state. Clicking one
+   * opens the builder with the template name pre-filled (the builder
+   * route can read the `?template=` query param).
+   */
+  const SEQUENCE_TEMPLATES: Array<{
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+    slug: string;
+    duration: string;
+  }> = [
+    {
+      icon: <Sparkles size={16} />,
+      title: 'Yeni lead karşılama',
+      description: '5 adımda yeni leadi tanıt, ihtiyacını öğren, demo gününe yönlendir.',
+      slug: 'lead-welcome',
+      duration: '5 adım · 7 gün',
+    },
+    {
+      icon: <ListChecks size={16} />,
+      title: 'Teklif sonrası takip',
+      description: 'Teklif gönderdikten sonra sırasıyla onay, soru-cevap ve müzakere takibi yap.',
+      slug: 'post-quote-followup',
+      duration: '4 adım · 10 gün',
+    },
+    {
+      icon: <HandHeart size={16} />,
+      title: 'Riskli müşteri geri kazanım',
+      description:
+        'Health skoru düşen hesaplara değer hatırlatma, başarı hikayesi ve özel teklifle ulaş.',
+      slug: 'win-back',
+      duration: '3 adım · 14 gün',
+    },
+  ];
+
+  function startTemplate(slug: string) {
+    navigate(`/engagement/sequences/builder?template=${slug}`);
+  }
+
   return (
     <div>
       <PageHeader title={t('sequences.title')} description={t('sequences.description')}>
-        <Button onClick={() => navigate('/engagement/sequences/builder')}>
-          {t('sequences.new')}
-        </Button>
+        {sequences.length > 0 && (
+          <Button onClick={() => navigate('/engagement/sequences/builder')}>
+            <Plus size={14} />
+            {t('sequences.new')}
+          </Button>
+        )}
       </PageHeader>
 
       {isLoading ? (
         <Skeleton variant="card" count={3} />
       ) : sequences.length === 0 ? (
-        <EmptyState
-          title={t('sequences.empty')}
-          description={t('sequences.empty')}
-          icon={<ListChecks size={40} />}
-          action={
-            <Button onClick={() => navigate('/engagement/sequences/builder')}>
-              {t('sequences.first_add')}
-            </Button>
-          }
-        />
+        // Template-driven empty state — three sequence playbook cards plus
+        // a primary CTA into the builder. Keeps the page from feeling
+        // unfinished when the customer hasn't authored sequences yet.
+        <div className="space-y-6">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+              <span className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                <ListChecks size={24} />
+              </span>
+              <h3 className="text-heading-3 text-slate-900 dark:text-white">
+                İlk sekansınızı oluşturun
+              </h3>
+              <p className="mt-1.5 max-w-[460px] text-[13px] text-slate-500 dark:text-slate-400">
+                Çok adımlı email, çağrı ve görev kombinasyonlarıyla satış akışınızı
+                otomatikleştirin. Aşağıdaki şablonlarla saniyeler içinde başlayın.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <Button onClick={() => navigate('/engagement/sequences/builder')}>
+                  <Plus size={14} />
+                  {t('sequences.first_add')}
+                </Button>
+                <Button
+                  variant="tertiary"
+                  onClick={() => navigate('/engagement/sequences/builder?template=lead-welcome')}
+                >
+                  Şablonla Başla
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-3 text-overline text-slate-500 dark:text-slate-400">Hazır şablonlar</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {SEQUENCE_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.slug}
+                  type="button"
+                  onClick={() => startTemplate(tpl.slug)}
+                  className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <span className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 group-hover:bg-honeywell-red/10 group-hover:text-honeywell-red group-hover:ring-honeywell-red/20 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                    {tpl.icon}
+                  </span>
+                  <h4 className="text-[14px] font-semibold text-slate-900 dark:text-white">
+                    {tpl.title}
+                  </h4>
+                  <p className="mt-1.5 line-clamp-3 text-[12px] leading-5 text-slate-500 dark:text-slate-400">
+                    {tpl.description}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Badge variant="default" size="sm">
+                      <Clock size={10} />
+                      {tpl.duration}
+                    </Badge>
+                  </div>
+                  <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-honeywell-red">
+                    Bu şablonu kullan →
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Performance / analytics dim placeholder for empty data */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/40 p-5 text-center dark:border-slate-800 dark:bg-slate-900/40">
+            <RotateCcw size={18} className="mx-auto text-slate-400" />
+            <p className="mt-2 text-[13px] font-medium text-slate-700 dark:text-slate-200">
+              Performans verisi henüz yok
+            </p>
+            <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400">
+              İlk sekansınızı yayına aldığınızda açılma, yanıt ve dönüşüm metrikleri burada
+              görünecek.
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="space-y-4">
           {sequences.map((seq) => {
@@ -211,9 +323,9 @@ export default function SequencesPage() {
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
-                      <h4 className="text-sm font-semibold text-gray-900">{seq.name}</h4>
+                      <h4 className="text-sm font-semibold text-slate-900">{seq.name}</h4>
                       {seq.description && (
-                        <p className="text-sm text-gray-600">{seq.description}</p>
+                        <p className="text-sm text-slate-600">{seq.description}</p>
                       )}
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="info" size="sm">
@@ -239,7 +351,7 @@ export default function SequencesPage() {
                             {t('sequences.auto_enroll')}
                           </Badge>
                         )}
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-slate-500">
                           {formatDateTime(seq.created_at)}
                         </span>
                       </div>
@@ -260,8 +372,8 @@ export default function SequencesPage() {
 
                   {/* Enrollments list */}
                   {enrollments.length > 0 && (
-                    <div className="border-t border-gray-100 pt-3">
-                      <p className="mb-2 text-xs font-medium text-gray-500">
+                    <div className="border-t border-slate-100 pt-3">
+                      <p className="mb-2 text-xs font-medium text-slate-500">
                         {t('sequences.enrollments')}
                       </p>
                       <div className="space-y-2">
@@ -271,12 +383,12 @@ export default function SequencesPage() {
                           return (
                             <div
                               key={enrollment.id}
-                              className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5 text-sm"
+                              className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2.5 text-sm"
                             >
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono text-gray-500">#{enrollment.id}</span>
+                                <span className="font-mono text-slate-500">#{enrollment.id}</span>
                                 {enrollment.opportunity_id && (
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-slate-500">
                                     {t('sequences.opp_line').replace(
                                       '{id}',
                                       String(enrollment.opportunity_id),
@@ -284,7 +396,7 @@ export default function SequencesPage() {
                                   </span>
                                 )}
                                 {enrollment.customer_id && (
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-slate-500">
                                     {t('sequences.cust_line').replace(
                                       '{id}',
                                       String(enrollment.customer_id),
@@ -292,7 +404,7 @@ export default function SequencesPage() {
                                   </span>
                                 )}
                                 {enrollment.lead_id && (
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-slate-500">
                                     {t('sequences.lead_line').replace(
                                       '{id}',
                                       String(enrollment.lead_id),
@@ -303,7 +415,7 @@ export default function SequencesPage() {
                                   <StatusIcon size={12} className="mr-1 inline" />
                                   {sc.label}
                                 </Badge>
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-slate-400">
                                   {t('sequences.step_of')
                                     .replace('{step}', String(enrollment.current_step))
                                     .replace('{total}', String(seq.steps.length))}
@@ -314,7 +426,7 @@ export default function SequencesPage() {
                                   </Badge>
                                 )}
                                 {enrollment.completed_at && (
-                                  <span className="text-[11px] text-gray-400">
+                                  <span className="text-[11px] text-slate-400">
                                     {formatDateTime(enrollment.completed_at)}
                                   </span>
                                 )}
@@ -362,12 +474,12 @@ export default function SequencesPage() {
             {perfLoading ? (
               <Skeleton variant="line" count={5} />
             ) : perfRows.length === 0 ? (
-              <p className="text-sm text-gray-400">{t('cockpit.seq_perf_empty')}</p>
+              <p className="text-sm text-slate-400">{t('cockpit.seq_perf_empty')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[520px] text-left text-sm">
                   <thead>
-                    <tr className="border-b text-xs text-gray-500">
+                    <tr className="border-b text-xs text-slate-500">
                       <th className="py-2 pr-3 font-medium">{t('cockpit.seq_perf_col_name')}</th>
                       <th className="py-2 pr-3 font-medium text-right">
                         {t('cockpit.seq_perf_col_total')}
@@ -390,12 +502,12 @@ export default function SequencesPage() {
                     {perfRows.map((row) => (
                       <tr
                         key={String(row.sequence_id)}
-                        className="border-b border-gray-50 dark:border-gray-800"
+                        className="border-b border-gray-50 dark:border-slate-800"
                       >
-                        <td className="py-2 pr-3 font-medium text-gray-900 dark:text-white">
+                        <td className="py-2 pr-3 font-medium text-slate-900 dark:text-white">
                           {String(row.name)}
                           {!row.is_active ? (
-                            <span className="ml-2 text-xs font-normal text-gray-400">
+                            <span className="ml-2 text-xs font-normal text-slate-400">
                               ({t('opp_detail.inactive')})
                             </span>
                           ) : null}
@@ -434,7 +546,7 @@ export default function SequencesPage() {
                 <div className="text-2xl font-bold text-blue-600">
                   {analyticsData.avg_touches_per_target ?? 0}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-slate-500 mt-1">
                   {t('sequences.analytics_avg_touches')}
                 </div>
               </div>
@@ -442,14 +554,14 @@ export default function SequencesPage() {
                 <div className="text-2xl font-bold text-green-600">
                   {analyticsData.total_step_runs ?? 0}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-slate-500 mt-1">
                   {t('sequences.analytics_total_step_runs')}
                 </div>
               </div>
               {Object.entries(analyticsData.status_distribution || {}).map(([status, count]) => (
                 <div key={status} className="rounded-lg border p-3 text-center">
                   <div className="text-2xl font-bold">{count as number}</div>
-                  <div className="text-xs text-gray-500 mt-1 capitalize">
+                  <div className="text-xs text-slate-500 mt-1 capitalize">
                     {STATUS_CONFIG[status]?.label || status}
                   </div>
                 </div>
@@ -458,7 +570,7 @@ export default function SequencesPage() {
             {analyticsData.exit_reason_distribution &&
               Object.keys(analyticsData.exit_reason_distribution).length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">
+                  <p className="text-xs font-medium text-slate-500 mb-2">
                     {t('sequences.analytics_exit_reason_dist')}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -469,7 +581,7 @@ export default function SequencesPage() {
                           className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs"
                         >
                           <span className="font-medium">{EXIT_LABELS[reason] || reason}</span>
-                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold">
+                          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold">
                             {count as number}
                           </span>
                         </div>
@@ -489,7 +601,7 @@ export default function SequencesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-xs text-gray-500">
+                  <tr className="border-b text-left text-xs text-slate-500">
                     <th className="pb-2 pr-4">{t('sequences.tbl_sequence')}</th>
                     <th className="pb-2 pr-4">{t('sequences.tbl_step')}</th>
                     <th className="pb-2 pr-4">{t('sequences.tbl_variant')}</th>
@@ -529,9 +641,9 @@ export default function SequencesPage() {
         title={t('sequences.modal_enroll_title')}
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">{t('sequences.modal_enroll_help')}</p>
+          <p className="text-sm text-slate-600">{t('sequences.modal_enroll_help')}</p>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
               {t('transcripts.lbl_opp_id')}
             </label>
             <Input
@@ -542,7 +654,7 @@ export default function SequencesPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
               {t('transcripts.lbl_cust_id')}
             </label>
             <Input

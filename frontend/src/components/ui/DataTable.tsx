@@ -4,11 +4,38 @@ import { Button } from './Button';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { useT } from '../../hooks/useT';
 
+/**
+ * DataTable — generic list/table primitive.
+ *
+ * Visual upgrades (PR-design Phase 2):
+ *   - Header row: bg-slate-50/60, text-overline (uppercase 11/600/0.06em),
+ *     slate-100 bottom border. Stripe-style "calm" header that doesn't fight
+ *     the data below.
+ *   - Body rows: 14/22 slate-700; 12px vertical padding (was 16) for higher
+ *     density without feeling cramped; slate-50 hover; numeric columns get
+ *     tabular-nums font-feature for clean column alignment.
+ *   - Loading skeleton stays inline (3 shimmer rows) so layout doesn't jump.
+ *   - Empty state inherits the new EmptyState component so the affordance is
+ *     consistent across the app.
+ *   - Pagination footer uses the new tertiary Button variant (lighter weight).
+ *
+ * New props:
+ *   - columns[].align: 'left' | 'right' | 'center' — typography aligns naturally
+ *     for currency/number columns
+ *   - columns[].width: optional CSS width to lock column sizing
+ *   - density: 'comfortable' | 'compact' — compact halves the row padding
+ *     for power-user list views
+ */
+
 interface Column<T> {
   key: string;
   header: string;
   render?: (row: T) => ReactNode;
   sortable?: boolean;
+  align?: 'left' | 'right' | 'center';
+  width?: string;
+  /** Apply tabular-nums for clean numeric alignment. */
+  numeric?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -20,16 +47,23 @@ interface DataTableProps<T> {
   totalPages?: number;
   onPageChange?: (page: number) => void;
   onRowClick?: (row: T) => void;
+  density?: 'comfortable' | 'compact';
 }
 
-function LoadingSkeleton({ columns }: { columns: number }) {
+const ALIGN_CLASS: Record<NonNullable<Column<unknown>['align']>, string> = {
+  left: 'text-left',
+  right: 'text-right',
+  center: 'text-center',
+};
+
+function LoadingSkeleton({ columns, rowPadY }: { columns: number; rowPadY: string }) {
   return (
     <>
-      {[0, 1, 2].map((row) => (
-        <tr key={row} className="border-b" style={{ borderColor: 'var(--border-light)' }}>
+      {[0, 1, 2, 3, 4].map((row) => (
+        <tr key={row} className="border-b border-slate-100 dark:border-slate-800/60">
           {Array.from({ length: columns }, (_, col) => (
-            <td key={col} className="px-6 py-4">
-              <div className="h-3 w-full skeleton-shimmer rounded" />
+            <td key={col} className={`px-5 ${rowPadY}`}>
+              <div className="h-3 w-full max-w-[180px] skeleton-shimmer rounded-md" />
             </td>
           ))}
         </tr>
@@ -48,11 +82,13 @@ export function DataTable<T = any>({
   totalPages,
   onPageChange,
   onRowClick,
+  density = 'comfortable',
 }: DataTableProps<T>) {
   const t = useT();
   const resolvedEmpty = emptyMessage ?? t('table.empty');
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const rowPadY = density === 'compact' ? 'py-2.5' : 'py-3.5';
 
   function handleSort(key: string) {
     if (sortKey === key) {
@@ -79,58 +115,66 @@ export function DataTable<T = any>({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr
-              className="border-b bg-gray-50/80 dark:bg-white/5"
-              style={{ borderColor: 'var(--border)' }}
-            >
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  scope="col"
-                  aria-sort={
-                    col.sortable && sortKey === col.key
-                      ? sortDir === 'asc'
-                        ? 'ascending'
-                        : 'descending'
-                      : col.sortable
-                        ? 'none'
-                        : undefined
-                  }
-                  className={`px-6 py-3 text-overline
-                    ${col.sortable ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-300' : ''}`}
-                  role={col.sortable ? 'button' : undefined}
-                  tabIndex={col.sortable ? 0 : undefined}
-                  onClick={() => col.sortable && handleSort(col.key)}
-                  onKeyDown={(e) => {
-                    if (col.sortable && (e.key === 'Enter' || e.key === ' ')) {
-                      e.preventDefault();
-                      handleSort(col.key);
+            <tr className="border-b border-slate-100 bg-slate-50/60 dark:border-slate-800 dark:bg-white/2">
+              {columns.map((col) => {
+                const align = col.align ?? (col.numeric ? 'right' : 'left');
+                return (
+                  <th
+                    key={col.key}
+                    scope="col"
+                    style={col.width ? { width: col.width } : undefined}
+                    aria-sort={
+                      col.sortable && sortKey === col.key
+                        ? sortDir === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : col.sortable
+                          ? 'none'
+                          : undefined
                     }
-                  }}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {col.header}
-                    {col.sortable && sortKey === col.key && (
-                      <span>
-                        {sortDir === 'asc' ? (
-                          <ArrowUp size={14} className="shrink-0" />
-                        ) : (
-                          <ArrowDown size={14} className="shrink-0" />
-                        )}
-                      </span>
-                    )}
-                  </span>
-                </th>
-              ))}
+                    className={[
+                      'px-5 py-3 text-overline text-slate-500',
+                      ALIGN_CLASS[align],
+                      col.sortable
+                        ? 'cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300'
+                        : '',
+                    ].join(' ')}
+                    role={col.sortable ? 'button' : undefined}
+                    tabIndex={col.sortable ? 0 : undefined}
+                    onClick={() => col.sortable && handleSort(col.key)}
+                    onKeyDown={(e) => {
+                      if (col.sortable && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        handleSort(col.key);
+                      }
+                    }}
+                  >
+                    <span
+                      className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}
+                    >
+                      {col.header}
+                      {col.sortable && sortKey === col.key && (
+                        <span className="text-slate-400">
+                          {sortDir === 'asc' ? (
+                            <ArrowUp size={12} className="shrink-0" />
+                          ) : (
+                            <ArrowDown size={12} className="shrink-0" />
+                          )}
+                        </span>
+                      )}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <LoadingSkeleton columns={columns.length} />
+              <LoadingSkeleton columns={columns.length} rowPadY={rowPadY} />
             ) : sortedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length}>
-                  <EmptyState title={resolvedEmpty} />
+                  <EmptyState title={resolvedEmpty} variant="compact" />
                 </td>
               </tr>
             ) : (
@@ -138,18 +182,29 @@ export function DataTable<T = any>({
                 <tr
                   key={idx}
                   onClick={() => onRowClick?.(row)}
-                  className={`border-b last:border-b-0 transition-colors duration-150
-                    hover:bg-gray-50 dark:hover:bg-white/5
-                    ${onRowClick ? 'cursor-pointer' : ''}`}
-                  style={{ borderColor: 'var(--border-light)' }}
+                  className={[
+                    'border-b border-slate-100 last:border-b-0 transition-colors duration-150',
+                    'hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-white/3',
+                    onRowClick ? 'cursor-pointer' : '',
+                  ].join(' ')}
                 >
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-6 py-4 text-gray-700 dark:text-gray-300">
-                      {col.render
-                        ? col.render(row)
-                        : (((row as Record<string, unknown>)[col.key] as ReactNode) ?? '-')}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    const align = col.align ?? (col.numeric ? 'right' : 'left');
+                    return (
+                      <td
+                        key={col.key}
+                        className={[
+                          `px-5 ${rowPadY} text-slate-700 dark:text-slate-300`,
+                          ALIGN_CLASS[align],
+                          col.numeric ? 'tabular-nums' : '',
+                        ].join(' ')}
+                      >
+                        {col.render
+                          ? col.render(row)
+                          : (((row as Record<string, unknown>)[col.key] as ReactNode) ?? '–')}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}
@@ -157,20 +212,17 @@ export function DataTable<T = any>({
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination footer */}
       {page != null && totalPages != null && totalPages > 1 && onPageChange && (
-        <div
-          className="flex items-center justify-between border-t px-6 py-3"
-          style={{ borderColor: 'var(--border)' }}
-        >
-          <span className="text-caption">
+        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/40 px-5 py-3 dark:border-slate-800 dark:bg-white/2">
+          <span className="text-caption text-slate-500">
             {t('table.page_of')
               .replace('{page}', String(page))
               .replace('{totalPages}', String(totalPages))}
           </span>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <Button
-              variant="secondary"
+              variant="tertiary"
               size="sm"
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
@@ -178,7 +230,7 @@ export function DataTable<T = any>({
               {t('table.prev')}
             </Button>
             <Button
-              variant="secondary"
+              variant="tertiary"
               size="sm"
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}

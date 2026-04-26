@@ -80,12 +80,19 @@ function CustomerCard({
 
   const quotes = quotesData?.items ?? [];
 
+  // Linear/Stripe-style customer card: smaller avatar with ring instead of
+  // shadow, cleaner typography hierarchy (name 15/600, company 13/500 muted,
+  // email 12/400 even more muted), tighter stats row with overline labels.
   return (
     <div
-      className={`card-modern flex flex-col cursor-pointer hover:shadow-lg transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+      className={[
+        'card-modern flex flex-col transition-shadow duration-150',
+        'hover:shadow-sm',
+        isSelected ? 'ring-2 ring-honeywell-red/60 ring-offset-2 ring-offset-slate-50' : '',
+      ].join(' ')}
     >
       {/* Top section - clickable to customer detail */}
-      <div className="flex items-start gap-4 p-5">
+      <div className="flex items-start gap-3 p-5">
         {/* Checkbox */}
         <label
           className="flex items-center shrink-0 pt-0.5"
@@ -95,61 +102,69 @@ function CustomerCard({
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggle(c.id)}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="h-4 w-4 rounded border-slate-300 text-honeywell-red focus:ring-honeywell-red/30"
           />
         </label>
 
         <button
           type="button"
           onClick={() => navigate(`/customers/${c.id}`)}
-          className="flex items-start gap-4 flex-1 text-left hover:bg-gray-50/60 transition-colors rounded-lg -m-1 p-1"
+          className="flex items-start gap-3 flex-1 text-left transition-colors rounded-lg -m-1 p-1 hover:bg-slate-50"
         >
-          {/* Avatar */}
+          {/* Avatar — smaller (40px) with subtle ring instead of drop shadow */}
           <div
-            className={`${avatarColor} flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm`}
+            className={`${avatarColor} flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white ring-2 ring-white`}
           >
             {initials}
           </div>
 
           {/* Info */}
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-gray-900 truncate leading-tight">
+            <h3 className="truncate text-[15px] font-semibold leading-tight text-slate-900">
               {c.name}
             </h3>
-            {c.company && <p className="mt-0.5 text-sm text-gray-500 truncate">{c.company}</p>}
-            <p className="mt-0.5 text-xs text-gray-400 truncate">{c.email}</p>
+            {c.company && <p className="mt-0.5 truncate text-[13px] text-slate-500">{c.company}</p>}
+            <p className="mt-0.5 truncate text-xs text-slate-400">{c.email}</p>
           </div>
         </button>
       </div>
 
       {/* Stats row + dropdown toggle */}
-      <div className="border-t border-gray-100">
+      <div className="border-t border-slate-100">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             if (quoteCount > 0) setExpanded(!expanded);
           }}
-          className={`flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors
-            ${quoteCount > 0 ? 'hover:bg-gray-50/60 cursor-pointer' : 'cursor-default'}`}
+          className={[
+            'flex w-full items-center justify-between gap-3 px-5 py-3 text-left transition-colors',
+            quoteCount > 0 ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-default',
+          ].join(' ')}
         >
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <FileText size={14} className="text-gray-400" />
-              <div>
-                <span className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-inset ring-slate-100">
+                <FileText size={13} className="text-slate-500" />
+              </span>
+              <div className="min-w-0">
+                <span className="block text-overline text-slate-500">
                   {t('customers.card_quotes')}
                 </span>
-                <p className="text-sm font-semibold text-gray-800 leading-tight">{quoteCount}</p>
+                <p className="text-[13px] font-semibold leading-tight text-slate-900 tabular-nums">
+                  {quoteCount}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <TrendingUp size={14} className="text-gray-400" />
-              <div>
-                <span className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-inset ring-slate-100">
+                <TrendingUp size={13} className="text-slate-500" />
+              </span>
+              <div className="min-w-0">
+                <span className="block text-overline text-slate-500">
                   {t('customers.card_total_value')}
                 </span>
-                <p className="text-sm font-semibold text-gray-800 leading-tight">
+                <p className="text-[13px] font-semibold leading-tight text-slate-900 tabular-nums">
                   {formatCurrency(c.total_quote_value ?? 0, 'TRY')}
                 </p>
               </div>
@@ -158,7 +173,7 @@ function CustomerCard({
           {quoteCount > 0 && (
             <ChevronDown
               size={16}
-              className={`shrink-0 text-gray-400 transition-transform duration-200 ${
+              className={`shrink-0 text-slate-400 transition-transform duration-200 ${
                 expanded ? 'rotate-180' : ''
               }`}
             />
@@ -167,7 +182,7 @@ function CustomerCard({
 
         {/* Expanded quote list */}
         {expanded && (
-          <div className="border-t border-gray-100 bg-gray-50/40">
+          <div className="border-t border-slate-100 bg-slate-50/40">
             {quotesLoading ? (
               <div className="px-5 py-3 space-y-2">
                 {[0, 1].map((i) => (
@@ -175,11 +190,11 @@ function CustomerCard({
                 ))}
               </div>
             ) : quotes.length === 0 ? (
-              <p className="px-5 py-3 text-xs text-gray-400">
+              <p className="px-5 py-3 text-xs text-slate-400">
                 {t('customers.card_quotes_not_found')}
               </p>
             ) : (
-              <div className="divide-y divide-gray-100/80">
+              <div className="divide-y divide-slate-100/80">
                 {quotes.map((q) => (
                   <button
                     key={q.id}
@@ -190,7 +205,7 @@ function CustomerCard({
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-semibold text-gray-700 truncate">
+                        <span className="text-xs font-mono font-semibold text-slate-700 truncate">
                           {q.quote_number}
                         </span>
                       </div>
@@ -198,13 +213,13 @@ function CustomerCard({
                       {q.items && q.items.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                           {q.items.slice(0, 3).map((item, idx) => (
-                            <span key={idx} className="text-[10px] text-gray-400">
+                            <span key={idx} className="text-[10px] text-slate-400">
                               {item.honeywell_code || item.description?.slice(0, 15) || '-'}{' '}
-                              <span className="text-gray-500">x{item.quantity}</span>
+                              <span className="text-slate-500">x{item.quantity}</span>
                             </span>
                           ))}
                           {q.items.length > 3 && (
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-[10px] text-slate-400">
                               {t('customers.card_more').replace(
                                 '{count}',
                                 String(q.items.length - 3),
@@ -217,17 +232,17 @@ function CustomerCard({
                     <div className="flex items-center gap-3 shrink-0">
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          STATUS_COLORS[q.status] || 'bg-gray-100 text-gray-600'
+                          STATUS_COLORS[q.status] || 'bg-slate-100 text-slate-600'
                         }`}
                       >
                         {translateStatus(q.status, t)}
                       </span>
-                      <span className="text-xs font-semibold text-gray-700 tabular-nums">
+                      <span className="text-xs font-semibold text-slate-700 tabular-nums">
                         {formatCurrency(q.grand_total, q.currency)}
                       </span>
                       <ExternalLink
                         size={12}
-                        className="text-gray-300 group-hover:text-honeywell-red transition-colors"
+                        className="text-slate-300 group-hover:text-honeywell-red transition-colors"
                       />
                     </div>
                   </button>
@@ -393,12 +408,12 @@ export default function CustomerListPage() {
           />
         </div>
         {customers.length > 0 && (
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={isAllSelected}
               onChange={toggleAll}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-slate-200 text-blue-600 focus:ring-blue-500"
             />
             {t('customers.select_all')}
           </label>
@@ -414,8 +429,8 @@ export default function CustomerListPage() {
         </div>
       ) : customers.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 mb-5">
-            <Users size={36} className="text-gray-400" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 mb-5">
+            <Users size={36} className="text-slate-400" />
           </div>
           <EmptyState
             title={t('customers.empty_title')}
@@ -440,7 +455,7 @@ export default function CustomerListPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-8 flex items-center justify-between">
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-slate-500">
                 {t('customers.pagination')
                   .replace('{page}', String(page))
                   .replace('{pages}', String(totalPages))}
@@ -529,7 +544,7 @@ export default function CustomerListPage() {
             value={form.address}
             onChange={(e) => updateField('address', e.target.value)}
           />
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               {t('common.cancel')}
             </Button>

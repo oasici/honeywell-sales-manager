@@ -186,7 +186,7 @@ export default function ApprovalRulesPage() {
       key: 'name',
       header: 'Kural Adi',
       render: (row: ApprovalRule) => (
-        <span className="font-medium text-gray-900 dark:text-white">
+        <span className="font-medium text-slate-900 dark:text-white">
           {row.name}
         </span>
       ),
@@ -195,7 +195,7 @@ export default function ApprovalRulesPage() {
       key: 'entity_type',
       header: 'Varlık Tipi',
       render: (row: ApprovalRule) => (
-        <span className="text-gray-700 dark:text-gray-300">
+        <span className="text-slate-700 dark:text-slate-300">
           {row.entity_type === 'quote' ? 'Teklif' : row.entity_type}
         </span>
       ),
@@ -204,7 +204,7 @@ export default function ApprovalRulesPage() {
       key: 'condition',
       header: 'Kosul',
       render: (row: ApprovalRule) => (
-        <span className="text-gray-700 dark:text-gray-300">
+        <span className="text-slate-700 dark:text-slate-300">
           {CONDITION_LABEL[row.condition_type] || row.condition_type}
         </span>
       ),
@@ -213,7 +213,7 @@ export default function ApprovalRulesPage() {
       key: 'threshold',
       header: 'Esik Değer',
       render: (row: ApprovalRule) => (
-        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
+        <span className="font-mono text-sm text-slate-700 dark:text-slate-300">
           {OPERATOR_SYMBOL[row.threshold_operator] || row.threshold_operator}{' '}
           {row.threshold_value}
         </span>
@@ -223,7 +223,7 @@ export default function ApprovalRulesPage() {
       key: 'approver_role',
       header: 'Onaylayan Rol',
       render: (row: ApprovalRule) => (
-        <span className="text-gray-700 dark:text-gray-300">
+        <span className="text-slate-700 dark:text-slate-300">
           {row.approver_role === 'sales_manager'
             ? 'Satış Yoneticisi'
             : row.approver_role || '-'}
@@ -234,7 +234,7 @@ export default function ApprovalRulesPage() {
       key: 'priority',
       header: 'Oncelik',
       render: (row: ApprovalRule) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.priority}</span>
+        <span className="text-slate-700 dark:text-slate-300">{row.priority}</span>
       ),
     },
     {

@@ -19,7 +19,7 @@ import {
 import { formatDate, currentLocale } from '../../lib/formatters';
 
 const STATUS_BADGES: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-700',
+  draft: 'bg-slate-100 text-slate-700',
   active: 'bg-green-100 text-green-700',
   amended: 'bg-yellow-100 text-yellow-700',
   expired: 'bg-red-100 text-red-700',
@@ -93,7 +93,7 @@ export default function ContractDetailPage() {
   if (!contract) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-gray-500">{t('contracts.detail_not_found')}</p>
+        <p className="text-sm text-slate-500">{t('contracts.detail_not_found')}</p>
         <Button variant="secondary" onClick={() => navigate('/contracts')} className="mt-4">
           {t('common.back')}
         </Button>
@@ -107,7 +107,7 @@ export default function ContractDetailPage() {
     <div>
       <PageHeader title={contract.title} description={t('contracts.detail_description')}>
         <span
-          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGES[contract.status] || 'bg-gray-100 text-gray-700'}`}
+          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGES[contract.status] || 'bg-slate-100 text-slate-700'}`}
         >
           {translateContractStatus(contract.status, t)}
         </span>
@@ -146,7 +146,7 @@ export default function ContractDetailPage() {
                         ? 'bg-honeywell-red text-white'
                         : isPast
                           ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-400'
+                          : 'bg-slate-100 text-slate-400'
                     }`}
                   >
                     {translateContractStatus(step, t)}
@@ -161,30 +161,30 @@ export default function ContractDetailPage() {
         <Card title={t('contracts.card_info')}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <p className="text-xs text-gray-500">{t('contracts.field_customer_id')}</p>
-              <p className="text-sm font-medium text-gray-900">{contract.customer_id}</p>
+              <p className="text-xs text-slate-500">{t('contracts.field_customer_id')}</p>
+              <p className="text-sm font-medium text-slate-900">{contract.customer_id}</p>
             </div>
             {contract.quote_id && (
               <div>
-                <p className="text-xs text-gray-500">{t('contracts.field_quote_id')}</p>
-                <p className="text-sm font-medium text-gray-900">{contract.quote_id}</p>
+                <p className="text-xs text-slate-500">{t('contracts.field_quote_id')}</p>
+                <p className="text-sm font-medium text-slate-900">{contract.quote_id}</p>
               </div>
             )}
             <div>
-              <p className="text-xs text-gray-500">{t('contracts.field_start')}</p>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-xs text-slate-500">{t('contracts.field_start')}</p>
+              <p className="text-sm font-medium text-slate-900">
                 {contract.start_date ? formatDate(contract.start_date, locale) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">{t('contracts.field_end')}</p>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-xs text-slate-500">{t('contracts.field_end')}</p>
+              <p className="text-sm font-medium text-slate-900">
                 {contract.end_date ? formatDate(contract.end_date, locale) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">{t('contracts.field_value')}</p>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-xs text-slate-500">{t('contracts.field_value')}</p>
+              <p className="text-sm font-medium text-slate-900">
                 {contract.value != null
                   ? contract.value.toLocaleString(locale, { minimumFractionDigits: 2 })
                   : '-'}
@@ -192,11 +192,11 @@ export default function ContractDetailPage() {
             </div>
             {contract.signed_at && (
               <div>
-                <p className="text-xs text-gray-500">{t('contracts.field_signed')}</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-xs text-slate-500">{t('contracts.field_signed')}</p>
+                <p className="text-sm font-medium text-slate-900">
                   {formatDate(contract.signed_at, locale)}
                   {contract.signed_by && (
-                    <span className="text-gray-500"> - {contract.signed_by}</span>
+                    <span className="text-slate-500"> - {contract.signed_by}</span>
                   )}
                 </p>
               </div>
@@ -207,7 +207,7 @@ export default function ContractDetailPage() {
         {/* Amendment Timeline */}
         <Card title={t('contracts.amendments_title')}>
           {amendments.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">
+            <p className="py-6 text-center text-sm text-slate-400">
               {t('contracts.amendments_empty')}
             </p>
           ) : (
@@ -217,13 +217,13 @@ export default function ContractDetailPage() {
                 {amendments.map((amendment) => (
                   <div key={amendment.id} className="relative">
                     <div className="absolute -left-4 top-1.5 h-3 w-3 rounded-full border-2 border-honeywell-red bg-white" />
-                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 ml-2">
+                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 ml-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-gray-700">
+                        <span className="text-xs font-semibold text-slate-700">
                           {translateContractAmendmentType(amendment.amendment_type, t)}
                         </span>
                         {amendment.effective_date && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-slate-400">
                             {t('contracts.amendment_effective').replace(
                               '{date}',
                               amendment.effective_date,
@@ -232,9 +232,9 @@ export default function ContractDetailPage() {
                         )}
                       </div>
                       {amendment.changes_json && (
-                        <p className="mt-1 text-xs text-gray-600">{amendment.changes_json}</p>
+                        <p className="mt-1 text-xs text-slate-600">{amendment.changes_json}</p>
                       )}
-                      <p className="mt-1 text-[10px] text-gray-400">
+                      <p className="mt-1 text-[10px] text-slate-400">
                         {amendment.created_at ? formatDate(amendment.created_at, locale) : ''}
                       </p>
                     </div>
@@ -250,7 +250,7 @@ export default function ContractDetailPage() {
       {isAmendOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+            <h3 className="mb-4 text-lg font-semibold text-slate-900">
               {t('contracts.modal_amend_title')}
             </h3>
             <div className="space-y-3">
@@ -261,11 +261,11 @@ export default function ContractDetailPage() {
                 onChange={(e) => setAmendType(e.target.value)}
               />
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-slate-700">
                   {t('contracts.field_description')}
                 </label>
                 <textarea
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light focus:border-honeywell-red"
+                  className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light focus:border-honeywell-red"
                   rows={3}
                   value={amendChanges}
                   onChange={(e) => setAmendChanges(e.target.value)}

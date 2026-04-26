@@ -18,22 +18,64 @@ import type { CoachingOverview, CoachingPlan } from '../../lib/types';
 import { useT } from '../../hooks/useT';
 import { translateCoachingPlanStatus, translateCoachingRisk } from '../../lib/labelTranslations';
 
-const RISK_COLORS: Record<string, string> = {
-  healthy: 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400',
-  needs_improvement: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400',
-  at_risk: 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400',
+/**
+ * Risk-tier visual tokens.
+ *
+ * - healthy → emerald
+ * - needs_improvement → amber
+ * - at_risk → red
+ *
+ * The `bar` color is reused by the indicator progress bars so the rep's
+ * dominant risk tier visually matches their score breakdown.
+ */
+const RISK_TONE: Record<string, { chip: string; bar: string }> = {
+  healthy: {
+    chip: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40',
+    bar: 'bg-emerald-500',
+  },
+  needs_improvement: {
+    chip: 'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-900/40',
+    bar: 'bg-amber-500',
+  },
+  at_risk: {
+    chip: 'bg-red-50 text-red-700 ring-red-100 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-900/40',
+    bar: 'bg-red-500',
+  },
 };
 
+/**
+ * Score-driven progress bar. Color tier comes from the score itself so
+ * indicators still semantically grade themselves even when a rep's
+ * top-level risk tier is mixed.
+ */
 function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
   const pct = Math.min((value / max) * 100, 100);
+  const tier = pct >= 70 ? 'healthy' : pct >= 40 ? 'needs_improvement' : 'at_risk';
+  const bar = RISK_TONE[tier].bar;
   return (
-    <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
       <div
-        className="h-2 rounded-full bg-blue-500 transition-all duration-300"
+        className={`h-full rounded-full transition-all duration-300 ${bar}`}
         style={{ width: `${pct}%` }}
       />
     </div>
   );
+}
+
+/**
+ * Find the strongest and weakest indicator on a rep's score breakdown.
+ * Used to surface "Güçlü alan" / "Gelişim alanı" copy on each card so
+ * managers can scan the grid without drilling into every rep.
+ */
+function pickStrongAndWeak(
+  indicators: { name: string; label: string; score: number }[],
+): { strong?: { label: string; score: number }; weak?: { label: string; score: number } } {
+  if (indicators.length === 0) return {};
+  const sorted = [...indicators].sort((a, b) => b.score - a.score);
+  return {
+    strong: { label: sorted[0].label, score: sorted[0].score },
+    weak: { label: sorted[sorted.length - 1].label, score: sorted[sorted.length - 1].score },
+  };
 }
 
 interface GoalRow {
@@ -150,27 +192,27 @@ export default function CoachingOverviewPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card>
             <div className="p-4 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {t('coaching.kpi_total_reps')}
               </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">
                 {summary.total_reps}
               </p>
             </div>
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {t('coaching.kpi_avg_score')}
               </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">
                 {formatPercent(summary.avg_score)}
               </p>
             </div>
           </Card>
           <Card>
             <div className="p-4 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {t('coaching.kpi_low_perf')}
               </p>
               <p className="text-3xl font-bold text-red-600 dark:text-red-400">
@@ -183,86 +225,160 @@ export default function CoachingOverviewPage() {
 
       {/* Rep Cards */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
-          {t('coaching.section_reps')}
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-heading-3 text-slate-900 dark:text-white">
+            {t('coaching.section_reps')}
+          </h2>
+          {reps.length > 0 && (
+            <span className="text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+              {reps.length} temsilci
+            </span>
+          )}
+        </div>
         {reps.length === 0 ? (
-          <EmptyState title={t('coaching.reps_empty')} />
+          <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+            <EmptyState
+              variant="compact"
+              title={t('coaching.reps_empty')}
+              description="Aktif temsilci kaydı bulunduğunda her biri için skor ve öneri kartları burada görünecek."
+            />
+          </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {reps.map((rep) => (
-              <div
-                key={rep.user_id}
-                className="cursor-pointer transition-shadow hover:shadow-lg"
-                onClick={() => navigate(`/coaching/rep/${rep.user_id}`)}
-              >
-                <Card>
-                  <div className="p-4 space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-gray-900 dark:text-white">{rep.user_name}</p>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISK_COLORS[rep.risk_level] || RISK_COLORS.healthy}`}
-                      >
-                        {translateCoachingRisk(rep.risk_level, t)}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {reps.map((rep) => {
+              const tone = RISK_TONE[rep.risk_level] ?? RISK_TONE.healthy;
+              const insight = pickStrongAndWeak(rep.indicators);
+              const initials = rep.user_name
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+              return (
+                <button
+                  key={rep.user_id}
+                  type="button"
+                  onClick={() => navigate(`/coaching/rep/${rep.user_id}`)}
+                  className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-800 dark:bg-slate-900"
+                >
+                  {/* Header — avatar circle + name + risk chip */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-honeywell-red/10 text-[12px] font-semibold text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                        {initials}
                       </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[14px] font-semibold text-slate-900 dark:text-white">
+                          {rep.user_name}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Temsilci</p>
+                      </div>
                     </div>
+                    <span
+                      className={[
+                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
+                        tone.chip,
+                      ].join(' ')}
+                    >
+                      {translateCoachingRisk(rep.risk_level, t)}
+                    </span>
+                  </div>
 
-                    {/* Score */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {rep.score}
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">/ 100</span>
+                  {/* Score — large tabular-nums anchor */}
+                  <div className="mt-4 flex items-baseline gap-1.5">
+                    <span className="text-[32px] font-bold leading-none tracking-tight tabular-nums text-slate-900 dark:text-white">
+                      {rep.score}
+                    </span>
+                    <span className="text-[13px] tabular-nums text-slate-400 dark:text-slate-500">
+                      / 100
+                    </span>
+                  </div>
+
+                  {/* Strong / weak insight callouts */}
+                  {(insight.strong || insight.weak) && (
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      {insight.strong && (
+                        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 px-2.5 py-2 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                          <p className="text-overline text-emerald-700 dark:text-emerald-400">
+                            Güçlü alan
+                          </p>
+                          <p className="mt-0.5 truncate text-[12px] font-medium text-slate-800 dark:text-slate-100">
+                            {insight.strong.label}
+                          </p>
+                        </div>
+                      )}
+                      {insight.weak && (
+                        <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-2.5 py-2 dark:border-amber-900/40 dark:bg-amber-950/20">
+                          <p className="text-overline text-amber-700 dark:text-amber-400">
+                            Gelişim alanı
+                          </p>
+                          <p className="mt-0.5 truncate text-[12px] font-medium text-slate-800 dark:text-slate-100">
+                            {insight.weak.label}
+                          </p>
+                        </div>
+                      )}
                     </div>
+                  )}
 
-                    {/* Indicators */}
-                    {rep.indicators.length > 0 && (
-                      <div className="space-y-2">
-                        {rep.indicators.map((indicator) => (
-                          <div key={indicator.name}>
-                            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                              <span>{indicator.label}</span>
-                              <span>{indicator.score}</span>
-                            </div>
+                  {/* Indicator score breakdown */}
+                  {rep.indicators.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {rep.indicators.map((indicator) => (
+                        <div key={indicator.name}>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="truncate text-slate-600 dark:text-slate-400">
+                              {indicator.label}
+                            </span>
+                            <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">
+                              {indicator.score}
+                            </span>
+                          </div>
+                          <div className="mt-1">
                             <ProgressBar value={indicator.score} />
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                    {/* Recommendations */}
-                    {rep.recommendations.length > 0 && (
-                      <div className="border-t border-gray-100 pt-2 dark:border-gray-700">
-                        <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                          {t('coaching.recommendations')}
-                        </p>
-                        <ul className="space-y-1">
-                          {rep.recommendations.slice(0, 2).map((rec, idx) => (
-                            <li key={idx} className="text-xs text-gray-600 dark:text-gray-400">
-                              - {rec}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </div>
-            ))}
+                  {/* Recommended next action */}
+                  {rep.recommendations.length > 0 && (
+                    <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
+                      <p className="text-overline text-slate-500 dark:text-slate-400">
+                        Önerilen aksiyon
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-slate-700 dark:text-slate-200">
+                        {rep.recommendations[0]}
+                      </p>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Plans List */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+        <h2 className="mb-3 text-heading-3 text-slate-900 dark:text-white">
           {t('coaching.section_plans')}
         </h2>
         {isPlansLoading ? (
           <Skeleton variant="card" count={2} />
         ) : plans.length === 0 ? (
-          <EmptyState title={t('coaching.plans_empty')} />
+          <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+            <EmptyState
+              variant="default"
+              title={t('coaching.plans_empty')}
+              description="Henüz aktif koçluk planı yok. Bir temsilci seçip ilk koçluk planını oluşturarak gelişim takibi başlatın."
+              action={
+                <Button onClick={() => setShowCreatePlan(true)} variant="secondary">
+                  İlk Koçluk Planını Oluştur
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {plans.map((plan) => {
@@ -301,14 +417,14 @@ export default function CoachingOverviewPage() {
                   <div className="p-4 space-y-3">
                     {/* Header */}
                     <div className="flex items-center justify-between">
-                      <p className="font-medium text-gray-900 dark:text-white">{plan.user_name}</p>
+                      <p className="font-medium text-slate-900 dark:text-white">{plan.user_name}</p>
                       <Badge variant={statusVariant}>
                         {translateCoachingPlanStatus(plan.status, t)}
                       </Badge>
                     </div>
 
                     {/* Meta */}
-                    <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                       <span>{t('coaching.weeks_short').replace('{n}', String(plan.weeks))}</span>
                       {plan.start_date && (
                         <span>
@@ -323,7 +439,7 @@ export default function CoachingOverviewPage() {
                     {/* Progress */}
                     {currentWeek !== null && (
                       <div>
-                        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
                           <span>{t('coaching.progress')}</span>
                           <span>
                             {t('coaching.progress_weeks')
@@ -341,8 +457,8 @@ export default function CoachingOverviewPage() {
 
                     {/* Goals */}
                     {parsedGoals.length > 0 && (
-                      <div className="border-t border-gray-100 dark:border-gray-700 pt-2">
-                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                      <div className="border-t border-slate-100 dark:border-slate-800 pt-2">
+                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
                           {t('coaching.goals')}
                         </p>
                         <ul className="space-y-1">
@@ -351,7 +467,7 @@ export default function CoachingOverviewPage() {
                               key={idx}
                               className="flex items-start justify-between gap-2 text-xs"
                             >
-                              <span className="text-gray-600 dark:text-gray-400 flex-1">
+                              <span className="text-slate-600 dark:text-slate-400 flex-1">
                                 {g.goal}
                               </span>
                               {g.target && (
@@ -362,7 +478,7 @@ export default function CoachingOverviewPage() {
                             </li>
                           ))}
                           {parsedGoals.length > 3 && (
-                            <li className="text-xs text-gray-400">
+                            <li className="text-xs text-slate-400">
                               {t('coaching.goals_more').replace(
                                 '{n}',
                                 String(parsedGoals.length - 3),
@@ -373,7 +489,7 @@ export default function CoachingOverviewPage() {
                       </div>
                     )}
 
-                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
                       {t('coaching.created_prefix').replace(
                         '{date}',
                         formatDateTime(plan.created_at),
@@ -395,11 +511,11 @@ export default function CoachingOverviewPage() {
       >
         <form onSubmit={handleCreatePlan} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               {t('coaching.label_rep')}
             </label>
             <select
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
               value={planForm.user_id}
               onChange={(e) => setPlanForm({ ...planForm, user_id: e.target.value })}
               required
@@ -413,7 +529,7 @@ export default function CoachingOverviewPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               {t('coaching.label_goals')}
             </label>
             <div className="space-y-2">

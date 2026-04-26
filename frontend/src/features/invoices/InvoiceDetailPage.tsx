@@ -118,7 +118,7 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-gray-500">{t('invoices.detail_not_found')}</p>
+        <p className="text-sm text-slate-500">{t('invoices.detail_not_found')}</p>
         <Button variant="secondary" onClick={() => navigate('/invoices')} className="mt-4">
           {t('invoices.detail_back')}
         </Button>
@@ -215,33 +215,33 @@ export default function InvoiceDetailPage() {
       <Card title={t('invoices.detail_card_info')}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <p className="text-xs text-gray-500">{t('invoices.detail_customer')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('invoices.detail_customer')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {invoice.customer?.name ?? `#${invoice.customer_id}`}
             </p>
             {invoice.customer?.company && (
-              <p className="text-xs text-gray-400">{invoice.customer.company}</p>
+              <p className="text-xs text-slate-400">{invoice.customer.company}</p>
             )}
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('invoices.detail_issue_date')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('invoices.detail_issue_date')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {invoice.issue_date ? formatDate(invoice.issue_date) : '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('invoices.detail_due_date')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('invoices.detail_due_date')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {invoice.due_date ? formatDate(invoice.due_date) : '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('invoices.detail_currency')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{invoice.currency}</p>
+            <p className="text-xs text-slate-500">{t('invoices.detail_currency')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">{invoice.currency}</p>
           </div>
           {invoice.quote_id && (
             <div>
-              <p className="text-xs text-gray-500">{t('invoices.detail_linked_quote')}</p>
+              <p className="text-xs text-slate-500">{t('invoices.detail_linked_quote')}</p>
               <button
                 type="button"
                 onClick={() => navigate(`/quotes/${invoice.quote_id}`)}
@@ -253,8 +253,8 @@ export default function InvoiceDetailPage() {
           )}
           {invoice.paid_at && (
             <div>
-              <p className="text-xs text-gray-500">{t('invoices.detail_paid_at')}</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className="text-xs text-slate-500">{t('invoices.detail_paid_at')}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">
                 {formatDate(invoice.paid_at)}
               </p>
             </div>
@@ -268,36 +268,36 @@ export default function InvoiceDetailPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">
                     {t('invoices.detail_col_desc')}
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500 text-right">
                     {t('invoices.detail_col_qty')}
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500 text-right">
                     {t('invoices.detail_col_unit')}
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-right">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500 text-right">
                     {t('invoices.detail_col_line_total')}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item, idx) => (
-                  <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">
+                  <tr key={idx} className="border-b border-slate-100 dark:border-slate-800">
+                    <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
                       {item.description ?? '-'}
                     </td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">
+                    <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-400">
                       {item.quantity ?? '-'}
                     </td>
-                    <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">
+                    <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-400">
                       {item.unit_price != null
                         ? formatCurrency(item.unit_price, invoice.currency)
                         : '-'}
                     </td>
-                    <td className="px-3 py-2 text-right font-medium text-gray-900 dark:text-white">
+                    <td className="px-3 py-2 text-right font-medium text-slate-900 dark:text-white">
                       {item.line_total != null
                         ? formatCurrency(item.line_total, invoice.currency)
                         : '-'}
@@ -314,21 +314,21 @@ export default function InvoiceDetailPage() {
       <Card title={t('invoices.detail_card_totals')}>
         <div className="ml-auto max-w-xs space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">{t('invoices.detail_subtotal')}</span>
-            <span className="font-medium text-gray-900 dark:text-white">
+            <span className="text-slate-500">{t('invoices.detail_subtotal')}</span>
+            <span className="font-medium text-slate-900 dark:text-white">
               {formatCurrency(invoice.subtotal, invoice.currency)}
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">
+            <span className="text-slate-500">
               {t('invoices.detail_tax').replace('{rate}', String(invoice.tax_rate ?? 0))}
             </span>
-            <span className="font-medium text-gray-900 dark:text-white">
+            <span className="font-medium text-slate-900 dark:text-white">
               {formatCurrency(invoice.tax_amount, invoice.currency)}
             </span>
           </div>
-          <div className="flex justify-between border-t border-gray-200 pt-2 dark:border-gray-700">
-            <span className="font-semibold text-gray-900 dark:text-white">
+          <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-800">
+            <span className="font-semibold text-slate-900 dark:text-white">
               {t('invoices.detail_grand_total')}
             </span>
             <span className="text-lg font-bold text-honeywell-red">
@@ -341,7 +341,7 @@ export default function InvoiceDetailPage() {
       {/* Notes */}
       {invoice.notes && (
         <Card title={t('invoices.detail_card_notes')}>
-          <p className="text-sm text-gray-700 dark:text-gray-300">{invoice.notes}</p>
+          <p className="text-sm text-slate-700 dark:text-slate-300">{invoice.notes}</p>
         </Card>
       )}
 
@@ -355,7 +355,7 @@ export default function InvoiceDetailPage() {
         title={t('invoices.detail_modal_sign_title')}
         size="sm"
       >
-        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
           {t('invoices.detail_modal_sign_body').replace('{number}', invoice.invoice_number)}
         </p>
         <div className="space-y-3">

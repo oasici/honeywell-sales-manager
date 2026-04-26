@@ -19,6 +19,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { reportsApi } from '../../lib/api';
 import type { ReportTemplate } from '../../lib/types';
@@ -105,23 +106,27 @@ export default function SavedReportsPage() {
 
   return (
     <div>
-      <PageHeader title="Raporlar" description="Kaydedilmis raporlarinizi yonetin">
+      <PageHeader title="Raporlar" description="Kaydedilmiş raporlarınızı yönetin">
         <Button onClick={() => navigate('/reports/builder')}>
-          <Plus size={16} className="mr-1.5" />
+          <Plus size={14} />
           Yeni Rapor
         </Button>
       </PageHeader>
 
       {templates.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <BarChart3 size={48} className="mb-3 text-gray-300 dark:text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Henüz rapor yok</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Yeni bir rapor olusturarak baslayabilirsiniz
-          </p>
-          <Button className="mt-4" onClick={() => navigate('/reports/builder')}>
-            Rapor Oluştur
-          </Button>
+        <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <EmptyState
+            variant="default"
+            icon={<BarChart3 size={20} />}
+            title="Henüz rapor yok"
+            description="Yeni bir rapor şablonu oluşturarak başlayabilirsiniz."
+            action={
+              <Button onClick={() => navigate('/reports/builder')} variant="secondary">
+                <Plus size={14} />
+                Rapor Oluştur
+              </Button>
+            }
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -135,87 +140,105 @@ export default function SavedReportsPage() {
             return (
               <div
                 key={template.id}
-                className="rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="p-5">
-                  <div className="flex items-start justify-between">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/reports/view/${template.id}`)}
+                  className="flex flex-1 flex-col gap-3 p-5 text-left"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                      <ChartIcon size={16} />
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                      <h4 className="truncate text-[14px] font-semibold text-slate-900 dark:text-white">
                         {template.name}
                       </h4>
                       {template.description && (
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                        <p className="mt-1 line-clamp-2 text-[12px] text-slate-500 dark:text-slate-400">
                           {template.description}
                         </p>
                       )}
                     </div>
-                    <ChartIcon size={20} className="ml-2 shrink-0 text-gray-400" />
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     <Badge variant={entityBadge.variant} size="sm">
                       {entityBadge.label}
                     </Badge>
                     {template.is_public ? (
                       <Badge variant="info" size="sm">
-                        <Globe size={10} className="mr-1" />
-                        Herkese Acik
+                        <Globe size={10} />
+                        Herkese Açık
                       </Badge>
                     ) : (
                       <Badge variant="default" size="sm">
-                        <Lock size={10} className="mr-1" />
+                        <Lock size={10} />
                         Özel
                       </Badge>
                     )}
                     {template.is_system && (
                       <Badge variant="warning" size="sm">
-                        <Settings2 size={10} className="mr-1" />
+                        <Settings2 size={10} />
                         Sistem
                       </Badge>
                     )}
                   </div>
-                </div>
 
-                <div className="flex items-center border-t border-gray-100 dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/reports/view/${template.id}`)}
-                    className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 transition-colors dark:hover:bg-green-900/20"
-                  >
-                    <Play size={12} />
-                    Calistir
-                  </button>
-                  <div className="h-8 w-px bg-gray-100 dark:bg-gray-700" />
-                  <button
-                    type="button"
-                    onClick={() => handleExportCsv(template.id)}
-                    className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors dark:hover:bg-blue-900/20"
-                  >
-                    <Download size={12} />
-                    CSV
-                  </button>
-                  <div className="h-8 w-px bg-gray-100 dark:bg-gray-700" />
-                  <button
-                    type="button"
-                    onClick={() => handleExportExcel(template.id, template.name)}
-                    className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition-colors dark:hover:bg-emerald-900/20"
-                  >
-                    <Download size={12} />
-                    Excel Indir
-                  </button>
-                  {!template.is_system && (
-                    <>
-                      <div className="h-8 w-px bg-gray-100 dark:bg-gray-700" />
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(template)}
-                        className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors dark:hover:bg-red-900/20"
-                      >
-                        <Trash2 size={12} />
-                        Sil
-                      </button>
-                    </>
+                  {(template as unknown as { last_run_at?: string }).last_run_at && (
+                    <p className="text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
+                      Son çalıştırma:{' '}
+                      <span className="text-slate-600 dark:text-slate-300">
+                        {new Date(
+                          (template as unknown as { last_run_at: string }).last_run_at,
+                        ).toLocaleString('tr-TR')}
+                      </span>
+                    </p>
                   )}
+                </button>
+
+                {/* Action row — primary "Çalıştır" + secondary CSV/Excel +
+                    destructive delete (only when non-system). Slate footer
+                    so the buttons read as a contained tool palette rather
+                    than a stack of links. */}
+                <div className="flex items-center justify-end gap-1.5 border-t border-slate-100 bg-slate-50/50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900/40">
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    onClick={() => handleExportCsv(template.id)}
+                    title="CSV indir"
+                  >
+                    <Download size={13} />
+                    CSV
+                  </Button>
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    onClick={() => handleExportExcel(template.id, template.name)}
+                    title="Excel indir"
+                  >
+                    <Download size={13} />
+                    Excel
+                  </Button>
+                  {!template.is_system && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteTarget(template)}
+                      aria-label="Sil"
+                    >
+                      <Trash2 size={13} className="text-red-500" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => navigate(`/reports/view/${template.id}`)}
+                  >
+                    <Play size={13} />
+                    Çalıştır
+                  </Button>
                 </div>
               </div>
             );

@@ -69,7 +69,7 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-3xl font-bold text-gray-900 dark:text-white">
+        <span className="text-3xl font-bold text-slate-900 dark:text-white">
           {score}
         </span>
       </div>
@@ -80,7 +80,7 @@ function ScoreRing({ score }: { score: number }) {
 function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
   const pct = Math.min((value / max) * 100, 100);
   return (
-    <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+    <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-slate-800">
       <div
         className="h-2 rounded-full bg-blue-500 transition-all duration-300"
         style={{ width: `${pct}%` }}
@@ -185,7 +185,7 @@ export default function CoachingRepPage() {
 
   if (!rep) {
     return (
-      <div className="p-8 text-center text-gray-500">
+      <div className="p-8 text-center text-slate-500">
         Temsilci bulunamadi
       </div>
     );
@@ -228,18 +228,18 @@ export default function CoachingRepPage() {
               <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-6">
                   <div className="text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Takim Ort
                     </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {overview.summary.avg_score}
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Bu Temsilci
                     </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {rep.score}
                     </p>
                   </div>
@@ -260,7 +260,7 @@ export default function CoachingRepPage() {
                       </span>
                     </>
                   ) : (
-                    <span className="text-sm font-semibold text-gray-500">
+                    <span className="text-sm font-semibold text-slate-500">
                       Esit
                     </span>
                   )}
@@ -274,24 +274,24 @@ export default function CoachingRepPage() {
           {rep.indicators.length === 0 ? (
             <EmptyState title="Gösterge verisi bulunmuyor" />
           ) : (
-            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {rep.indicators.map((indicator) => (
                 <div
                   key={indicator.name}
                   className="flex items-center gap-4 px-4 py-3"
                 >
                   <div className="min-w-[120px]">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
                       {indicator.label}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Agirlik: {formatPercent(indicator.weight)}
                     </p>
                   </div>
                   <div className="flex-1">
                     <ProgressBar value={indicator.score} />
                   </div>
-                  <span className="min-w-[40px] text-right text-sm font-semibold text-gray-900 dark:text-white">
+                  <span className="min-w-[40px] text-right text-sm font-semibold text-slate-900 dark:text-white">
                     {indicator.score}
                   </span>
                 </div>
@@ -307,11 +307,11 @@ export default function CoachingRepPage() {
         {rep.recommendations.length === 0 ? (
           <EmptyState title="Henüz öneri bulunmuyor" />
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {rep.recommendations.map((rec, idx) => (
               <li
                 key={idx}
-                className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300"
+                className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300"
               >
                 {rec}
               </li>
@@ -361,7 +361,7 @@ export default function CoachingRepPage() {
             )}
 
             {/* All reps ranking */}
-            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {benchmarks.map((bm) => {
                 const isCurrentRep = bm.user_id === userId;
                 return (
@@ -370,18 +370,18 @@ export default function CoachingRepPage() {
                     className={`flex items-center justify-between px-2 py-2 ${isCurrentRep ? 'rounded bg-blue-50 font-semibold dark:bg-blue-900/10' : ''}`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="w-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                      <span className="w-8 text-center text-sm text-slate-500 dark:text-slate-400">
                         {bm.rank}
                       </span>
-                      <span className="text-sm text-gray-900 dark:text-white">
+                      <span className="text-sm text-slate-900 dark:text-white">
                         {bm.user_name}
                       </span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-sm text-slate-700 dark:text-slate-300">
                         {bm.score}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
                         {formatPercent(bm.percentile)}
                       </span>
                     </div>

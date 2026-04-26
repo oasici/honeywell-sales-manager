@@ -28,7 +28,7 @@ export function ActionNode({ data, selected }: NodeProps) {
       <Handle type="target" position={Position.Top} className="!bg-blue-500 !w-3 !h-3" />
       <div className="text-[10px] font-bold text-blue-600 uppercase mb-1">Aksiyon</div>
       <div className="flex items-center gap-2">
-        <div className="text-sm font-semibold text-gray-900">
+        <div className="text-sm font-semibold text-slate-900">
           {nodeData.label || 'Aksiyon Belirle'}
         </div>
         {actionLabel && (
@@ -37,9 +37,9 @@ export function ActionNode({ data, selected }: NodeProps) {
           </span>
         )}
       </div>
-      {nodeData.title && <div className="text-xs text-gray-500 mt-0.5">{nodeData.title}</div>}
+      {nodeData.title && <div className="text-xs text-slate-500 mt-0.5">{nodeData.title}</div>}
       {nodeData.message && (
-        <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">
+        <div className="text-xs text-slate-400 mt-0.5 truncate max-w-[200px]">
           {nodeData.message}
         </div>
       )}

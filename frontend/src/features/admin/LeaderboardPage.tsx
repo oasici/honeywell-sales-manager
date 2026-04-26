@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Award } from 'lucide-react';
+import { Trophy, Award, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Select } from '../../components/ui/Select';
+import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { leaderboardApi } from '../../lib/api';
 
 import type { LeaderboardEntry, Achievement } from '../../lib/types';
@@ -8,21 +12,25 @@ import type { LeaderboardEntry, Achievement } from '../../lib/types';
 const PERIOD_OPTIONS = [
   { value: 'week', label: 'Hafta' },
   { value: 'month', label: 'Ay' },
-  { value: 'quarter', label: 'Ceyrek' },
-  { value: 'year', label: 'Yil' },
+  { value: 'quarter', label: 'Çeyrek' },
+  { value: 'year', label: 'Yıl' },
 ];
 
 const METRIC_OPTIONS = [
   { value: 'revenue', label: 'Gelir' },
-  { value: 'deals_won', label: 'Kazanilan' },
+  { value: 'deals_won', label: 'Kazanılan' },
   { value: 'activities', label: 'Aktivite' },
   { value: 'response_time', label: 'Cevap Süresi' },
 ];
 
-const RANK_COLORS: Record<number, string> = {
-  1: 'bg-yellow-50 border-yellow-300',
-  2: 'bg-gray-50 border-gray-300',
-  3: 'bg-orange-50 border-orange-300',
+/**
+ * Rank tone — 1st gold, 2nd silver, 3rd bronze. Subtle so the row stays
+ * scannable; the numeral pill carries the tint, not the row background.
+ */
+const PODIUM_TONE: Record<number, string> = {
+  1: 'bg-amber-50 text-amber-800 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-300 dark:ring-amber-900/40',
+  2: 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700',
+  3: 'bg-orange-50 text-orange-800 ring-orange-100 dark:bg-orange-950/30 dark:text-orange-300 dark:ring-orange-900/40',
 };
 
 export default function LeaderboardPage() {
@@ -48,83 +56,80 @@ export default function LeaderboardPage() {
   const achievements = achievementsData?.data ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Trophy size={24} className="text-honeywell-red" />
-        <h1 className="text-2xl font-bold text-gray-900">Sıralama</h1>
-      </div>
+    <div>
+      <PageHeader
+        title="Sıralama"
+        description="Ekip performansı, rozetler ve dönemsel başarı"
+      />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <label htmlFor="period-select" className="text-sm font-medium text-gray-600">
-            Donem:
-          </label>
-          <select
-            id="period-select"
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="w-44">
+          <Select
+            label="Dönem"
+            options={PERIOD_OPTIONS}
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
-          >
-            {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="metric-select" className="text-sm font-medium text-gray-600">
-            Metrik:
-          </label>
-          <select
-            id="metric-select"
+        <div className="w-52">
+          <Select
+            label="Metrik"
+            options={METRIC_OPTIONS}
             value={metric}
             onChange={(e) => setMetric(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
-          >
-            {METRIC_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       </div>
 
-      {/* Leaderboard Table */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+      {/* Leaderboard table */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Sira</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Temsilci</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Değer</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600">Degisim</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-600">Rozetler</th>
+              <tr className="border-b border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900/40">
+                <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">Sıra</th>
+                <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
+                  Temsilci
+                </th>
+                <th className="px-4 py-3 text-right text-overline text-slate-500 dark:text-slate-400">
+                  Değer
+                </th>
+                <th className="px-4 py-3 text-right text-overline text-slate-500 dark:text-slate-400">
+                  Değişim
+                </th>
+                <th className="px-4 py-3 text-center text-overline text-slate-500 dark:text-slate-400">
+                  Rozetler
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                    Yükleniyor...
+                  <td colSpan={5} className="px-4 py-3">
+                    <Skeleton variant="line" count={3} />
                   </td>
                 </tr>
               ) : rankings.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                    Henüz veri yok
+                  <td colSpan={5}>
+                    <EmptyState
+                      variant="compact"
+                      icon={<Trophy size={18} />}
+                      title="Henüz veri yok"
+                    />
                   </td>
                 </tr>
               ) : (
                 rankings.map((entry) => (
                   <tr
                     key={entry.user_id}
-                    className={`border-b border-gray-100 transition-colors hover:bg-gray-50 ${
-                      RANK_COLORS[entry.rank] ?? ''
-                    } ${selectedUserId === entry.user_id ? 'ring-2 ring-honeywell-red/30' : ''}`}
+                    className={[
+                      'cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40',
+                      selectedUserId === entry.user_id
+                        ? 'bg-honeywell-red/4 ring-2 ring-inset ring-honeywell-red/30'
+                        : '',
+                    ].join(' ')}
                     onClick={() => setSelectedUserId(entry.user_id)}
                     role="button"
                     tabIndex={0}
@@ -135,27 +140,35 @@ export default function LeaderboardPage() {
                     }}
                   >
                     <td className="px-4 py-3">
-                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-xs font-bold">
+                      <span
+                        className={[
+                          'inline-flex h-7 min-w-[28px] items-center justify-center rounded-full text-[12px] font-bold tabular-nums ring-1 ring-inset',
+                          PODIUM_TONE[entry.rank] ??
+                            'bg-slate-50 text-slate-500 ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-700',
+                        ].join(' ')}
+                      >
                         {entry.rank}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-honeywell-red/10 text-xs font-bold text-honeywell-red">
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-honeywell-red/10 text-[12px] font-semibold text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
                           {entry.user_name
                             .split(' ')
                             .map((n) => n[0])
                             .join('')
                             .toUpperCase()
                             .slice(0, 2)}
-                        </div>
-                        <span className="font-medium text-gray-900">{entry.user_name}</span>
+                        </span>
+                        <span className="text-[13px] font-medium text-slate-900 dark:text-white">
+                          {entry.user_name}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
                       {formatValue(entry.value, metric)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
                       <DeltaBadge delta={entry.delta_vs_prev_period} metric={metric} />
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -165,9 +178,9 @@ export default function LeaderboardPage() {
                           e.stopPropagation();
                           setSelectedUserId(entry.user_id);
                         }}
-                        className="text-xs text-honeywell-red hover:underline"
+                        className="text-[12px] font-medium text-honeywell-red transition-colors hover:underline"
                       >
-                        Gor
+                        Gör
                       </button>
                     </td>
                   </tr>
@@ -178,27 +191,31 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      {/* Achievement Section */}
+      {/* Achievement panel */}
       {selectedUserId && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <Award size={18} className="text-honeywell-red" />
-            <h2 className="text-lg font-semibold text-gray-900">Kazanilan Rozetler</h2>
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-4 flex items-center gap-2.5">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-900/60">
+              <Award size={14} />
+            </span>
+            <h2 className="text-heading-3 text-slate-900 dark:text-white">Kazanılan Rozetler</h2>
           </div>
           {achievements.length === 0 ? (
-            <p className="text-sm text-gray-400">Henüz rozet kazanilmamis</p>
+            <p className="text-[13px] text-slate-400">Henüz rozet kazanılmamış</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {achievements.map((ach) => (
                 <div
                   key={ach.id}
-                  className="flex flex-col items-center rounded-lg border border-gray-200 bg-gray-50 p-3 text-center"
+                  className="flex flex-col items-center rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-center dark:border-slate-800 dark:bg-slate-900/40"
                 >
-                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-honeywell-red/10">
-                    <Trophy size={18} className="text-honeywell-red" />
-                  </div>
-                  <p className="text-xs font-semibold text-gray-800">{ach.title}</p>
-                  <p className="mt-0.5 text-[10px] text-gray-400">
+                  <span className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-[12px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                    <Trophy size={16} />
+                  </span>
+                  <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100">
+                    {ach.title}
+                  </p>
+                  <p className="mt-0.5 text-[10px] tabular-nums text-slate-400 dark:text-slate-500">
                     {ach.earned_at ? new Date(ach.earned_at).toLocaleDateString('tr-TR') : ''}
                   </p>
                 </div>
@@ -213,15 +230,23 @@ export default function LeaderboardPage() {
 
 function DeltaBadge({ delta, metric }: { delta: number; metric: string }) {
   if (delta === 0) {
-    return <span className="text-xs text-gray-400">-</span>;
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] tabular-nums text-slate-400">
+        <Minus size={11} />—
+      </span>
+    );
   }
   const isPositive = metric === 'response_time' ? delta < 0 : delta > 0;
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-        isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-      }`}
+      className={[
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ring-1 ring-inset',
+        isPositive
+          ? 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40'
+          : 'bg-red-50 text-red-700 ring-red-100 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-900/40',
+      ].join(' ')}
     >
+      {delta > 0 ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
       {delta > 0 ? '+' : ''}
       {formatValue(delta, metric)}
     </span>

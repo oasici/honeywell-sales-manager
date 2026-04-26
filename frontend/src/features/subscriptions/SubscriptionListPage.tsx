@@ -13,7 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   paused: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  expired: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+  expired: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
 };
 
 const STATUS_KEYS: Record<string, TranslationKey> = {
@@ -147,7 +147,7 @@ export default function SubscriptionListPage() {
             className="rounded-xl border p-4"
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
-            <p className="text-xs text-gray-500">{t('subscription.kpi_total_mrr')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.kpi_total_mrr')}</p>
             <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(mrrData.total_mrr, 'TRY')}
             </p>
@@ -156,7 +156,7 @@ export default function SubscriptionListPage() {
             className="rounded-xl border p-4"
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
-            <p className="text-xs text-gray-500">{t('subscription.kpi_active_count')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.kpi_active_count')}</p>
             <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
               {mrrData.active_count}
             </p>
@@ -165,14 +165,14 @@ export default function SubscriptionListPage() {
             className="rounded-xl border p-4"
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
-            <p className="text-xs text-gray-500">{t('subscription.kpi_churn_30')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.kpi_churn_30')}</p>
             <p className="text-xl font-bold text-red-600">{mrrData.churn_count}</p>
           </div>
           <div
             className="rounded-xl border p-4"
             style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
           >
-            <p className="text-xs text-gray-500">{t('subscription.kpi_churn_mrr')}</p>
+            <p className="text-xs text-slate-500">{t('subscription.kpi_churn_mrr')}</p>
             <p className="text-xl font-bold text-red-600">
               {formatCurrency(mrrData.churned_mrr, 'TRY')}
             </p>
@@ -204,8 +204,8 @@ export default function SubscriptionListPage() {
             onClick={() => setTab('all')}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
               tab === 'all'
-                ? 'bg-white shadow text-honeywell-red dark:bg-gray-700'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white shadow text-honeywell-red dark:bg-slate-800'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             {t('subscription.tab_all')}
@@ -215,8 +215,8 @@ export default function SubscriptionListPage() {
             onClick={() => setTab('renewals')}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
               tab === 'renewals'
-                ? 'bg-white shadow text-honeywell-red dark:bg-gray-700'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white shadow text-honeywell-red dark:bg-slate-800'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             {t('subscription.tab_renewals')}
@@ -229,7 +229,7 @@ export default function SubscriptionListPage() {
         </div>
 
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder={t('subscription.search_ph')}
@@ -245,7 +245,7 @@ export default function SubscriptionListPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter size={16} className="text-gray-400" />
+          <Filter size={16} className="text-slate-400" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -272,15 +272,15 @@ export default function SubscriptionListPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left" style={{ borderColor: 'var(--border)' }}>
-              <th className="px-4 py-3 font-medium text-gray-500">{t('subscription.col_name')}</th>
-              <th className="px-4 py-3 font-medium text-gray-500">
+              <th className="px-4 py-3 font-medium text-slate-500">{t('subscription.col_name')}</th>
+              <th className="px-4 py-3 font-medium text-slate-500">
                 {t('subscription.col_status')}
               </th>
-              <th className="px-4 py-3 font-medium text-gray-500">
+              <th className="px-4 py-3 font-medium text-slate-500">
                 {t('subscription.col_period')}
               </th>
-              <th className="px-4 py-3 font-medium text-gray-500">{t('subscription.col_mrr')}</th>
-              <th className="px-4 py-3 font-medium text-gray-500">
+              <th className="px-4 py-3 font-medium text-slate-500">{t('subscription.col_mrr')}</th>
+              <th className="px-4 py-3 font-medium text-slate-500">
                 {t('subscription.col_next_renewal')}
               </th>
             </tr>
@@ -288,14 +288,14 @@ export default function SubscriptionListPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
                   {t('subscription.loading')}
                 </td>
               </tr>
             )}
             {!isLoading && filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
                   {t('subscription.empty')}
                 </td>
               </tr>
@@ -304,7 +304,7 @@ export default function SubscriptionListPage() {
               <tr
                 key={sub.id}
                 onClick={() => navigate(`/subscriptions/${sub.id}`)}
-                className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                 style={{ borderColor: 'var(--border)' }}
               >
                 <td className="px-4 py-3 font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -317,11 +317,11 @@ export default function SubscriptionListPage() {
                     {statusLabel(sub.status)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-500">{cycleLabel(sub.billing_cycle)}</td>
+                <td className="px-4 py-3 text-slate-500">{cycleLabel(sub.billing_cycle)}</td>
                 <td className="px-4 py-3 font-medium" style={{ color: 'var(--text-primary)' }}>
                   {formatCurrency(sub.mrr, sub.currency)}
                 </td>
-                <td className="px-4 py-3 text-gray-500">{sub.next_renewal_date ?? '-'}</td>
+                <td className="px-4 py-3 text-slate-500">{sub.next_renewal_date ?? '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -339,7 +339,7 @@ export default function SubscriptionListPage() {
             </h2>
             <div className="space-y-3">
               <div>
-                <label htmlFor="sub-name" className="mb-1 block text-sm text-gray-500">
+                <label htmlFor="sub-name" className="mb-1 block text-sm text-slate-500">
                   {t('subscription.col_name')}
                 </label>
                 <input
@@ -356,7 +356,7 @@ export default function SubscriptionListPage() {
                 />
               </div>
               <div>
-                <label htmlFor="sub-customer" className="mb-1 block text-sm text-gray-500">
+                <label htmlFor="sub-customer" className="mb-1 block text-sm text-slate-500">
                   {t('subscription.lbl_customer')}
                 </label>
                 <select
@@ -382,7 +382,7 @@ export default function SubscriptionListPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="sub-cycle" className="mb-1 block text-sm text-gray-500">
+                  <label htmlFor="sub-cycle" className="mb-1 block text-sm text-slate-500">
                     {t('subscription.lbl_billing_cycle')}
                   </label>
                   <select
@@ -402,7 +402,7 @@ export default function SubscriptionListPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="sub-start" className="mb-1 block text-sm text-gray-500">
+                  <label htmlFor="sub-start" className="mb-1 block text-sm text-slate-500">
                     {t('subscription.lbl_start_date')}
                   </label>
                   <input
@@ -421,7 +421,7 @@ export default function SubscriptionListPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="sub-mrr" className="mb-1 block text-sm text-gray-500">
+                  <label htmlFor="sub-mrr" className="mb-1 block text-sm text-slate-500">
                     {t('subscription.lbl_mrr')}
                   </label>
                   <input
@@ -440,7 +440,7 @@ export default function SubscriptionListPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="sub-currency" className="mb-1 block text-sm text-gray-500">
+                  <label htmlFor="sub-currency" className="mb-1 block text-sm text-slate-500">
                     {t('subscription.lbl_currency')}
                   </label>
                   <select
@@ -466,9 +466,9 @@ export default function SubscriptionListPage() {
                   type="checkbox"
                   checked={form.auto_renew}
                   onChange={(e) => setForm({ ...form, auto_renew: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300"
+                  className="h-4 w-4 rounded border-slate-200"
                 />
-                <label htmlFor="sub-autorenew" className="text-sm text-gray-500">
+                <label htmlFor="sub-autorenew" className="text-sm text-slate-500">
                   {t('subscription.lbl_auto_renew')}
                 </label>
               </div>
@@ -477,7 +477,7 @@ export default function SubscriptionListPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               >
                 {t('subscription.btn_discard')}

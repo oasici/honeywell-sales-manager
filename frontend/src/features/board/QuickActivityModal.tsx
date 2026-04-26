@@ -116,12 +116,12 @@ export default function QuickActivityModal({
   }
 
   const inputClass =
-    'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-honeywell-red/30';
+    'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-honeywell-red/30';
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={t('activity.title')} size="md">
       {/* Tab selector */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+      <div className="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
         {TAB_DEFS.map((tab) => (
           <button
             key={tab.key}
@@ -132,8 +132,8 @@ export default function QuickActivityModal({
             }}
             className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             {t(tab.labelKey)}
@@ -146,7 +146,7 @@ export default function QuickActivityModal({
         <div>
           <label
             htmlFor="activity-summary"
-            className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+            className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
           >
             {t('activity.summary')}
           </label>
@@ -167,7 +167,7 @@ export default function QuickActivityModal({
               <div>
                 <label
                   htmlFor="call-duration"
-                  className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   {t('activity.duration_min')}
                 </label>
@@ -184,7 +184,7 @@ export default function QuickActivityModal({
               <div>
                 <label
                   htmlFor="call-outcome"
-                  className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   {t('activity.outcome')}
                 </label>
@@ -213,7 +213,7 @@ export default function QuickActivityModal({
               <div>
                 <label
                   htmlFor="meeting-duration"
-                  className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   {t('activity.duration_min')}
                 </label>
@@ -230,7 +230,7 @@ export default function QuickActivityModal({
               <div>
                 <label
                   htmlFor="meeting-outcome"
-                  className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                  className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
                 >
                   {t('activity.outcome')}
                 </label>
@@ -252,7 +252,7 @@ export default function QuickActivityModal({
             <div>
               <label
                 htmlFor="meeting-attendees"
-                className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
               >
                 {t('activity.attendees')}
               </label>
@@ -268,7 +268,7 @@ export default function QuickActivityModal({
             <div>
               <label
                 htmlFor="meeting-agenda"
-                className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400"
+                className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
               >
                 {t('activity.agenda')}
               </label>

@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Plus, BookOpen, Trash2 } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -99,33 +100,46 @@ export default function PlaybookListPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <PageHeader title="Playbook'lar" description="Satış sureci playbook yönetimi" />
+      <div>
+        <PageHeader title="Playbook'lar" description="Satış süreci playbook yönetimi" />
         <Skeleton variant="card" count={3} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="Playbook'lar" description="Satış sureci playbook yönetimi">
-        <Button onClick={() => setShowCreate(true)}>Yeni Playbook</Button>
+    <div>
+      <PageHeader title="Playbook'lar" description="Satış süreci playbook yönetimi">
+        <Button onClick={() => setShowCreate(true)}>
+          <Plus size={14} />
+          Yeni Playbook
+        </Button>
       </PageHeader>
 
       {playbooks.length === 0 ? (
-        <Card>
+        <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
           <EmptyState
+            variant="default"
+            icon={<BookOpen size={20} />}
             title="Henüz playbook bulunmuyor"
-            description="Yeni bir playbook olusturarak baslayabilirsiniz."
-            action={<Button onClick={() => setShowCreate(true)}>Yeni Playbook</Button>}
+            description="Yeni bir playbook oluşturarak başlayabilirsiniz."
+            action={
+              <Button onClick={() => setShowCreate(true)} variant="secondary">
+                <Plus size={14} />
+                Yeni Playbook
+              </Button>
+            }
           />
-        </Card>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {playbooks.map((pb) => (
-            <Card key={pb.id}>
+            <div
+              key={pb.id}
+              className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) dark:border-slate-800 dark:bg-slate-900"
+            >
               <div
-                className="flex flex-col gap-3 p-4 cursor-pointer"
+                className="flex flex-1 flex-col gap-3 cursor-pointer"
                 onClick={() => navigate(`/playbooks/${pb.id}`)}
                 role="button"
                 tabIndex={0}
@@ -133,63 +147,88 @@ export default function PlaybookListPage() {
                   if (e.key === 'Enter' || e.key === ' ') navigate(`/playbooks/${pb.id}`);
                 }}
               >
-                <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-gray-900 dark:text-white hover:underline">
-                    {pb.name}
-                  </h3>
-                  <Badge variant={pb.is_active ? 'success' : 'default'}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                      <BookOpen size={14} />
+                    </span>
+                    <h3 className="truncate text-[14px] font-semibold text-slate-900 dark:text-white">
+                      {pb.name}
+                    </h3>
+                  </div>
+                  <Badge variant={pb.is_active ? 'success' : 'default'} size="sm" dot>
                     {pb.is_active ? 'Aktif' : 'Pasif'}
                   </Badge>
                 </div>
 
                 {pb.description && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                  <p className="line-clamp-2 text-[13px] text-slate-500 dark:text-slate-400">
                     {pb.description}
                   </p>
                 )}
 
                 <div className="flex items-center gap-2">
                   {pb.category && (
-                    <Badge variant={CATEGORY_COLORS[pb.category] ?? 'default'}>
+                    <Badge variant={CATEGORY_COLORS[pb.category] ?? 'default'} size="sm">
                       {translatePlaybookCategory(pb.category, t)}
                     </Badge>
                   )}
-                  <span className="text-xs text-gray-400">{formatDateTime(pb.created_at)}</span>
-                </div>
-
-                <div
-                  className="flex items-center gap-2 pt-1 border-t border-gray-100 dark:border-gray-700"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleMutation.mutate({ id: pb.id, isActive: pb.is_active });
-                    }}
-                  >
-                    {pb.is_active ? 'Pasife Al' : 'Aktif Et'}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteMutation.mutate(pb.id);
-                    }}
-                  >
-                    Sil
-                  </Button>
+                  <span className="text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
+                    {formatDateTime(pb.created_at)}
+                  </span>
                 </div>
               </div>
-            </Card>
+
+              <div
+                className="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-3 dark:border-slate-800"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleMutation.mutate({ id: pb.id, isActive: pb.is_active });
+                  }}
+                >
+                  {pb.is_active ? 'Pasife Al' : 'Aktif Et'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteMutation.mutate(pb.id);
+                  }}
+                  aria-label="Sil"
+                  className="ml-auto"
+                >
+                  <Trash2 size={13} className="text-red-500" />
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Yeni Playbook Oluştur">
+      <Modal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Yeni Playbook Oluştur"
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowCreate(false)} type="button">
+              İptal
+            </Button>
+            <Button type="submit" form="playbook-create-form" loading={createMutation.isPending}>
+              Oluştur
+            </Button>
+          </>
+        }
+      >
         <form
+          id="playbook-create-form"
           onSubmit={(e) => {
             e.preventDefault();
             createMutation.mutate({
@@ -198,7 +237,7 @@ export default function PlaybookListPage() {
               steps_json: JSON.stringify(formSteps),
             });
           }}
-          className="space-y-3"
+          className="space-y-4"
         >
           <Input
             label="Ad"
@@ -211,39 +250,27 @@ export default function PlaybookListPage() {
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
+          <Select
+            label="Kategori"
+            options={[
+              { value: 'retention', label: 'Elde Tutma' },
+              { value: 'growth', label: 'Büyüme' },
+              { value: 'pipeline', label: 'Pipeline' },
+            ]}
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+          />
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Kategori
-            </label>
-            <select
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            >
-              <option value="retention">Elde Tutma</option>
-              <option value="growth">Buyume</option>
-              <option value="pipeline">Pipeline</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Tetikleme Kosullari
+            <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+              Tetikleme Koşulları
             </label>
             <ConditionBuilder conditions={triggerConditions} onChange={setTriggerConditions} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
               Adımlar
             </label>
             <StepBuilder steps={formSteps} onChange={setFormSteps} />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setShowCreate(false)} type="button">
-              İptal
-            </Button>
-            <Button type="submit" loading={createMutation.isPending}>
-              Oluştur
-            </Button>
           </div>
         </form>
       </Modal>

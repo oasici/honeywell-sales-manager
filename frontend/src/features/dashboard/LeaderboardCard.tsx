@@ -1,25 +1,29 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Trophy } from 'lucide-react';
+import { Trophy, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { leaderboardApi } from '../../lib/api';
+import { Button } from '../../components/ui/Button';
 
 import type { LeaderboardEntry } from '../../lib/types';
 
 const METRIC_OPTIONS = [
   { value: 'revenue', label: 'Gelir' },
-  { value: 'deals_won', label: 'Kazanilan' },
+  { value: 'deals_won', label: 'Kazanılan' },
   { value: 'activities', label: 'Aktivite' },
   { value: 'response_time', label: 'Cevap Süresi' },
 ];
 
-const PODIUM_COLORS = [
-  'bg-yellow-100 text-yellow-800 border-yellow-300',
-  'bg-gray-100 text-gray-700 border-gray-300',
-  'bg-orange-100 text-orange-800 border-orange-300',
+/**
+ * Podium tone: rank 1 (gold), 2 (silver), 3 (bronze) — kept *very* subtle to
+ * sit inside a card without screaming "achievement page". The numeral pill
+ * carries the tint; the row itself stays neutral.
+ */
+const PODIUM_TONE: Array<{ pill: string; numeral: string }> = [
+  { pill: 'bg-amber-50 text-amber-800 ring-amber-100', numeral: 'text-amber-600' },
+  { pill: 'bg-slate-100 text-slate-700 ring-slate-200', numeral: 'text-slate-500' },
+  { pill: 'bg-orange-50 text-orange-800 ring-orange-100', numeral: 'text-orange-600' },
 ];
-
-const PODIUM_LABELS = ['1.', '2.', '3.'];
 
 const TOP_COUNT = 3;
 
@@ -36,17 +40,17 @@ export function LeaderboardCard() {
   const topThree = data?.data?.slice(0, TOP_COUNT) ?? [];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
-          <Trophy size={16} />
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center justify-between px-5 pb-3 pt-5">
+        <h3 className="flex items-center gap-2 text-overline text-slate-500 dark:text-slate-400">
+          <Trophy size={14} className="text-amber-500" />
           Sıralama
         </h3>
         <select
           value={metric}
           onChange={(e) => setMetric(e.target.value)}
-          className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 focus:border-honeywell-red focus:outline-none"
-          aria-label="Metrik secimi"
+          aria-label="Metrik seçimi"
+          className="h-7 rounded-[8px] border border-slate-200 bg-white px-2 text-[12px] font-medium text-slate-700 transition-colors focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
         >
           {METRIC_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -57,51 +61,79 @@ export function LeaderboardCard() {
       </div>
 
       {topThree.length === 0 ? (
-        <p className="text-sm text-gray-400">Henüz veri yok</p>
+        <p className="px-5 pb-5 text-[13px] text-slate-400">Henüz veri yok</p>
       ) : (
-        <div className="space-y-2">
-          {topThree.map((entry, idx) => (
-            <div
-              key={entry.user_id}
-              className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${PODIUM_COLORS[idx]}`}
-            >
-              <span className="text-sm font-bold">{PODIUM_LABELS[idx]}</span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 text-xs font-bold">
-                {entry.user_name
-                  .split(' ')
-                  .map((n) => n[0])
-                  .join('')
-                  .toUpperCase()
-                  .slice(0, 2)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{entry.user_name}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-bold">{formatValue(entry.value, metric)}</p>
-                {entry.delta_vs_prev_period !== 0 && (
-                  <p
-                    className={`text-xs ${
-                      entry.delta_vs_prev_period > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {entry.delta_vs_prev_period > 0 ? '+' : ''}
-                    {formatValue(entry.delta_vs_prev_period, metric)}
+        <ul className="divide-y divide-slate-100 px-2 dark:divide-slate-800">
+          {topThree.map((entry, idx) => {
+            const tone = PODIUM_TONE[idx];
+            const initials = entry.user_name
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2);
+            const delta = entry.delta_vs_prev_period;
+            return (
+              <li
+                key={entry.user_id}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
+              >
+                <span
+                  className={[
+                    'inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold ring-1 ring-inset',
+                    tone.pill,
+                  ].join(' ')}
+                >
+                  {idx + 1}
+                </span>
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  {initials}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium text-slate-900 dark:text-white">
+                    {entry.user_name}
                   </p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
+                    {formatValue(entry.value, metric)}
+                  </p>
+                  <p
+                    className={[
+                      'mt-0.5 flex items-center justify-end gap-0.5 text-[11px] font-medium tabular-nums',
+                      delta > 0
+                        ? 'text-emerald-600'
+                        : delta < 0
+                          ? 'text-red-600'
+                          : 'text-slate-400',
+                    ].join(' ')}
+                  >
+                    {delta > 0 ? (
+                      <ArrowUp size={11} />
+                    ) : delta < 0 ? (
+                      <ArrowDown size={11} />
+                    ) : (
+                      <Minus size={11} />
+                    )}
+                    {delta === 0 ? '—' : formatValue(Math.abs(delta), metric)}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
-      <button
-        onClick={() => navigate('/leaderboard')}
-        className="mt-3 w-full rounded-lg border border-gray-200 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700"
-        type="button"
-      >
-        Tam Liste
-      </button>
+      <div className="border-t border-slate-100 px-3 py-2 dark:border-slate-800">
+        <Button
+          variant="tertiary"
+          size="sm"
+          onClick={() => navigate('/leaderboard')}
+          className="w-full justify-center"
+        >
+          Tam Liste
+        </Button>
+      </div>
     </div>
   );
 }

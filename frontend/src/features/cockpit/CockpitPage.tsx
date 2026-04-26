@@ -21,6 +21,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import {
   cockpitApi,
   playbookApi,
@@ -109,9 +110,9 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
+          <Skeleton key={i} className="h-[104px] rounded-2xl" />
         ))}
       </div>
     );
@@ -119,15 +120,27 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
 
   if (!data) return null;
 
+  // Linear/Stripe-style KPI tile: 11/600 uppercase eyebrow with icon, then a
+  // big tabular-nums value (28/700). The 28px value is what makes the tile
+  // feel like a "metric" instead of a tag — the original 20px was too quiet.
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {kpis.map((kpi) => (
-        <div key={kpi.label} className="card-modern flex flex-col gap-2 px-5 py-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-            {kpi.icon}
-            {kpi.label}
+        <div
+          key={kpi.label}
+          className="card-modern flex flex-col gap-2 px-5 py-4 transition-shadow hover:shadow-sm"
+        >
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-50 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/50 dark:ring-slate-800">
+              {kpi.icon}
+            </span>
+            <span className="truncate text-overline text-slate-500 dark:text-slate-400">
+              {kpi.label}
+            </span>
           </div>
-          <span className="text-xl font-bold text-gray-900 dark:text-white">{kpi.value}</span>
+          <span className="text-[28px] font-bold leading-none tracking-tight text-slate-900 tabular-nums dark:text-white">
+            {kpi.value}
+          </span>
         </div>
       ))}
     </div>
@@ -174,7 +187,7 @@ function SignalStream() {
         <select
           value={severityFilter}
           onChange={(e) => setSeverityFilter(e.target.value)}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
         >
           <option value="all">{t('cockpit.filter_all')}</option>
           <option value="critical">{t('cockpit.severity_critical')}</option>
@@ -187,28 +200,35 @@ function SignalStream() {
       {isLoading ? (
         <Skeleton variant="line" count={5} />
       ) : signals.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">{t('cockpit.signal_empty')}</p>
+        <EmptyState
+          variant="compact"
+          icon={<Activity size={22} />}
+          title={t('cockpit.signal_empty')}
+          description="Şu an aktif bir uyarı yok. Yeni gelişmeler burada listelenecek."
+        />
       ) : (
-        <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+        <div className="max-h-[420px] divide-y divide-slate-100 overflow-y-auto pr-1 dark:divide-slate-800">
           {signals.map((signal) => (
             <div
               key={signal.id}
-              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+              className="group flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <Badge variant={SEVERITY_VARIANT[signal.severity] ?? 'default'} size="sm">
+                  <Badge variant={SEVERITY_VARIANT[signal.severity] ?? 'default'} size="sm" dot>
                     {severityLabel[signal.severity as keyof typeof severityLabel] ??
                       signal.severity}
                   </Badge>
-                  <span className="text-xs text-gray-400">{signal.signal_type}</span>
+                  <span className="text-caption text-slate-400">{signal.signal_type}</span>
                 </div>
                 {signal.recommended_action && (
-                  <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                  <p className="mt-1.5 text-body text-slate-700 dark:text-slate-300">
                     {signal.recommended_action}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-gray-400">{formatDateTime(signal.created_at)}</p>
+                <p className="mt-1 text-caption text-slate-400">
+                  {formatDateTime(signal.created_at)}
+                </p>
               </div>
               {!signal.is_resolved && (
                 <Button
@@ -217,6 +237,7 @@ function SignalStream() {
                   onClick={() => resolveMutation.mutate(signal.id)}
                   loading={resolveMutation.isPending}
                   title={t('cockpit.resolve_title')}
+                  className="opacity-0 transition-opacity group-hover:opacity-100"
                 >
                   <CheckCircle2 size={16} />
                 </Button>
@@ -302,13 +323,13 @@ function ActionQueue() {
       {isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : actions.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">{t('cockpit.no_pending_tasks')}</p>
+        <p className="py-8 text-center text-sm text-slate-400">{t('cockpit.no_pending_tasks')}</p>
       ) : (
         <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
           {actions.map((action) => (
             <div
               key={action.id}
-              className="rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+              className="rounded-lg border border-slate-100 p-3 dark:border-slate-800"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -346,21 +367,21 @@ function ActionQueue() {
                   </Button>
                 )}
               </div>
-              <p className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-200">
+              <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
                 {action.title}
               </p>
               {action.description && (
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                   {action.description}
                 </p>
               )}
               {action.last_activity_at && (
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-slate-400">
                   son aktivite: {formatDateTime(action.last_activity_at)}
                 </p>
               )}
               {action.due_at && (
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-slate-400">
                   {t('cockpit.due_prefix')} {formatDate(action.due_at)}
                 </p>
               )}
@@ -424,7 +445,7 @@ function RiskyAccountsPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : items.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">
+        <p className="py-6 text-center text-sm text-slate-400">
           Risk profili yüklenemedi veya uygun hesap bulunamadı.
         </p>
       ) : (
@@ -432,11 +453,11 @@ function RiskyAccountsPanel() {
           {items.map((row) => (
             <div
               key={row.customer_id}
-              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+              className="flex items-start justify-between gap-3 rounded-lg border border-slate-100 p-3 dark:border-slate-800"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                  <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                     {row.customer_name}
                   </span>
                   <Badge variant={riskVariant(row.health_risk_level)} size="sm">
@@ -444,15 +465,15 @@ function RiskyAccountsPanel() {
                   </Badge>
                 </div>
                 {row.company && (
-                  <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                     {row.company}
                   </p>
                 )}
-                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-600 dark:text-gray-300">
-                  <span className="rounded-md bg-gray-100 px-2 py-0.5 font-semibold dark:bg-gray-800">
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+                  <span className="rounded-md bg-slate-100 px-2 py-0.5 font-semibold dark:bg-slate-800">
                     {row.active_opportunities} açık fırsat
                   </span>
-                  <span className="rounded-md bg-gray-100 px-2 py-0.5 font-semibold dark:bg-gray-800">
+                  <span className="rounded-md bg-slate-100 px-2 py-0.5 font-semibold dark:bg-slate-800">
                     {formatCurrency(row.pipeline_total, 'TRY')} pipeline
                   </span>
                   {row.open_tasks_count > 0 && (
@@ -467,7 +488,7 @@ function RiskyAccountsPanel() {
                   )}
                 </div>
                 {row.last_activity_at && (
-                  <p className="mt-2 text-xs text-gray-400">
+                  <p className="mt-2 text-xs text-slate-400">
                     son aktivite: {formatDateTime(row.last_activity_at)}
                   </p>
                 )}
@@ -503,7 +524,7 @@ function TrendCharts() {
       {isLoading ? (
         <Skeleton className="h-64 rounded-xl" />
       ) : chartData.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">{t('cockpit.no_trend')}</p>
+        <p className="py-8 text-center text-sm text-slate-400">{t('cockpit.no_trend')}</p>
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData}>
@@ -565,21 +586,21 @@ function PlaybookPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : executions.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_active_playbook')}</p>
+        <p className="py-6 text-center text-sm text-slate-400">{t('cockpit.no_active_playbook')}</p>
       ) : (
         <div className="space-y-2">
           {executions.map((exec) => (
             <div
               key={exec.id}
-              className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3 dark:border-gray-700"
+              className="flex items-center justify-between rounded-lg border border-slate-100 px-4 py-3 dark:border-slate-800"
             >
               <div className="flex items-center gap-3">
                 <Play size={16} className="text-green-500" />
                 <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                     {exec.playbook_name}
                   </p>
-                  <p className="text-xs text-gray-400">{formatDateTime(exec.started_at)}</p>
+                  <p className="text-xs text-slate-400">{formatDateTime(exec.started_at)}</p>
                 </div>
               </div>
               <Button
@@ -620,22 +641,22 @@ function CoachingPanel() {
       {isLoading ? (
         <Skeleton variant="table" />
       ) : !data || data.reps.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.data_not_found')}</p>
+        <p className="py-6 text-center text-sm text-slate-400">{t('cockpit.data_not_found')}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">
+              <tr className="border-b border-slate-200 dark:border-slate-800">
+                <th className="pb-2 font-medium text-slate-500 dark:text-slate-400">
                   {t('cockpit.col_rep')}
                 </th>
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">
+                <th className="pb-2 font-medium text-slate-500 dark:text-slate-400">
                   {t('cockpit.col_score')}
                 </th>
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">
+                <th className="pb-2 font-medium text-slate-500 dark:text-slate-400">
                   {t('cockpit.col_risk')}
                 </th>
-                <th className="pb-2 font-medium text-gray-500 dark:text-gray-400">
+                <th className="pb-2 font-medium text-slate-500 dark:text-slate-400">
                   {t('cockpit.col_recommendations')}
                 </th>
               </tr>
@@ -644,18 +665,18 @@ function CoachingPanel() {
               {data.reps.map((rep) => (
                 <tr
                   key={rep.user_id}
-                  className="border-b border-gray-100 last:border-0 dark:border-gray-700"
+                  className="border-b border-slate-100 last:border-0 dark:border-slate-800"
                 >
-                  <td className="py-2 font-medium text-gray-800 dark:text-gray-200">
+                  <td className="py-2 font-medium text-slate-800 dark:text-slate-200">
                     {rep.user_name}
                   </td>
-                  <td className="py-2 text-gray-700 dark:text-gray-300">{rep.score.toFixed(0)}</td>
+                  <td className="py-2 text-slate-700 dark:text-slate-300">{rep.score.toFixed(0)}</td>
                   <td className="py-2">
                     <Badge variant={riskVariant(rep.risk_level)} size="sm">
                       {rep.risk_level}
                     </Badge>
                   </td>
-                  <td className="py-2 text-xs text-gray-500 dark:text-gray-400">
+                  <td className="py-2 text-xs text-slate-500 dark:text-slate-400">
                     {rep.recommendations.slice(0, 2).join('; ')}
                   </td>
                 </tr>
@@ -710,7 +731,7 @@ function CompetitiveIntelPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : competitors.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_comp_mentions')}</p>
+        <p className="py-6 text-center text-sm text-slate-400">{t('cockpit.no_comp_mentions')}</p>
       ) : (
         <div className="space-y-3">
           {competitors
@@ -727,12 +748,12 @@ function CompetitiveIntelPanel() {
                 return (
                   <div
                     key={compName}
-                    className="rounded-lg border border-gray-100 dark:border-gray-700 px-4 py-3"
+                    className="rounded-lg border border-slate-100 dark:border-slate-800 px-4 py-3"
                   >
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <Swords size={14} className="text-red-400" />
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-white">
                           {compName}
                         </span>
                       </div>
@@ -741,7 +762,7 @@ function CompetitiveIntelPanel() {
                       </Badge>
                     </div>
                     {comp.sentiment_avg != null && (
-                      <p className="text-xs text-gray-500 mb-1">
+                      <p className="text-xs text-slate-500 mb-1">
                         {t('cockpit.sentiment')}{' '}
                         {comp.sentiment_avg > 0
                           ? t('cockpit.sentiment_positive')
@@ -751,7 +772,7 @@ function CompetitiveIntelPanel() {
                       </p>
                     )}
                     {comp.recent_mentions?.slice(0, 1).map((m, i) => (
-                      <p key={i} className="text-xs text-gray-400 truncate">
+                      <p key={i} className="text-xs text-slate-400 truncate">
                         [{m.source_type}] {m.context_snippet}
                       </p>
                     ))}
@@ -783,7 +804,7 @@ function AtRiskDealsPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : deals.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_at_risk')}</p>
+        <p className="py-6 text-center text-sm text-slate-400">{t('cockpit.no_at_risk')}</p>
       ) : (
         <div className="space-y-2">
           {deals
@@ -799,14 +820,14 @@ function AtRiskDealsPanel() {
                   key={deal.opportunity_id}
                   type="button"
                   onClick={() => navigate(`/opportunities/${deal.opportunity_id}`)}
-                  className="flex w-full items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex w-full items-center justify-between rounded-lg border border-slate-100 dark:border-slate-800 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <ShieldAlert
                       size={14}
                       className={deal.score < 30 ? 'text-red-500' : 'text-amber-500'}
                     />
-                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
                       {deal.title}
                     </span>
                   </div>
@@ -862,7 +883,7 @@ function ActivityDroughtPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : items.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_drought')}</p>
+        <p className="py-6 text-center text-sm text-slate-400">{t('cockpit.no_drought')}</p>
       ) : (
         <div className="space-y-2">
           {items.slice(0, 7).map((item) => (
@@ -870,7 +891,7 @@ function ActivityDroughtPanel() {
               key={item.id}
               type="button"
               onClick={() => navigate(`/opportunities/${item.id}`)}
-              className="flex w-full items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex w-full items-center justify-between rounded-lg border border-slate-100 dark:border-slate-800 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Clock
@@ -878,10 +899,10 @@ function ActivityDroughtPanel() {
                   className={item.days_since_last > 14 ? 'text-red-500' : 'text-amber-500'}
                 />
                 <div className="min-w-0 text-left">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white truncate block">
+                  <span className="text-sm font-medium text-slate-900 dark:text-white truncate block">
                     {item.title}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-slate-400">
                     {item.owner_name} -{' '}
                     {stageLabels[item.stage as keyof typeof stageLabels] || item.stage}
                   </span>
@@ -926,7 +947,7 @@ function RevenueLeakPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={3} />
       ) : !leaks || leaks.items.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">{t('cockpit.no_leak')}</p>
+        <p className="py-6 text-center text-sm text-slate-400">{t('cockpit.no_leak')}</p>
       ) : (
         <div>
           <div className="mb-3 flex items-center gap-3">
@@ -943,13 +964,13 @@ function RevenueLeakPanel() {
                 key={item.opportunity_id}
                 type="button"
                 onClick={() => navigate(`/opportunities/${item.opportunity_id}`)}
-                className="flex w-full items-start justify-between rounded-lg border border-gray-100 dark:border-gray-700 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex w-full items-start justify-between rounded-lg border border-slate-100 dark:border-slate-800 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
                     {item.title}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-slate-400 mt-0.5">
                     {item.owner_name} -{' '}
                     {stageLabels[item.stage as keyof typeof stageLabels] || item.stage}
                   </p>
@@ -962,7 +983,7 @@ function RevenueLeakPanel() {
                   </div>
                 </div>
                 <div className="ml-3 flex flex-col items-end gap-1">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
                     {formatCurrency(item.amount, 'TRY')}
                   </span>
                   <span
@@ -1030,12 +1051,12 @@ function SequencesTab() {
   if (!isManager) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400">{t('cockpit.seq_manager_only')}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('cockpit.seq_manager_only')}</p>
         <Card
           title={t('cockpit.seq_active_title').replace('{count}', String(activeEnrollments.length))}
         >
           {activeEnrollments.length === 0 ? (
-            <p className="text-sm text-gray-400">{t('cockpit.seq_no_enrollment')}</p>
+            <p className="text-sm text-slate-400">{t('cockpit.seq_no_enrollment')}</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {activeEnrollments.slice(0, 15).map((e: Record<string, unknown>) => (
@@ -1047,7 +1068,7 @@ function SequencesTab() {
                     <span className="font-medium">
                       {t('cockpit.seq_enrollment').replace('{id}', String(e.id as number))}
                     </span>
-                    <span className="text-gray-500 ml-2">
+                    <span className="text-slate-500 ml-2">
                       {t('cockpit.seq_step').replace('{step}', String(e.current_step as number))}
                     </span>
                   </div>
@@ -1068,16 +1089,16 @@ function SequencesTab() {
       {/* Analytics KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">{t('cockpit.seq_avg_touch')}</div>
+          <div className="text-xs text-slate-500">{t('cockpit.seq_avg_touch')}</div>
           <div className="text-xl font-semibold">{analytics.avg_touches_per_target ?? '-'}</div>
         </div>
         <div className="rounded-lg border p-3">
-          <div className="text-xs text-gray-500">{t('cockpit.seq_total_runs')}</div>
+          <div className="text-xs text-slate-500">{t('cockpit.seq_total_runs')}</div>
           <div className="text-xl font-semibold">{analytics.total_step_runs ?? 0}</div>
         </div>
         {Object.entries(analytics.status_distribution || {}).map(([status, count]) => (
           <div key={status} className="rounded-lg border p-3">
-            <div className="text-xs text-gray-500 capitalize">{status}</div>
+            <div className="text-xs text-slate-500 capitalize">{status}</div>
             <div className="text-xl font-semibold">{count as number}</div>
           </div>
         ))}
@@ -1099,12 +1120,12 @@ function SequencesTab() {
 
       <Card title={t('cockpit.seq_perf_title')}>
         {perfSequences.length === 0 ? (
-          <p className="text-sm text-gray-400">{t('cockpit.seq_perf_empty')}</p>
+          <p className="text-sm text-slate-400">{t('cockpit.seq_perf_empty')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead>
-                <tr className="border-b text-xs text-gray-500">
+                <tr className="border-b text-xs text-slate-500">
                   <th className="py-2 pr-3 font-medium">{t('cockpit.seq_perf_col_name')}</th>
                   <th className="py-2 pr-3 font-medium text-right">
                     {t('cockpit.seq_perf_col_total')}
@@ -1125,12 +1146,12 @@ function SequencesTab() {
                 {perfSequences.map((row) => (
                   <tr
                     key={String(row.sequence_id)}
-                    className="border-b border-gray-100 dark:border-gray-800"
+                    className="border-b border-slate-100 dark:border-slate-800"
                   >
-                    <td className="py-2 pr-3 font-medium text-gray-900 dark:text-white">
+                    <td className="py-2 pr-3 font-medium text-slate-900 dark:text-white">
                       {String(row.name)}
                       {!row.is_active ? (
-                        <span className="ml-2 text-xs font-normal text-gray-400">
+                        <span className="ml-2 text-xs font-normal text-slate-400">
                           ({t('opp_detail.inactive')})
                         </span>
                       ) : null}
@@ -1163,7 +1184,7 @@ function SequencesTab() {
         title={t('cockpit.seq_active_title').replace('{count}', String(activeEnrollments.length))}
       >
         {activeEnrollments.length === 0 ? (
-          <p className="text-sm text-gray-400">{t('cockpit.seq_no_enrollment')}</p>
+          <p className="text-sm text-slate-400">{t('cockpit.seq_no_enrollment')}</p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {activeEnrollments.slice(0, 15).map((e: Record<string, unknown>) => (
@@ -1175,7 +1196,7 @@ function SequencesTab() {
                   <span className="font-medium">
                     {t('cockpit.seq_enrollment').replace('{id}', String(e.id as number))}
                   </span>
-                  <span className="text-gray-500 ml-2">
+                  <span className="text-slate-500 ml-2">
                     {t('cockpit.seq_step').replace('{step}', String(e.current_step as number))}
                   </span>
                 </div>
@@ -1225,26 +1246,26 @@ function MomentumDeclinePanel() {
       {isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">Düşen momentum yok</p>
+        <p className="py-8 text-center text-sm text-slate-400">Düşen momentum yok</p>
       ) : (
         <div className="space-y-3">
           {items.map((o) => (
             <div
               key={o.id}
-              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+              className="flex items-start justify-between gap-3 rounded-lg border border-slate-100 p-3 dark:border-slate-800"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={bandVariant(o.momentum_band)} size="sm">
                     {o.momentum_band ?? 'unknown'} • {o.momentum_score ?? '-'}
                   </Badge>
-                  <span className="text-xs text-gray-400">{o.stage}</span>
+                  <span className="text-xs text-slate-400">{o.stage}</span>
                 </div>
-                <p className="mt-1 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                <p className="mt-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
                   {o.title}
                 </p>
                 {o.drivers?.[0]?.label && (
-                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                     {o.drivers[0].label}
                   </p>
                 )}
@@ -1283,13 +1304,13 @@ function StallingDealsPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">Stalling deal yok</p>
+        <p className="py-8 text-center text-sm text-slate-400">Stalling deal yok</p>
       ) : (
         <div className="space-y-3">
           {items.map((o) => (
             <div
               key={o.id}
-              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+              className="flex items-start justify-between gap-3 rounded-lg border border-slate-100 p-3 dark:border-slate-800"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1307,10 +1328,10 @@ function StallingDealsPanel() {
                     </Badge>
                   )}
                 </div>
-                <p className="mt-1 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                <p className="mt-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
                   {o.title}
                 </p>
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                   stage: {o.stage} • meetings(30g): {o.meeting_count_30d} • replies(14g):{' '}
                   {o.buyer_reply_count_14d}
                 </p>
@@ -1344,26 +1365,26 @@ function DecisionGapsPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">Gap yok</p>
+        <p className="py-8 text-center text-sm text-slate-400">Gap yok</p>
       ) : (
         <div className="space-y-3">
           {items.map((g: any) => (
             <div
               key={g.id}
-              className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+              className="flex items-start justify-between gap-3 rounded-lg border border-slate-100 p-3 dark:border-slate-800"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={SEVERITY_VARIANT[g.severity] ?? 'default'} size="sm">
                     {g.severity}
                   </Badge>
-                  <span className="text-xs text-gray-400">{g.gap_type}</span>
+                  <span className="text-xs text-slate-400">{g.gap_type}</span>
                 </div>
-                <p className="mt-1 truncate text-sm font-medium text-gray-800 dark:text-gray-200">
+                <p className="mt-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
                   {g.title}
                 </p>
                 {g.recommended_action && (
-                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                     {g.recommended_action}
                   </p>
                 )}
@@ -1396,23 +1417,23 @@ function SegmentBenchmarksPanel() {
       {isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-400">Benchmark yok</p>
+        <p className="py-8 text-center text-sm text-slate-400">Benchmark yok</p>
       ) : (
         <div className="space-y-3">
           {items.map((s: any) => (
             <div
               key={s.segment_key}
-              className="rounded-lg border border-gray-100 p-3 dark:border-gray-700"
+              className="rounded-lg border border-slate-100 p-3 dark:border-slate-800"
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {s.segment_key}
                 </p>
                 <Badge variant="default" size="sm">
                   n={s.sample_size}
                 </Badge>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
                 <div>followup median: {s.followup_median_days ?? '-'}</div>
                 <div>avg discount: {s.avg_discount_pct ?? '-'}</div>
                 <div>avg stakeholders: {s.avg_stakeholder_count ?? '-'}</div>
@@ -1473,7 +1494,7 @@ export default function CockpitPage() {
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition ${
                   activeTab === tab.key
                     ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <Icon className="w-4 h-4" />

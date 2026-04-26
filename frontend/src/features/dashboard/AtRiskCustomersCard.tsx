@@ -1,13 +1,32 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { customerHealthApi } from '../../lib/api';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
 import type { AtRiskResponse } from '../../lib/types';
 
-function getScoreColor(score: number): string {
-  if (score >= 70) return '#10b981';
-  if (score >= 40) return '#f59e0b';
-  return '#ef4444';
+/**
+ * AtRiskCustomersCard — top-N customers with the lowest health scores.
+ *
+ * Visual:
+ *   - Card shell uses the dashboard-standard border/shadow tokens.
+ *   - Row treatment is divide-y on slate-100 (Linear pattern) instead of
+ *     boxed cards so the list reads as a continuous record set.
+ *   - Score chip lives on the right with a brand-tinted ring; the dotted
+ *     status Badge sits beside it for a quick churning vs. risk read.
+ */
+function getScoreTone(score: number): 'critical' | 'warn' | 'ok' {
+  if (score >= 70) return 'ok';
+  if (score >= 40) return 'warn';
+  return 'critical';
 }
+
+const SCORE_TONE_CLASSES: Record<'critical' | 'warn' | 'ok', string> = {
+  critical: 'bg-red-50 text-red-700 ring-red-100',
+  warn: 'bg-amber-50 text-amber-700 ring-amber-100',
+  ok: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+};
 
 export function AtRiskCustomersCard() {
   const navigate = useNavigate();
@@ -16,54 +35,77 @@ export function AtRiskCustomersCard() {
     queryFn: () => customerHealthApi.getAtRiskCustomers(5),
   });
 
+  const customers = atRiskData?.customers ?? [];
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
-        Risk Altindaki Müşteriler
-      </h3>
-      {atRiskData && atRiskData.customers.length > 0 ? (
-        <div className="space-y-2">
-          {atRiskData.customers.map((c) => {
-            const isChurning = c.risk_level === 'churning';
-            const scoreColor = getScoreColor(c.score);
-            return (
-              <button
-                key={c.customer_id}
-                type="button"
-                onClick={() => navigate(`/customers/${c.customer_id}`)}
-                className="flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-gray-50"
-                style={{ borderLeftWidth: 4, borderLeftColor: scoreColor }}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {c.company || c.customer_name}
-                  </p>
-                  {c.company && (
-                    <p className="text-xs text-gray-400 truncate">{c.customer_name}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      isChurning ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
-                    {isChurning ? 'Kayip Riski' : 'Risk Altinda'}
-                  </span>
-                  <div className="h-6 w-6 rounded-full border-2 flex items-center justify-center" style={{ borderColor: scoreColor }}>
-                    <span className="text-[10px] font-bold" style={{ color: scoreColor }}>
-                      {c.score}
-                    </span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center justify-between px-5 pb-3 pt-5">
+        <h3 className="text-overline text-slate-500 dark:text-slate-400">
+          Risk Altındaki Müşteriler
+        </h3>
+        {customers.length > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate('/customers/high-intent')}
+            className="text-[12px] font-medium text-slate-500 transition-colors hover:text-honeywell-red"
+          >
+            Tümü
+          </button>
+        )}
+      </div>
+
+      {customers.length === 0 ? (
+        <div className="px-5 pb-5">
+          <EmptyState
+            variant="compact"
+            icon={<AlertTriangle size={18} />}
+            title="Risk altında müşteri yok"
+            description="Tüm sağlık skorları normal aralıkta."
+          />
         </div>
       ) : (
-        <p className="py-8 text-center text-sm text-gray-400">
-          Risk altinda müşteri bulunmuyor
-        </p>
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          {customers.map((c) => {
+            const tone = getScoreTone(c.score);
+            const isChurning = c.risk_level === 'churning';
+            return (
+              <li key={c.customer_id}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/customers/${c.customer_id}`)}
+                  className="group flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+                      {c.company || c.customer_name}
+                    </p>
+                    {c.company && (
+                      <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                        {c.customer_name}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant={isChurning ? 'danger' : 'warning'} size="sm" dot>
+                    {isChurning ? 'Kayıp' : 'Risk'}
+                  </Badge>
+                  <span
+                    className={[
+                      'inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold tabular-nums ring-1 ring-inset',
+                      SCORE_TONE_CLASSES[tone],
+                    ].join(' ')}
+                    aria-label={`Sağlık skoru ${c.score}`}
+                  >
+                    {c.score}
+                  </span>
+                  <ChevronRight
+                    size={14}
+                    className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-500"
+                  />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Target } from 'lucide-react';
+import { Target, Star, RotateCcw, ListChecks, Activity } from 'lucide-react';
 import { boardApi, customersApi, dealHealthApi, pipelinesApi } from '../../lib/api';
 import { PageHeader } from '../../components/ui/PageHeader';
-import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { DealHealthBadge } from './DealHealthBadge';
 import { formatCurrency } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
@@ -21,23 +22,55 @@ import type {
   HighIntentListResponse,
 } from '../../lib/types';
 
+/* ─────────────────────── Stage tokens ─────────────────────── */
+
 const STAGE_LABELS: Record<string, string> = {
-  prospecting: 'Arastirma',
-  qualified: 'Nitelenmis',
+  prospecting: 'Araştırma',
+  qualified: 'Nitelenmiş',
   proposal: 'Teklif',
-  negotiation: 'Muzakere',
-  closed_won: 'Kazanildi',
+  negotiation: 'Müzakere',
+  closed_won: 'Kazanıldı',
   closed_lost: 'Kaybedildi',
 };
 
-const STAGE_COLORS: Record<string, string> = {
-  prospecting: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  qualified: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
-  proposal: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  negotiation: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  closed_won: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  closed_lost: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+/**
+ * Stage color tokens for the column heading.
+ *
+ * - dot:     6×6 leading dot (status indicator)
+ * - chip:    pill backing for the stage label
+ * Closed states (won/lost) get the strongest visual weight; in-flight
+ * stages stay calmer so the board doesn't feel like a traffic light.
+ */
+const STAGE_TONE: Record<string, { dot: string; chip: string }> = {
+  prospecting: {
+    dot: 'bg-slate-400',
+    chip: 'bg-slate-100 text-slate-700 ring-slate-200',
+  },
+  qualified: {
+    dot: 'bg-blue-500',
+    chip: 'bg-blue-50 text-blue-700 ring-blue-100',
+  },
+  proposal: {
+    dot: 'bg-amber-500',
+    chip: 'bg-amber-50 text-amber-800 ring-amber-100',
+  },
+  negotiation: {
+    dot: 'bg-orange-500',
+    chip: 'bg-orange-50 text-orange-800 ring-orange-100',
+  },
+  closed_won: {
+    dot: 'bg-emerald-500',
+    chip: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+  },
+  closed_lost: {
+    dot: 'bg-red-500',
+    chip: 'bg-red-50 text-red-700 ring-red-100',
+  },
 };
+
+const FALLBACK_TONE = STAGE_TONE.prospecting;
+
+/* ─────────────────────── KanbanCard ─────────────────────── */
 
 interface KanbanCardProps {
   opp: Opportunity;
@@ -55,61 +88,101 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
     return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
   }, [opp.last_activity_at]);
 
+  const isRotting = opp.rotting_days > 7;
+
   return (
     <button
       type="button"
       onClick={() => navigate(`/opportunities/${opp.id}`)}
-      className="w-full rounded-lg border border-gray-200 bg-white p-3 text-left shadow-sm hover:shadow-md transition-shadow dark:border-gray-700 dark:bg-gray-800"
+      className="group w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-800 dark:bg-slate-900"
     >
-      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{opp.title}</p>
+      <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+        {opp.title}
+      </p>
       {opp.customer && (
-        <p className="mt-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 truncate">
+        <p className="mt-0.5 truncate text-[12px] text-slate-500 dark:text-slate-400">
           {opp.customer.name}
         </p>
       )}
-      <div className="mt-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
+
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {opp.amount != null ? (
-            <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+            <span className="text-[14px] font-bold tabular-nums text-slate-900 dark:text-white">
               {formatCurrency(opp.amount, opp.currency)}
             </span>
           ) : (
-            <span className="text-xs text-gray-400">-</span>
+            <span className="text-[12px] text-slate-400">—</span>
           )}
           {healthScore && (
             <DealHealthBadge score={healthScore.score} riskLevel={healthScore.risk_level} />
           )}
         </div>
-        {opp.rotting_days > 7 && (
-          <span
-            title={t('board.rotting_tooltip')}
-            className="text-[10px] font-medium text-red-600 dark:text-red-400"
-          >
+        {isRotting && (
+          <Badge variant="danger" size="sm" dot>
             {opp.rotting_days}g
-          </span>
+          </Badge>
         )}
       </div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {typeof opp.open_tasks_count === 'number' && opp.open_tasks_count > 0 && (
-            <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-800 dark:bg-violet-900/30 dark:text-violet-200">
-              {opp.open_tasks_count} task
-            </span>
-          )}
-          {typeof lastActivityDays === 'number' && (
-            <span
-              title={t('board.rotting_tooltip')}
-              className="text-[10px] font-medium text-gray-500 dark:text-gray-400"
-            >
-              {t('board.last_activity_fmt').replace('{{d}}', String(lastActivityDays))}
-            </span>
+
+      {(opp.open_tasks_count || lastActivityDays != null || opp.owner) && (
+        <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800">
+          <div className="flex min-w-0 items-center gap-2 text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
+            {typeof opp.open_tasks_count === 'number' && opp.open_tasks_count > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <ListChecks size={11} className="text-slate-400" />
+                {opp.open_tasks_count}
+              </span>
+            )}
+            {typeof lastActivityDays === 'number' && (
+              <span
+                title={t('board.rotting_tooltip')}
+                className="inline-flex items-center gap-1"
+              >
+                <Activity size={11} className="text-slate-400" />
+                {t('board.last_activity_fmt').replace('{{d}}', String(lastActivityDays))}
+              </span>
+            )}
+          </div>
+          {opp.owner && (
+            <p className="truncate text-[11px] text-slate-400 dark:text-slate-500">
+              {opp.owner.full_name}
+            </p>
           )}
         </div>
-        {opp.owner && <p className="text-[10px] text-gray-400 truncate">{opp.owner.full_name}</p>}
-      </div>
+      )}
     </button>
   );
 }
+
+/* ─────────────────────── KpiTile ─────────────────────── */
+
+interface KpiTileProps {
+  label: string;
+  value: string;
+  tone?: 'default' | 'positive' | 'negative';
+}
+
+function KpiTile({ label, value, tone = 'default' }: KpiTileProps) {
+  const valueClass =
+    tone === 'positive'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : tone === 'negative'
+        ? 'text-red-600 dark:text-red-400'
+        : 'text-slate-900 dark:text-white';
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-overline text-slate-500 dark:text-slate-400">{label}</p>
+      <p
+        className={`mt-2 text-[24px] font-bold leading-none tracking-tight tabular-nums ${valueClass}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/* ─────────────────────── Page ─────────────────────── */
 
 export default function BoardPage() {
   const t = useT();
@@ -146,8 +219,8 @@ export default function BoardPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    const t = window.setTimeout(() => setDebouncedCustomerQuery(customerQuery.trim()), 300);
-    return () => window.clearTimeout(t);
+    const tm = window.setTimeout(() => setDebouncedCustomerQuery(customerQuery.trim()), 300);
+    return () => window.clearTimeout(tm);
   }, [customerQuery]);
 
   const { data: pipelines = [] } = useQuery<Pipeline[]>({
@@ -158,7 +231,6 @@ export default function BoardPage() {
     },
   });
 
-  // Derive the active pipeline: user selection → default → first available
   const activePipelineId =
     selectedPipelineId ?? pipelines.find((p) => p.is_default)?.id ?? pipelines[0]?.id ?? null;
 
@@ -217,8 +289,11 @@ export default function BoardPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton variant="card" count={3} />
+      <div>
+        <PageHeader title="Sales Board" description="Pipeline görünümü" />
+        <div className="space-y-4">
+          <Skeleton variant="card" count={3} />
+        </div>
       </div>
     );
   }
@@ -239,107 +314,122 @@ export default function BoardPage() {
     }
   };
 
+  const customerOptions = [
+    {
+      value: '',
+      label:
+        debouncedCustomerQuery.length < 2 ? 'Aramak için yazın…' : 'Seçin…',
+    },
+    ...(customerHits ?? []).map((c) => ({
+      value: String(c.id),
+      label: `${c.name}${c.company ? ` — ${c.company}` : ''}`,
+    })),
+  ];
+
+  const riskOptions = [
+    { value: '', label: 'Tümü' },
+    { value: 'critical', label: 'Kritik' },
+    { value: 'high_risk', label: 'Yüksek risk' },
+    { value: 'at_risk', label: 'Risk altında' },
+    { value: 'healthy', label: 'Sağlıklı' },
+  ];
+
   return (
     <div>
-      <PageHeader title="Sales Board" description="Pipeline gorunumu" />
+      <PageHeader title="Sales Board" description="Pipeline görünümü ve fırsat sağlığı" />
 
-      {/* Pipeline selector — only shown when multiple pipelines exist */}
+      {/* Pipeline selector — segmented tabs (matches QuoteListPage). Only
+          shown when multiple pipelines exist; the default pipeline gets a
+          star marker. */}
       {pipelines.length > 1 && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {pipelines.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setSelectedPipelineId(p.id)}
-              className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
-                activePipelineId === p.id
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-              }`}
-            >
-              {p.name}
-              {p.is_default && <span className="ml-1.5 text-[10px] opacity-70">★</span>}
-            </button>
-          ))}
+        <div
+          className="mb-4 inline-flex flex-wrap gap-1 rounded-[12px] border border-slate-200 bg-slate-50/80 p-1 dark:border-slate-800 dark:bg-slate-900/40"
+          role="tablist"
+          aria-label="Pipeline seçimi"
+        >
+          {pipelines.map((p) => {
+            const isActive = activePipelineId === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setSelectedPipelineId(p.id)}
+                className={[
+                  'inline-flex h-8 items-center gap-1.5 rounded-[10px] px-3 text-[13px] font-medium transition-all',
+                  'focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20',
+                  isActive
+                    ? 'bg-white text-slate-900 shadow-(--shadow-xs) dark:bg-slate-800 dark:text-white'
+                    : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200',
+                ].join(' ')}
+              >
+                {p.name}
+                {p.is_default && (
+                  <Star size={11} className="text-amber-500" fill="currentColor" />
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-              Müşteri
-              <input
-                value={customerQuery}
-                onChange={(e) => {
-                  setCustomerQuery(e.target.value);
-                  setCustomerId('');
-                }}
-                placeholder="İsim / şirket ara (≥2 harf)"
-                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              />
-              <select
-                className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+      {/* Filter card */}
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="lg:col-span-1">
+            <Input
+              label="Müşteri ara"
+              placeholder="İsim / şirket (≥2 harf)"
+              value={customerQuery}
+              onChange={(e) => {
+                setCustomerQuery(e.target.value);
+                setCustomerId('');
+              }}
+            />
+            <div className="mt-2">
+              <Select
+                options={customerOptions}
                 value={customerId === '' ? '' : String(customerId)}
                 onChange={(e) => {
                   const v = e.target.value;
                   setCustomerId(v === '' ? '' : Number(v));
                 }}
                 disabled={!customerHits || customerHits.length === 0}
-              >
-                <option value="">
-                  {debouncedCustomerQuery.length < 2 ? 'Aramak için yazın…' : 'Seçin…'}
-                </option>
-                {(customerHits ?? []).map((c) => (
-                  <option key={c.id} value={String(c.id)}>
-                    {c.name}
-                    {c.company ? ` — ${c.company}` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-              Min. bayatlık (gün)
-              <input
-                type="number"
-                min={0}
-                value={minRottingDays}
-                onChange={(e) => setMinRottingDays(Number(e.target.value || 0))}
-                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
-            </label>
-
-            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-              Min. açık task
-              <input
-                type="number"
-                min={0}
-                value={minOpenTasks}
-                onChange={(e) => setMinOpenTasks(Number(e.target.value || 0))}
-                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              />
-            </label>
-
-            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-              Fırsat riski (client)
-              <select
-                value={dealHealthRisk}
-                onChange={(e) => setDealHealthRisk(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              >
-                <option value="">Tümü</option>
-                <option value="critical">Kritik</option>
-                <option value="high_risk">Yüksek risk</option>
-                <option value="at_risk">Risk altında</option>
-                <option value="healthy">Sağlıklı</option>
-              </select>
-            </label>
+            </div>
           </div>
 
-          <button
-            type="button"
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+          <Input
+            label="Min. bayatlık (gün)"
+            type="number"
+            min={0}
+            value={minRottingDays}
+            onChange={(e) => setMinRottingDays(Number(e.target.value || 0))}
+          />
+
+          <Input
+            label="Min. açık task"
+            type="number"
+            min={0}
+            value={minOpenTasks}
+            onChange={(e) => setMinOpenTasks(Number(e.target.value || 0))}
+          />
+
+          <Select
+            label="Fırsat riski (client)"
+            options={riskOptions}
+            value={dealHealthRisk}
+            onChange={(e) => setDealHealthRisk(e.target.value)}
+          />
+        </div>
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-[12px] text-slate-500 dark:text-slate-400">
+            {t('board.server_filters_hint')}
+          </p>
+          <Button
+            variant="tertiary"
+            size="sm"
             onClick={() => {
               setMinRottingDays(0);
               setMinOpenTasks(0);
@@ -348,24 +438,24 @@ export default function BoardPage() {
               setDealHealthRisk('');
             }}
           >
+            <RotateCcw size={13} />
             Sıfırla
-          </button>
+          </Button>
         </div>
-        <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-          {t('board.server_filters_hint')}
-        </p>
       </div>
 
-      {/* High-intent accounts (Salesforce parity widget) */}
-      <div className="mb-6 rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50/90 to-white p-4 shadow-sm dark:border-amber-900/40 dark:from-amber-950/30 dark:to-gray-900">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-amber-700 dark:text-amber-400" aria-hidden />
+      {/* High-intent accounts widget */}
+      <div className="mb-6 overflow-hidden rounded-2xl border border-amber-100 bg-linear-to-br from-amber-50/70 to-transparent shadow-(--shadow-xs) dark:border-amber-900/40 dark:from-amber-950/20">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100/80 px-5 py-4 dark:border-amber-900/40">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-900/60">
+              <Target size={16} />
+            </span>
             <div>
-              <p className="text-sm font-bold text-gray-900 dark:text-white">
+              <p className="text-[13px] font-semibold text-slate-900 dark:text-white">
                 {t('board.high_intent_title')}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+              <p className="text-[12px] text-slate-500 dark:text-slate-400">
                 {t('board.high_intent_sub')}
               </p>
             </div>
@@ -375,26 +465,31 @@ export default function BoardPage() {
           </Button>
         </div>
         {!highIntent?.items?.length ? (
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t('board.high_intent_empty')}</p>
+          <p className="px-5 py-4 text-[12px] text-slate-500 dark:text-slate-400">
+            {t('board.high_intent_empty')}
+          </p>
         ) : (
-          <ul className="divide-y divide-amber-100 dark:divide-amber-900/30">
+          <ul className="divide-y divide-amber-100/60 dark:divide-amber-900/30">
             {highIntent.items.map((row) => (
               <li key={row.customer_id}>
                 <button
                   type="button"
                   onClick={() => navigate(`/customers/${row.customer_id}`)}
-                  className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm hover:bg-amber-100/50 dark:hover:bg-amber-950/40 rounded-lg px-1 -mx-1"
+                  className="group flex w-full items-center justify-between gap-3 px-5 py-2.5 text-left transition-colors hover:bg-amber-50/60 dark:hover:bg-amber-950/30"
                 >
-                  <span className="min-w-0 truncate font-medium text-honeywell-red">
+                  <span className="min-w-0 truncate text-[13px] font-medium text-slate-900 dark:text-white">
                     {row.company || row.name}
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     {row.pinned && (
-                      <Badge variant="default" size="sm">
-                        ★
+                      <Badge variant="warning" size="sm">
+                        <Star size={10} fill="currentColor" />
+                        Sabitli
                       </Badge>
                     )}
-                    <span className="text-xs text-gray-500">{row.score}</span>
+                    <span className="inline-flex h-6 min-w-[40px] items-center justify-center rounded-full bg-amber-100 px-2 text-[11px] font-bold tabular-nums text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-900/60">
+                      {row.score}
+                    </span>
                   </span>
                 </button>
               </li>
@@ -403,112 +498,85 @@ export default function BoardPage() {
         )}
       </div>
 
-      {/* KPI bar */}
+      {/* KPI strip */}
       {summary && (
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Card>
-            <div className="p-4 text-center">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                Acik Pipeline
-              </p>
-              <p className="mt-1 text-2xl font-extrabold text-blue-700 dark:text-blue-400">
-                {formatCurrency(summary.open_pipeline_total, 'TRY')}
-              </p>
-            </div>
-          </Card>
-          <Card>
-            <div className="p-4 text-center">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                Kazanma Orani
-              </p>
-              <p className="mt-1 text-2xl font-extrabold text-green-700 dark:text-green-400">
-                %{summary.win_rate}
-              </p>
-            </div>
-          </Card>
-          <Card>
-            <div className="p-4 text-center">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Kazanilan</p>
-              <p className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">
-                {summary.won_count}
-              </p>
-            </div>
-          </Card>
-          <Card>
-            <div className="p-4 text-center">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                Curume (Rotting)
-              </p>
-              <p
-                className={`mt-1 text-2xl font-extrabold ${summary.rotting_count > 0 ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}
-              >
-                {summary.rotting_count}
-              </p>
-            </div>
-          </Card>
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <KpiTile
+            label="Açık Pipeline"
+            value={formatCurrency(summary.open_pipeline_total, 'TRY')}
+          />
+          <KpiTile label="Kazanma Oranı" value={`%${summary.win_rate}`} tone="positive" />
+          <KpiTile label="Kazanılan" value={String(summary.won_count)} />
+          <KpiTile
+            label="Çürüme (Rotting)"
+            value={String(summary.rotting_count)}
+            tone={summary.rotting_count > 0 ? 'negative' : 'default'}
+          />
         </div>
       )}
 
-      {/* Kanban board */}
+      {/* Kanban board — horizontal scroll on overflow. Each column has a
+          slate-50 well so cards visually belong to the column even when the
+          board scrolls horizontally. */}
       <div className="flex gap-4 overflow-x-auto pb-4">
-        {columns.map((col) => (
-          <div key={col.stage} className="min-w-[280px] shrink-0">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STAGE_COLORS[col.stage] || 'bg-gray-200 text-gray-800'}`}
-                >
-                  {STAGE_LABELS[col.stage] || col.stage}
-                </span>
-                <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                  {(() => {
-                    const visible = dealHealthRisk
-                      ? col.items.filter((o) => healthMap.get(o.id)?.risk_level === dealHealthRisk)
-                      : col.items;
-                    return visible.length;
-                  })()}
+        {columns.map((col) => {
+          const tone = STAGE_TONE[col.stage] ?? FALLBACK_TONE;
+          const visible = dealHealthRisk
+            ? col.items.filter((o) => healthMap.get(o.id)?.risk_level === dealHealthRisk)
+            : col.items;
+          const total = visible.reduce(
+            (sum, o) => sum + (typeof o.amount === 'number' ? o.amount : 0),
+            0,
+          );
+
+          return (
+            <div key={col.stage} className="min-w-[300px] shrink-0">
+              {/* Column header */}
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className={[
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-inset',
+                      tone.chip,
+                    ].join(' ')}
+                  >
+                    <span className={`inline-block h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+                    {STAGE_LABELS[col.stage] || col.stage}
+                  </span>
+                  <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-bold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                    {visible.length}
+                  </span>
+                </div>
+                <span className="text-[12px] font-semibold tabular-nums text-slate-700 dark:text-slate-300">
+                  {formatCurrency(total, 'TRY')}
                 </span>
               </div>
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                {(() => {
-                  const visible = dealHealthRisk
-                    ? col.items.filter((o) => healthMap.get(o.id)?.risk_level === dealHealthRisk)
-                    : col.items;
-                  const total = visible.reduce(
-                    (sum, o) => sum + (typeof o.amount === 'number' ? o.amount : 0),
-                    0,
-                  );
-                  return formatCurrency(total, 'TRY');
-                })()}
-              </span>
+
+              {/* Card stack */}
+              <div className="min-h-[200px] space-y-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-900/40">
+                {visible.length === 0 ? (
+                  <p className="py-10 text-center text-[12px] text-slate-400">Fırsat yok</p>
+                ) : (
+                  [...visible]
+                    .sort((a, b) => {
+                      const ar = riskRank(healthMap.get(a.id)?.risk_level);
+                      const br = riskRank(healthMap.get(b.id)?.risk_level);
+                      if (br !== ar) return br - ar;
+                      if (b.rotting_days !== a.rotting_days) return b.rotting_days - a.rotting_days;
+                      return b.id - a.id;
+                    })
+                    .map((opp) => (
+                      <KanbanCard
+                        key={opp.id}
+                        opp={opp}
+                        healthScore={healthMap.get(opp.id) ?? null}
+                      />
+                    ))
+                )}
+              </div>
             </div>
-            <div className="space-y-2 rounded-xl bg-gray-50 p-2 dark:bg-gray-900/50 min-h-[200px]">
-              {(() => {
-                const visible = dealHealthRisk
-                  ? col.items.filter((o) => healthMap.get(o.id)?.risk_level === dealHealthRisk)
-                  : col.items;
-                if (visible.length === 0) {
-                  return <p className="py-8 text-center text-xs text-gray-400">Fırsat yok</p>;
-                }
-                return [...visible]
-                  .sort((a, b) => {
-                    const ar = riskRank(healthMap.get(a.id)?.risk_level);
-                    const br = riskRank(healthMap.get(b.id)?.risk_level);
-                    if (br !== ar) return br - ar;
-                    if (b.rotting_days !== a.rotting_days) return b.rotting_days - a.rotting_days;
-                    return b.id - a.id;
-                  })
-                  .map((opp) => (
-                    <KanbanCard
-                      key={opp.id}
-                      opp={opp}
-                      healthScore={healthMap.get(opp.id) ?? null}
-                    />
-                  ));
-              })()}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

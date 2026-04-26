@@ -355,7 +355,7 @@ export default function QuoteEditorPage() {
         {!isNew && (
           <span
             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-              STATUS_COLORS[status] || 'bg-gray-100 text-gray-700'
+              STATUS_COLORS[status] || 'bg-slate-100 text-slate-700'
             }`}
           >
             {translateStatus(status, t)}
@@ -406,7 +406,7 @@ export default function QuoteEditorPage() {
               navigator.clipboard.writeText(shareTrackingUrl);
               toast.success(t('quotes.editor_link_copied'));
             }}
-            className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-mono text-gray-600 hover:bg-gray-100 transition-colors truncate max-w-xs"
+            className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono text-slate-600 hover:bg-slate-100 transition-colors truncate max-w-xs"
             title={shareTrackingUrl}
           >
             {shareTrackingUrl}
@@ -452,19 +452,19 @@ export default function QuoteEditorPage() {
               }}
             />
             {showCustomerDropdown && customerResults?.items && customerResults.items.length > 0 && (
-              <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
                 {customerResults.items.map((c, idx) => (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => selectCustomer(c)}
-                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors ${
                       idx === customerSelectedIndex ? 'bg-honeywell-red/10' : ''
                     }`}
                   >
                     <span className="font-medium">{c.company || c.name}</span>
-                    {c.company && c.name && <span className="text-gray-500"> - {c.name}</span>}
-                    <span className="ml-2 text-xs text-gray-400">{c.email}</span>
+                    {c.company && c.name && <span className="text-slate-500"> - {c.name}</span>}
+                    <span className="ml-2 text-xs text-slate-400">{c.email}</span>
                   </button>
                 ))}
               </div>
@@ -542,18 +542,18 @@ export default function QuoteEditorPage() {
                   className="!w-56"
                 />
                 {showPartDropdown && partResults?.items && partResults.items.length > 0 && (
-                  <div className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
                     {partResults.items.map((p, idx) => (
                       <button
                         key={p.id}
                         type="button"
                         onClick={() => addPartToItems(p)}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors ${
                           idx === partSelectedIndex ? 'bg-honeywell-red/10' : ''
                         }`}
                       >
                         <span className="font-mono font-semibold text-xs">{p.honeywell_code}</span>
-                        <span className="ml-2 text-gray-600">{p.name_tr || p.name_en}</span>
+                        <span className="ml-2 text-slate-600">{p.name_tr || p.name_en}</span>
                       </button>
                     ))}
                   </div>
@@ -563,33 +563,33 @@ export default function QuoteEditorPage() {
           }
         >
           {items.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-500">
+            <p className="py-8 text-center text-sm text-slate-500">
               {t('quotes.editor_items_empty')}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-2 py-2 text-xs font-semibold text-gray-500 w-24">
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="px-2 py-2 text-xs font-semibold text-slate-500 w-24">
                       {t('quotes.editor_col_row')}
                     </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500">
                       {t('quotes.editor_col_code')}
                     </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500">
                       {t('quotes.editor_col_desc')}
                     </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-20">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500 w-20">
                       {t('quotes.editor_col_qty')}
                     </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-28">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500 w-28">
                       {t('quotes.editor_col_unit_price')}
                     </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-20">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500 w-20">
                       {t('quotes.editor_col_discount')}
                     </th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 w-28 text-right">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-500 w-28 text-right">
                       {t('quotes.editor_col_total')}
                     </th>
                     <th className="px-3 py-2 w-10" />
@@ -600,10 +600,10 @@ export default function QuoteEditorPage() {
                     const lineGross = item.quantity * item.unit_price;
                     const lineNet = lineGross - lineGross * (item.discount_pct / 100);
                     return (
-                      <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="px-2 py-2">
                           <div className="flex items-center gap-1">
-                            <span className="text-gray-500 w-5 text-center">{idx + 1}</span>
+                            <span className="text-slate-500 w-5 text-center">{idx + 1}</span>
                             <button
                               type="button"
                               onClick={() => addBlankItemAfter(idx)}
@@ -618,7 +618,7 @@ export default function QuoteEditorPage() {
                               disabled={items.length <= 1}
                               className={`flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
                                 items.length <= 1
-                                  ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                  ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
                                   : 'bg-red-50 text-red-500 hover:bg-red-100'
                               }`}
                               title={t('quotes.editor_remove_line_tooltip')}
@@ -632,7 +632,7 @@ export default function QuoteEditorPage() {
                             type="text"
                             value={item.honeywell_code}
                             onChange={(e) => updateItem(idx, 'honeywell_code', e.target.value)}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs font-mono focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
+                            className="w-full rounded border border-slate-200 px-2 py-1 text-xs font-mono focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -640,7 +640,7 @@ export default function QuoteEditorPage() {
                             type="text"
                             value={item.description}
                             onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-sm focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
+                            className="w-full rounded border border-slate-200 px-2 py-1 text-sm focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -649,7 +649,7 @@ export default function QuoteEditorPage() {
                             min={1}
                             value={item.quantity}
                             onChange={(e) => updateItem(idx, 'quantity', Number(e.target.value))}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
+                            className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -659,7 +659,7 @@ export default function QuoteEditorPage() {
                             step={0.01}
                             value={item.unit_price}
                             onChange={(e) => updateItem(idx, 'unit_price', Number(e.target.value))}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
+                            className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -672,7 +672,7 @@ export default function QuoteEditorPage() {
                             onChange={(e) =>
                               updateItem(idx, 'discount_pct', Number(e.target.value))
                             }
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
+                            className="w-full rounded border border-slate-200 px-2 py-1 text-sm text-right focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-light"
                           />
                         </td>
                         <td className="px-3 py-2 text-right font-medium">
@@ -685,8 +685,8 @@ export default function QuoteEditorPage() {
                             disabled={items.length <= 1}
                             className={`rounded p-1 transition-colors ${
                               items.length <= 1
-                                ? 'text-gray-200 cursor-not-allowed'
-                                : 'text-gray-400 hover:bg-red-50 hover:text-red-600'
+                                ? 'text-slate-200 cursor-not-allowed'
+                                : 'text-slate-400 hover:bg-red-50 hover:text-red-600'
                             }`}
                             title={t('quotes.editor_remove_line_tooltip')}
                           >
@@ -720,25 +720,25 @@ export default function QuoteEditorPage() {
             {/* Receipt-style item list */}
             <div className="flex-1 min-w-0">
               {items.length > 0 ? (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 font-mono text-xs">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-xs">
                   {items.map((item, idx) => {
                     const lineGross = item.quantity * item.unit_price;
                     const lineNet = lineGross - lineGross * (item.discount_pct / 100);
                     return (
                       <div
                         key={idx}
-                        className="py-2 border-b border-dashed border-gray-300 last:border-b-0"
+                        className="py-2 border-b border-dashed border-slate-200 last:border-b-0"
                       >
                         <div className="mb-1">
-                          <span className="text-gray-900 font-semibold">{item.honeywell_code}</span>
-                          <span className="text-gray-400 mx-1.5">-</span>
-                          <span className="text-gray-600">{item.description}</span>
+                          <span className="text-slate-900 font-semibold">{item.honeywell_code}</span>
+                          <span className="text-slate-400 mx-1.5">-</span>
+                          <span className="text-slate-600">{item.description}</span>
                         </div>
                         <div className="text-right tabular-nums">
-                          <span className="text-gray-500">
+                          <span className="text-slate-500">
                             {item.quantity} x {formatCurrency(item.unit_price, currency)}
                           </span>
-                          <span className="ml-3 font-semibold text-gray-900">
+                          <span className="ml-3 font-semibold text-slate-900">
                             {formatCurrency(lineNet, currency)}
                           </span>
                         </div>
@@ -747,31 +747,31 @@ export default function QuoteEditorPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 italic">{t('quotes.editor_summary_empty')}</p>
+                <p className="text-sm text-slate-400 italic">{t('quotes.editor_summary_empty')}</p>
               )}
             </div>
 
             {/* Totals */}
             <div className="w-full max-w-xs shrink-0 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">{t('quotes.editor_subtotal')}:</span>
+                <span className="text-slate-500">{t('quotes.editor_subtotal')}:</span>
                 <span className="font-medium">{formatCurrency(subtotal, currency)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">{t('quotes.editor_discount')}:</span>
+                <span className="text-slate-500">{t('quotes.editor_discount')}:</span>
                 <span className="font-medium text-red-600">
                   -{formatCurrency(discountTotal, currency)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">
+                <span className="text-slate-500">
                   {t('quotes.editor_tax')} (%{taxRate}):
                 </span>
                 <span className="font-medium">{formatCurrency(taxAmount, currency)}</span>
               </div>
-              <hr className="border-gray-200" />
+              <hr className="border-slate-200" />
               <div className="flex justify-between text-base">
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-slate-900">
                   {t('quotes.editor_grand_total')}:
                 </span>
                 <span className="font-bold text-honeywell-red">
@@ -785,8 +785,8 @@ export default function QuoteEditorPage() {
         {/* ── Notes ─────────────────────────────────── */}
         <Card title={t('quotes.editor_notes')}>
           <textarea
-            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-              placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light
+            className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm
+              placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-honeywell-light
               focus:border-honeywell-red"
             rows={4}
             placeholder={t('quotes.editor_notes_placeholder')}

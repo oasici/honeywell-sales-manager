@@ -93,11 +93,15 @@ function filterByRole(items: NavItem[], role: string | undefined): NavItem[] {
 }
 
 function navLinkClass({ isActive }: { isActive: boolean }): string {
-  return `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+  // Linear-style sidebar items: 8px radius, calmer hover (white/5 not gray-800),
+  // active state uses brand red tint at 12% with red text + 1px ring for definition.
+  return [
+    'flex items-center gap-3 h-9 rounded-[10px] px-3 text-[13px] font-medium',
+    'transition-[background-color,color] duration-150',
     isActive
-      ? 'bg-honeywell-red/10 text-honeywell-red'
-      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-  }`;
+      ? 'bg-honeywell-red/12 text-white ring-1 ring-honeywell-red/20'
+      : 'text-slate-400 hover:bg-white/4 hover:text-slate-100',
+  ].join(' ');
 }
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
@@ -147,15 +151,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const t = useT();
 
   return (
-    <aside className="flex h-screen w-64 flex-col bg-gradient-to-b from-gray-900 to-slate-900">
-      {/* Brand */}
-      <div className="flex h-16 items-center gap-2.5 px-5 border-b border-white/5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-honeywell-red/10">
-          <span className="text-sm font-black text-honeywell-red">H</span>
+    <aside className="flex h-screen w-[260px] flex-col bg-slate-950 border-r border-white/6">
+      {/* Brand block — calmer; the H mark gets a softer red wash */}
+      <div className="flex h-[60px] items-center gap-2.5 px-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-honeywell-red/12 ring-1 ring-honeywell-red/20">
+          <span className="text-sm font-bold text-honeywell-red leading-none">H</span>
         </div>
-        <div>
-          <span className="text-sm font-bold text-white tracking-tight">Honeywell</span>
-          <span className="ml-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-widest">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-sm font-semibold text-white tracking-tight">Honeywell</span>
+          <span className="text-[10px] font-medium text-slate-500 uppercase tracking-[0.15em]">
             Sales
           </span>
         </div>
@@ -173,7 +177,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
           <>
             <div className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 {t('nav.section_sales')}
               </span>
             </div>
@@ -276,7 +280,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           <button
             onClick={() => setCollapsed((c: boolean) => !c)}
             aria-expanded={!collapsed}
-            className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors cursor-pointer"
+            className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-gray-800 hover:text-white transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-3">
               <Wrench size={18} className="shrink-0" />
@@ -304,7 +308,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
           <>
             <div className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 {t('nav.section_tools')}
               </span>
             </div>
@@ -409,7 +413,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         {userRole === 'sales_manager' && (
           <>
             <div className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 {t('nav.section_admin')}
               </span>
             </div>
@@ -457,22 +461,27 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
         )}
       </nav>
 
-      {/* User info at bottom */}
-      <div className="border-t border-gray-800 px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">
+      {/* User info at bottom — avatar + name + logout, calmer divider */}
+      <div className="border-t border-white/6 px-4 py-3.5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-honeywell-red/12 ring-1 ring-honeywell-red/20">
+            <span className="text-[12px] font-semibold text-honeywell-red leading-none">
+              {(user?.full_name || user?.email || '?').slice(0, 1).toUpperCase()}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium text-slate-100">
               {user?.full_name || t('common.user')}
             </p>
-            <p className="truncate text-xs text-gray-400">{user?.email || ''}</p>
+            <p className="truncate text-[11px] text-slate-500">{user?.email || ''}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+            className="shrink-0 rounded-[10px] p-2 text-slate-400 hover:bg-white/4 hover:text-slate-100 transition-colors"
             aria-label={t('common.logout')}
             title={t('common.logout')}
           >
-            <LogOut size={20} className="shrink-0" />
+            <LogOut size={18} className="shrink-0" />
           </button>
         </div>
       </div>

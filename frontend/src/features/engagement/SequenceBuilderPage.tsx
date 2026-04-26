@@ -211,19 +211,19 @@ export default function SequenceBuilderPage() {
                     {idx + 1}
                   </div>
                   {idx < steps.length - 1 && (
-                    <div className="w-0.5 flex-1 border-l-2 border-dashed border-gray-300" />
+                    <div className="w-0.5 flex-1 border-l-2 border-dashed border-slate-200" />
                   )}
                 </div>
 
                 {/* Step card */}
-                <div className="mb-4 flex-1 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="mb-4 flex-1 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600">Tur</label>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">Tur</label>
                       <select
                         value={step.action}
                         onChange={(e) => updateStep(idx, 'action', e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                       >
                         {ACTION_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -233,7 +233,7 @@ export default function SequenceBuilderPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600">
+                      <label className="mb-1 block text-xs font-medium text-slate-600">
                         Gecikme (gun)
                       </label>
                       <input
@@ -241,7 +241,7 @@ export default function SequenceBuilderPage() {
                         min={0}
                         value={step.delay_days}
                         onChange={(e) => updateStep(idx, 'delay_days', Number(e.target.value))}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
                     <div className="flex items-end">
@@ -251,7 +251,7 @@ export default function SequenceBuilderPage() {
                         disabled={steps.length <= 1}
                         className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                           steps.length <= 1
-                            ? 'cursor-not-allowed bg-gray-100 text-gray-400'
+                            ? 'cursor-not-allowed bg-slate-100 text-slate-400'
                             : 'bg-red-50 text-red-600 hover:bg-red-100'
                         }`}
                       >
@@ -262,11 +262,11 @@ export default function SequenceBuilderPage() {
                   <div className="mt-3 space-y-2">
                     {step.action === 'email' ? (
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                        <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
                           {t('sequences.builder_email_tpl')}
                         </label>
                         <select
-                          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                           value={step.email_template_id ?? ''}
                           onChange={(e) => {
                             const raw = e.target.value;
@@ -296,12 +296,12 @@ export default function SequenceBuilderPage() {
                             </option>
                           ))}
                         </select>
-                        <p className="mt-1 text-[11px] text-gray-500">
+                        <p className="mt-1 text-[11px] text-slate-500">
                           {t('sequences.builder_email_tpl_hint')}
                         </p>
                       </div>
                     ) : null}
-                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                    <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
                       Şablon / İçerik
                     </label>
                     <textarea
@@ -309,7 +309,7 @@ export default function SequenceBuilderPage() {
                       value={step.template}
                       onChange={(e) => updateStep(idx, 'template', e.target.value)}
                       placeholder="Email şablonu veya gorev aciklamasi..."
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800"
                     />
                   </div>
                 </div>
@@ -332,7 +332,7 @@ export default function SequenceBuilderPage() {
                 type="checkbox"
                 checked={isAutoEnroll}
                 onChange={(e) => setIsAutoEnroll(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-slate-200 text-blue-600 focus:ring-blue-500"
               />
               Otomatik kayıt kurallarini etkinlestir
             </label>
@@ -346,7 +346,7 @@ export default function SequenceBuilderPage() {
                   value={scoreThreshold}
                   onChange={(e) => setScoreThreshold(Number(e.target.value))}
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-slate-500">
                   Bu skor degerini asan leadler otomatik olarak sekansa kaydedilir.
                 </p>
               </div>

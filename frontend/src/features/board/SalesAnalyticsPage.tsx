@@ -36,15 +36,21 @@ import { useT } from '../../hooks/useT';
 const ACCURACY_RING_RADIUS = 36;
 const ACCURACY_RING_CIRCUMFERENCE = 2 * Math.PI * ACCURACY_RING_RADIUS;
 
+/**
+ * AccuracyRing — circular progress ring for forecast accuracy (0–100).
+ *
+ * Uses tokenized stroke colors and slate background ring so the meter sits
+ * comfortably on a card without competing with the KPI tiles.
+ */
 function AccuracyRing({ score }: { score: number }) {
-  const color = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
+  const color = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444';
   const pct = Math.min(score, 100);
   const offset = ACCURACY_RING_CIRCUMFERENCE - (pct / 100) * ACCURACY_RING_CIRCUMFERENCE;
 
   return (
     <div className="relative h-24 w-24">
       <svg className="h-24 w-24 -rotate-90" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r="36" stroke="#e5e7eb" strokeWidth="6" fill="none" />
+        <circle cx="40" cy="40" r="36" stroke="#e2e8f0" strokeWidth="6" fill="none" />
         <circle
           cx="40"
           cy="40"
@@ -59,7 +65,9 @@ function AccuracyRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xl font-bold text-gray-900 dark:text-white">{score}</span>
+        <span className="text-[20px] font-bold tabular-nums text-slate-900 dark:text-white">
+          {score}
+        </span>
       </div>
     </div>
   );
@@ -215,7 +223,21 @@ export default function SalesAnalyticsPage() {
   });
   const leaks: RevenueLeakResult | undefined = leaksRaw?.data;
 
-  if (fLoading) return <Skeleton variant="card" count={4} />;
+  if (fLoading) {
+    return (
+      <div>
+        <PageHeader
+          title={t('sales_analytics.title')}
+          description={t('sales_analytics.description')}
+        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-[112px] rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -224,102 +246,111 @@ export default function SalesAnalyticsPage() {
         description={t('sales_analytics.description')}
       />
 
-      {/* Row 1: Forecast + Pipeline KPIs */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-6">
-        <Card>
-          <div className="p-4">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              {t('sales_analytics.kpi_open')}
-            </p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {formatCurrency(forecast?.open_quotes_total || 0, 'TRY')}
-            </p>
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              {t('sales_analytics.kpi_forecast')}
-            </p>
-            <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(forecast?.forecast_total || 0, 'TRY')}
-            </p>
-            <p className="text-[10px] text-gray-400">
-              {t('sales_analytics.win_rate')}%{((forecast?.win_rate || 0) * 100).toFixed(0)}
-            </p>
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              {t('sales_analytics.sla_median')}
-            </p>
-            <p
-              className={`text-2xl font-bold ${(sla?.median_first_action_minutes || 0) > 480 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}
-            >
-              {sla?.median_first_action_minutes || 0} {t('common.minutes_short')}
-            </p>
-            <p className="text-[10px] text-gray-400">
-              {t('sales_analytics.sla_breaches').replace(
-                '{count}',
-                String(sla?.breaches_count || 0),
-              )}
-            </p>
-          </div>
-        </Card>
-        <Card>
-          <div className="p-4">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              {t('sales_analytics.discount_p')}
-            </p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              %{discounts?.p50_discount_rate || 0} / %{discounts?.p90_discount_rate || 0}
-            </p>
-          </div>
-        </Card>
+      {/* Row 1: Forecast + Pipeline KPIs \u2014 KpiTile pattern (overline + 24px
+          tabular-nums values). Each tile is its own card so the strip stays
+          coherent at any breakpoint. */}
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-overline text-slate-500 dark:text-slate-400">
+            {t('sales_analytics.kpi_open')}
+          </p>
+          <p className="mt-2 text-[22px] font-bold leading-none tracking-tight tabular-nums text-slate-900 dark:text-white">
+            {formatCurrency(forecast?.open_quotes_total || 0, 'TRY')}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-overline text-slate-500 dark:text-slate-400">
+            {t('sales_analytics.kpi_forecast')}
+          </p>
+          <p className="mt-2 text-[22px] font-bold leading-none tracking-tight tabular-nums text-emerald-600 dark:text-emerald-400">
+            {formatCurrency(forecast?.forecast_total || 0, 'TRY')}
+          </p>
+          <p className="mt-1.5 text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
+            {t('sales_analytics.win_rate')}%{((forecast?.win_rate || 0) * 100).toFixed(0)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-overline text-slate-500 dark:text-slate-400">
+            {t('sales_analytics.sla_median')}
+          </p>
+          <p
+            className={[
+              'mt-2 text-[22px] font-bold leading-none tracking-tight tabular-nums',
+              (sla?.median_first_action_minutes || 0) > 480
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-slate-900 dark:text-white',
+            ].join(' ')}
+          >
+            {sla?.median_first_action_minutes || 0} {t('common.minutes_short')}
+          </p>
+          <p className="mt-1.5 text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
+            {t('sales_analytics.sla_breaches').replace(
+              '{count}',
+              String(sla?.breaches_count || 0),
+            )}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-overline text-slate-500 dark:text-slate-400">
+            {t('sales_analytics.discount_p')}
+          </p>
+          <p className="mt-2 text-[22px] font-bold leading-none tracking-tight tabular-nums text-slate-900 dark:text-white">
+            %{discounts?.p50_discount_rate || 0} / %{discounts?.p90_discount_rate || 0}
+          </p>
+          <p className="mt-1.5 text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
+            P50 / P90
+          </p>
+        </div>
 
         {/* WoW Pipeline Change */}
-        <Card>
-          <div className="p-4">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-              {t('sales_analytics.wow_title')}
-            </p>
-            {wow ? (
-              <>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(wow.current_total, 'TRY')}
-                </p>
-                <div className="mt-1 flex items-center gap-1">
-                  <span
-                    className={`text-xs font-semibold ${wow.delta >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {wow.delta >= 0 ? '\u2191' : '\u2193'}{' '}
-                    {formatCurrency(Math.abs(wow.delta), 'TRY')}
-                  </span>
-                  <span
-                    className={`text-[10px] ${wow.delta >= 0 ? 'text-green-500' : 'text-red-500'}`}
-                  >
-                    ({wow.delta_pct >= 0 ? '+' : ''}
-                    {wow.delta_pct?.toFixed(1)}%)
-                  </span>
-                </div>
-                {isManager && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="mt-2 w-full text-xs"
-                    loading={snapshotMutation.isPending}
-                    onClick={() => snapshotMutation.mutate()}
-                  >
-                    {t('sales_analytics.snapshot')}
-                  </Button>
-                )}
-              </>
-            ) : (
-              <Skeleton variant="card" />
-            )}
-          </div>
-        </Card>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-overline text-slate-500 dark:text-slate-400">
+            {t('sales_analytics.wow_title')}
+          </p>
+          {wow ? (
+            <>
+              <p className="mt-2 text-[22px] font-bold leading-none tracking-tight tabular-nums text-slate-900 dark:text-white">
+                {formatCurrency(wow.current_total, 'TRY')}
+              </p>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <span
+                  className={[
+                    'inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums',
+                    wow.delta >= 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-red-600 dark:text-red-400',
+                  ].join(' ')}
+                >
+                  {wow.delta >= 0 ? '\u2191' : '\u2193'} {formatCurrency(Math.abs(wow.delta), 'TRY')}
+                </span>
+                <span
+                  className={[
+                    'text-[11px] tabular-nums',
+                    wow.delta >= 0
+                      ? 'text-emerald-500/80'
+                      : 'text-red-500/80',
+                  ].join(' ')}
+                >
+                  ({wow.delta_pct >= 0 ? '+' : ''}
+                  {wow.delta_pct?.toFixed(1)}%)
+                </span>
+              </div>
+              {isManager && (
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  className="mt-2 w-full justify-center"
+                  loading={snapshotMutation.isPending}
+                  onClick={() => snapshotMutation.mutate()}
+                >
+                  {t('sales_analytics.snapshot')}
+                </Button>
+              )}
+            </>
+          ) : (
+            <Skeleton className="mt-2 h-12 w-full rounded" />
+          )}
+        </div>
       </div>
 
       {/* Manager block: Hybrid forecast (Sprint 5.5) */}
@@ -327,29 +358,29 @@ export default function SalesAnalyticsPage() {
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card>
             <div className="p-4">
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 {t('sales_analytics.hybrid_legacy')}
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {formatCurrency(hybridForecast.legacy_weighted_total || 0, 'TRY')}
               </p>
-              <p className="mt-1 text-[10px] text-gray-400">{t('sales_analytics.hybrid_title')}</p>
+              <p className="mt-1 text-[10px] text-slate-400">{t('sales_analytics.hybrid_title')}</p>
             </div>
           </Card>
           <Card>
             <div className="p-4">
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 {t('sales_analytics.hybrid_predictive')}
               </p>
               <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
                 {formatCurrency(hybridForecast.hybrid_weighted_total || 0, 'TRY')}
               </p>
-              <p className="mt-1 text-[10px] text-gray-400">{t('sales_analytics.hybrid_title')}</p>
+              <p className="mt-1 text-[10px] text-slate-400">{t('sales_analytics.hybrid_title')}</p>
             </div>
           </Card>
           <Card>
             <div className="p-4">
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 {t('sales_analytics.hybrid_confidence')}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -364,7 +395,7 @@ export default function SalesAnalyticsPage() {
                   </Badge>
                 ))}
               </div>
-              <p className="mt-2 text-[10px] text-gray-400">{t('sales_analytics.hybrid_title')}</p>
+              <p className="mt-2 text-[10px] text-slate-400">{t('sales_analytics.hybrid_title')}</p>
             </div>
           </Card>
         </div>
@@ -376,11 +407,19 @@ export default function SalesAnalyticsPage() {
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={wow.weeks}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="week_label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(value) => formatCurrency(Number(value), 'TRY')} />
-                <Bar dataKey="total" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="week_label" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                <Tooltip
+                  formatter={(value) => formatCurrency(Number(value), 'TRY')}
+                  contentStyle={{
+                    fontSize: 12,
+                    borderRadius: 12,
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 8px 24px rgba(15,23,42,0.08)',
+                  }}
+                />
+                <Bar dataKey="total" fill="#E53935" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -393,20 +432,20 @@ export default function SalesAnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase">
+                <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_rep')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_commit')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_best')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_pipeline')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_total')}
                   </th>
                 </tr>
@@ -415,10 +454,10 @@ export default function SalesAnalyticsPage() {
                 {teamRollup.reps.map((row) => (
                   <tr
                     key={row.user_id}
-                    className="cursor-pointer border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="cursor-pointer border-b border-gray-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     onClick={() => navigate(`/coaching/rep/${row.user_id}`)}
                   >
-                    <td className="py-2.5 px-4 font-medium text-gray-900 dark:text-white">
+                    <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-white">
                       {row.user_name}
                     </td>
                     <td className="py-2.5 px-4 text-right">{formatCurrency(row.commit, 'TRY')}</td>
@@ -436,8 +475,8 @@ export default function SalesAnalyticsPage() {
               </tbody>
               {teamRollup.grand_total && (
                 <tfoot>
-                  <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50">
-                    <td className="py-2.5 px-4 font-bold text-gray-900 dark:text-white">
+                  <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <td className="py-2.5 px-4 font-bold text-slate-900 dark:text-white">
                       {t('sales_analytics.grand_total')}
                     </td>
                     <td className="py-2.5 px-4 text-right font-bold">
@@ -468,26 +507,26 @@ export default function SalesAnalyticsPage() {
             <div className="flex-1 space-y-3">
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
                     {t('sales_analytics.period')}
                   </span>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="font-semibold text-slate-900 dark:text-white">
                     {forecastAccuracy.period}
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
                     {t('sales_analytics.forecast')}
                   </span>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="font-semibold text-slate-900 dark:text-white">
                     {formatCurrency(forecastAccuracy.commit_forecast, 'TRY')}
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
                     {t('sales_analytics.actual')}
                   </span>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="font-semibold text-slate-900 dark:text-white">
                     {formatCurrency(forecastAccuracy.actual_won, 'TRY')}
                   </p>
                 </div>
@@ -496,17 +535,17 @@ export default function SalesAnalyticsPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="py-2 px-3 text-left text-xs text-gray-500">
+                      <tr className="border-b border-slate-200 dark:border-slate-800">
+                        <th className="py-2 px-3 text-left text-xs text-slate-500">
                           {t('sales_analytics.col_rep')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                        <th className="py-2 px-3 text-right text-xs text-slate-500">
                           {t('sales_analytics.forecast')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                        <th className="py-2 px-3 text-right text-xs text-slate-500">
                           {t('sales_analytics.actual')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-gray-500">
+                        <th className="py-2 px-3 text-right text-xs text-slate-500">
                           {t('sales_analytics.accuracy_pct')}
                         </th>
                       </tr>
@@ -515,9 +554,9 @@ export default function SalesAnalyticsPage() {
                       {forecastAccuracy.per_rep.map((rep) => (
                         <tr
                           key={rep.user_id}
-                          className="border-b border-gray-50 dark:border-gray-800"
+                          className="border-b border-gray-50 dark:border-slate-800"
                         >
-                          <td className="py-2 px-3 font-medium text-gray-900 dark:text-white">
+                          <td className="py-2 px-3 font-medium text-slate-900 dark:text-white">
                             {rep.user_name}
                           </td>
                           <td className="py-2 px-3 text-right">
@@ -551,10 +590,10 @@ export default function SalesAnalyticsPage() {
             <div className="space-y-2 p-2">
               {funnel.funnel.map((s: { stage: string; count: number; pct: number }, i: number) => (
                 <div key={s.stage} className="flex items-center gap-3">
-                  <span className="w-24 text-xs text-gray-600 dark:text-gray-400 truncate">
+                  <span className="w-24 text-xs text-slate-600 dark:text-slate-400 truncate">
                     {stageLabel(s.stage)}
                   </span>
-                  <div className="flex-1 h-6 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div className="flex-1 h-6 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -563,14 +602,14 @@ export default function SalesAnalyticsPage() {
                       }}
                     />
                   </div>
-                  <span className="w-16 text-right text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <span className="w-16 text-right text-xs font-semibold text-slate-700 dark:text-slate-300">
                     {s.count} (%{s.pct})
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-400">{t('sales_analytics.no_data')}</p>
+            <p className="py-8 text-center text-sm text-slate-400">{t('sales_analytics.no_data')}</p>
           )}
         </Card>
 
@@ -588,7 +627,7 @@ export default function SalesAnalyticsPage() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-400">
+            <p className="py-8 text-center text-sm text-slate-400">
               {t('sales_analytics.no_close_reason')}
             </p>
           )}
@@ -601,26 +640,26 @@ export default function SalesAnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase">
+                <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_rep')}
                   </th>
-                  <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_quotes')}
                   </th>
-                  <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_sent')}
                   </th>
-                  <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_won')}
                   </th>
-                  <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_win_pct')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_revenue')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_avg_disc')}
                   </th>
                 </tr>
@@ -629,9 +668,9 @@ export default function SalesAnalyticsPage() {
                 {scorecards.scorecards.map((r: Record<string, unknown>) => (
                   <tr
                     key={r.user_id as number}
-                    className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="border-b border-gray-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   >
-                    <td className="py-2.5 px-4 font-medium text-gray-900 dark:text-white">
+                    <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-white">
                       {r.full_name as string}
                     </td>
                     <td className="py-2.5 px-4 text-center">{r.quote_count as number}</td>
@@ -656,7 +695,7 @@ export default function SalesAnalyticsPage() {
             </table>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">{t('sales_analytics.no_data')}</p>
+          <p className="py-8 text-center text-sm text-slate-400">{t('sales_analytics.no_data')}</p>
         )}
       </Card>
 
@@ -667,20 +706,20 @@ export default function SalesAnalyticsPage() {
             <div className="space-y-4 p-2">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     {t('sales_analytics.dq_customers')}
                   </span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">
                     %{dataQuality.customers?.completeness_pct || 0}
                   </span>
                 </div>
-                <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800">
+                <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800">
                   <div
                     className="h-2 rounded-full bg-green-500 transition-all"
                     style={{ width: `${dataQuality.customers?.completeness_pct || 0}%` }}
                   />
                 </div>
-                <p className="mt-1 text-[10px] text-gray-400">
+                <p className="mt-1 text-[10px] text-slate-400">
                   {t('sales_analytics.dq_missing_phone')}{' '}
                   {dataQuality.customers?.missing_phone || 0} |{' '}
                   {t('sales_analytics.dq_missing_company')}{' '}
@@ -689,20 +728,20 @@ export default function SalesAnalyticsPage() {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     {t('sales_analytics.dq_quotes')}
                   </span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">
                     %{dataQuality.quotes?.completeness_pct || 0}
                   </span>
                 </div>
-                <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800">
+                <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800">
                   <div
                     className="h-2 rounded-full bg-blue-500 transition-all"
                     style={{ width: `${dataQuality.quotes?.completeness_pct || 0}%` }}
                   />
                 </div>
-                <p className="mt-1 text-[10px] text-gray-400">
+                <p className="mt-1 text-[10px] text-slate-400">
                   {t('sales_analytics.dq_no_customer')} {dataQuality.quotes?.missing_customer || 0}{' '}
                   | {t('sales_analytics.dq_no_items')} {dataQuality.quotes?.missing_items || 0}
                 </p>
@@ -753,14 +792,14 @@ export default function SalesAnalyticsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-2 px-3 text-left text-xs text-gray-500">
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-2 px-3 text-left text-xs text-slate-500">
                       {t('sales_analytics.col_quote_no')}
                     </th>
-                    <th className="py-2 px-3 text-right text-xs text-gray-500">
+                    <th className="py-2 px-3 text-right text-xs text-slate-500">
                       {t('sales_analytics.col_disc_pct')}
                     </th>
-                    <th className="py-2 px-3 text-right text-xs text-gray-500">
+                    <th className="py-2 px-3 text-right text-xs text-slate-500">
                       {t('sales_analytics.col_total')}
                     </th>
                   </tr>
@@ -769,7 +808,7 @@ export default function SalesAnalyticsPage() {
                   {discounts.outliers.slice(0, 10).map((o: Record<string, unknown>) => (
                     <tr
                       key={o.id as number}
-                      className="border-b border-gray-50 dark:border-gray-800"
+                      className="border-b border-gray-50 dark:border-slate-800"
                     >
                       <td className="py-2 px-3 font-mono text-xs">{o.quote_number as string}</td>
                       <td className="py-2 px-3 text-right text-red-600 font-semibold">
@@ -791,21 +830,21 @@ export default function SalesAnalyticsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-2 px-3 text-left text-xs text-gray-500">
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-2 px-3 text-left text-xs text-slate-500">
                       {t('sales_analytics.col_sender')}
                     </th>
-                    <th className="py-2 px-3 text-left text-xs text-gray-500">
+                    <th className="py-2 px-3 text-left text-xs text-slate-500">
                       {t('sales_analytics.col_subject')}
                     </th>
-                    <th className="py-2 px-3 text-right text-xs text-gray-500">
+                    <th className="py-2 px-3 text-right text-xs text-slate-500">
                       {t('sales_analytics.col_resp_min')}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {sla.breaches.slice(0, 10).map((b: Record<string, unknown>, i: number) => (
-                    <tr key={i} className="border-b border-gray-50 dark:border-gray-800">
+                    <tr key={i} className="border-b border-gray-50 dark:border-slate-800">
                       <td className="py-2 px-3 text-xs">{b.from_address as string}</td>
                       <td className="py-2 px-3 text-xs truncate max-w-[200px]">
                         {b.subject as string}
@@ -830,7 +869,7 @@ export default function SalesAnalyticsPage() {
           <select
             value={waterfallPeriod}
             onChange={(e) => setWaterfallPeriod(e.target.value)}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
             <option value="this_month">{t('sales_analytics.wf_this_month')}</option>
             <option value="last_month">{t('sales_analytics.wf_last_month')}</option>
@@ -866,15 +905,15 @@ export default function SalesAnalyticsPage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700">
+            <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
               <div className="space-y-1">
                 {waterfall.categories.map((c) => (
                   <div key={c.type} className="flex items-center gap-2 text-sm">
                     <span
                       className={`inline-block h-2 w-2 rounded-full ${c.positive ? 'bg-green-500' : 'bg-red-500'}`}
                     />
-                    <span className="text-gray-600 dark:text-gray-400">{c.label}:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <span className="text-slate-600 dark:text-slate-400">{c.label}:</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
                       {t('sales_analytics.wf_count_amount')
                         .replace('{count}', String(c.count))
                         .replace('{amount}', formatCurrency(c.amount, 'TRY'))}
@@ -883,7 +922,7 @@ export default function SalesAnalyticsPage() {
                 ))}
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {t('sales_analytics.net_change')}
                 </p>
                 <p
@@ -905,7 +944,7 @@ export default function SalesAnalyticsPage() {
         <Card title={t('sales_analytics.leak_trend')} className="mb-6">
           <div className="mb-4 flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-sm text-slate-500 dark:text-slate-400">
                 {t('sales_analytics.total_leak')}
               </span>
               <span className="text-lg font-bold text-red-600">
@@ -922,13 +961,13 @@ export default function SalesAnalyticsPage() {
                 key={item.opportunity_id}
                 type="button"
                 onClick={() => navigate(`/opportunities/${item.opportunity_id}`)}
-                className="flex w-full items-start justify-between rounded-lg border border-gray-100 p-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
+                className="flex w-full items-start justify-between rounded-lg border border-slate-100 p-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 transition-colors"
               >
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
                     {item.title}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-slate-400 mt-0.5">
                     {item.owner_name} - {stageLabel(item.stage)}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -940,11 +979,11 @@ export default function SalesAnalyticsPage() {
                   </div>
                 </div>
                 <div className="ml-3 flex flex-col items-end gap-1">
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">
                     {formatCurrency(item.amount, 'TRY')}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500">{t('sales_analytics.leak_score')}</span>
+                    <span className="text-xs text-slate-500">{t('sales_analytics.leak_score')}</span>
                     <span
                       className={`text-sm font-bold ${item.leak_score >= 50 ? 'text-red-600' : 'text-amber-600'}`}
                     >

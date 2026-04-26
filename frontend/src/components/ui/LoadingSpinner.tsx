@@ -59,18 +59,23 @@ export function LoadingSpinner({
     return <Spinner size={size} />;
   }
 
+  // Stuck-state escape: appears after `timeoutMs` so a hung lazy chunk doesn't
+  // strand the user with a spinner forever. Uses Button primitives so focus
+  // ring and keyboard behavior match the rest of the app.
   return (
     <div className="flex min-h-[320px] flex-col items-center justify-center px-4 text-center">
-      <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-honeywell-red" />
-      <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-white">
+      <div className="mb-5 h-12 w-12 animate-spin rounded-full border-[3px] border-slate-200 border-t-honeywell-red dark:border-slate-700" />
+      <h2 className="text-heading-3 text-slate-900 dark:text-white">
         {t('loading.stuck_title')}
       </h2>
-      <p className="mb-4 max-w-md text-xs text-gray-500">{t('loading.stuck_body')}</p>
-      <div className="flex gap-2">
+      <p className="mt-1.5 max-w-md text-[13px] text-slate-500 dark:text-slate-400">
+        {t('loading.stuck_body')}
+      </p>
+      <div className="mt-5 flex gap-2">
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="rounded-lg bg-honeywell-red px-4 py-2 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+          className="inline-flex h-9 items-center rounded-[12px] bg-honeywell-red px-4 text-[13px] font-semibold text-white transition-colors hover:bg-honeywell-dark focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20"
         >
           {t('loading.reload')}
         </button>
@@ -81,7 +86,7 @@ export function LoadingSpinner({
             localStorage.removeItem('refreshToken');
             window.location.href = '/login';
           }}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+          className="inline-flex h-9 items-center rounded-[12px] border border-slate-200 bg-white px-4 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           {t('loading.relogin')}
         </button>

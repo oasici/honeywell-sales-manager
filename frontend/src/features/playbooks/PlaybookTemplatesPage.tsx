@@ -81,10 +81,10 @@ export default function PlaybookTemplatesPage() {
           {templates.map((template) => (
             <Card key={template.id}>
               <div className="flex flex-col gap-3 p-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white">{template.name}</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">{template.name}</h3>
 
                 {template.description && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-3">
                     {template.description}
                   </p>
                 )}
@@ -97,7 +97,7 @@ export default function PlaybookTemplatesPage() {
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                   <Button
                     onClick={() => createFromTemplateMutation.mutate(template)}
                     loading={createFromTemplateMutation.isPending}

@@ -2,19 +2,57 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Plus, LayoutGrid, Trash2, Star } from 'lucide-react';
+import { Plus, LayoutGrid, Trash2, Star, ArrowRight, Lock, Globe, User } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
-import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { dashboardsApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import type { DashboardConfig } from '../../lib/types';
+
+/**
+ * Parse the widgets_json blob to count how many widgets the dashboard
+ * holds. Used to render a meaningful preview thumbnail instead of an
+ * empty card. Failures degrade gracefully to 0.
+ */
+function parseWidgetCount(widgetsJson: string | undefined | null): number {
+  if (!widgetsJson) return 0;
+  try {
+    const parsed = JSON.parse(widgetsJson);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * PreviewThumbnail — a synthetic 4-cell mini-grid that visually represents
+ * a dashboard's widgets. Filled cells signal "this many widgets configured";
+ * empty cells signal "room to grow". Keeps the card from feeling barren.
+ */
+function PreviewThumbnail({ widgetCount }: { widgetCount: number }) {
+  const cells = Array.from({ length: 4 }, (_, i) => i < Math.min(widgetCount, 4));
+  return (
+    <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-linear-to-br from-slate-50 to-white p-2 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/40">
+      {cells.map((filled, i) => (
+        <div
+          key={i}
+          className={[
+            'h-10 rounded-md',
+            filled
+              ? 'bg-honeywell-red/10 ring-1 ring-inset ring-honeywell-red/15'
+              : 'bg-slate-100 ring-1 ring-inset ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700/60',
+          ].join(' ')}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function DashboardListPage() {
   const navigate = useNavigate();
@@ -52,65 +90,160 @@ export default function DashboardListPage() {
 
   return (
     <div>
-      <PageHeader title="Panolar" description="Özel rapor panolari olusturun ve yonetin">
-        <Button onClick={() => setModalOpen(true)}>
-          <Plus size={16} className="mr-1" /> Yeni Pano
-        </Button>
+      <PageHeader title="Panolar" description="Özel rapor panoları oluşturun ve yönetin">
+        {dashboards.length > 0 && (
+          <Button onClick={() => setModalOpen(true)}>
+            <Plus size={14} />
+            Yeni Pano
+          </Button>
+        )}
       </PageHeader>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} variant="card" />)}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-[220px] rounded-2xl" />
+          ))}
         </div>
       ) : dashboards.length === 0 ? (
-        <EmptyState
-          title="Henüz pano yok"
-          description="Raporlarinizi bir araya getirmek için pano olusturun"
-          action={<Button onClick={() => setModalOpen(true)}>Pano Oluştur</Button>}
-        />
+        <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <EmptyState
+            variant="default"
+            icon={<LayoutGrid size={20} />}
+            title="Henüz pano yok"
+            description="Raporlarınızı bir araya getirmek için pano oluşturun"
+            action={
+              <Button onClick={() => setModalOpen(true)} variant="secondary">
+                <Plus size={14} />
+                Pano Oluştur
+              </Button>
+            }
+          />
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {dashboards.map((d) => (
-            <Card key={d.id}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {dashboards.map((d) => {
+            const widgetCount = parseWidgetCount(d.widgets_json);
+            // Visibility heuristic — DashboardConfig carries a free-form
+            // `visibility` string when set; default to "private". Used
+            // only to drive the icon + label in the meta row.
+            const visibility =
+              (d as { visibility?: string }).visibility ??
+              ((d as { is_public?: boolean }).is_public ? 'public' : 'private');
+            const VisIcon = visibility === 'public' ? Globe : visibility === 'team' ? User : Lock;
+            const visLabel =
+              visibility === 'public' ? 'Herkese açık' : visibility === 'team' ? 'Ekip' : 'Özel';
+            return (
               <div
-                className="p-5 cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => navigate(`/dashboards/${d.id}`)}
+                key={d.id}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <LayoutGrid size={18} className="text-honeywell-red" />
-                    <h3 className="text-sm font-semibold text-gray-900">{d.name}</h3>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/dashboards/${d.id}`)}
+                  className="flex flex-1 flex-col gap-4 p-5 text-left"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                        <LayoutGrid size={14} />
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[14px] font-semibold text-slate-900 dark:text-white">
+                          {d.name}
+                        </h3>
+                        <p className="mt-0.5 text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
+                          {widgetCount} widget
+                        </p>
+                      </div>
+                    </div>
+                    {d.is_default && (
+                      <Badge variant="warning" size="sm">
+                        <Star size={10} fill="currentColor" />
+                        Varsayılan
+                      </Badge>
+                    )}
                   </div>
-                  {d.is_default && (
-                    <Badge variant="warning" size="sm">
-                      <Star size={10} className="mr-0.5" /> Varsayılan
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">
-                    {d.created_at ? formatDateTime(d.created_at) : '—'}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm('Bu panoyu silmek istediginize emin misiniz?')) {
+
+                  <PreviewThumbnail widgetCount={widgetCount} />
+
+                  <dl className="grid grid-cols-2 gap-3 text-[12px]">
+                    <div>
+                      <dt className="text-overline text-slate-400 dark:text-slate-500">Sahip</dt>
+                      <dd className="mt-0.5 truncate text-slate-700 dark:text-slate-200">
+                        {(d as { owner_name?: string }).owner_name ?? 'Sen'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-overline text-slate-400 dark:text-slate-500">
+                        Görünürlük
+                      </dt>
+                      <dd className="mt-0.5 flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                        <VisIcon size={11} className="text-slate-400" />
+                        {visLabel}
+                      </dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-overline text-slate-400 dark:text-slate-500">
+                        Son Güncelleme
+                      </dt>
+                      <dd className="mt-0.5 text-slate-700 tabular-nums dark:text-slate-200">
+                        {(d as unknown as { updated_at?: string }).updated_at
+                          ? formatDateTime((d as unknown as { updated_at: string }).updated_at)
+                          : d.created_at
+                            ? formatDateTime(d.created_at)
+                            : '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </button>
+
+                <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/50 px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900/40">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm('Bu panoyu silmek istediğinize emin misiniz?')) {
                         deleteMutation.mutate(d.id);
                       }
                     }}
-                    className="rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    aria-label="Sil"
                   >
-                    <Trash2 size={14} />
-                  </button>
+                    <Trash2 size={13} className="text-red-500" />
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => navigate(`/dashboards/${d.id}`)}
+                  >
+                    Panoyu Aç
+                    <ArrowRight size={13} />
+                  </Button>
                 </div>
               </div>
-            </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Yeni Pano" size="md">
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Yeni Pano"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>
+              İptal
+            </Button>
+            <Button type="submit" form="dashboard-create-form" loading={createMutation.isPending}>
+              Oluştur
+            </Button>
+          </>
+        }
+      >
         <form
+          id="dashboard-create-form"
           onSubmit={(e) => {
             e.preventDefault();
             createMutation.mutate({
@@ -122,24 +255,20 @@ export default function DashboardListPage() {
           className="space-y-4"
         >
           <Input
-            label="Pano Adi"
+            label="Pano Adı"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex cursor-pointer select-none items-center gap-2.5 rounded-[10px] border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-[13px] text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200">
             <input
               type="checkbox"
               checked={form.is_default}
               onChange={(e) => setForm({ ...form, is_default: e.target.checked })}
-              className="rounded border-gray-300"
+              className="h-4 w-4 cursor-pointer rounded-[4px] border-slate-300 text-honeywell-red focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800"
             />
             Varsayılan pano olarak ayarla
           </label>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>İptal</Button>
-            <Button type="submit" loading={createMutation.isPending}>Oluştur</Button>
-          </div>
         </form>
       </Modal>
     </div>

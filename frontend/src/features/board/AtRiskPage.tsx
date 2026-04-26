@@ -70,7 +70,7 @@ function ScoreRing({ score }: { score: number }) {
           className="transition-all duration-700"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900 dark:text-white">
+      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-900 dark:text-white">
         {score}
       </span>
     </div>
@@ -104,9 +104,9 @@ export default function AtRiskPage() {
         description={`Saglik skoru ${threshold} altindaki fırsatlar`}
       >
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-500">Esik:</label>
+          <label className="text-sm text-slate-500">Esik:</label>
           <select
-            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
             value={threshold}
             onChange={(e) => setThreshold(Number(e.target.value))}
           >
@@ -126,8 +126,8 @@ export default function AtRiskPage() {
               <AlertTriangle size={20} className="text-red-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{opps.length}</p>
-              <p className="text-xs text-gray-500">Riskli Fırsat</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">{opps.length}</p>
+              <p className="text-xs text-slate-500">Riskli Fırsat</p>
             </div>
           </div>
         </Card>
@@ -137,10 +137,10 @@ export default function AtRiskPage() {
               <TrendingDown size={20} className="text-orange-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {formatCurrency(opps.length * 100000, 'TRY')}
               </p>
-              <p className="text-xs text-gray-500">Risk Altindaki Gelir</p>
+              <p className="text-xs text-slate-500">Risk Altindaki Gelir</p>
             </div>
           </div>
         </Card>
@@ -150,12 +150,12 @@ export default function AtRiskPage() {
               <AlertTriangle size={20} className="text-yellow-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {opps.length > 0
                   ? Math.round(opps.reduce((s, o) => s + o.score, 0) / opps.length)
                   : 0}
               </p>
-              <p className="text-xs text-gray-500">Ort. Saglik Skoru</p>
+              <p className="text-xs text-slate-500">Ort. Saglik Skoru</p>
             </div>
           </div>
         </Card>
@@ -178,12 +178,12 @@ export default function AtRiskPage() {
               <button
                 type="button"
                 onClick={() => navigate(`/opportunities/${opp.opportunity_id}`)}
-                className="flex w-full items-start gap-4 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                className="flex w-full items-start gap-4 p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
               >
                 <ScoreRing score={opp.score} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                    <h3 className="font-medium text-slate-900 dark:text-white truncate">
                       {opp.title}
                     </h3>
                     <Badge
@@ -199,7 +199,7 @@ export default function AtRiskPage() {
                       {RISK_LABELS[opp.risk_level] || opp.risk_level}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap gap-3 text-sm text-gray-500">
+                  <div className="flex flex-wrap gap-3 text-sm text-slate-500">
                     <span>Skor: {opp.score}/100</span>
                   </div>
 
@@ -233,14 +233,14 @@ export default function AtRiskPage() {
                   {opp.recommendations && opp.recommendations.length > 0 && (
                     <ul className="mt-2 space-y-0.5">
                       {opp.recommendations.slice(0, 2).map((s, i) => (
-                        <li key={i} className="text-xs text-gray-500">
+                        <li key={i} className="text-xs text-slate-500">
                           • {s}
                         </li>
                       ))}
                     </ul>
                   )}
                 </div>
-                <ChevronRight size={16} className="mt-2 shrink-0 text-gray-400" />
+                <ChevronRight size={16} className="mt-2 shrink-0 text-slate-400" />
               </button>
             </Card>
           ))}

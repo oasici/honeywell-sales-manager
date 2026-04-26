@@ -42,13 +42,13 @@ function ConfidenceBar({ score }: { score: number }) {
   else if (pct >= 50) barColor = 'bg-yellow-500';
   return (
     <div className="flex items-center gap-3">
-      <div className="h-2.5 flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
+      <div className="h-2.5 flex-1 rounded-full bg-gray-200 dark:bg-slate-800">
         <div
           className={`h-2.5 rounded-full transition-all duration-500 ${barColor}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">%{pct}</span>
+      <span className="text-sm font-bold text-slate-700 dark:text-slate-300">%{pct}</span>
     </div>
   );
 }
@@ -81,7 +81,7 @@ const STRATEGY_STYLES: Record<string, { label: string; color: string }> = {
 };
 
 function StrategyBadge({ strategy }: { strategy: string }) {
-  const s = STRATEGY_STYLES[strategy] || { label: strategy, color: 'bg-gray-100 text-gray-600' };
+  const s = STRATEGY_STYLES[strategy] || { label: strategy, color: 'bg-slate-100 text-slate-600' };
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.color}`}
@@ -94,7 +94,7 @@ function StrategyBadge({ strategy }: { strategy: string }) {
 const URGENCY_COLORS: Record<string, string> = {
   critical: 'bg-red-600 text-white',
   urgent: 'bg-orange-500 text-white',
-  normal: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+  normal: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
 };
 
 export default function EmailDetailPage() {
@@ -167,7 +167,7 @@ export default function EmailDetailPage() {
   }
 
   if (!email) {
-    return <div className="py-16 text-center text-gray-500">{t('emails.detail_not_found')}</div>;
+    return <div className="py-16 text-center text-slate-500">{t('emails.detail_not_found')}</div>;
   }
 
   const parsed = email.parsed_data;
@@ -179,7 +179,7 @@ export default function EmailDetailPage() {
       {rs && (
         <div
           className={`mb-4 flex items-center gap-3 overflow-hidden rounded-lg ${
-            REVIEW_STATUS_COLORS[rs] || 'bg-gray-100 text-gray-700'
+            REVIEW_STATUS_COLORS[rs] || 'bg-slate-100 text-slate-700'
           }`}
         >
           <div
@@ -250,27 +250,27 @@ export default function EmailDetailPage() {
         <Card title={t('emails.detail_original')}>
           <div className="space-y-3">
             <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
-              <span className="font-medium text-gray-500">{t('emails.sender')}:</span>
-              <span className="text-gray-900">{email.from_address}</span>
-              <span className="font-medium text-gray-500">{t('emails.subject')}:</span>
-              <span className="text-gray-900">{email.subject}</span>
-              <span className="font-medium text-gray-500">{t('emails.date')}:</span>
-              <span className="text-gray-900">
+              <span className="font-medium text-slate-500">{t('emails.sender')}:</span>
+              <span className="text-slate-900">{email.from_address}</span>
+              <span className="font-medium text-slate-500">{t('emails.subject')}:</span>
+              <span className="text-slate-900">{email.subject}</span>
+              <span className="font-medium text-slate-500">{t('emails.date')}:</span>
+              <span className="text-slate-900">
                 {formatDateTime(email.received_at || email.created_at)}
               </span>
-              <span className="font-medium text-gray-500">{t('common.status')}:</span>
+              <span className="font-medium text-slate-500">{t('common.status')}:</span>
               <span>
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    STATUS_COLORS[email.status] || 'bg-gray-100 text-gray-700'
+                    STATUS_COLORS[email.status] || 'bg-slate-100 text-slate-700'
                   }`}
                 >
                   {translateStatus(email.status, t)}
                 </span>
               </span>
             </div>
-            <hr className="border-gray-200" />
-            <div className="max-h-96 overflow-y-auto whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
+            <hr className="border-slate-200" />
+            <div className="max-h-96 overflow-y-auto whitespace-pre-wrap text-sm text-slate-700 leading-relaxed">
               {email.body_text || t('emails.no_content')}
             </div>
           </div>
@@ -281,11 +281,11 @@ export default function EmailDetailPage() {
           {parsed ? (
             <div className="space-y-4">
               <div className="grid grid-cols-[120px_1fr] gap-2 text-sm">
-                <span className="font-medium text-gray-500">Kategori:</span>
-                <span className="text-gray-900">
+                <span className="font-medium text-slate-500">Kategori:</span>
+                <span className="text-slate-900">
                   {parsed.category ? translateEmailCategory(parsed.category, t) : '-'}
                 </span>
-                <span className="font-medium text-gray-500">Guven Skoru:</span>
+                <span className="font-medium text-slate-500">Guven Skoru:</span>
                 <span>
                   {email.category_confidence != null ? (
                     <ConfidenceBar score={email.category_confidence} />
@@ -293,14 +293,14 @@ export default function EmailDetailPage() {
                     '-'
                   )}
                 </span>
-                <span className="font-medium text-gray-500">Dil:</span>
-                <span className="text-gray-900">{parsed.language || '-'}</span>
-                <span className="font-medium text-gray-500">Müşteri:</span>
-                <span className="text-gray-900">{parsed.customer_name || '-'}</span>
-                <span className="font-medium text-gray-500">Şirket:</span>
-                <span className="text-gray-900">{parsed.customer_company || '-'}</span>
-                <span className="font-medium text-gray-500">Yedek Parça:</span>
-                <span className="text-gray-900">
+                <span className="font-medium text-slate-500">Dil:</span>
+                <span className="text-slate-900">{parsed.language || '-'}</span>
+                <span className="font-medium text-slate-500">Müşteri:</span>
+                <span className="text-slate-900">{parsed.customer_name || '-'}</span>
+                <span className="font-medium text-slate-500">Şirket:</span>
+                <span className="text-slate-900">{parsed.customer_company || '-'}</span>
+                <span className="font-medium text-slate-500">Yedek Parça:</span>
+                <span className="text-slate-900">
                   {parsed.is_spare_part_request ? 'Evet' : 'Hayir'}
                 </span>
               </div>
@@ -308,22 +308,22 @@ export default function EmailDetailPage() {
               {/* Extracted Parts — card layout */}
               {parsed.parts && parsed.parts.length > 0 && (
                 <div>
-                  <h4 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Çıkarılan Parçalar ({parsed.parts.length})
                   </h4>
                   <div className="space-y-2">
                     {parsed.parts.map((part, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
+                        className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800"
                       >
                         <div className="min-w-0 flex-1">
                           {part.part_code && (
-                            <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                            <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">
                               {part.part_code}
                             </span>
                           )}
-                          <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400 truncate">
+                          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400 truncate">
                             {part.part_description}
                           </p>
                         </div>
@@ -346,7 +346,7 @@ export default function EmailDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-500">
+            <p className="py-8 text-center text-sm text-slate-500">
               {email.status === 'parsing'
                 ? t('emails.detail_parsing_in_progress')
                 : t('emails.detail_parse_none')}
@@ -363,10 +363,10 @@ export default function EmailDetailPage() {
         size="lg"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">{t('emails.detail_draft_modal_help')}</p>
+          <p className="text-sm text-slate-500">{t('emails.detail_draft_modal_help')}</p>
           <textarea
             rows={10}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 resize-y"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-100 resize-y"
             value={draftText}
             onChange={(e) => setDraftText(e.target.value)}
           />
@@ -397,17 +397,17 @@ export default function EmailDetailPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500">
                       Honeywell Kodu
                     </th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                    <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500">
                       İsim
                     </th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                    <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500">
                       Skor
                     </th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">
+                    <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500">
                       Strateji
                     </th>
                   </tr>
@@ -416,7 +416,7 @@ export default function EmailDetailPage() {
                   {matches.map((m, idx) => (
                     <tr
                       key={idx}
-                      className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                      className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
                     >
                       <td className="px-4 py-3 font-mono text-xs font-semibold">
                         {m.honeywell_code}
@@ -434,7 +434,7 @@ export default function EmailDetailPage() {
               </table>
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-gray-500">
+            <p className="py-8 text-center text-sm text-slate-500">
               {t('emails.detail_match_none')}
             </p>
           )}

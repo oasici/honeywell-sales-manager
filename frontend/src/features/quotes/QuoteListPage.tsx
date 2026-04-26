@@ -2,15 +2,30 @@ import { useState, useRef, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { FileUp, Plus } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { DataTable } from '../../components/ui/DataTable';
+import { Badge } from '../../components/ui/Badge';
 import { quotesApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
-import { STATUS_COLORS } from '../../lib/constants';
 import type { TranslationKey } from '../../lib/i18n';
 import type { Quote, PaginatedResponse } from '../../lib/types';
 import { useT } from '../../hooks/useT';
+
+// Map quote status → Badge variant. Keeps the visual language consistent
+// with the rest of the design system instead of pulling raw class strings.
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'default';
+const QUOTE_STATUS_TONE: Record<string, BadgeTone> = {
+  draft: 'default',
+  pending_approval: 'warning',
+  approved: 'success',
+  sent: 'info',
+  accepted: 'success',
+  rejected: 'danger',
+  expired: 'warning',
+  cancelled: 'default',
+};
 
 const QUOTE_STATUS_KEYS: Record<string, TranslationKey> = {
   draft: 'sales_analytics.stage_draft',
@@ -104,7 +119,7 @@ export default function QuoteListPage() {
           <button
             type="button"
             onClick={() => navigate(`/quotes/${row.id}`)}
-            className="font-semibold text-honeywell-red hover:underline"
+            className="text-[13px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-honeywell-red dark:text-white"
           >
             {row.quote_number}
           </button>
@@ -114,7 +129,9 @@ export default function QuoteListPage() {
         key: 'customer',
         header: t('quotes.list_col_customer'),
         render: (row: Quote) => (
-          <span className="text-sm">{row.customer?.company || row.customer?.name || '-'}</span>
+          <span className="text-[13px] text-slate-700 dark:text-slate-200">
+            {row.customer?.company || row.customer?.name || '—'}
+          </span>
         ),
       },
       {
@@ -123,14 +140,11 @@ export default function QuoteListPage() {
         render: (row: Quote) => {
           const key = QUOTE_STATUS_KEYS[row.status];
           const label = key ? t(key) : row.status;
+          const tone = QUOTE_STATUS_TONE[row.status] ?? 'default';
           return (
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                STATUS_COLORS[row.status] || 'bg-gray-100 text-gray-700'
-              }`}
-            >
+            <Badge variant={tone} size="sm" dot>
               {label}
-            </span>
+            </Badge>
           );
         },
       },
@@ -138,8 +152,10 @@ export default function QuoteListPage() {
         key: 'grand_total',
         header: t('quotes.list_col_total'),
         sortable: true,
+        align: 'right' as const,
+        numeric: true,
         render: (row: Quote) => (
-          <span className="font-medium text-sm">
+          <span className="text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
             {formatCurrency(row.grand_total, row.currency)}
           </span>
         ),
@@ -147,14 +163,21 @@ export default function QuoteListPage() {
       {
         key: 'currency',
         header: t('quotes.list_col_currency'),
-        render: (row: Quote) => <span className="text-sm">{row.currency}</span>,
+        width: '80px',
+        render: (row: Quote) => (
+          <span className="text-[12px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {row.currency}
+          </span>
+        ),
       },
       {
         key: 'created_at',
         header: t('quotes.list_col_date'),
         sortable: true,
         render: (row: Quote) => (
-          <span className="text-sm whitespace-nowrap">{formatDate(row.created_at)}</span>
+          <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+            {formatDate(row.created_at)}
+          </span>
         ),
       },
     ],
@@ -176,27 +199,45 @@ export default function QuoteListPage() {
           loading={pdfMutation.isPending}
           onClick={() => pdfRef.current?.click()}
         >
+          <FileUp size={14} />
           {t('quotes.list_pdf_import')}
         </Button>
-        <Button onClick={() => navigate('/quotes/new')}>{t('quotes.list_new')}</Button>
+        <Button onClick={() => navigate('/quotes/new')}>
+          <Plus size={14} />
+          {t('quotes.list_new')}
+        </Button>
       </PageHeader>
 
-      {/* Status Tabs */}
-      <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1">
-        {statusTabs.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => handleTabChange(tab.value)}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              statusTab === tab.value
-                ? 'bg-white text-honeywell-red shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Status segmented tabs — sit on a slate-50 well; active pill uses
+          surface white + brand label so the selection state is unambiguous
+          even at a glance. Border-bottom on the well separates tabs from the
+          table without an extra horizontal rule. */}
+      <div
+        className="mb-4 inline-flex flex-wrap gap-1 rounded-[12px] border border-slate-200 bg-slate-50/80 p-1 dark:border-slate-800 dark:bg-slate-900/40"
+        role="tablist"
+        aria-label={t('quotes.list_tab_all')}
+      >
+        {statusTabs.map((tab) => {
+          const isActive = statusTab === tab.value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => handleTabChange(tab.value)}
+              className={[
+                'inline-flex h-8 items-center rounded-[10px] px-3 text-[13px] font-medium transition-all',
+                'focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20',
+                isActive
+                  ? 'bg-white text-slate-900 shadow-(--shadow-xs) dark:bg-slate-800 dark:text-white'
+                  : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200',
+              ].join(' ')}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Table */}

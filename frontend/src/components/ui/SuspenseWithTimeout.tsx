@@ -25,11 +25,11 @@ function TimeoutFallback({ timeoutMs = 5000 }: TimeoutFallbackProps) {
 
   return (
     <div className="flex min-h-[400px] flex-col items-center justify-center px-4 text-center">
-      <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-honeywell-red" />
-      <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+      <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-honeywell-red" />
+      <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
         Sayfa yuklenemedi
       </h2>
-      <p className="mb-4 max-w-md text-sm text-gray-500">
+      <p className="mb-4 max-w-md text-sm text-slate-500">
         Sayfa beklenenden uzun surede yükleniyor. Baglantinizi kontrol edip sayfayi yeniden
         yukleyin.
       </p>
@@ -48,7 +48,7 @@ function TimeoutFallback({ timeoutMs = 5000 }: TimeoutFallbackProps) {
             localStorage.removeItem('refreshToken');
             window.location.href = '/login';
           }}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
         >
           Tekrar Giris Yap
         </button>

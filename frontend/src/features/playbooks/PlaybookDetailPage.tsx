@@ -167,11 +167,11 @@ export default function PlaybookDetailPage() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Kategori
               </label>
               <select
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
@@ -188,9 +188,9 @@ export default function PlaybookDetailPage() {
                 id="is_active"
                 checked={form.is_active}
                 onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded border-slate-200"
               />
-              <label htmlFor="is_active" className="text-sm text-gray-700 dark:text-gray-300">
+              <label htmlFor="is_active" className="text-sm text-slate-700 dark:text-slate-300">
                 Aktif
               </label>
             </div>
@@ -209,7 +209,7 @@ export default function PlaybookDetailPage() {
       {/* Trigger conditions */}
       <Card>
         <div className="p-4">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
             Tetikleme Kosullari
           </h2>
           {isEditing ? (
@@ -223,7 +223,7 @@ export default function PlaybookDetailPage() {
       {/* Steps stepper */}
       <Card>
         <div className="p-4">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Adımlar</h2>
+          <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">Adımlar</h2>
           {isEditing ? (
             <StepBuilder steps={editSteps} onChange={setEditSteps} />
           ) : (
@@ -235,37 +235,37 @@ export default function PlaybookDetailPage() {
       {/* Executions */}
       <Card>
         <div className="p-4">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Yurutmeler</h2>
+          <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">Yurutmeler</h2>
           {executions.length === 0 ? (
-            <p className="text-sm text-gray-500">Henüz yurutme bulunmuyor.</p>
+            <p className="text-sm text-slate-500">Henüz yurutme bulunmuyor.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="pb-2 font-medium text-gray-500">ID</th>
-                    <th className="pb-2 font-medium text-gray-500">Durum</th>
-                    <th className="pb-2 font-medium text-gray-500">Mevcut Adım</th>
-                    <th className="pb-2 font-medium text-gray-500">Baslangic</th>
-                    <th className="pb-2 font-medium text-gray-500">Bitis</th>
-                    <th className="pb-2 font-medium text-gray-500">İşlem</th>
+                  <tr className="border-b border-slate-200 dark:border-slate-800">
+                    <th className="pb-2 font-medium text-slate-500">ID</th>
+                    <th className="pb-2 font-medium text-slate-500">Durum</th>
+                    <th className="pb-2 font-medium text-slate-500">Mevcut Adım</th>
+                    <th className="pb-2 font-medium text-slate-500">Baslangic</th>
+                    <th className="pb-2 font-medium text-slate-500">Bitis</th>
+                    <th className="pb-2 font-medium text-slate-500">İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
                   {executions.map((exec) => (
                     <tr
                       key={exec.id}
-                      className="border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                      className="border-b border-slate-100 dark:border-slate-800 last:border-b-0"
                     >
-                      <td className="py-2 text-gray-900 dark:text-white">{exec.id}</td>
+                      <td className="py-2 text-slate-900 dark:text-white">{exec.id}</td>
                       <td className="py-2">
                         <Badge variant={STATUS_COLORS[exec.status] ?? 'default'}>
                           {exec.status}
                         </Badge>
                       </td>
-                      <td className="py-2 text-gray-700 dark:text-gray-300">{exec.current_step}</td>
-                      <td className="py-2 text-gray-500">{formatDateTime(exec.started_at)}</td>
-                      <td className="py-2 text-gray-500">
+                      <td className="py-2 text-slate-700 dark:text-slate-300">{exec.current_step}</td>
+                      <td className="py-2 text-slate-500">{formatDateTime(exec.started_at)}</td>
+                      <td className="py-2 text-slate-500">
                         {exec.completed_at ? formatDateTime(exec.completed_at) : '-'}
                       </td>
                       <td className="py-2">

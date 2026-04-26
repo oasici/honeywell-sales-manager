@@ -13,7 +13,8 @@ import {
   Save,
   Package,
   Hash,
-  BarChart3,
+  Sparkles,
+  RefreshCcw,
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -21,11 +22,11 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
+import { Badge } from '../../components/ui/Badge';
 import { emailsApi, customersApi, quotesApi } from '../../lib/api';
 import { getErrorMessage } from '../../lib/utils';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
-import { REVIEW_STATUS_COLORS, STATUS_COLORS } from '../../lib/constants';
 import {
   EMAIL_CATEGORY_VALUES,
   translateEmailCategory,
@@ -33,6 +34,26 @@ import {
   translateStatus,
 } from '../../lib/labelTranslations';
 import type { EmailRequest, PaginatedResponse } from '../../lib/types';
+
+// Map email status / review status → Badge variant. Centralizing here lets
+// columns and the detail modal share the same visual language without
+// dragging raw class strings around the file.
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'default';
+const EMAIL_STATUS_TONE: Record<string, BadgeTone> = {
+  received: 'info',
+  parsing: 'warning',
+  parsed: 'success',
+  parse_failed: 'danger',
+  processed: 'success',
+  ignored: 'default',
+};
+const REVIEW_TONE: Record<string, BadgeTone> = {
+  pending_review: 'warning',
+  pending: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+  needs_edit: 'warning',
+};
 
 interface ParsedPart {
   part_code?: string;
@@ -216,7 +237,7 @@ export default function EmailListPage() {
       header: t('emails.list_date'),
       sortable: true,
       render: (row: EmailRequest) => (
-        <span className="whitespace-nowrap text-sm">
+        <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
           {formatDateTime(row.received_at || row.created_at)}
         </span>
       ),
@@ -225,14 +246,23 @@ export default function EmailListPage() {
       key: 'from_address',
       header: t('emails.list_sender'),
       render: (row: EmailRequest) => (
-        <span className="max-w-[200px] truncate block text-sm">{row.from_address}</span>
+        <span className="block max-w-[220px] truncate text-[13px] text-slate-700 dark:text-slate-200">
+          {row.from_address}
+        </span>
       ),
     },
     {
       key: 'subject',
       header: t('emails.subject'),
       render: (row: EmailRequest) => (
-        <span className="max-w-[260px] truncate block text-sm font-medium text-honeywell-red">
+        <span
+          className={[
+            'block max-w-[280px] truncate text-[13px]',
+            row.is_read
+              ? 'text-slate-700 dark:text-slate-300'
+              : 'font-semibold text-slate-900 dark:text-white',
+          ].join(' ')}
+        >
           {row.subject || '(Konu yok)'}
         </span>
       ),
@@ -240,39 +270,38 @@ export default function EmailListPage() {
     {
       key: 'category',
       header: t('emails.category'),
-      render: (row: EmailRequest) => (
-        <span className="text-sm">
-          {row.category ? translateEmailCategory(row.category, t) : '-'}
-        </span>
-      ),
+      render: (row: EmailRequest) =>
+        row.category ? (
+          <Badge variant="default" size="sm">
+            {translateEmailCategory(row.category, t)}
+          </Badge>
+        ) : (
+          <span className="text-[12px] text-slate-400">—</span>
+        ),
     },
     {
       key: 'status',
       header: t('common.status'),
-      render: (row: EmailRequest) => (
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-            STATUS_COLORS[row.status] || 'bg-gray-100 text-gray-700'
-          }`}
-        >
-          {translateStatus(row.status, t)}
-        </span>
-      ),
+      render: (row: EmailRequest) => {
+        const tone = EMAIL_STATUS_TONE[row.status] ?? 'default';
+        return (
+          <Badge variant={tone} size="sm" dot>
+            {translateStatus(row.status, t)}
+          </Badge>
+        );
+      },
     },
     {
       key: 'review_status',
       header: t('emails.review'),
       render: (row: EmailRequest) => {
         const rs = row.review_status;
-        if (!rs) return <span className="text-gray-400 text-sm">-</span>;
+        if (!rs) return <span className="text-[12px] text-slate-400">—</span>;
+        const tone = REVIEW_TONE[rs] ?? 'default';
         return (
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              REVIEW_STATUS_COLORS[rs] || 'bg-gray-100 text-gray-700'
-            }`}
-          >
+          <Badge variant={tone} size="sm" dot>
             {translateReviewStatus(rs, t)}
-          </span>
+          </Badge>
         );
       },
     },
@@ -284,49 +313,63 @@ export default function EmailListPage() {
     <div>
       <PageHeader title={t('emails.title')} description={t('emails.description')}>
         <Button loading={pollMutation.isPending} onClick={() => pollMutation.mutate()}>
+          <RefreshCcw size={14} />
           {t('emails.list_poll')}
         </Button>
       </PageHeader>
 
-      {/* Tabs */}
-      <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1">
-        {readTabs.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => handleTabChange(tab.value)}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              readTab === tab.value
-                ? 'bg-white text-honeywell-red shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-end gap-4">
-        <div className="w-64">
-          <Input
-            placeholder={t('emails.list_search_ph')}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
+      {/* Filter row — segmented tabs on the left, search + category on the
+          right. Wraps to two rows on narrow viewports. */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div
+          className="inline-flex flex-wrap gap-1 rounded-[12px] border border-slate-200 bg-slate-50/80 p-1 dark:border-slate-800 dark:bg-slate-900/40"
+          role="tablist"
+          aria-label={t('emails.list_tab_unread')}
+        >
+          {readTabs.map((tab) => {
+            const isActive = readTab === tab.value;
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => handleTabChange(tab.value)}
+                className={[
+                  'inline-flex h-8 items-center rounded-[10px] px-3 text-[13px] font-medium transition-all',
+                  'focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20',
+                  isActive
+                    ? 'bg-white text-slate-900 shadow-(--shadow-xs) dark:bg-slate-800 dark:text-white'
+                    : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200',
+                ].join(' ')}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
-        <div className="w-48">
-          <Select
-            options={categoryOptions}
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setPage(1);
-            }}
-          />
+
+        <div className="ml-auto flex flex-wrap items-end gap-3">
+          <div className="w-64">
+            <Input
+              placeholder={t('emails.list_search_ph')}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="w-52">
+            <Select
+              options={categoryOptions}
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -350,86 +393,150 @@ export default function EmailListPage() {
         }}
       />
 
-      {/* ── Email Detail Popup ── */}
+      {/* ── Email Detail Popup ─────────────────────────────────────────
+          The popup composes:
+            1. Sender + received-at strip (icon medallions)
+            2. Subject as the visual anchor
+            3. Badges row (category / status / review)
+            4. Body in a slate-tinted reading well
+            5. AI parse panel (brand-tinted, edit-in-place)
+            6. Footer actions (pinned via Modal footer slot)
+          ─────────────────────────────────────────────────────────────── */}
       <Modal
         isOpen={!!detailEmail}
         onClose={() => setDetailEmail(null)}
         title={t('emails.detail')}
         size="lg"
+        footer={
+          activeEmail ? (
+            <div className="flex w-full flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  loading={reparseMutation.isPending}
+                  onClick={() => reparseMutation.mutate(activeEmail.id)}
+                >
+                  <RefreshCcw size={14} />
+                  Yeniden Ayrıştır
+                </Button>
+                {activeEmail.review_status === 'pending_review' && (
+                  <>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      loading={reviewMutation.isPending}
+                      onClick={() =>
+                        reviewMutation.mutate({ id: activeEmail.id, action: 'approve' })
+                      }
+                    >
+                      Onayla
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={reviewMutation.isPending}
+                      onClick={() =>
+                        reviewMutation.mutate({ id: activeEmail.id, action: 'reject' })
+                      }
+                    >
+                      Reddet
+                    </Button>
+                  </>
+                )}
+                {activeEmail.review_status === 'approved' && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={createCustomerMutation.isPending}
+                      onClick={() => handleCreateCustomer(activeEmail)}
+                      disabled={!detailParsed}
+                    >
+                      Müşteri Oluştur
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      loading={createQuoteMutation.isPending}
+                      onClick={() => createQuoteMutation.mutate(activeEmail.id)}
+                      disabled={!detailParsed?.parts?.length}
+                    >
+                      Teklif Oluştur
+                    </Button>
+                  </>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setDetailEmail(null)}>
+                Kapat
+              </Button>
+            </div>
+          ) : null
+        }
       >
         {activeEmail && (
           <div className="space-y-5">
-            {/* Header: Sender + Date side by side */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
-                  <Mail size={16} className="text-slate-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{activeEmail.from_address}</p>
-                  <span className="text-xs text-gray-400">{t('emails.list_sender')}</span>
+            {/* Sender + received-at strip */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                  <Mail size={16} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+                    {activeEmail.from_address}
+                  </p>
+                  <span className="text-overline text-slate-400 dark:text-slate-500">
+                    {t('emails.list_sender')}
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-right">
-                <div>
-                  <p className="text-sm text-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-[13px] tabular-nums text-slate-700 dark:text-slate-200">
                     {formatDateTime(activeEmail.received_at || activeEmail.created_at)}
                   </p>
-                  <span className="text-xs text-gray-400">{t('emails.list_date')}</span>
+                  <span className="text-overline text-slate-400 dark:text-slate-500">
+                    {t('emails.list_date')}
+                  </span>
                 </div>
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
-                  <Clock size={16} className="text-slate-500" />
-                </div>
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                  <Clock size={16} />
+                </span>
               </div>
             </div>
 
-            {/* Subject bold below */}
-            <div>
-              <p className="text-base font-bold text-gray-900 leading-snug">
-                {activeEmail.subject || '(Konu yok)'}
-              </p>
-            </div>
+            {/* Subject */}
+            <h3 className="text-heading-3 text-slate-900 dark:text-white">
+              {activeEmail.subject || '(Konu yok)'}
+            </h3>
 
-            {/* Status badges - pill shaped, vibrant */}
+            {/* Badge row */}
             <div className="flex flex-wrap items-center gap-2">
               {activeEmail.category && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-                  <Tag size={12} />
+                <Badge variant="info" size="md">
+                  <Tag size={11} />
                   {translateEmailCategory(activeEmail.category, t)}
-                </span>
+                </Badge>
               )}
               {activeEmail.status && (
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                    activeEmail.status === 'parsed'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
+                <Badge variant={EMAIL_STATUS_TONE[activeEmail.status] ?? 'default'} size="md" dot>
                   {translateStatus(activeEmail.status, t)}
-                </span>
+                </Badge>
               )}
               {activeEmail.review_status && (
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                    activeEmail.review_status === 'approved'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : activeEmail.review_status === 'rejected'
-                        ? 'bg-rose-100 text-rose-700'
-                        : 'bg-amber-100 text-amber-700'
-                  }`}
-                >
+                <Badge variant={REVIEW_TONE[activeEmail.review_status] ?? 'default'} size="md" dot>
                   {translateReviewStatus(activeEmail.review_status, t)}
-                </span>
+                </Badge>
               )}
             </div>
 
-            {/* Email body */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <span className="mb-3 block text-xs font-semibold uppercase tracking-wider text-slate-400">
+            {/* Body reading well */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 dark:border-slate-800 dark:bg-slate-900/40">
+              <span className="text-overline text-slate-500 dark:text-slate-400">
                 {t('emails.list_body')}
               </span>
-              <div className="max-h-48 overflow-y-auto text-sm leading-relaxed text-gray-700">
+              <div className="mt-3 max-h-48 overflow-y-auto text-[13px] leading-6 text-slate-700 dark:text-slate-300">
                 <p className="whitespace-pre-wrap">
                   {(() => {
                     let text = activeEmail.body_text || '';
@@ -455,13 +562,17 @@ export default function EmailListPage() {
               </div>
             </div>
 
-            {/* AI Parse Results - card-within-card */}
+            {/* AI parse panel — brand-tinted (reads as "AI insight" rather
+                than "system info" which is what the previous blue tint
+                suggested). Edit toggle flips the panel into a form view. */}
             {detailParsed && (
-              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-5">
+              <div className="rounded-2xl border border-honeywell-red/15 bg-honeywell-red/4 p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <BarChart3 size={16} className="text-blue-600" />
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-[10px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                      <Sparkles size={14} />
+                    </span>
+                    <h4 className="text-overline text-honeywell-red">
                       {t('emails.list_ai_parse_title')}
                     </h4>
                   </div>
@@ -473,103 +584,86 @@ export default function EmailListPage() {
                       }
                       setEditingParse(!editingParse);
                     }}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-500 transition-colors hover:bg-blue-100 hover:text-blue-700"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20"
                     title={editingParse ? t('emails.list_edit_cancel') : t('emails.list_edit')}
                   >
-                    {editingParse ? <X size={16} /> : <Pencil size={14} />}
+                    {editingParse ? <X size={14} /> : <Pencil size={14} />}
                   </button>
                 </div>
 
                 {editingParse ? (
-                  <div className="mt-4 space-y-4">
+                  <div className="mt-4 space-y-3">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold text-blue-700">
-                          Müşteri
-                        </label>
-                        <input
-                          className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                          value={editForm.customer_name || ''}
-                          onChange={(e) =>
-                            setEditForm((f: Record<string, string>) => ({
-                              ...f,
-                              customer_name: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold text-blue-700">
-                          Şirket
-                        </label>
-                        <input
-                          className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                          value={editForm.customer_company || ''}
-                          onChange={(e) =>
-                            setEditForm((f: Record<string, string>) => ({
-                              ...f,
-                              customer_company: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-blue-700">
-                        Kategori
-                      </label>
-                      <input
-                        className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                        value={editForm.category || ''}
+                      <Input
+                        label="Müşteri"
+                        value={editForm.customer_name || ''}
                         onChange={(e) =>
                           setEditForm((f: Record<string, string>) => ({
                             ...f,
-                            category: e.target.value,
+                            customer_name: e.target.value,
+                          }))
+                        }
+                      />
+                      <Input
+                        label="Şirket"
+                        value={editForm.customer_company || ''}
+                        onChange={(e) =>
+                          setEditForm((f: Record<string, string>) => ({
+                            ...f,
+                            customer_company: e.target.value,
                           }))
                         }
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        correctMutation.mutate({ id: activeEmail!.id, data: editForm })
+                    <Input
+                      label="Kategori"
+                      value={editForm.category || ''}
+                      onChange={(e) =>
+                        setEditForm((f: Record<string, string>) => ({
+                          ...f,
+                          category: e.target.value,
+                        }))
                       }
-                      disabled={correctMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
+                    />
+                    <Button
+                      variant="primary"
+                      size="md"
+                      loading={correctMutation.isPending}
+                      onClick={() => correctMutation.mutate({ id: activeEmail.id, data: editForm })}
                     >
                       <Save size={14} />
-                      {correctMutation.isPending ? 'Kaydediliyor...' : 'Duzeltmeyi Kaydet'}
-                    </button>
+                      Düzeltmeyi Kaydet
+                    </Button>
                   </div>
                 ) : (
                   <div className="mt-4 space-y-4">
-                    {/* Customer / Company 2-col grid with icons */}
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {/* Customer / Company facts */}
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {detailParsed.customer_name && (
-                        <div className="flex items-center gap-3 rounded-lg bg-white p-3 shadow-sm">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100">
-                            <User size={14} className="text-blue-600" />
-                          </div>
-                          <div>
-                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                            <User size={14} />
+                          </span>
+                          <div className="min-w-0">
+                            <span className="block text-overline text-slate-400 dark:text-slate-500">
                               Müşteri
                             </span>
-                            <span className="text-sm font-medium text-gray-900">
+                            <span className="block truncate text-[13px] font-medium text-slate-900 dark:text-white">
                               {detailParsed.customer_name}
                             </span>
                           </div>
                         </div>
                       )}
                       {detailParsed.customer_company && (
-                        <div className="flex items-center gap-3 rounded-lg bg-white p-3 shadow-sm">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100">
-                            <Building2 size={14} className="text-blue-600" />
-                          </div>
-                          <div>
-                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                            <Building2 size={14} />
+                          </span>
+                          <div className="min-w-0">
+                            <span className="block text-overline text-slate-400 dark:text-slate-500">
                               Şirket
                             </span>
-                            <span className="text-sm font-medium text-gray-900">
+                            <span className="block truncate text-[13px] font-medium text-slate-900 dark:text-white">
                               {detailParsed.customer_company}
                             </span>
                           </div>
@@ -577,66 +671,69 @@ export default function EmailListPage() {
                       )}
                     </div>
 
-                    {/* Parts list - mini cards */}
+                    {/* Parts list */}
                     {detailParsed.parts && detailParsed.parts.length > 0 && (
                       <div>
                         <div className="mb-2 flex items-center gap-2">
-                          <Package size={14} className="text-blue-600" />
-                          <span className="text-xs font-bold uppercase tracking-wider text-blue-700">
+                          <Package size={14} className="text-honeywell-red" />
+                          <span className="text-overline text-honeywell-red">
                             Talep Edilen Parçalar
                           </span>
-                          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-200 px-1.5 text-[10px] font-bold text-blue-800">
+                          <Badge variant="default" size="sm">
                             {detailParsed.parts.length}
-                          </span>
+                          </Badge>
                         </div>
-                        <div className="space-y-2">
+                        <ul className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
                           {detailParsed.parts.map((p: ParsedPart, i: number) => (
-                            <div
+                            <li
                               key={i}
-                              className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm"
+                              className="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2.5 last:border-b-0 dark:border-slate-800"
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100">
-                                  <Hash size={12} className="text-slate-500" />
-                                </div>
-                                <div>
-                                  <span className="block font-mono text-sm font-bold text-gray-900">
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-slate-50 text-slate-400 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:ring-slate-800">
+                                  <Hash size={12} />
+                                </span>
+                                <div className="min-w-0">
+                                  <span className="block font-mono text-[13px] font-semibold text-slate-900 dark:text-white">
                                     {p.part_code}
                                   </span>
                                   {p.part_description && (
-                                    <span className="block text-xs text-gray-500">
+                                    <span className="block truncate text-[12px] text-slate-500 dark:text-slate-400">
                                       {p.part_description}
                                     </span>
                                   )}
                                 </div>
                               </div>
-                              <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                              <Badge variant="info" size="sm">
                                 {p.quantity} adet
-                              </span>
-                            </div>
+                              </Badge>
+                            </li>
                           ))}
-                        </div>
+                        </ul>
                       </div>
                     )}
 
-                    {/* Confidence progress bar */}
+                    {/* Confidence bar */}
                     {detailParsed.confidence != null && (
                       <div>
                         <div className="mb-1.5 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-blue-700">Guven Skoru</span>
-                          <span className="text-xs font-bold text-blue-800">
+                          <span className="text-overline text-slate-500 dark:text-slate-400">
+                            Güven Skoru
+                          </span>
+                          <span className="text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
                             %{Math.round(detailParsed.confidence * 100)}
                           </span>
                         </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-blue-200">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                           <div
-                            className={`h-full rounded-full transition-all ${
+                            className={[
+                              'h-full rounded-full transition-all',
                               detailParsed.confidence >= 0.8
                                 ? 'bg-emerald-500'
                                 : detailParsed.confidence >= 0.5
                                   ? 'bg-amber-500'
-                                  : 'bg-rose-500'
-                            }`}
+                                  : 'bg-red-500',
+                            ].join(' ')}
                             style={{ width: `${Math.round(detailParsed.confidence * 100)}%` }}
                           />
                         </div>
@@ -646,75 +743,6 @@ export default function EmailListPage() {
                 )}
               </div>
             )}
-
-            {/* Action buttons */}
-            <div className="space-y-3 border-t border-gray-100 pt-5">
-              {/* Primary actions row */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    loading={reparseMutation.isPending}
-                    onClick={() => reparseMutation.mutate(activeEmail!.id)}
-                  >
-                    Yeniden Ayrıştır
-                  </Button>
-                  {activeEmail.review_status === 'pending_review' && (
-                    <>
-                      <Button
-                        size="sm"
-                        loading={reviewMutation.isPending}
-                        onClick={() =>
-                          reviewMutation.mutate({ id: activeEmail!.id, action: 'approve' })
-                        }
-                        className="rounded-lg! bg-emerald-600! px-5! text-white! shadow-sm! hover:bg-emerald-700!"
-                      >
-                        Onayla
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        loading={reviewMutation.isPending}
-                        onClick={() =>
-                          reviewMutation.mutate({ id: activeEmail!.id, action: 'reject' })
-                        }
-                        className="rounded-lg! border-rose-200! bg-rose-50! text-rose-600! hover:bg-rose-100!"
-                      >
-                        Reddet
-                      </Button>
-                    </>
-                  )}
-                </div>
-                <Button variant="secondary" size="sm" onClick={() => setDetailEmail(null)}>
-                  Kapat
-                </Button>
-              </div>
-
-              {/* Approved actions row */}
-              {activeEmail.review_status === 'approved' && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    loading={createCustomerMutation.isPending}
-                    onClick={() => handleCreateCustomer(activeEmail!)}
-                    disabled={!detailParsed}
-                  >
-                    Müşteri Oluştur
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    loading={createQuoteMutation.isPending}
-                    onClick={() => createQuoteMutation.mutate(activeEmail!.id)}
-                    disabled={!detailParsed?.parts?.length}
-                  >
-                    Teklif Oluştur
-                  </Button>
-                </div>
-              )}
-            </div>
           </div>
         )}
       </Modal>

@@ -18,13 +18,13 @@ const PRIORITY_OPTIONS = [
 ];
 
 const SELECT_CLASS =
-  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white';
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white';
 
 const TEXTAREA_CLASS =
-  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800 dark:text-white';
 
 interface StepBuilderProps {
   steps: PlaybookStepDef[];
@@ -69,7 +69,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
 
   if (readOnly) {
     if (steps.length === 0) {
-      return <p className="text-sm text-gray-500">Tanimlanmis adım bulunmuyor.</p>;
+      return <p className="text-sm text-slate-500">Tanimlanmis adım bulunmuyor.</p>;
     }
 
     return (
@@ -78,14 +78,14 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
           <div key={index} className="relative flex items-start gap-3 pb-4">
             {/* Connector line */}
             {index < steps.length - 1 && (
-              <div className="absolute left-3.5 top-8 h-full w-px border-l-2 border-dashed border-gray-200 dark:border-gray-700" />
+              <div className="absolute left-3.5 top-8 h-full w-px border-l-2 border-dashed border-slate-200 dark:border-slate-800" />
             )}
 
             <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
               {index + 1}
             </span>
 
-            <div className="flex-1 rounded-lg border border-gray-100 p-3 dark:border-gray-700">
+            <div className="flex-1 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="info">{getActionLabel(step.action_type)}</Badge>
                 {step.priority && (
@@ -94,17 +94,17 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
                   </Badge>
                 )}
                 {step.delay_days != null && step.delay_days > 0 && (
-                  <span className="text-xs text-gray-500">{step.delay_days} gun bekleme</span>
+                  <span className="text-xs text-slate-500">{step.delay_days} gun bekleme</span>
                 )}
               </div>
               {step.template && (
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{step.template}</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{step.template}</p>
               )}
               {step.description && (
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{step.description}</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{step.description}</p>
               )}
               {step.action_type === 'condition' && (
-                <div className="mt-1 flex gap-3 text-xs text-gray-500">
+                <div className="mt-1 flex gap-3 text-xs text-slate-500">
                   {step.if_true_step != null && <span>Dogru ise: Adim {step.if_true_step}</span>}
                   {step.if_false_step != null && <span>Yanlis ise: Adim {step.if_false_step}</span>}
                 </div>
@@ -122,18 +122,18 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
         <div key={index} className="relative flex items-start gap-3 pb-4">
           {/* Connector line */}
           {index < steps.length - 1 && (
-            <div className="absolute left-3.5 top-8 h-full w-px border-l-2 border-dashed border-gray-200 dark:border-gray-700" />
+            <div className="absolute left-3.5 top-8 h-full w-px border-l-2 border-dashed border-slate-200 dark:border-slate-800" />
           )}
 
           <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
             {index + 1}
           </span>
 
-          <div className="flex-1 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+          <div className="flex-1 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
             <div className="flex items-start justify-between">
               <div className="grid flex-1 gap-3 sm:grid-cols-3">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Aksiyon Tipi
                   </label>
                   <select
@@ -150,7 +150,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Bekleme (gun)
                   </label>
                   <input
@@ -163,7 +163,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Oncelik
                   </label>
                   <select
@@ -191,7 +191,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
             </div>
 
             <div className="mt-3">
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Mesaj Şablonu
               </label>
               <textarea
@@ -206,7 +206,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
             {step.action_type === 'condition' && (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Dogru ise (Adım No)
                   </label>
                   <input
@@ -222,7 +222,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Yanlis ise (Adım No)
                   </label>
                   <input
@@ -246,7 +246,7 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
       <button
         type="button"
         onClick={handleAdd}
-        className="inline-flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-gray-400 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300"
+        className="inline-flex items-center gap-1 rounded-lg border border-dashed border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-slate-300 hover:text-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:border-gray-500 dark:hover:text-slate-300"
       >
         <Plus className="h-4 w-4" />
         Adım Ekle

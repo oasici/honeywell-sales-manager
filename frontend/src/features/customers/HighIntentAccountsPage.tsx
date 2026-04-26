@@ -45,12 +45,12 @@ export default function HighIntentAccountsPage() {
         {isLoading ? (
           <Skeleton variant="card" />
         ) : !data?.items?.length ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
+          <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
             <Target className="mb-2 h-10 w-10 opacity-40" />
             <p className="text-sm">{t('high_intent.empty')}</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-800">
+          <div className="divide-y divide-slate-200 dark:divide-slate-800">
             {data.items.map((row) => (
               <div
                 key={row.customer_id}
@@ -65,7 +65,7 @@ export default function HighIntentAccountsPage() {
                     {row.company || row.name}
                   </button>
                   {row.company && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{row.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{row.name}</p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-1">
                     {row.signals.map((s) => (
@@ -77,8 +77,8 @@ export default function HighIntentAccountsPage() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
-                    <p className="text-xs text-gray-500">{t('high_intent.score')}</p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">{row.score}</p>
+                    <p className="text-xs text-slate-500">{t('high_intent.score')}</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">{row.score}</p>
                   </div>
                   <Button
                     variant="secondary"

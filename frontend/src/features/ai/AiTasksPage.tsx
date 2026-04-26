@@ -122,7 +122,7 @@ export default function AiTasksPage() {
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               filter === s
                 ? 'bg-honeywell-red/10 text-honeywell-red'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-slate-100 text-slate-600 hover:bg-gray-200'
             }`}
           >
             {statusLabels[s as keyof typeof statusLabels]}
@@ -152,7 +152,7 @@ export default function AiTasksPage() {
               <div className="flex items-start justify-between gap-4 p-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-semibold text-gray-900 truncate">{task.title}</h3>
+                    <h3 className="text-sm font-semibold text-slate-900 truncate">{task.title}</h3>
                     <Badge variant={PRIORITY_VARIANTS[task.priority] ?? 'default'} size="sm">
                       {priorityLabels[task.priority as keyof typeof priorityLabels] ??
                         task.priority}
@@ -167,9 +167,9 @@ export default function AiTasksPage() {
                     )}
                   </div>
                   {task.description && (
-                    <p className="text-xs text-gray-500 mb-1 line-clamp-2">{task.description}</p>
+                    <p className="text-xs text-slate-500 mb-1 line-clamp-2">{task.description}</p>
                   )}
-                  <div className="flex items-center gap-4 text-xs text-gray-400">
+                  <div className="flex items-center gap-4 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <Clock size={12} /> {formatDateTime(task.created_at)}
                     </span>
@@ -237,11 +237,11 @@ export default function AiTasksPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               {t('ai_tasks.label_priority')}
             </label>
             <select
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
               value={form.priority}
               onChange={(e) => setForm({ ...form, priority: e.target.value })}
             >
@@ -251,7 +251,7 @@ export default function AiTasksPage() {
               <option value="urgent">{t('ai_tasks.priority_urgent')}</option>
             </select>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               {t('common.cancel')}
             </Button>

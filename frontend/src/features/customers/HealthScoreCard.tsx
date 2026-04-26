@@ -48,14 +48,14 @@ export function HealthScoreCard({ health }: { health: CustomerHealthReport }) {
 
         {/* Indicators */}
         <div className="flex-1 space-y-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Gostergeler
           </h4>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {health.indicators.map((ind) => (
-              <div key={ind.name} className="rounded-lg bg-gray-50 p-3">
+              <div key={ind.name} className="rounded-lg bg-slate-50 p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-600">{ind.label}</span>
+                  <span className="text-xs font-medium text-slate-600">{ind.label}</span>
                   <span className="text-xs font-bold" style={{ color: getScoreColor(ind.score) }}>
                     {Math.round(ind.score)}
                   </span>
@@ -69,7 +69,7 @@ export function HealthScoreCard({ health }: { health: CustomerHealthReport }) {
                     }}
                   />
                 </div>
-                <p className="mt-1 text-[10px] text-gray-400">{ind.description}</p>
+                <p className="mt-1 text-[10px] text-slate-400">{ind.description}</p>
               </div>
             ))}
           </div>
@@ -78,12 +78,12 @@ export function HealthScoreCard({ health }: { health: CustomerHealthReport }) {
         {/* Recommendations */}
         {health.recommendations.length > 0 && (
           <div className="lg:w-64 space-y-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Öneriler
             </h4>
             <ul className="space-y-2">
               {health.recommendations.map((rec, i) => (
-                <li key={i} className="flex gap-2 text-xs text-gray-600">
+                <li key={i} className="flex gap-2 text-xs text-slate-600">
                   <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
                   {rec}
                 </li>

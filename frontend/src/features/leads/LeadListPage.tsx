@@ -4,8 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
@@ -42,16 +42,27 @@ const STATUS_COLORS: Record<string, 'default' | 'info' | 'warning' | 'success' |
   converted: 'success',
 };
 
+/**
+ * ScoreBadge — color-coded lead-score chip with brand-tinted ring.
+ *
+ * Buckets: ≥70 = healthy (emerald), 40–69 = warm (amber), <40 = cold (red).
+ * The 7×7 pill keeps the row compact while the tabular-nums numeral stays
+ * aligned across rows.
+ */
 function ScoreBadge({ score }: { score: number }) {
-  const color =
+  const tone =
     score >= 70
-      ? 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400'
+      ? 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40'
       : score >= 40
-        ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400'
-        : 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400';
+        ? 'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-900/40'
+        : 'bg-red-50 text-red-700 ring-red-100 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-900/40';
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${color}`}
+      className={[
+        'inline-flex h-7 min-w-[36px] items-center justify-center rounded-full px-2 text-[12px] font-bold tabular-nums ring-1 ring-inset',
+        tone,
+      ].join(' ')}
+      aria-label={`Skor ${score}`}
     >
       {score}
     </span>
@@ -168,6 +179,7 @@ export default function LeadListPage() {
     {
       key: 'select',
       header: '',
+      width: '40px',
       render: (row: Lead) => (
         <label
           className="flex items-center"
@@ -181,7 +193,7 @@ export default function LeadListPage() {
               toggleItem(row.id);
             }}
             onClick={(e) => e.stopPropagation()}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="h-4 w-4 cursor-pointer rounded-[4px] border-slate-300 text-honeywell-red focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800"
           />
         </label>
       ),
@@ -190,112 +202,166 @@ export default function LeadListPage() {
       key: 'full_name',
       header: t('leads.col_name'),
       render: (row: Lead) => (
-        <div>
-          <p className="font-medium text-gray-900 dark:text-white">
-            {row.first_name} {row.last_name}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{row.company || '-'}</p>
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-honeywell-red/10 text-[12px] font-semibold text-honeywell-red ring-1 ring-inset ring-honeywell-red/20"
+          >
+            {(row.first_name?.[0] ?? '').toUpperCase()}
+            {(row.last_name?.[0] ?? '').toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+              {row.first_name} {row.last_name}
+            </p>
+            <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+              {row.company || '—'}
+            </p>
+          </div>
         </div>
       ),
     },
-    { key: 'email', header: t('leads.col_email') },
+    {
+      key: 'email',
+      header: t('leads.col_email'),
+      render: (row: Lead) => (
+        <span className="text-[13px] text-slate-700 dark:text-slate-200">{row.email}</span>
+      ),
+    },
     {
       key: 'lead_score',
       header: t('leads.col_score'),
+      align: 'center' as const,
+      numeric: true,
       render: (row: Lead) => <ScoreBadge score={row.lead_score} />,
     },
     {
       key: 'status',
       header: t('leads.col_status'),
       render: (row: Lead) => (
-        <Badge variant={STATUS_COLORS[row.status] || 'default'}>
+        <Badge variant={STATUS_COLORS[row.status] || 'default'} size="sm" dot>
           {translateLeadStatus(row.status, t)}
         </Badge>
       ),
     },
-    { key: 'source', header: t('leads.col_source') },
+    {
+      key: 'source',
+      header: t('leads.col_source'),
+      render: (row: Lead) => (
+        <span className="text-[12px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          {row.source}
+        </span>
+      ),
+    },
     {
       key: 'created_at',
       header: t('leads.col_date'),
-      render: (row: Lead) => formatDate(row.created_at),
+      render: (row: Lead) => (
+        <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+          {formatDate(row.created_at)}
+        </span>
+      ),
     },
   ];
 
+  const statusOptions = [
+    { value: '', label: t('leads.all_statuses') },
+    ...LEAD_STATUS_VALUES.map((k) => ({ value: k, label: translateLeadStatus(k, t) })),
+  ];
+
   return (
-    <div className="space-y-4">
+    <div>
       <PageHeader title={t('leads.title')} description={t('leads.description')}>
         <Button onClick={() => setShowCreate(true)}>
-          <UserPlus className="mr-1 h-4 w-4" /> {t('leads.new')}
+          <UserPlus size={14} />
+          {t('leads.new')}
         </Button>
       </PageHeader>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
+      {/* Filter row — search input gets a leading icon adornment so the
+          intent is unmistakable. Status select sits beside it; "Tümünü
+          seç" stays on the right so the eye lands on it after scanning. */}
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="relative min-w-[220px] flex-1">
+          <Search
+            size={14}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            aria-hidden
+          />
+          <Input
             type="text"
             placeholder={t('leads.search_placeholder')}
-            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
+            className="pl-9"
           />
         </div>
-        <select
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-          value={statusFilter || ''}
-          onChange={(e) => {
-            setStatusFilter(e.target.value || undefined);
-            setPage(1);
-          }}
-        >
-          <option value="">{t('leads.all_statuses')}</option>
-          {LEAD_STATUS_VALUES.map((k) => (
-            <option key={k} value={k}>
-              {translateLeadStatus(k, t)}
-            </option>
-          ))}
-        </select>
+        <div className="w-52">
+          <Select
+            options={statusOptions}
+            value={statusFilter || ''}
+            onChange={(e) => {
+              setStatusFilter(e.target.value || undefined);
+              setPage(1);
+            }}
+          />
+        </div>
         {items.length > 0 && (
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+          <label className="ml-auto inline-flex h-11 cursor-pointer select-none items-center gap-2 text-[13px] text-slate-600 dark:text-slate-300">
             <input
               type="checkbox"
               checked={isAllSelected}
               onChange={toggleAll}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded-[4px] border-slate-300 text-honeywell-red focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800"
             />
             {t('leads.select_all')}
           </label>
         )}
       </div>
 
-      <Card>
-        <DataTable
-          columns={columns}
-          data={items}
-          loading={isLoading}
-          emptyMessage={t('leads.empty')}
-          onRowClick={(row: Lead) => navigate(`/leads/${row.id}`)}
-          page={page}
-          totalPages={data?.pages || 0}
-          onPageChange={setPage}
-        />
-      </Card>
+      <DataTable
+        columns={columns}
+        data={items}
+        loading={isLoading}
+        emptyMessage={t('leads.empty')}
+        onRowClick={(row: Lead) => navigate(`/leads/${row.id}`)}
+        page={page}
+        totalPages={data?.pages || 0}
+        onPageChange={setPage}
+      />
 
-      {/* Create Lead Modal */}
+      {/* Create Lead Modal — uses Modal's footer slot so action buttons
+          stay pinned even if the form scrolls. */}
       <Modal
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
         title={t('leads.modal_create_title')}
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowCreate(false)} type="button">
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="submit"
+              form="lead-create-form"
+              loading={createMutation.isPending}
+            >
+              {t('common.create')}
+            </Button>
+          </>
+        }
       >
         <form
+          id="lead-create-form"
           onSubmit={(e) => {
             e.preventDefault();
             createMutation.mutate(form);
           }}
-          className="space-y-3"
+          className="space-y-4"
         >
           <div className="grid grid-cols-2 gap-3">
             <Input
@@ -339,14 +405,6 @@ export default function LeadListPage() {
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setShowCreate(false)} type="button">
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" loading={createMutation.isPending}>
-              {t('common.create')}
-            </Button>
-          </div>
         </form>
       </Modal>
 
@@ -378,27 +436,16 @@ export default function LeadListPage() {
         isOpen={showStatusModal}
         onClose={() => setShowStatusModal(false)}
         title={t('leads.status_change_title')}
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            {t('leads.status_change_desc').replace('{count}', String(selectedCount))}
-          </p>
-          <select
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            value={newStatus}
-            onChange={(e) => setNewStatus(e.target.value)}
-          >
-            {LEAD_STATUS_VALUES.map((k) => (
-              <option key={k} value={k}>
-                {translateLeadStatus(k, t)}
-              </option>
-            ))}
-          </select>
-          <div className="flex justify-end gap-2">
+        size="sm"
+        description={t('leads.status_change_desc').replace('{count}', String(selectedCount))}
+        footer={
+          <>
             <Button variant="secondary" onClick={() => setShowStatusModal(false)}>
               {t('common.cancel')}
             </Button>
             <Button
+              variant="primary"
+              loading={bulkMutation.isPending}
               onClick={() => {
                 bulkMutation.mutate({
                   ids: Array.from(selectedIds),
@@ -410,8 +457,18 @@ export default function LeadListPage() {
             >
               {t('leads.apply')}
             </Button>
-          </div>
-        </div>
+          </>
+        }
+      >
+        <Select
+          label={t('leads.col_status')}
+          options={LEAD_STATUS_VALUES.map((k) => ({
+            value: k,
+            label: translateLeadStatus(k, t),
+          }))}
+          value={newStatus}
+          onChange={(e) => setNewStatus(e.target.value)}
+        />
       </Modal>
     </div>
   );

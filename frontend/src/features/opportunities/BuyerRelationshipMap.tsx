@@ -36,7 +36,7 @@ const ROLE_COLORS: Record<string, string> = {
   champion: 'bg-green-100 text-green-800',
   detractor: 'bg-red-100 text-red-800',
   gatekeeper: 'bg-yellow-100 text-yellow-800',
-  end_user: 'bg-gray-100 text-gray-800',
+  end_user: 'bg-slate-100 text-slate-800',
 };
 
 interface BuyerRelationshipMapProps {
@@ -112,7 +112,7 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
           if (!members || members.length === 0) return null;
           return (
             <div key={level} className="border-b last:border-b-0">
-              <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 {SENIORITY_LABELS[level] ?? level}
               </div>
               <div className="flex flex-wrap gap-3 p-4">
@@ -129,7 +129,7 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
         })}
         {ungrouped.length > 0 && (
           <div className="border-b last:border-b-0">
-            <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Atanmamis
             </div>
             <div className="flex flex-wrap gap-3 p-4">
@@ -144,7 +144,7 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
           </div>
         )}
         {stakeholders.length === 0 && (
-          <div className="p-8 text-center text-gray-400">
+          <div className="p-8 text-center text-slate-400">
             Henüz paydas eklenmemis. Alis komitesini olusturmaya baslayin.
           </div>
         )}
@@ -172,7 +172,7 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
 
       {/* Stats */}
       {stakeholders.length > 0 && (
-        <div className="flex gap-4 text-xs text-gray-500">
+        <div className="flex gap-4 text-xs text-slate-500">
           <span>{stakeholders.length} kisi</span>
           <span>{alertsData?.departments?.length ?? 0} departman</span>
           <span>{alertsData?.roles?.length ?? 0} rol</span>
@@ -193,28 +193,28 @@ function StakeholderCard({
     <div className="relative group w-48 border rounded-lg p-3 bg-white hover:shadow-sm transition">
       <button
         onClick={onDelete}
-        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition"
       >
         <Trash2 className="w-3 h-3" />
       </button>
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-          <User className="w-4 h-4 text-gray-500" />
+        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+          <User className="w-4 h-4 text-slate-500" />
         </div>
         <div className="min-w-0">
           <div className="text-sm font-medium truncate">{s.name}</div>
-          {s.title && <div className="text-xs text-gray-500 truncate">{s.title}</div>}
+          {s.title && <div className="text-xs text-slate-500 truncate">{s.title}</div>}
         </div>
       </div>
       <div className="flex flex-wrap gap-1">
         {s.department_group && (
-          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
+          <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
             {DEPARTMENT_LABELS[s.department_group] ?? s.department_group}
           </span>
         )}
         {s.buyer_role && (
           <span
-            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${ROLE_COLORS[s.buyer_role] ?? 'bg-gray-100 text-gray-600'}`}
+            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${ROLE_COLORS[s.buyer_role] ?? 'bg-slate-100 text-slate-600'}`}
           >
             {ROLE_LABELS[s.buyer_role] ?? s.buyer_role}
           </span>
@@ -259,7 +259,7 @@ function AddStakeholderForm({
   });
 
   return (
-    <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+    <div className="border rounded-lg p-4 bg-slate-50 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Yeni Paydas</span>
         <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded">

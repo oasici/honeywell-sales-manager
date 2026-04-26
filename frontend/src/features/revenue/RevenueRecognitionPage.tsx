@@ -35,7 +35,7 @@ interface RevenueDashboard {
 function ProgressBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+    <div className="w-full h-1.5 bg-gray-200 dark:bg-slate-800 rounded-full overflow-hidden">
       <div
         className="h-full bg-honeywell-red rounded-full transition-all"
         style={{ width: `${pct}%` }}
@@ -59,12 +59,12 @@ function KpiCard({
 }) {
   return (
     <Card className="p-5">
-      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+      <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
         {value}
-        {suffix && <span className="ml-1 text-base font-medium text-gray-500">{suffix}</span>}
+        {suffix && <span className="ml-1 text-base font-medium text-slate-500">{suffix}</span>}
       </p>
     </Card>
   );
@@ -83,12 +83,12 @@ function EntryRow({
 }) {
   const t = useT();
   return (
-    <tr className="border-t border-gray-100 dark:border-gray-700">
-      <td className="py-2 px-4 text-sm text-gray-700 dark:text-gray-300">{entry.period}</td>
-      <td className="py-2 px-4 text-sm text-right text-gray-700 dark:text-gray-300">
+    <tr className="border-t border-slate-100 dark:border-slate-800">
+      <td className="py-2 px-4 text-sm text-slate-700 dark:text-slate-300">{entry.period}</td>
+      <td className="py-2 px-4 text-sm text-right text-slate-700 dark:text-slate-300">
         {formatCurrency(entry.amount)}
       </td>
-      <td className="py-2 px-4 text-sm text-right text-gray-700 dark:text-gray-300">
+      <td className="py-2 px-4 text-sm text-right text-slate-700 dark:text-slate-300">
         {formatCurrency(entry.recognized_amount)}
       </td>
       <td className="py-2 px-4 text-sm">
@@ -136,20 +136,20 @@ function ScheduleCard({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-start justify-between p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+        className="flex w-full items-start justify-between p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
         aria-expanded={expanded}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-gray-900 dark:text-white truncate">
+            <span className="font-medium text-slate-900 dark:text-white truncate">
               {schedule.contract?.title ??
                 t('revenue.contract_fallback').replace('{id}', String(schedule.contract_id))}
             </span>
-            <span className="text-xs rounded-full px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+            <span className="text-xs rounded-full px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               {translateRevenueRecognitionType(schedule.recognition_type, t)}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-4 text-sm text-gray-500 flex-wrap">
+          <div className="mt-2 flex items-center gap-4 text-sm text-slate-500 flex-wrap">
             <span>
               {formatCurrency(schedule.recognized_amount, schedule.currency)} /{' '}
               {formatCurrency(schedule.total_amount, schedule.currency)}
@@ -163,31 +163,31 @@ function ScheduleCard({
             <ProgressBar value={schedule.recognized_amount} max={schedule.total_amount} />
           </div>
         </div>
-        <div className="ml-4 shrink-0 text-gray-400">
+        <div className="ml-4 shrink-0 text-slate-400">
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </div>
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-100 dark:border-gray-700">
+        <div className="border-t border-slate-100 dark:border-slate-800">
           {schedule.entries && schedule.entries.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-800/50">
-                    <th className="py-2 px-4 text-left text-xs font-semibold text-gray-500 uppercase">
+                  <tr className="bg-slate-50 dark:bg-slate-800/50">
+                    <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500 uppercase">
                       {t('revenue.col_period')}
                     </th>
-                    <th className="py-2 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                    <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                       {t('revenue.col_amount')}
                     </th>
-                    <th className="py-2 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                    <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                       {t('revenue.col_recognized')}
                     </th>
-                    <th className="py-2 px-4 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="py-2 px-4 text-left text-xs font-semibold text-slate-500 uppercase">
                       {t('revenue.col_status')}
                     </th>
-                    <th className="py-2 px-4 text-right text-xs font-semibold text-gray-500 uppercase">
+                    <th className="py-2 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                       {t('revenue.col_action')}
                     </th>
                   </tr>
@@ -207,7 +207,7 @@ function ScheduleCard({
             </div>
           ) : (
             <div className="p-6 text-center">
-              <p className="text-sm text-gray-500 mb-3">{t('revenue.entries_empty_hint')}</p>
+              <p className="text-sm text-slate-500 mb-3">{t('revenue.entries_empty_hint')}</p>
               <Button onClick={() => onGenerateEntries(schedule.id)} loading={isGenerating}>
                 {t('revenue.generate_entries')}
               </Button>
@@ -428,9 +428,9 @@ export default function RevenueRecognitionPage() {
           Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
         ) : schedules.length === 0 ? (
           <Card className="py-16 text-center">
-            <TrendingUp size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-            <p className="text-gray-500">{t('revenue.empty_title')}</p>
-            <p className="text-sm text-gray-400 mt-1">{t('revenue.empty_hint')}</p>
+            <TrendingUp size={40} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+            <p className="text-slate-500">{t('revenue.empty_title')}</p>
+            <p className="text-sm text-slate-400 mt-1">{t('revenue.empty_hint')}</p>
           </Card>
         ) : (
           schedules.map((schedule) => (
@@ -456,7 +456,7 @@ export default function RevenueRecognitionPage() {
           <div>
             <label
               htmlFor="rev-contract"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
             >
               {t('revenue.label_contract')}
             </label>
@@ -464,7 +464,7 @@ export default function RevenueRecognitionPage() {
               id="rev-contract"
               value={form.contractId}
               onChange={(e) => setForm((f) => ({ ...f, contractId: e.target.value }))}
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="">{t('revenue.select_contract')}</option>
               {contracts.map((c) => (
@@ -478,7 +478,7 @@ export default function RevenueRecognitionPage() {
           <div>
             <label
               htmlFor="rev-type"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
             >
               {t('revenue.label_recognition_type')}
             </label>
@@ -486,7 +486,7 @@ export default function RevenueRecognitionPage() {
               id="rev-type"
               value={form.recognitionType}
               onChange={(e) => setForm((f) => ({ ...f, recognitionType: e.target.value }))}
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               {recognitionTypeOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -500,7 +500,7 @@ export default function RevenueRecognitionPage() {
             <div>
               <label
                 htmlFor="rev-start"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
               >
                 {t('revenue.label_start')}
               </label>
@@ -517,7 +517,7 @@ export default function RevenueRecognitionPage() {
             <div>
               <label
                 htmlFor="rev-end"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
               >
                 {t('revenue.label_end')}
               </label>
@@ -540,7 +540,7 @@ export default function RevenueRecognitionPage() {
             <div>
               <label
                 htmlFor="rev-amount"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
               >
                 {t('revenue.label_total')}
               </label>
@@ -563,7 +563,7 @@ export default function RevenueRecognitionPage() {
             <div>
               <label
                 htmlFor="rev-currency"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
               >
                 {t('revenue.label_currency')}
               </label>
@@ -571,7 +571,7 @@ export default function RevenueRecognitionPage() {
                 id="rev-currency"
                 value={form.currency}
                 onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-honeywell-red dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>

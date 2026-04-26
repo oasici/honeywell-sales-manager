@@ -81,7 +81,7 @@ function CommentItem({
   const avatarColor = getAvatarColor(userName);
 
   return (
-    <div className={isNested ? 'ml-8 border-l-2 border-gray-200 pl-4 dark:border-gray-700' : ''}>
+    <div className={isNested ? 'ml-8 border-l-2 border-slate-200 pl-4 dark:border-slate-800' : ''}>
       <div className={`flex gap-3 py-3 ${isReplyTarget ? 'bg-blue-50 dark:bg-blue-900/10 -mx-2 px-2 rounded-lg' : ''}`}>
         <div
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${avatarColor}`}
@@ -90,21 +90,21 @@ function CommentItem({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+            <span className="text-sm font-semibold text-slate-900 dark:text-white">
               {userName}
             </span>
-            <span className="text-[10px] text-gray-400">
+            <span className="text-[10px] text-slate-400">
               {comment.created_at ? formatTimestamp(comment.created_at) : ''}
             </span>
           </div>
-          <p className="mt-0.5 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+          <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
             {highlightMentions(comment.body)}
           </p>
           <div className="mt-1 flex items-center gap-3">
             <button
               type="button"
               onClick={() => onReply(comment.id)}
-              className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-blue-600 transition-colors"
             >
               <Reply size={12} />
               Yanit
@@ -113,7 +113,7 @@ function CommentItem({
               <button
                 type="button"
                 onClick={() => onDelete(comment.id)}
-                className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-600 transition-colors"
+                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-600 transition-colors"
               >
                 <Trash2 size={12} />
                 Sil
@@ -155,13 +155,13 @@ function MentionDropdown({ users, filter, onSelect }: MentionDropdownProps) {
   if (filtered.length === 0) return null;
 
   return (
-    <div className="absolute bottom-full left-0 mb-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50 max-h-40 overflow-y-auto">
+    <div className="absolute bottom-full left-0 mb-1 w-56 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-800 z-50 max-h-40 overflow-y-auto">
       {filtered.map((u) => (
         <button
           key={u.id}
           type="button"
           onClick={() => onSelect(u.full_name.split(' ')[0])}
-          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           <div
             className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white ${getAvatarColor(u.full_name)}`}
@@ -280,9 +280,9 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
 
   return (
     <Card title="Yorumlar">
-      <div className="space-y-0 divide-y divide-gray-100 dark:divide-gray-800">
+      <div className="space-y-0 divide-y divide-slate-100 dark:divide-slate-800">
         {comments.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-400">Henüz yorum yok</p>
+          <p className="py-6 text-center text-sm text-slate-400">Henüz yorum yok</p>
         ) : (
           comments.map((comment) => (
             <CommentItem
@@ -298,10 +298,10 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
       </div>
 
       {/* New comment input */}
-      <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+      <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
         {replyToId && (
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs text-gray-500">Yanit yaziyorsunuz</span>
+            <span className="text-xs text-slate-500">Yanit yaziyorsunuz</span>
             <button
               type="button"
               onClick={() => setReplyToId(null)}
@@ -331,7 +331,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
             }}
             placeholder="Yorum yazin... (@ile etiketleyin)"
             rows={2}
-            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm resize-none focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm resize-none focus:border-honeywell-red focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-slate-800 dark:bg-slate-800 dark:text-white"
           />
           <button
             type="button"

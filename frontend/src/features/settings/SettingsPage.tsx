@@ -97,8 +97,11 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton variant="card" count={2} />
+      <div>
+        <PageHeader title={t('settings.title')} description={t('settings.description')} />
+        <div className="space-y-4">
+          <Skeleton variant="card" count={2} />
+        </div>
       </div>
     );
   }
@@ -107,6 +110,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader title={t('settings.title')} description={t('settings.description')}>
         <Button loading={saveMutation.isPending} onClick={() => saveMutation.mutate(form)}>
+          <Save size={14} />
           {t('settings.save')}
         </Button>
       </PageHeader>
@@ -182,33 +186,41 @@ function FeatureModulesSection() {
 
   return (
     <Card title={t('settings.modules_title')}>
-      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
         {t('settings.modules_subtitle')}
       </p>
       {isLoading ? (
         <Skeleton variant="line" count={6} />
       ) : (
-        <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-100 dark:border-gray-800">
-          <table className="min-w-full text-left text-xs">
-            <tbody>
-              {entries.map(([name, on]) => (
-                <tr key={name} className="border-b border-gray-50 dark:border-gray-900">
-                  <td className="px-3 py-2 font-mono text-gray-700 dark:text-gray-200">{name}</td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 font-semibold ${
-                        on
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200'
-                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
-                      }`}
-                    >
-                      {on ? 'ON' : 'OFF'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="max-h-96 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {entries.map(([name, on]) => (
+              <li
+                key={name}
+                className="flex items-center justify-between px-4 py-2.5"
+              >
+                <span className="font-mono text-[12px] text-slate-700 dark:text-slate-200">
+                  {name}
+                </span>
+                <span
+                  className={[
+                    'inline-flex h-5 items-center gap-1.5 rounded-full px-2 text-[10px] font-bold ring-1 ring-inset',
+                    on
+                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40'
+                      : 'bg-slate-50 text-slate-500 ring-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700',
+                  ].join(' ')}
+                >
+                  <span
+                    className={[
+                      'inline-block h-1.5 w-1.5 rounded-full',
+                      on ? 'bg-emerald-500' : 'bg-slate-400',
+                    ].join(' ')}
+                  />
+                  {on ? 'ON' : 'OFF'}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </Card>
@@ -221,37 +233,32 @@ function DisplaySettingsSection() {
   const { theme, setTheme, language, setLanguage, fontSizeOffset, setFontSizeOffset } =
     usePreferencesStore();
 
+  // Shared segmented-button style — sits in a slate-50 well with a white
+  // active pill (matches QuoteListPage / ContractListPage tabs).
+  const segItem = (active: boolean) =>
+    [
+      'inline-flex h-9 items-center gap-2 rounded-[10px] px-3 text-[13px] font-medium transition-all',
+      'focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20',
+      active
+        ? 'bg-white text-slate-900 shadow-(--shadow-xs) dark:bg-slate-800 dark:text-white'
+        : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200',
+    ].join(' ');
+
   return (
     <Card title={t('settings.display')}>
       <div className="space-y-6">
         {/* Theme */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
             {t('settings.theme')}
           </label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setTheme('light')}
-              className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
-                theme === 'light'
-                  ? 'border-honeywell-red bg-honeywell-light/30 text-honeywell-red'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              <Sun size={16} />
+          <div className="inline-flex gap-1 rounded-[12px] border border-slate-200 bg-slate-50/80 p-1 dark:border-slate-800 dark:bg-slate-900/40">
+            <button type="button" onClick={() => setTheme('light')} className={segItem(theme === 'light')}>
+              <Sun size={14} />
               {t('settings.theme_light')}
             </button>
-            <button
-              type="button"
-              onClick={() => setTheme('dark')}
-              className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
-                theme === 'dark'
-                  ? 'border-honeywell-red bg-honeywell-light/30 text-honeywell-red'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              <Moon size={16} />
+            <button type="button" onClick={() => setTheme('dark')} className={segItem(theme === 'dark')}>
+              <Moon size={14} />
               {t('settings.theme_dark')}
             </button>
           </div>
@@ -259,20 +266,16 @@ function DisplaySettingsSection() {
 
         {/* Language */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
             {t('settings.language')}
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="inline-flex flex-wrap gap-1 rounded-[12px] border border-slate-200 bg-slate-50/80 p-1 dark:border-slate-800 dark:bg-slate-900/40">
             {LANGUAGE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => setLanguage(opt.value as 'tr' | 'en' | 'de' | 'fr' | 'es')}
-                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                  language === opt.value
-                    ? 'border-honeywell-red bg-honeywell-light/30 text-honeywell-red'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
+                className={segItem(language === opt.value)}
               >
                 {opt.label}
               </button>
@@ -282,23 +285,26 @@ function DisplaySettingsSection() {
 
         {/* Font Size */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            {t('settings.font_size')} ({fontSizeOffset >= 0 ? '+' : ''}
-            {fontSizeOffset}px)
+          <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+            {t('settings.font_size')}{' '}
+            <span className="ml-1 inline-flex h-5 min-w-[34px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-bold tabular-nums text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+              {fontSizeOffset >= 0 ? '+' : ''}
+              {fontSizeOffset}
+            </span>
           </label>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setFontSizeOffset(fontSizeOffset - 1)}
               disabled={fontSizeOffset <= -4}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               title={t('settings.font_decrease')}
             >
-              <Minus size={16} />
+              <Minus size={14} />
             </button>
-            <div className="flex h-2 w-40 items-center rounded-full bg-gray-200">
+            <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
               <div
-                className="h-2 rounded-full bg-honeywell-red transition-all"
+                className="h-full rounded-full bg-honeywell-red transition-all"
                 style={{ width: `${((fontSizeOffset + 4) / 8) * 100}%` }}
               />
             </div>
@@ -306,21 +312,21 @@ function DisplaySettingsSection() {
               type="button"
               onClick={() => setFontSizeOffset(fontSizeOffset + 1)}
               disabled={fontSizeOffset >= 4}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               title={t('settings.font_increase')}
             >
-              <Plus size={16} />
+              <Plus size={14} />
             </button>
             {fontSizeOffset !== 0 && (
-              <button
-                type="button"
+              <Button
+                variant="tertiary"
+                size="sm"
                 onClick={() => setFontSizeOffset(0)}
-                className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 transition-colors hover:border-gray-300"
                 title={t('settings.font_reset')}
               >
                 <RotateCcw size={12} />
                 {t('settings.font_reset')}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -529,32 +535,32 @@ function EmailSettingsSection() {
           {/* IMAP/SMTP info */}
           {emailForm.imap_host && !editingServer && (
             <div>
-              <div className="grid grid-cols-2 gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-4">
                 <div>
-                  <span className="text-xs font-medium text-gray-500">IMAP</span>
-                  <p className="text-sm text-gray-800 font-mono">{emailForm.imap_host}</p>
+                  <span className="text-xs font-medium text-slate-500">IMAP</span>
+                  <p className="text-sm text-slate-800 font-mono">{emailForm.imap_host}</p>
                 </div>
                 <div>
-                  <span className="text-xs font-medium text-gray-500">
+                  <span className="text-xs font-medium text-slate-500">
                     {t('settings.email_imap_port')}
                   </span>
-                  <p className="text-sm text-gray-800 font-mono">{emailForm.imap_port}</p>
+                  <p className="text-sm text-slate-800 font-mono">{emailForm.imap_port}</p>
                 </div>
                 <div>
-                  <span className="text-xs font-medium text-gray-500">SMTP</span>
-                  <p className="text-sm text-gray-800 font-mono">{emailForm.smtp_host}</p>
+                  <span className="text-xs font-medium text-slate-500">SMTP</span>
+                  <p className="text-sm text-slate-800 font-mono">{emailForm.smtp_host}</p>
                 </div>
                 <div>
-                  <span className="text-xs font-medium text-gray-500">
+                  <span className="text-xs font-medium text-slate-500">
                     {t('settings.email_smtp_port')}
                   </span>
-                  <p className="text-sm text-gray-800 font-mono">{emailForm.smtp_port}</p>
+                  <p className="text-sm text-slate-800 font-mono">{emailForm.smtp_port}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingServer(true)}
-                className="mt-2 text-xs text-gray-500 hover:text-honeywell-red transition-colors"
+                className="mt-2 text-xs text-slate-500 hover:text-honeywell-red transition-colors"
               >
                 {t('settings.email_server_edit')}
               </button>
@@ -595,7 +601,7 @@ function EmailSettingsSection() {
               <button
                 type="button"
                 onClick={() => setEditingServer(false)}
-                className="mt-2 text-xs text-gray-500 hover:text-honeywell-red transition-colors"
+                className="mt-2 text-xs text-slate-500 hover:text-honeywell-red transition-colors"
               >
                 {t('settings.email_server_edit_close')}
               </button>
@@ -698,36 +704,36 @@ function StageConfigSection() {
 
   return (
     <Card title={t('settings.stage_card_title')}>
-      <p className="mb-4 text-xs text-gray-500">{t('settings.stage_card_description')}</p>
+      <p className="mb-4 text-xs text-slate-500">{t('settings.stage_card_description')}</p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left">
-              <th className="pb-2 pr-4 font-medium text-gray-600">
+            <tr className="border-b border-slate-200 text-left">
+              <th className="pb-2 pr-4 font-medium text-slate-600">
                 {t('settings.stage_col_stage')}
               </th>
-              <th className="pb-2 pr-4 font-medium text-gray-600">
+              <th className="pb-2 pr-4 font-medium text-slate-600">
                 {t('settings.stage_col_label')}
               </th>
-              <th className="pb-2 pr-4 font-medium text-gray-600">
+              <th className="pb-2 pr-4 font-medium text-slate-600">
                 {t('settings.stage_col_probability')}
               </th>
-              <th className="pb-2 font-medium text-gray-600">{t('settings.stage_col_rotting')}</th>
+              <th className="pb-2 font-medium text-slate-600">{t('settings.stage_col_rotting')}</th>
             </tr>
           </thead>
           <tbody>
             {stages.map((stage, idx) => (
-              <tr key={stage.stage_name} className="border-b border-gray-100 last:border-0">
+              <tr key={stage.stage_name} className="border-b border-slate-100 last:border-0">
                 <td className="py-2 pr-4">
-                  <span className="font-mono text-xs text-gray-500">{stage.stage_name}</span>
+                  <span className="font-mono text-xs text-slate-500">{stage.stage_name}</span>
                 </td>
                 <td className="py-2 pr-4">
                   <input
                     type="text"
                     value={stage.label}
                     onChange={(e) => updateStage(idx, 'label', e.target.value)}
-                    className="w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                    className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
                   />
                 </td>
                 <td className="py-2 pr-4">
@@ -737,7 +743,7 @@ function StageConfigSection() {
                     max={100}
                     value={stage.probability_pct}
                     onChange={(e) => updateStage(idx, 'probability_pct', Number(e.target.value))}
-                    className="w-24 rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                    className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
                   />
                 </td>
                 <td className="py-2">
@@ -748,7 +754,7 @@ function StageConfigSection() {
                     onChange={(e) =>
                       updateStage(idx, 'rotting_threshold_days', Number(e.target.value))
                     }
-                    className="w-24 rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                    className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
                   />
                 </td>
               </tr>
@@ -805,18 +811,18 @@ function NotificationChannelsSection() {
   return (
     <Card title={t('settings.notif_channels_title')}>
       <div className="space-y-6">
-        <p className="text-xs text-gray-500">{t('settings.notif_channels_desc')}</p>
+        <p className="text-xs text-slate-500">{t('settings.notif_channels_desc')}</p>
 
         {/* Slack */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Bell size={16} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">{t('settings.slack_label')}</span>
+              <Bell size={16} className="text-slate-500" />
+              <span className="text-sm font-medium text-slate-700">{t('settings.slack_label')}</span>
             </div>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                isSlackConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                isSlackConfigured ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
               }`}
             >
               <span
@@ -850,12 +856,12 @@ function NotificationChannelsSection() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Bell size={16} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">{t('settings.teams_label')}</span>
+              <Bell size={16} className="text-slate-500" />
+              <span className="text-sm font-medium text-slate-700">{t('settings.teams_label')}</span>
             </div>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                isTeamsConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                isTeamsConfigured ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
               }`}
             >
               <span
@@ -947,7 +953,7 @@ function MeetingLinkSection() {
       <div className="space-y-6">
         {/* Create form */}
         <div className="space-y-3">
-          <p className="text-xs text-gray-500">{t('settings.meeting_card_desc')}</p>
+          <p className="text-xs text-slate-500">{t('settings.meeting_card_desc')}</p>
           <div className="flex items-end gap-3">
             <Input
               label={t('settings.meeting_title_field')}
@@ -976,18 +982,18 @@ function MeetingLinkSection() {
         {/* Active links */}
         {links.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">{t('settings.active_links')}</h4>
-            <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+            <h4 className="text-sm font-medium text-slate-700">{t('settings.active_links')}</h4>
+            <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
               {links.map((lnk) => (
                 <div key={lnk.id} className="flex items-center justify-between px-4 py-3">
                   <div>
-                    <span className="text-sm font-medium text-gray-800">{lnk.title}</span>
-                    <span className="ml-2 text-xs text-gray-400">
+                    <span className="text-sm font-medium text-slate-800">{lnk.title}</span>
+                    <span className="ml-2 text-xs text-slate-400">
                       {lnk.duration_minutes} {t('common.minutes_short')}
                     </span>
                     <div className="mt-0.5 flex items-center gap-1.5">
-                      <Link2 size={12} className="text-gray-400" />
-                      <span className="text-xs font-mono text-gray-500">
+                      <Link2 size={12} className="text-slate-400" />
+                      <span className="text-xs font-mono text-slate-500">
                         /meetings/book/{lnk.slug}
                       </span>
                     </div>
@@ -996,7 +1002,7 @@ function MeetingLinkSection() {
                     <button
                       type="button"
                       onClick={() => copyUrl(lnk.slug)}
-                      className="flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
                     >
                       <Copy size={12} />
                       {t('settings.copy')}
@@ -1021,26 +1027,26 @@ function MeetingLinkSection() {
         {/* Active bookings */}
         {bookings.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">{t('settings.active_bookings')}</h4>
-            <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+            <h4 className="text-sm font-medium text-slate-700">{t('settings.active_bookings')}</h4>
+            <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
               {bookings.map((b) => (
                 <div key={b.id} className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <Calendar size={16} className="text-gray-400 shrink-0" />
+                    <Calendar size={16} className="text-slate-400 shrink-0" />
                     <div>
-                      <span className="text-sm font-medium text-gray-800">{b.booker_name}</span>
-                      <span className="ml-2 text-xs text-gray-400">{b.booker_email}</span>
-                      <div className="mt-0.5 text-xs text-gray-500">
+                      <span className="text-sm font-medium text-slate-800">{b.booker_name}</span>
+                      <span className="ml-2 text-xs text-slate-400">{b.booker_email}</span>
+                      <div className="mt-0.5 text-xs text-slate-500">
                         {new Date(b.scheduled_at).toLocaleString(currentLocale())}
                       </div>
-                      {b.notes && <p className="mt-0.5 text-xs text-gray-400 italic">{b.notes}</p>}
+                      {b.notes && <p className="mt-0.5 text-xs text-slate-400 italic">{b.notes}</p>}
                     </div>
                   </div>
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       b.status === 'confirmed'
                         ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-500'
+                        : 'bg-slate-100 text-slate-500'
                     }`}
                   >
                     {b.status === 'confirmed' ? t('settings.booking_status_confirmed') : b.status}

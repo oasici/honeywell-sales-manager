@@ -261,14 +261,14 @@ export default function ReportBuilderPage() {
                         ? 'bg-honeywell-red text-white'
                         : isComplete
                           ? 'bg-green-500 text-white'
-                          : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                          : 'bg-gray-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                     }`}
                   >
                     {isComplete ? <Check size={14} /> : stepNum}
                   </div>
                   <span
                     className={`mt-1 text-[10px] font-medium ${
-                      isActive ? 'text-honeywell-red' : 'text-gray-400 dark:text-gray-500'
+                      isActive ? 'text-honeywell-red' : 'text-slate-400 dark:text-slate-500'
                     }`}
                   >
                     {label}
@@ -277,7 +277,7 @@ export default function ReportBuilderPage() {
                 {idx < STEP_LABELS.length - 1 && (
                   <div
                     className={`mx-2 h-0.5 flex-1 ${
-                      step > stepNum ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
+                      step > stepNum ? 'bg-green-500' : 'bg-gray-200 dark:bg-slate-800'
                     }`}
                   />
                 )}
@@ -307,13 +307,13 @@ export default function ReportBuilderPage() {
                   className={`flex flex-col items-center gap-3 rounded-xl border-2 p-6 transition-all ${
                     isSelected
                       ? 'border-honeywell-red bg-honeywell-red/5 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                      : 'border-slate-200 hover:border-slate-200 dark:border-slate-700 dark:hover:border-slate-700'
                   }`}
                 >
                   <Icon size={32} className={isSelected ? 'text-honeywell-red' : et.color} />
                   <span
                     className={`text-sm font-semibold ${
-                      isSelected ? 'text-honeywell-red' : 'text-gray-700 dark:text-gray-300'
+                      isSelected ? 'text-honeywell-red' : 'text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     {et.label}
@@ -331,28 +331,28 @@ export default function ReportBuilderPage() {
           {isColumnsLoading ? (
             <Skeleton variant="line" count={6} />
           ) : availableColumns.length === 0 ? (
-            <p className="py-4 text-sm text-gray-500">Kullanilabilir kolon bulunamadi</p>
+            <p className="py-4 text-sm text-slate-500">Kullanilabilir kolon bulunamadi</p>
           ) : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {availableColumns.map((col) => (
                 <label
                   key={col}
-                  className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-sm cursor-pointer hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm cursor-pointer hover:bg-slate-50 transition-colors dark:border-slate-800 dark:hover:bg-slate-800"
                 >
                   <input
                     type="checkbox"
                     checked={selectedColumns.includes(col)}
                     onChange={() => toggleColumn(col)}
-                    className="h-4 w-4 rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
+                    className="h-4 w-4 rounded border-slate-200 text-honeywell-red focus:ring-honeywell-red"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">{col}</span>
+                  <span className="text-slate-700 dark:text-slate-300">{col}</span>
                 </label>
               ))}
             </div>
           )}
           {selectedColumns.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5">
-              <span className="text-xs text-gray-500 mr-1">Secili:</span>
+              <span className="text-xs text-slate-500 mr-1">Secili:</span>
               {selectedColumns.map((col) => (
                 <Badge key={col} variant="info" size="sm">
                   {col}
@@ -375,7 +375,7 @@ export default function ReportBuilderPage() {
           }
         >
           {filters.length === 0 ? (
-            <p className="py-4 text-sm text-gray-500 dark:text-gray-400">
+            <p className="py-4 text-sm text-slate-500 dark:text-slate-400">
               Filtre eklenmedi. Tüm veriler dahil edilecek.
             </p>
           ) : (
@@ -383,7 +383,7 @@ export default function ReportBuilderPage() {
               {filters.map((filter, idx) => (
                 <div
                   key={idx}
-                  className="flex items-end gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                  className="flex items-end gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800"
                 >
                   <Select
                     label="Alan"
@@ -407,7 +407,7 @@ export default function ReportBuilderPage() {
                   <button
                     type="button"
                     onClick={() => removeFilter(idx)}
-                    className="mb-1 rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
+                    className="mb-1 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors dark:hover:bg-red-900/20"
                     title="Kaldir"
                   >
                     <Trash2 size={16} />
@@ -431,7 +431,7 @@ export default function ReportBuilderPage() {
             />
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Grafik Tipi
               </label>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -446,16 +446,16 @@ export default function ReportBuilderPage() {
                       className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${
                         isSelected
                           ? 'border-honeywell-red bg-honeywell-red/5'
-                          : 'border-gray-200 hover:border-gray-300 dark:border-gray-700'
+                          : 'border-slate-200 hover:border-slate-200 dark:border-slate-700'
                       }`}
                     >
                       <Icon
                         size={24}
-                        className={isSelected ? 'text-honeywell-red' : 'text-gray-400'}
+                        className={isSelected ? 'text-honeywell-red' : 'text-slate-400'}
                       />
                       <span
                         className={`text-xs font-medium ${
-                          isSelected ? 'text-honeywell-red' : 'text-gray-500 dark:text-gray-400'
+                          isSelected ? 'text-honeywell-red' : 'text-slate-500 dark:text-slate-400'
                         }`}
                       >
                         {ct.label}
@@ -476,7 +476,7 @@ export default function ReportBuilderPage() {
             {previewMutation.isPending ? (
               <Skeleton variant="card" count={2} />
             ) : previewRows.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+              <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
                 Onizleme verisi bulunamadi
               </p>
             ) : (
@@ -602,9 +602,9 @@ export default function ReportBuilderPage() {
                   is_public: e.target.checked,
                 }))
               }
-              className="h-4 w-4 rounded border-gray-300 text-honeywell-red focus:ring-honeywell-red"
+              className="h-4 w-4 rounded border-slate-200 text-honeywell-red focus:ring-honeywell-red"
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Herkese Acik</span>
+            <span className="text-sm text-slate-700 dark:text-slate-300">Herkese Acik</span>
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsSaveModalOpen(false)}>

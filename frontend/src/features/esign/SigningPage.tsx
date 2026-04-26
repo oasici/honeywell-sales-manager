@@ -66,10 +66,10 @@ export default function SigningPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-honeywell-red" />
-          <p className="text-sm text-gray-500">{t('esign.loading')}</p>
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-honeywell-red" />
+          <p className="text-sm text-slate-500">{t('esign.loading')}</p>
         </div>
       </div>
     );
@@ -77,11 +77,11 @@ export default function SigningPage() {
 
   if (isError || !signRequest) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <AlertCircle className="mx-auto mb-4 h-14 w-14 text-red-400" />
-          <h1 className="mb-2 text-xl font-bold text-gray-900">{t('esign.not_found_title')}</h1>
-          <p className="text-sm text-gray-500">{t('esign.invalid_link')}</p>
+          <h1 className="mb-2 text-xl font-bold text-slate-900">{t('esign.not_found_title')}</h1>
+          <p className="text-sm text-slate-500">{t('esign.invalid_link')}</p>
         </div>
       </div>
     );
@@ -89,15 +89,15 @@ export default function SigningPage() {
 
   if (isSigned || signRequest.status === 'signed') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <CheckCircle className="mx-auto mb-4 h-14 w-14 text-green-500" />
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">{t('esign.signed_title')}</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="mb-2 text-2xl font-bold text-slate-900">{t('esign.signed_title')}</h1>
+          <p className="text-sm text-slate-500">
             {t('esign.signed_for').replace('{email}', signRequest.signer_email)}
           </p>
           {signRequest.signed_at && (
-            <p className="mt-2 text-xs text-gray-400">
+            <p className="mt-2 text-xs text-slate-400">
               {t('esign.signed_at').replace('{datetime}', formatDateTime(signRequest.signed_at))}
             </p>
           )}
@@ -111,11 +111,11 @@ export default function SigningPage() {
 
   if (isDeclined || signRequest.status === 'declined') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <XCircle className="mx-auto mb-4 h-14 w-14 text-red-400" />
-          <h1 className="mb-2 text-xl font-bold text-gray-900">{t('esign.rejected_title')}</h1>
-          <p className="text-sm text-gray-500">{t('esign.rejected')}</p>
+          <h1 className="mb-2 text-xl font-bold text-slate-900">{t('esign.rejected_title')}</h1>
+          <p className="text-sm text-slate-500">{t('esign.rejected')}</p>
         </div>
       </div>
     );
@@ -123,11 +123,11 @@ export default function SigningPage() {
 
   if (isExpired(signRequest.expires_at)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <Clock className="mx-auto mb-4 h-14 w-14 text-amber-400" />
-          <h1 className="mb-2 text-xl font-bold text-gray-900">{t('esign.expired_title')}</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="mb-2 text-xl font-bold text-slate-900">{t('esign.expired_title')}</h1>
+          <p className="text-sm text-slate-500">
             {t('esign.expired_body').replace('{date}', formatDate(signRequest.expires_at))}
           </p>
         </div>
@@ -145,15 +145,15 @@ export default function SigningPage() {
           : 'esign.doc_type_document';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-honeywell-red/10">
             <PenLine className="h-6 w-6 text-honeywell-red" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('esign.signing_title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('esign.signing_subtitle')}</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t('esign.signing_title')}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t('esign.signing_subtitle')}</p>
         </div>
 
         {/* Document Summary Card */}
@@ -164,40 +164,40 @@ export default function SigningPage() {
                 {t(documentTypeKey)}
               </span>
               {data?.document_id && (
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-500">
                   {t('esign.document_id').replace('{id}', String(data.document_id))}
                 </p>
               )}
             </div>
-            <div className="text-right text-xs text-gray-400">
+            <div className="text-right text-xs text-slate-400">
               <p>{t('esign.last_valid')}</p>
-              <p className="font-medium text-gray-600">{formatDate(signRequest.expires_at)}</p>
+              <p className="font-medium text-slate-600">{formatDate(signRequest.expires_at)}</p>
             </div>
           </div>
 
           {data?.document_summary && (
-            <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
               {data.document_summary}
             </div>
           )}
 
-          <div className="mt-4 border-t border-gray-100 pt-4">
-            <p className="text-xs text-gray-500">{t('esign.signer')}</p>
-            <p className="text-sm font-medium text-gray-900">{signRequest.signer_email}</p>
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <p className="text-xs text-slate-500">{t('esign.signer')}</p>
+            <p className="text-sm font-medium text-slate-900">{signRequest.signer_email}</p>
           </div>
         </div>
 
         {/* Signing Form */}
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">{t('esign.sign_title')}</h2>
+          <h2 className="mb-4 text-base font-semibold text-slate-900">{t('esign.sign_title')}</h2>
 
           <div className="mb-4">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
               {t('esign.name_label')}
             </label>
             <input
               type="text"
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-red/20"
+              className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-red/20"
               placeholder={t('esign.name_ph')}
               value={signerName}
               onChange={(e) => setSignerName(e.target.value)}
@@ -207,13 +207,13 @@ export default function SigningPage() {
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-honeywell-red"
+              className="mt-0.5 h-4 w-4 rounded border-slate-200 accent-honeywell-red"
               checked={isAgreed}
               onChange={(e) => setIsAgreed(e.target.checked)}
             />
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-slate-600">
               {t('esign.agree_prefix')}{' '}
-              <strong className="text-gray-800">{t('esign.agree_bold')}</strong>.{' '}
+              <strong className="text-slate-800">{t('esign.agree_bold')}</strong>.{' '}
               {t('esign.legal_ack')}
             </span>
           </label>
@@ -258,7 +258,7 @@ export default function SigningPage() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-gray-400">
+        <p className="mt-6 text-center text-xs text-slate-400">
           {t('esign.link_only_for').replace('{email}', signRequest.signer_email)}
         </p>
       </div>

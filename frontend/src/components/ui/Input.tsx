@@ -65,10 +65,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </p>
         )}
         {helperText && !error && (
-          <p
-            id={helperId}
-            className="mt-1.5 text-xs text-slate-500 dark:text-slate-400"
-          >
+          <p id={helperId} className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
             {helperText}
           </p>
         )}

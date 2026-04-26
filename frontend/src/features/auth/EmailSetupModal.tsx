@@ -85,8 +85,8 @@ export function EmailSetupModal({ isOpen, onClose }: EmailSetupModalProps) {
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-honeywell-red/10">
             <Mail size={28} className="text-honeywell-red" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Email Baglantisi Kurulumu</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <h2 className="text-xl font-bold text-slate-900">Email Baglantisi Kurulumu</h2>
+          <p className="mt-1 text-sm text-slate-500">
             Gelen kutunuzu baglamak için Outlook email bilgilerinizi giriniz.
             <br />
             Bu bilgiler guvenli bir sekilde saklanacaktir.
@@ -125,13 +125,13 @@ export function EmailSetupModal({ isOpen, onClose }: EmailSetupModalProps) {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+            className="text-xs text-slate-500 hover:text-slate-700 transition-colors"
           >
             {showAdvanced ? '- Gelismis ayarlari gizle' : '+ Gelismis ayarlar (IMAP/SMTP)'}
           </button>
 
           {showAdvanced && (
-            <div className="grid grid-cols-2 gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <Input
                 label="IMAP Sunucusu"
                 value={form.imap_host}

@@ -25,6 +25,9 @@ import {
 } from 'recharts';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { SafeChart } from '../../components/ui/SafeChart';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Phone, Handshake, Mail, FileText, Zap, AlertCircle, FileWarning, CheckCircle2, Sparkles } from 'lucide-react';
 import { dashboardApi, analyticsApi, subscriptionsApi, activitiesApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type {
@@ -174,16 +177,19 @@ export default function DashboardPage() {
   /* ── loading ── */
   if (isLoading || !stats) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Kontrol Paneli</h1>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div>
+        <PageHeader
+          title="Kontrol Paneli"
+          description="Boru hattı, müşteri sağlığı ve ekip performansı tek panelde."
+        />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
+            <Skeleton key={i} className="h-[88px] rounded-2xl" />
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-56 rounded-xl" />
+            <Skeleton key={i} className="h-56 rounded-2xl" />
           ))}
         </div>
       </div>
@@ -274,8 +280,8 @@ export default function DashboardPage() {
         ),
       };
       return (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="mb-4 text-overline text-slate-500 dark:text-slate-400">
             Performans Metrikleri
           </h3>
           <DndContext
@@ -302,51 +308,50 @@ export default function DashboardPage() {
     leaderboard: <LeaderboardCard />,
 
     data_quality: (
-      <div
-        className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-honeywell-red/30"
+      <button
+        type="button"
+        className="group flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-800 dark:bg-slate-900"
         onClick={() => navigate('/admin/data-quality')}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') navigate('/admin/data-quality');
-        }}
       >
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
-          Veri Kalitesi
-        </h3>
-        <div className="flex items-center gap-4">
-          <div className="relative h-14 w-14">
-            <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90" aria-hidden="true">
-              <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-              <circle
-                cx="18"
-                cy="18"
-                r="15.5"
-                fill="none"
-                stroke={
-                  (dataQuality?.data?.avg_score ?? 0) >= 75
-                    ? '#22c55e'
-                    : (dataQuality?.data?.avg_score ?? 0) >= 50
-                      ? '#eab308'
-                      : '#ef4444'
-                }
-                strokeWidth="3"
-                strokeDasharray={`${dataQuality?.data?.avg_score ?? 0} ${100 - (dataQuality?.data?.avg_score ?? 0)}`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900">
-              {Math.round(dataQuality?.data?.avg_score ?? 0)}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500">Genel veri kalite puani</p>
+        <div className="relative h-16 w-16 shrink-0">
+          <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90" aria-hidden="true">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+            <circle
+              cx="18"
+              cy="18"
+              r="15.5"
+              fill="none"
+              stroke={
+                (dataQuality?.data?.avg_score ?? 0) >= 75
+                  ? '#10b981'
+                  : (dataQuality?.data?.avg_score ?? 0) >= 50
+                    ? '#f59e0b'
+                    : '#ef4444'
+              }
+              strokeWidth="3"
+              strokeDasharray={`${dataQuality?.data?.avg_score ?? 0} ${100 - (dataQuality?.data?.avg_score ?? 0)}`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[15px] font-bold tabular-nums text-slate-900 dark:text-white">
+            {Math.round(dataQuality?.data?.avg_score ?? 0)}
+          </span>
         </div>
-      </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-overline text-slate-500 dark:text-slate-400">Veri Kalitesi</p>
+          <p className="mt-1 text-[13px] font-medium text-slate-700 dark:text-slate-300">
+            Genel veri kalite puanı
+          </p>
+          <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400">
+            Detayları görmek için tıkla →
+          </p>
+        </div>
+      </button>
     ),
 
     top_parts: (
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-4 text-overline text-slate-500 dark:text-slate-400">
           En Çok Talep Edilen Parçalar
         </h3>
         {topParts && topParts.length > 0 ? (
@@ -354,8 +359,8 @@ export default function DashboardPage() {
             <BarChart data={topParts} margin={{ top: 20, right: 10, left: 10, bottom: 60 }}>
               <defs>
                 <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#D32F2F" stopOpacity={1} />
-                  <stop offset="100%" stopColor="#B71C1C" stopOpacity={0.8} />
+                  <stop offset="0%" stopColor="#E53935" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#B71C1C" stopOpacity={0.85} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -377,7 +382,8 @@ export default function DashboardPage() {
                 contentStyle={{
                   fontSize: 12,
                   borderRadius: 12,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 8px 24px rgba(15,23,42,0.08)',
                 }}
               />
               <Bar
@@ -390,15 +396,20 @@ export default function DashboardPage() {
             </BarChart>
           </SafeChart>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
+          <EmptyState
+            variant="compact"
+            icon={<FileText size={18} />}
+            title="Henüz veri yok"
+            description="Talep verisi geldikçe burada en çok istenen parçalar listelenecek."
+          />
         )}
       </div>
     ),
 
     trends: (
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
-          Aylik Teklif & Gelir Trendi
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-4 text-overline text-slate-500 dark:text-slate-400">
+          Aylık Teklif & Gelir Trendi
         </h3>
         {trend && trend.length > 0 ? (
           <SafeChart height={300} minHeight={240}>
@@ -410,8 +421,8 @@ export default function DashboardPage() {
             >
               <defs>
                 <linearGradient id="gradRed" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#D32F2F" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#D32F2F" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#E53935" stopOpacity={0.22} />
+                  <stop offset="95%" stopColor="#E53935" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gradBlue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#1976D2" stopOpacity={0.2} />
@@ -426,19 +437,20 @@ export default function DashboardPage() {
                 contentStyle={{
                   fontSize: 12,
                   borderRadius: 12,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 8px 24px rgba(15,23,42,0.08)',
                 }}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Area
                 yAxisId="left"
                 type="monotone"
                 dataKey="quote_count"
-                stroke="#D32F2F"
+                stroke="#E53935"
                 fill="url(#gradRed)"
                 name="Teklif"
                 strokeWidth={2.5}
-                dot={{ r: 4, fill: '#D32F2F' }}
+                dot={{ r: 4, fill: '#E53935' }}
               />
               <Area
                 yAxisId="right"
@@ -453,198 +465,265 @@ export default function DashboardPage() {
             </AreaChart>
           </SafeChart>
         ) : (
-          <p className="py-8 text-center text-sm text-gray-400">Henüz veri yok</p>
+          <EmptyState
+            variant="compact"
+            icon={<FileText size={18} />}
+            title="Henüz veri yok"
+            description="Aylık teklif ve gelir trendleri burada görünecek."
+          />
         )}
       </div>
     ),
 
     mrr_overview: (
-      <div
-        className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-honeywell-red/30"
+      <button
+        type="button"
+        className="group flex w-full flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-800 dark:bg-slate-900"
         onClick={() => navigate('/subscriptions')}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') navigate('/subscriptions');
-        }}
       >
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">
+        <h3 className="mb-4 text-overline text-slate-500 dark:text-slate-400">
           Tekrarlayan Gelir (MRR)
         </h3>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-xs text-gray-400">Toplam MRR</p>
-            <p className="text-lg font-bold text-gray-900">
+            <p className="text-overline text-slate-400 dark:text-slate-500">Toplam MRR</p>
+            <p className="mt-1.5 text-[20px] font-bold leading-none tabular-nums text-slate-900 dark:text-white">
               {formatCurrency(mrrDashboard?.total_mrr ?? 0, 'TRY')}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-400">Aktif Abonelik</p>
-            <p className="text-lg font-bold text-gray-900">{mrrDashboard?.active_count ?? 0}</p>
+            <p className="text-overline text-slate-400 dark:text-slate-500">Aktif Abonelik</p>
+            <p className="mt-1.5 text-[20px] font-bold leading-none tabular-nums text-slate-900 dark:text-white">
+              {mrrDashboard?.active_count ?? 0}
+            </p>
           </div>
           <div>
-            <p className="text-xs text-gray-400">Kayip (30g)</p>
+            <p className="text-overline text-slate-400 dark:text-slate-500">Kayıp (30g)</p>
             <p
-              className={`text-lg font-bold ${(mrrDashboard?.churn_count ?? 0) > 0 ? 'text-red-600' : 'text-gray-900'}`}
+              className={[
+                'mt-1.5 text-[20px] font-bold leading-none tabular-nums',
+                (mrrDashboard?.churn_count ?? 0) > 0
+                  ? 'text-red-600'
+                  : 'text-slate-900 dark:text-white',
+              ].join(' ')}
             >
               {mrrDashboard?.churn_count ?? 0}
             </p>
           </div>
         </div>
-      </div>
+      </button>
     ),
 
     activity_feed: (
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
-          Aktivite Akisi
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="px-5 pb-3 pt-5 text-overline text-slate-500 dark:text-slate-400">
+          Aktivite Akışı
         </h3>
         {activityFeed && activityFeed.length > 0 ? (
-          <ul className="max-h-80 overflow-y-auto space-y-2 pr-1">
-            {activityFeed.map((item) => (
-              <li key={item.id} className="flex items-start gap-3 py-1.5">
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs">
-                  {item.activity_type === 'call'
-                    ? '📞'
-                    : item.activity_type === 'meeting'
-                      ? '🤝'
-                      : item.activity_type === 'email' || item.activity_type === 'email_received'
-                        ? '✉️'
-                        : item.activity_type === 'note'
-                          ? '📝'
-                          : '⚡'}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-gray-800">{item.summary}</p>
-                  <p className="text-xs text-gray-400">
-                    {item.entity_type}
-                    {' · '}
-                    {item.created_at ? formatRelativeTime(item.created_at) : ''}
-                  </p>
-                </div>
-              </li>
-            ))}
+          <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
+            {activityFeed.map((item) => {
+              const Icon =
+                item.activity_type === 'call'
+                  ? Phone
+                  : item.activity_type === 'meeting'
+                    ? Handshake
+                    : item.activity_type === 'email' || item.activity_type === 'email_received'
+                      ? Mail
+                      : item.activity_type === 'note'
+                        ? FileText
+                        : Zap;
+              return (
+                <li key={item.id} className="flex items-start gap-3 px-5 py-3">
+                  <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-400 dark:ring-slate-800">
+                    <Icon size={14} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] text-slate-800 dark:text-slate-200">
+                      {item.summary}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+                      <span className="capitalize">{item.entity_type}</span>
+                      <span className="mx-1.5">·</span>
+                      <span className="tabular-nums">
+                        {item.created_at ? formatRelativeTime(item.created_at) : ''}
+                      </span>
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
-          <p className="py-6 text-center text-sm text-gray-400">Henüz aktivite yok</p>
+          <div className="px-5 pb-5">
+            <EmptyState
+              variant="compact"
+              icon={<Zap size={18} />}
+              title="Henüz aktivite yok"
+              description="Çağrı, toplantı, e-posta ve notlar burada akacak."
+            />
+          </div>
         )}
       </div>
     ),
 
     action_required: (
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-4 text-overline text-slate-500 dark:text-slate-400">
           İşlem Bekleyen
         </h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div
-            className="cursor-pointer rounded-lg border-l-4 border-l-amber-500 bg-amber-50 p-4 hover:bg-amber-100 transition-colors"
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            className="group flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50/60 p-4 text-left transition-all hover:border-amber-200 hover:bg-amber-50 focus:outline-none focus:ring-[3px] focus:ring-amber-200 dark:border-amber-900/40 dark:bg-amber-950/20"
             onClick={() => navigate('/emails?review=pending_review')}
           >
-            <p className="text-sm font-medium text-amber-900">İnceleme Bekleyen Mailler</p>
-            <p className="mt-1 text-2xl font-bold text-amber-800">{s.pending_review_count}</p>
-          </div>
-          <div
-            className="cursor-pointer rounded-lg border-l-4 border-l-honeywell-red bg-red-50 p-4 hover:bg-red-100 transition-colors"
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-900/60">
+              <FileWarning size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-overline text-amber-700 dark:text-amber-400">
+                İnceleme Bekleyen
+              </p>
+              <p className="mt-1 text-[24px] font-bold leading-none tabular-nums text-amber-900 dark:text-amber-200">
+                {s.pending_review_count}
+              </p>
+              <p className="mt-1 text-[12px] text-amber-700/80 dark:text-amber-400/70">
+                AI ile parse edilmiş, onay bekliyor
+              </p>
+            </div>
+          </button>
+          <button
+            type="button"
+            className="group flex items-start gap-3 rounded-xl border border-honeywell-red/15 bg-honeywell-red/4 p-4 text-left transition-all hover:border-honeywell-red/25 hover:bg-honeywell-red/8 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20"
             onClick={() => navigate('/quotes?status=draft')}
           >
-            <p className="text-sm font-medium text-red-900">Bekleyen Teklif Degeri</p>
-            <p className="mt-1 text-2xl font-bold text-red-800">
-              {formatCurrency(s.pending_value, 'TRY')}
-            </p>
-          </div>
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+              <AlertCircle size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-overline text-honeywell-red">Bekleyen Teklif Değeri</p>
+              <p className="mt-1 text-[24px] font-bold leading-none tabular-nums text-slate-900 dark:text-white">
+                {formatCurrency(s.pending_value, 'TRY')}
+              </p>
+              <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
+                Taslak teklifler — gönderim/iyileştirme sırada
+              </p>
+            </div>
+          </button>
         </div>
       </div>
     ),
   };
 
+  /* ── Onboarding step config (kept inline for clarity; only 3 steps) ── */
+  const onboardingSteps = [
+    {
+      done: Boolean(user?.email_setup_completed),
+      label: 'E-posta yapılandırmasını tamamlayın',
+      onClick: () => {
+        if (!user?.email_setup_completed) setShowEmailSetup(true);
+      },
+    },
+    {
+      done: s.total_customers > 0,
+      label: 'İlk müşterinizi ekleyin',
+      onClick: () => navigate('/customers'),
+    },
+    {
+      done: s.total_quotes > 0,
+      label: 'İlk teklifinizi oluşturun',
+      onClick: () => navigate('/quotes/new'),
+    },
+  ];
+  const onboardingVisible = Boolean(
+    user && (!user.email_setup_completed || s.total_customers === 0 || s.total_quotes === 0),
+  );
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Kontrol Paneli</h1>
+    <div>
+      <PageHeader
+        title="Kontrol Paneli"
+        description="Boru hattı, müşteri sağlığı ve ekip performansı tek panelde."
+      />
 
       {/* ── Email setup popup (first login) ── */}
       <EmailSetupModal isOpen={showEmailSetup} onClose={() => setShowEmailSetup(false)} />
 
-      {/* ── Onboarding Guide ── */}
-      {user && (!user.email_setup_completed || s.total_customers === 0 || s.total_quotes === 0) && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 shadow-sm dark:border-blue-800 dark:bg-blue-900/20">
-          <h3 className="mb-3 text-sm font-semibold text-blue-900 dark:text-blue-300">
-            Baslangic Rehberi
-          </h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${user.email_setup_completed ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}
-              >
-                1
+      <div className="space-y-6">
+        {/* ── Onboarding Guide — brand-tinted, soft. Only shows while user is
+            still setting up; disappears once all 3 steps are done. ── */}
+        {onboardingVisible && (
+          <div className="overflow-hidden rounded-2xl border border-honeywell-red/15 bg-linear-to-br from-honeywell-red/4 to-transparent p-5 shadow-(--shadow-xs)">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+                <Sparkles size={18} />
               </span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!user.email_setup_completed) setShowEmailSetup(true);
-                }}
-                className={`text-sm ${user.email_setup_completed ? 'text-green-700 line-through' : 'text-blue-700 hover:underline cursor-pointer'}`}
-              >
-                E-posta yapilandirmasini tamamlayin
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${s.total_customers > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}
-              >
-                2
-              </span>
-              <button
-                type="button"
-                onClick={() => navigate('/customers')}
-                className={`text-sm ${s.total_customers > 0 ? 'text-green-700 line-through' : 'text-blue-700 hover:underline cursor-pointer'}`}
-              >
-                İlk musterinizi ekleyin
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${s.total_quotes > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}
-              >
-                3
-              </span>
-              <button
-                type="button"
-                onClick={() => navigate('/quotes/new')}
-                className={`text-sm ${s.total_quotes > 0 ? 'text-green-700 line-through' : 'text-blue-700 hover:underline cursor-pointer'}`}
-              >
-                İlk teklifinizi olusturun
-              </button>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white">
+                  Başlangıç Rehberi
+                </h3>
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">
+                  Hesabınızı tam çalışır hale getirmek için kalan adımlar.
+                </p>
+                <ul className="mt-4 space-y-2">
+                  {onboardingSteps.map((step, idx) => (
+                    <li key={idx} className="flex items-center gap-3">
+                      <span
+                        className={[
+                          'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ring-1 ring-inset',
+                          step.done
+                            ? 'bg-emerald-50 text-emerald-700 ring-emerald-100'
+                            : 'bg-white text-slate-500 ring-slate-200',
+                        ].join(' ')}
+                      >
+                        {step.done ? <CheckCircle2 size={14} /> : idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={step.onClick}
+                        className={[
+                          'text-[13px] transition-colors',
+                          step.done
+                            ? 'text-slate-400 line-through'
+                            : 'text-slate-700 hover:text-honeywell-red dark:text-slate-200',
+                        ].join(' ')}
+                      >
+                        {step.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── KPI Cards ── */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onKpiDrag}>
-        <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {kpiOrder.map((id) => (
-              <SortableItem key={id} id={id}>
-                {kpiMap[id]}
-              </SortableItem>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+        {/* ── KPI Cards ── */}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onKpiDrag}>
+          <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {kpiOrder.map((id) => (
+                <SortableItem key={id} id={id}>
+                  {kpiMap[id]}
+                </SortableItem>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
-      {/* ── Sections ── */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onSecDrag}>
-        <SortableContext items={secOrder} strategy={rectSortingStrategy}>
-          <div className="space-y-6">
-            {secOrder.map((id) => (
-              <SortableItem key={id} id={id}>
-                {secMap[id]}
-              </SortableItem>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+        {/* ── Sections ── */}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onSecDrag}>
+          <SortableContext items={secOrder} strategy={rectSortingStrategy}>
+            <div className="space-y-6">
+              {secOrder.map((id) => (
+                <SortableItem key={id} id={id}>
+                  {secMap[id]}
+                </SortableItem>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
     </div>
   );
 }

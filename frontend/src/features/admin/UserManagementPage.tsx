@@ -1,14 +1,26 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Search } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Input } from '../../components/ui/Input';
+import { Badge } from '../../components/ui/Badge';
 import { usersApi } from '../../lib/api';
 import { translateUserRole } from '../../lib/labelTranslations';
 import { formatDate } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
+
+// Map role → Badge variant. Admin gets brand-tinted treatment so the
+// privilege level is unambiguous at a glance.
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'default';
+const ROLE_TONE: Record<string, BadgeTone> = {
+  admin: 'danger',
+  sales_manager: 'warning',
+  sales_rep: 'info',
+  viewer: 'default',
+};
 
 interface User {
   id: number;
@@ -103,34 +115,57 @@ export default function UserManagementPage() {
         key: 'full_name',
         header: t('admin.col_name'),
         sortable: true,
-        render: (row: User) => <span className="font-medium text-gray-900">{row.full_name}</span>,
-      },
-      {
-        key: 'email',
-        header: t('admin.col_email'),
-        sortable: true,
+        render: (row: User) => (
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-honeywell-red/10 text-[12px] font-semibold text-honeywell-red ring-1 ring-inset ring-honeywell-red/20"
+            >
+              {(row.full_name || '?')
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+                {row.full_name}
+              </p>
+              <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                {row.email}
+              </p>
+            </div>
+          </div>
+        ),
       },
       {
         key: 'role',
         header: t('admin.col_role'),
         render: (row: User) => (
-          <select
-            value={row.role}
-            onChange={(e) => handleRoleChange(row.id, e.target.value)}
-            className="rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light"
-            aria-label={t('admin.aria_role_change').replace('{name}', row.full_name)}
-          >
-            {roleOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <Badge variant={ROLE_TONE[row.role] ?? 'default'} size="sm" dot>
+              {translateUserRole(row.role, t)}
+            </Badge>
+            <select
+              value={row.role}
+              onChange={(e) => handleRoleChange(row.id, e.target.value)}
+              className="h-7 cursor-pointer rounded-[8px] border border-slate-200 bg-white px-2 text-[12px] font-medium text-slate-700 transition-colors hover:border-slate-300 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              aria-label={t('admin.aria_role_change').replace('{name}', row.full_name)}
+            >
+              {roleOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         ),
       },
       {
         key: 'is_active',
         header: t('admin.col_active'),
+        align: 'center' as const,
         render: (row: User) => (
           <button
             type="button"
@@ -138,14 +173,19 @@ export default function UserManagementPage() {
             aria-checked={row.is_active}
             aria-label={`${row.full_name} ${row.is_active ? t('subscription.status_active') : t('admin.inactive')}`}
             onClick={() => handleToggleActive(row.id)}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-honeywell-red focus-visible:ring-offset-2 ${
-              row.is_active ? 'bg-green-500' : 'bg-gray-300'
-            }`}
+            className={[
+              'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
+              'focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20',
+              row.is_active
+                ? 'bg-honeywell-red'
+                : 'bg-slate-200 dark:bg-slate-700',
+            ].join(' ')}
           >
             <span
-              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
-                row.is_active ? 'translate-x-5' : 'translate-x-0'
-              }`}
+              className={[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-(--shadow-sm) ring-0 transition-transform duration-200',
+                row.is_active ? 'translate-x-[22px]' : 'translate-x-0.5',
+              ].join(' ')}
             />
           </button>
         ),
@@ -155,7 +195,9 @@ export default function UserManagementPage() {
         header: t('admin.col_created'),
         sortable: true,
         render: (row: User) => (
-          <span className="text-sm text-gray-500">{formatDate(row.created_at)}</span>
+          <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+            {formatDate(row.created_at)}
+          </span>
         ),
       },
     ],
@@ -168,7 +210,14 @@ export default function UserManagementPage() {
     <div>
       <PageHeader title={t('admin.users_title')} description={t('admin.users_description')} />
 
-      <div className="mb-6 max-w-md">
+      {/* Search row — adornment icon makes the field instantly recognizable
+          as "find a user" instead of a generic input. */}
+      <div className="relative mb-4 max-w-md">
+        <Search
+          size={14}
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          aria-hidden
+        />
         <Input
           placeholder={t('admin.search_ph')}
           value={search}
@@ -176,6 +225,7 @@ export default function UserManagementPage() {
             setSearch(e.target.value);
             setPage(1);
           }}
+          className="pl-9"
         />
       </div>
 

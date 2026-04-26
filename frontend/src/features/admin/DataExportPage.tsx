@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, AlertCircle } from 'lucide-react';
+import { Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
@@ -57,8 +57,6 @@ export default function DataExportPage() {
 
   const { data: usersData, isLoading: usersLoading } = useQuery<UsersListResponse>({
     queryKey: ['users-for-export'],
-    // Backend caps page_size at 100. If we ever need to handle more
-    // users, paginate here instead of bumping the cap.
     queryFn: () => usersApi.getUsers({ page_size: 100 }),
   });
 
@@ -91,6 +89,23 @@ export default function DataExportPage() {
     }
   };
 
+  const summaryRows: Array<{ label: string; value: string }> = lastExport
+    ? [
+        {
+          label: 'Kullanıcı',
+          value: `${lastExport.user.full_name ?? lastExport.user.email} (#${lastExport.user.id})`,
+        },
+        { label: 'Audit olayları', value: String(lastExport.counts.audit_events) },
+        { label: 'Oluşturduğu müşteriler', value: String(lastExport.counts.created_customers) },
+        { label: 'Sahip olduğu fırsatlar', value: String(lastExport.counts.owned_opportunities) },
+        { label: 'Email gönderimleri', value: String(lastExport.counts.sent_emails) },
+        {
+          label: 'Dışa aktarma zamanı',
+          value: new Date(lastExport.exported_at).toLocaleString('tr-TR'),
+        },
+      ]
+    : [];
+
   return (
     <div>
       <PageHeader
@@ -98,21 +113,21 @@ export default function DataExportPage() {
         description="Article 15 — Kullanıcının sistemdeki tüm kayıtlarını JSON olarak indir"
       />
 
-      <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
-        <div className="flex gap-3">
-          <AlertCircle size={20} className="flex-shrink-0 text-amber-600" />
-          <div className="text-sm text-amber-900">
-            <p className="font-medium">Bu işlem audit log'a kaydedilir.</p>
-            <p className="mt-1">
-              Dışa aktarmanın hangi kullanıcı için, hangi yönetici tarafından
-              yapıldığı ve toplam kayıt sayısı KVKK officer tarafından
-              denetlenebilir.
-            </p>
-          </div>
+      {/* Audit warning callout — amber tint signals "you're being watched" */}
+      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-900/60">
+          <AlertCircle size={16} />
+        </span>
+        <div className="min-w-0 flex-1 text-[13px] leading-5 text-amber-900 dark:text-amber-200">
+          <p className="font-semibold">Bu işlem audit log'a kaydedilir.</p>
+          <p className="mt-0.5 text-amber-800/90 dark:text-amber-300/80">
+            Dışa aktarmanın hangi kullanıcı için, hangi yönetici tarafından yapıldığı ve toplam
+            kayıt sayısı KVKK officer tarafından denetlenebilir.
+          </p>
         </div>
       </div>
 
-      <div className="mb-6 max-w-md">
+      <div className="mb-4 max-w-md">
         <Select
           label="Veri sahibi (kullanıcı)"
           options={userOptions}
@@ -129,40 +144,38 @@ export default function DataExportPage() {
       <Button
         variant="primary"
         onClick={handleExport}
-        disabled={!selectedUserId || exporting}
+        disabled={!selectedUserId}
+        loading={exporting}
       >
-        <Download size={16} className="mr-1.5" />
-        {exporting ? 'Hazırlanıyor...' : 'JSON Olarak İndir'}
+        <Download size={14} />
+        JSON Olarak İndir
       </Button>
 
       {errorMsg && (
-        <div className="mt-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+        <div className="mt-4 rounded-2xl border border-red-100 bg-red-50/60 p-3.5 text-[13px] text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300">
           {errorMsg}
         </div>
       )}
 
       {lastExport && (
-        <div className="mt-8 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900">
-            Son dışa aktarma özeti
-          </h3>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-            <dt className="text-gray-500">Kullanıcı</dt>
-            <dd className="font-medium text-gray-900">
-              {lastExport.user.full_name ?? lastExport.user.email} (#{lastExport.user.id})
-            </dd>
-            <dt className="text-gray-500">Audit olayları</dt>
-            <dd className="text-gray-900">{lastExport.counts.audit_events}</dd>
-            <dt className="text-gray-500">Oluşturduğu müşteriler</dt>
-            <dd className="text-gray-900">{lastExport.counts.created_customers}</dd>
-            <dt className="text-gray-500">Sahip olduğu fırsatlar</dt>
-            <dd className="text-gray-900">{lastExport.counts.owned_opportunities}</dd>
-            <dt className="text-gray-500">Email gönderimleri</dt>
-            <dd className="text-gray-900">{lastExport.counts.sent_emails}</dd>
-            <dt className="text-gray-500">Dışa aktarma zamanı</dt>
-            <dd className="text-gray-900">
-              {new Date(lastExport.exported_at).toLocaleString('tr-TR')}
-            </dd>
+        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40">
+              <CheckCircle2 size={14} />
+            </span>
+            <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white">
+              Son dışa aktarma özeti
+            </h3>
+          </div>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-4 text-[13px]">
+            {summaryRows.map((row) => (
+              <div key={row.label} className="contents">
+                <dt className="text-slate-500 dark:text-slate-400">{row.label}</dt>
+                <dd className="font-medium tabular-nums text-slate-900 dark:text-white">
+                  {row.value}
+                </dd>
+              </div>
+            ))}
           </dl>
         </div>
       )}

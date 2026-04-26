@@ -34,7 +34,7 @@ export default function ScorecardsPage() {
       header: 'Ad Soyad',
       sortable: true,
       render: (row: EngagementScorecard) => (
-        <span className="text-sm font-medium text-gray-900">{row.full_name}</span>
+        <span className="text-sm font-medium text-slate-900">{row.full_name}</span>
       ),
     },
     {

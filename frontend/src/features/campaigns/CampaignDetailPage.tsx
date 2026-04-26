@@ -25,10 +25,10 @@ import {
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
+    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-800">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
     </div>
   );
 }
@@ -163,7 +163,7 @@ export default function CampaignDetailPage() {
   if (!campaign) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-gray-500">{t('campaigns.detail_not_found')}</p>
+        <p className="text-sm text-slate-500">{t('campaigns.detail_not_found')}</p>
         <Button variant="secondary" onClick={() => navigate('/campaigns')} className="mt-4">
           {t('common.back')}
         </Button>
@@ -228,45 +228,45 @@ export default function CampaignDetailPage() {
       <Card title={t('campaigns.card_info')}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <p className="text-xs text-gray-500">{t('campaigns.field_type')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('campaigns.field_type')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {translateCampaignType(campaign.type, t)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('campaigns.field_status')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('campaigns.field_status')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {translateCampaignStatus(campaign.status, t)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('campaigns.field_start')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('campaigns.field_start')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {campaign.start_date ? formatDate(campaign.start_date, locale) : '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('campaigns.field_end')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('campaigns.field_end')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {campaign.end_date ? formatDate(campaign.end_date, locale) : '-'}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('campaigns.field_budget')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('campaigns.field_budget')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {formatCurrency(campaign.budget)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{t('campaigns.field_expected_revenue')}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-xs text-slate-500">{t('campaigns.field_expected_revenue')}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">
               {formatCurrency(campaign.expected_revenue)}
             </p>
           </div>
           {campaign.description && (
             <div className="col-span-full">
-              <p className="text-xs text-gray-500">{t('campaigns.field_description')}</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{campaign.description}</p>
+              <p className="text-xs text-slate-500">{t('campaigns.field_description')}</p>
+              <p className="text-sm text-slate-700 dark:text-slate-300">{campaign.description}</p>
             </div>
           )}
         </div>
@@ -284,30 +284,30 @@ export default function CampaignDetailPage() {
         {membersLoading && <Skeleton variant="table" count={3} />}
 
         {!membersLoading && members.length === 0 && (
-          <p className="py-6 text-center text-sm text-gray-400">{t('campaigns.members_empty')}</p>
+          <p className="py-6 text-center text-sm text-slate-400">{t('campaigns.members_empty')}</p>
         )}
 
         {!membersLoading && members.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">
                     {t('campaigns.col_name_company')}
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">
                     {t('campaigns.col_type')}
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">
                     {t('campaigns.col_email')}
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">
                     {t('campaigns.col_status')}
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500">
                     {t('campaigns.col_added')}
                   </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-gray-500" />
+                  <th className="px-3 py-2 text-xs font-semibold text-slate-500" />
                 </tr>
               </thead>
               <tbody>
@@ -319,11 +319,11 @@ export default function CampaignDetailPage() {
                   const isLead = !!member.lead_id;
 
                   return (
-                    <tr key={member.id} className="border-b border-gray-100 dark:border-gray-700">
-                      <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                    <tr key={member.id} className="border-b border-slate-100 dark:border-slate-800">
+                      <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">
                         {name}
                         {member.customer?.company && (
-                          <span className="ml-1.5 text-xs text-gray-400">
+                          <span className="ml-1.5 text-xs text-slate-400">
                             {member.customer.company}
                           </span>
                         )}
@@ -333,10 +333,10 @@ export default function CampaignDetailPage() {
                           {isLead ? t('campaigns.badge_lead') : t('campaigns.badge_customer')}
                         </Badge>
                       </td>
-                      <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{email}</td>
+                      <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{email}</td>
                       <td className="px-3 py-2">
                         <select
-                          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                           value={member.status}
                           onChange={(e) =>
                             updateMemberStatusMutation.mutate({
@@ -352,7 +352,7 @@ export default function CampaignDetailPage() {
                           ))}
                         </select>
                       </td>
-                      <td className="px-3 py-2 text-xs text-gray-400">
+                      <td className="px-3 py-2 text-xs text-slate-400">
                         {formatDate(member.created_at, locale)}
                       </td>
                       <td className="px-3 py-2 text-right">
@@ -386,11 +386,11 @@ export default function CampaignDetailPage() {
             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
           />
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               {t('campaigns.field_status')}
             </label>
             <select
-              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               value={editForm.status ?? ''}
               onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
             >
@@ -402,11 +402,11 @@ export default function CampaignDetailPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
               {t('campaigns.field_description')}
             </label>
             <textarea
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-400 focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               rows={2}
               value={editForm.description ?? ''}
               onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
@@ -470,7 +470,7 @@ export default function CampaignDetailPage() {
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               memberType === 'customer'
                 ? 'bg-honeywell-red text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-slate-100 text-slate-600 hover:bg-gray-200'
             }`}
           >
             {t('campaigns.badge_customer')}
@@ -481,7 +481,7 @@ export default function CampaignDetailPage() {
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               memberType === 'lead'
                 ? 'bg-honeywell-red text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-slate-100 text-slate-600 hover:bg-gray-200'
             }`}
           >
             {t('campaigns.badge_lead')}
@@ -497,13 +497,13 @@ export default function CampaignDetailPage() {
           value={memberSearch}
           onChange={(e) => setMemberSearch(e.target.value)}
         />
-        <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800">
           {memberSearch.length < 2 && (
-            <p className="px-4 py-3 text-sm text-gray-400">{t('campaigns.search_min_chars')}</p>
+            <p className="px-4 py-3 text-sm text-slate-400">{t('campaigns.search_min_chars')}</p>
           )}
           {memberSearch.length >= 2 &&
             (!customerResults?.items || customerResults.items.length === 0) && (
-              <p className="px-4 py-3 text-sm text-gray-400">{t('campaigns.no_results')}</p>
+              <p className="px-4 py-3 text-sm text-slate-400">{t('campaigns.no_results')}</p>
             )}
           {customerResults?.items?.map((item) => {
             const label =
@@ -515,10 +515,10 @@ export default function CampaignDetailPage() {
                 key={item.id}
                 type="button"
                 onClick={() => handleAddMember(item)}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
-                <span className="font-medium text-gray-900 dark:text-white">{label}</span>
-                <span className="ml-2 text-xs text-gray-400">{item.email}</span>
+                <span className="font-medium text-slate-900 dark:text-white">{label}</span>
+                <span className="ml-2 text-xs text-slate-400">{item.email}</span>
               </button>
             );
           })}
@@ -543,7 +543,7 @@ export default function CampaignDetailPage() {
         title={t('campaigns.delete_title')}
         size="sm"
       >
-        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
           {t('campaigns.delete_confirm').replace('{name}', campaign.name)}
         </p>
         <div className="flex justify-end gap-2">

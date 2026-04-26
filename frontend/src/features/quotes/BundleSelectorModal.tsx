@@ -60,15 +60,15 @@ export default function BundleSelectorModal({
         {isLoading ? (
           <Skeleton variant="card" count={3} />
         ) : bundles.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500">{t('quotes.bundle_empty')}</p>
+          <p className="py-8 text-center text-sm text-slate-500">{t('quotes.bundle_empty')}</p>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {bundles.map((bundle) => (
               <Card key={bundle.id}>
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-gray-900">{bundle.name}</h4>
+                  <h4 className="text-sm font-semibold text-slate-900">{bundle.name}</h4>
                   {bundle.description && (
-                    <p className="text-xs text-gray-500">{bundle.description}</p>
+                    <p className="text-xs text-slate-500">{bundle.description}</p>
                   )}
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="info" size="sm">

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Plus, Trash2, Sparkles, FileCode } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
-import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -78,9 +78,9 @@ export default function ProductRulesPage() {
     mutationFn: (payload: Record<string, unknown>) => productRulesApi.evaluate(payload),
     onSuccess: (result: EvaluateResult) => {
       setEvaluateResults(result.actions);
-      toast.success('Degerlendirme tamamlandi');
+      toast.success('Değerlendirme tamamlandı');
     },
-    onError: () => toast.error('Degerlendirme başarısız'),
+    onError: () => toast.error('Değerlendirme başarısız'),
   });
 
   function handleCreate() {
@@ -97,7 +97,7 @@ export default function ProductRulesPage() {
         conditionParsed = JSON.parse(form.condition_json);
       }
     } catch {
-      toast.error('Kosul JSON formati geçersiz');
+      toast.error('Koşul JSON formatı geçersiz');
       return;
     }
 
@@ -106,7 +106,7 @@ export default function ProductRulesPage() {
         actionParsed = JSON.parse(form.action_json);
       }
     } catch {
-      toast.error('Aksiyon JSON formati geçersiz');
+      toast.error('Aksiyon JSON formatı geçersiz');
       return;
     }
 
@@ -153,63 +153,98 @@ export default function ProductRulesPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Ürün Kuralları"
-        description="Ürün fiyatlama ve is kurallarini yonetin"
-      >
-        <Button onClick={() => setIsCreateOpen(true)}>Yeni Kural</Button>
+      <PageHeader title="Ürün Kuralları" description="Ürün fiyatlama ve iş kurallarını yönetin">
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus size={14} />
+          Yeni Kural
+        </Button>
       </PageHeader>
 
       {isLoading && <Skeleton variant="card" count={3} />}
 
       {!isLoading && rules.length === 0 && (
-        <EmptyState
-          title="Ürün kuralı bulunamadi"
-          description="Yeni bir ürün kuralı olusturun"
-        />
+        <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
+          <EmptyState
+            variant="default"
+            icon={<FileCode size={20} />}
+            title="Ürün kuralı bulunamadı"
+            description="Yeni bir ürün kuralı oluşturun"
+            action={
+              <Button onClick={() => setIsCreateOpen(true)} variant="secondary">
+                <Plus size={14} />
+                Yeni Kural
+              </Button>
+            }
+          />
+        </div>
       )}
 
       {!isLoading && rules.length > 0 && (
-        <div className="mb-8 space-y-4">
+        <div className="mb-8 space-y-3">
           {rules.map((rule) => (
-            <Card key={rule.id}>
+            <div
+              key={rule.id}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900"
+            >
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-900">{rule.rule_type}</h3>
-                    <Badge variant={rule.is_active ? 'success' : 'default'}>
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white">
+                      {rule.rule_type}
+                    </h3>
+                    <Badge variant={rule.is_active ? 'success' : 'default'} size="sm" dot>
                       {rule.is_active ? 'Aktif' : 'Pasif'}
                     </Badge>
-                    <Badge variant="info">Oncelik: {rule.priority}</Badge>
+                    <Badge variant="info" size="sm">
+                      Öncelik: {rule.priority}
+                    </Badge>
                   </div>
 
-                  <div className="space-y-1 text-xs text-gray-500">
-                    <p>
-                      <span className="font-medium">Kosul:</span>{' '}
-                      <code className="rounded bg-gray-100 px-1 py-0.5">
+                  <div className="space-y-2 text-[12px] text-slate-600 dark:text-slate-400">
+                    <div>
+                      <span className="text-overline text-slate-400 dark:text-slate-500">
+                        Koşul
+                      </span>
+                      <code className="mt-1 block overflow-x-auto rounded-[8px] bg-slate-50 px-2.5 py-1.5 font-mono text-[12px] text-slate-800 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-800">
                         {truncateJson(rule.condition_json)}
                       </code>
-                    </p>
-                    <p>
-                      <span className="font-medium">Aksiyon:</span>{' '}
-                      <code className="rounded bg-gray-100 px-1 py-0.5">
+                    </div>
+                    <div>
+                      <span className="text-overline text-slate-400 dark:text-slate-500">
+                        Aksiyon
+                      </span>
+                      <code className="mt-1 block overflow-x-auto rounded-[8px] bg-slate-50 px-2.5 py-1.5 font-mono text-[12px] text-slate-800 ring-1 ring-inset ring-slate-100 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-800">
                         {truncateJson(rule.action_json)}
                       </code>
-                    </p>
+                    </div>
                   </div>
                 </div>
 
-                <Button size="sm" variant="danger" onClick={() => setDeleteTarget(rule.id)}>
-                  Sil
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setDeleteTarget(rule.id)}
+                  aria-label="Sil"
+                >
+                  <Trash2 size={14} className="text-red-500" />
                 </Button>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Evaluate section */}
-      <Card title="Kural Test Et" className="mt-8">
+      {/* Evaluate section — brand-tinted to suggest "AI / preview" use */}
+      <div className="mt-8 rounded-2xl border border-honeywell-red/15 bg-honeywell-red/4 p-5">
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-honeywell-red/10 text-honeywell-red ring-1 ring-inset ring-honeywell-red/20">
+            <Sparkles size={14} />
+          </span>
+          <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white">
+            Kural Test Et
+          </h3>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             label="Yedek Parça ID"
@@ -228,31 +263,36 @@ export default function ProductRulesPage() {
             label="Miktar"
             type="number"
             value={String(evaluateForm.quantity)}
-            onChange={(e) => setEvaluateForm({ ...evaluateForm, quantity: parseInt(e.target.value, 10) || 0 })}
+            onChange={(e) =>
+              setEvaluateForm({ ...evaluateForm, quantity: parseInt(e.target.value, 10) || 0 })
+            }
           />
           <Input
             label="Birim Fiyat"
             type="number"
             value={String(evaluateForm.unit_price)}
-            onChange={(e) => setEvaluateForm({ ...evaluateForm, unit_price: parseFloat(e.target.value) || 0 })}
+            onChange={(e) =>
+              setEvaluateForm({ ...evaluateForm, unit_price: parseFloat(e.target.value) || 0 })
+            }
           />
         </div>
 
         <div className="mt-4">
           <Button onClick={handleEvaluate} loading={evaluateMutation.isPending}>
+            <Sparkles size={14} />
             Test Et
           </Button>
         </div>
 
         {evaluateResults !== null && (
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-gray-700">Sonuçlar:</p>
+          <div className="mt-4 border-t border-honeywell-red/15 pt-4">
+            <p className="mb-2 text-overline text-slate-500 dark:text-slate-400">Sonuçlar</p>
             {evaluateResults.length === 0 ? (
-              <p className="text-sm text-gray-500">Eslesme bulunamadi</p>
+              <p className="text-[13px] text-slate-500 dark:text-slate-400">Eşleşme bulunamadı</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {evaluateResults.map((action, index) => (
-                  <Badge key={index} variant="info">
+                  <Badge key={index} variant="info" size="md">
                     {action}
                   </Badge>
                 ))}
@@ -260,7 +300,7 @@ export default function ProductRulesPage() {
             )}
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Create modal */}
       <Modal
@@ -268,6 +308,16 @@ export default function ProductRulesPage() {
         onClose={() => setIsCreateOpen(false)}
         title="Yeni Ürün Kuralı"
         size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleCreate} loading={createMutation.isPending}>
+              Oluştur
+            </Button>
+          </>
+        }
       >
         <div className="space-y-4">
           <Input
@@ -277,26 +327,32 @@ export default function ProductRulesPage() {
             onChange={(e) => setForm({ ...form, rule_type: e.target.value })}
           />
           <div>
-            <label htmlFor="condition-json" className="mb-1 block text-sm font-medium text-gray-700">
-              Kosul (JSON)
+            <label
+              htmlFor="condition-json"
+              className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300"
+            >
+              Koşul (JSON)
             </label>
             <textarea
               id="condition-json"
               rows={3}
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light"
+              className="block w-full resize-none rounded-[12px] border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-[12px] text-slate-900 placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-transparent dark:text-slate-100 dark:placeholder:text-slate-500"
               placeholder='{"min_quantity": 10}'
               value={form.condition_json}
               onChange={(e) => setForm({ ...form, condition_json: e.target.value })}
             />
           </div>
           <div>
-            <label htmlFor="action-json" className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="action-json"
+              className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300"
+            >
               Aksiyon (JSON)
             </label>
             <textarea
               id="action-json"
               rows={3}
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-light"
+              className="block w-full resize-none rounded-[12px] border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-[12px] text-slate-900 placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-transparent dark:text-slate-100 dark:placeholder:text-slate-500"
               placeholder='{"discount_percent": 5}'
               value={form.action_json}
               onChange={(e) => setForm({ ...form, action_json: e.target.value })}
@@ -318,28 +374,20 @@ export default function ProductRulesPage() {
             />
           </div>
           <Input
-            label="Oncelik"
+            label="Öncelik"
             type="number"
             value={String(form.priority)}
             onChange={(e) => setForm({ ...form, priority: parseInt(e.target.value, 10) || 1 })}
           />
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex cursor-pointer select-none items-center gap-2.5 rounded-[10px] border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-[13px] text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200">
             <input
               type="checkbox"
               checked={form.is_active}
               onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-              className="rounded border-gray-300"
+              className="h-4 w-4 cursor-pointer rounded-[4px] border-slate-300 text-honeywell-red focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800"
             />
             Aktif
           </label>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              İptal
-            </Button>
-            <Button onClick={handleCreate} loading={createMutation.isPending}>
-              Oluştur
-            </Button>
-          </div>
         </div>
       </Modal>
 
@@ -348,7 +396,7 @@ export default function ProductRulesPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget !== null && deleteMutation.mutate(deleteTarget)}
         title="Ürün Kuralı Sil"
-        message="Bu ürün kuralini silmek istediginizden emin misiniz?"
+        message="Bu ürün kuralını silmek istediğinizden emin misiniz?"
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}

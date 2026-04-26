@@ -104,18 +104,18 @@ export default function OpportunitiesHomePage() {
           <div className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase">
+                <p className="text-xs font-semibold text-slate-500 uppercase">
                   {t('opps.home.widget_all')}
                 </p>
-                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
                   {oppsQuery.isLoading ? '—' : String(oppsQuery.data?.total ?? filtered.length)}
                 </p>
               </div>
-              <div className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              <div className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 {t('opps.home.widget_all_badge')}
               </div>
             </div>
-            <div className="mt-3 text-sm text-gray-500">{t('opps.home.widget_all_hint')}</div>
+            <div className="mt-3 text-sm text-slate-500">{t('opps.home.widget_all_hint')}</div>
           </div>
         </Card>
 
@@ -123,10 +123,10 @@ export default function OpportunitiesHomePage() {
           <div className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase">
+                <p className="text-xs font-semibold text-slate-500 uppercase">
                   {t('opps.home.widget_risky')}
                 </p>
-                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
                   {riskyQuery.isLoading
                     ? '—'
                     : String((riskyQuery.data as { count?: number })?.count ?? 0)}
@@ -138,7 +138,7 @@ export default function OpportunitiesHomePage() {
               </div>
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
-              <div className="text-sm text-gray-500">{t('opps.home.widget_risky_hint')}</div>
+              <div className="text-sm text-slate-500">{t('opps.home.widget_risky_hint')}</div>
               <Button variant="secondary" onClick={() => navigate('/at-risk')}>
                 {t('opps.home.widget_risky_cta')}
                 <ArrowRight size={16} />
@@ -149,10 +149,10 @@ export default function OpportunitiesHomePage() {
 
         <Card className="overflow-hidden">
           <div className="p-5">
-            <p className="text-xs font-semibold text-gray-500 uppercase">
+            <p className="text-xs font-semibold text-slate-500 uppercase">
               {t('opps.home.widget_value')}
             </p>
-            <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
               {oppsQuery.isLoading
                 ? '—'
                 : formatCurrency(
@@ -160,7 +160,7 @@ export default function OpportunitiesHomePage() {
                     filtered[0]?.currency || 'TRY',
                   )}
             </div>
-            <div className="mt-3 text-sm text-gray-500">{t('opps.home.widget_value_hint')}</div>
+            <div className="mt-3 text-sm text-slate-500">{t('opps.home.widget_value_hint')}</div>
           </div>
         </Card>
       </div>
@@ -172,22 +172,22 @@ export default function OpportunitiesHomePage() {
             <div className="relative flex-1">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t('opps.home.search_placeholder')}
-                className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 shadow-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 shadow-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
               />
             </div>
 
             <div className="hidden items-center gap-2 md:flex">
-              <Filter size={16} className="text-gray-400" />
+              <Filter size={16} className="text-slate-400" />
               <select
                 value={stage}
                 onChange={(e) => setStage(e.target.value as StageFilter)}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
               >
                 <option value="all">{t('opps.home.stage_all')}</option>
                 <option value="prospecting">Prospecting</option>
@@ -200,7 +200,7 @@ export default function OpportunitiesHomePage() {
               <select
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
-                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
               >
                 <option value={25}>25</option>
                 <option value={50}>50</option>
@@ -209,9 +209,9 @@ export default function OpportunitiesHomePage() {
             </div>
           </div>
 
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-slate-500">
             {t('opps.home.showing')}{' '}
-            <span className="font-semibold text-gray-900 dark:text-white">{filtered.length}</span>
+            <span className="font-semibold text-slate-900 dark:text-white">{filtered.length}</span>
           </div>
         </div>
       </Card>
@@ -232,18 +232,18 @@ export default function OpportunitiesHomePage() {
               <button
                 type="button"
                 onClick={() => navigate(`/opportunities/${o.id}`)}
-                className="flex w-full items-start justify-between gap-4 p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                className="flex w-full items-start justify-between gap-4 p-4 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                    <h3 className="font-medium text-slate-900 dark:text-white truncate">
                       {o.title}
                     </h3>
                     <Badge variant={stageVariant(o.stage) as never} size="sm">
                       {stageLabel(o.stage)}
                     </Badge>
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-3 text-sm text-gray-500">
+                  <div className="mt-1 flex flex-wrap gap-3 text-sm text-slate-500">
                     <span>{formatCurrency(Number(o.amount || 0), o.currency || 'TRY')}</span>
                     {(o as unknown as { customer_name?: string }).customer_name ? (
                       <span className="truncate">
@@ -253,7 +253,7 @@ export default function OpportunitiesHomePage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-2 text-slate-400">
                   <ArrowRight size={16} />
                 </div>
               </button>

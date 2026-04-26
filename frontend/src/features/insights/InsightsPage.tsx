@@ -155,7 +155,7 @@ export default function InsightsPage() {
   if (isError) {
     return (
       <div className="p-6">
-        <p className="text-sm text-gray-600 dark:text-gray-300">{t('insights.unavailable')}</p>
+        <p className="text-sm text-slate-600 dark:text-slate-300">{t('insights.unavailable')}</p>
       </div>
     );
   }
@@ -165,7 +165,7 @@ export default function InsightsPage() {
       <PageHeader title={t('insights.title')} description={t('insights.description')}>
         <div className="flex items-center gap-2">
           <select
-            className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
             value={windowDays}
             onChange={(e) => setWindowDays(Number(e.target.value))}
           >
@@ -184,8 +184,8 @@ export default function InsightsPage() {
           <Card key={c.key}>
             <div className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{c.label}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{c.value}</p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300">{c.label}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{c.value}</p>
               </div>
               <TrendingUp className="text-blue-600" size={20} />
             </div>
@@ -210,7 +210,7 @@ export default function InsightsPage() {
         <Card title={t('insights.impacted')}>
           <div className="p-4">
             {!data?.impacted_opportunity_ids?.length ? (
-              <p className="text-sm text-gray-500">{t('insights.none')}</p>
+              <p className="text-sm text-slate-500">{t('insights.none')}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {data.impacted_opportunity_ids.slice(0, 30).map((id) => (
@@ -218,7 +218,7 @@ export default function InsightsPage() {
                     key={id}
                     type="button"
                     onClick={() => navigate(`/opportunities/${id}`)}
-                    className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    className="rounded-full border border-slate-200 dark:border-slate-800 px-2 py-1 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
                     #{id}
                   </button>
@@ -230,7 +230,7 @@ export default function InsightsPage() {
         <Card title={t('insights.note')}>
           <div className="p-4 flex items-start gap-3">
             <AlertTriangle size={18} className="text-amber-500 mt-0.5" />
-            <p className="text-sm text-gray-600 dark:text-gray-300">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               {t('insights.moderation_note')}
             </p>
           </div>
@@ -242,7 +242,7 @@ export default function InsightsPage() {
           {trendLoading ? (
             <Skeleton variant="line" count={4} className="mt-2" />
           ) : !trendData?.series?.length ? (
-            <p className="text-sm text-gray-500 p-4">{t('insights.trend_empty')}</p>
+            <p className="text-sm text-slate-500 p-4">{t('insights.trend_empty')}</p>
           ) : (
             <div className="h-72 w-full p-2">
               <ResponsiveContainer width="100%" height="100%">
@@ -297,11 +297,11 @@ export default function InsightsPage() {
             <div className="p-4 space-y-3">
               {keywordRows.map((row) => (
                 <div key={row.key} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-300">{row.label}</span>
+                  <span className="text-slate-600 dark:text-slate-300">{row.label}</span>
                   <span className="font-semibold tabular-nums">{row.value}</span>
                 </div>
               ))}
-              <p className="text-xs text-gray-500 pt-2">{t('insights.conv_keywords_hint')}</p>
+              <p className="text-xs text-slate-500 pt-2">{t('insights.conv_keywords_hint')}</p>
             </div>
           )}
         </Card>
@@ -317,11 +317,11 @@ export default function InsightsPage() {
               placeholder={t('insights.search_q_ph')}
             />
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
                 {t('insights.search_stage')}
               </label>
               <select
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                 value={searchStage}
                 onChange={(e) => setSearchStage(e.target.value)}
               >
@@ -334,11 +334,11 @@ export default function InsightsPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
                 {t('insights.search_signal')}
               </label>
               <select
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                 value={searchSignal}
                 onChange={(e) => setSearchSignal(e.target.value)}
               >
@@ -352,11 +352,11 @@ export default function InsightsPage() {
             </div>
             {isManager ? (
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
                   {t('insights.search_owner')}
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                   value={searchOwner}
                   onChange={(e) => setSearchOwner(e.target.value)}
                 >
@@ -385,11 +385,11 @@ export default function InsightsPage() {
           </Button>
 
           {!searchData?.items?.length && searchSubmitted ? (
-            <p className="text-sm text-gray-500">{t('insights.search_empty')}</p>
+            <p className="text-sm text-slate-500">{t('insights.search_empty')}</p>
           ) : null}
 
           {searchData?.items?.length ? (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800 border rounded-lg">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 border rounded-lg">
               {searchData.items.map((it) => (
                 <li key={`${it.type}-${it.id}`} className="p-3 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
@@ -403,10 +403,10 @@ export default function InsightsPage() {
                     >
                       #{it.opportunity_id}
                     </button>
-                    <span className="text-xs text-gray-500">{it.stage}</span>
+                    <span className="text-xs text-slate-500">{it.stage}</span>
                   </div>
-                  <p className="mt-1 font-medium text-gray-900 dark:text-white">{it.title}</p>
-                  <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                  <p className="mt-1 font-medium text-slate-900 dark:text-white">{it.title}</p>
+                  <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
                     {it.snippet}
                   </p>
                 </li>

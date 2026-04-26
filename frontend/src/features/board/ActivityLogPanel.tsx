@@ -17,7 +17,7 @@ interface ActivityLogPanelProps {
 const TYPE_ICON: Record<string, React.ReactNode> = {
   call: <Phone className="h-4 w-4 text-blue-500" />,
   meeting: <Video className="h-4 w-4 text-purple-500" />,
-  note: <FileText className="h-4 w-4 text-gray-500" />,
+  note: <FileText className="h-4 w-4 text-slate-500" />,
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -80,28 +80,28 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
         {isLoading ? (
           <Skeleton variant="card" count={2} />
         ) : activities.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-400">
+          <p className="py-8 text-center text-sm text-slate-400">
             Henüz aktivite kaydedilmemis
           </p>
         ) : (
           <div className="space-y-5">
             {Object.entries(grouped).map(([date, items]) => (
               <div key={date}>
-                <h4 className="mb-2 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+                <h4 className="mb-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
                   {date}
                 </h4>
                 <div className="space-y-2">
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-start gap-3 rounded-lg border border-gray-100 px-3 py-2.5 dark:border-gray-700"
+                      className="flex items-start gap-3 rounded-lg border border-slate-100 px-3 py-2.5 dark:border-slate-800"
                     >
                       <div className="mt-0.5 shrink-0">
-                        {TYPE_ICON[item.activity_type] || <FileText className="h-4 w-4 text-gray-400" />}
+                        {TYPE_ICON[item.activity_type] || <FileText className="h-4 w-4 text-slate-400" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                             {TYPE_LABELS[item.activity_type] || item.activity_type}
                           </span>
                           {item.duration_minutes != null && (
@@ -118,7 +118,7 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
                             </Badge>
                           )}
                         </div>
-                        <p className="mt-0.5 text-sm text-gray-900 dark:text-white">
+                        <p className="mt-0.5 text-sm text-slate-900 dark:text-white">
                           {item.summary}
                         </p>
                       </div>
