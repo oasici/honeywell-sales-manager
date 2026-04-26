@@ -8,19 +8,31 @@
    ══════════════════════════════════════════════════════ */
 
 @theme {
-  /* Brand */
-  --color-honeywell-red: #D32F2F;
-  --color-honeywell-dark: #B71C1C;
-  --color-honeywell-light: #FFCDD2;
+  /* Brand — single controlled red accent (Linear/Stripe pattern) */
+  --color-honeywell-red: #E53935;
+  --color-honeywell-dark: #C62828;
+  --color-honeywell-light: #FECDD3;
+
+  /* Slate scale — primary neutral palette */
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-300: #CBD5E1;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
 
   /* Surfaces (light mode defaults, overridden by .dark) */
   --color-surface: var(--surface);
   --color-surface-secondary: var(--surface-secondary);
   --color-surface-elevated: var(--surface-elevated);
 
-  /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Roboto Mono', ui-monospace, monospace;
+  /* Typography — Inter primary with Geist fallback */
+  --font-sans: 'Inter', 'Geist', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
 }
 
 /* ── Design Tokens (CSS Custom Properties) ── */
@@ -59,12 +71,16 @@
   --radius-2xl: 20px;
   --radius-full: 9999px;
 
-  /* Shadow scale */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
-  --shadow-xl: 0 16px 48px rgba(0,0,0,0.16);
+  /* Shadow scale — barely-there elevation; rely on borders for definition */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 2px 4px rgba(15, 23, 42, 0.04), 0 4px 8px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 4px 8px rgba(15, 23, 42, 0.04), 0 12px 24px rgba(15, 23, 42, 0.06);
+  --shadow-xl: 0 12px 32px rgba(15, 23, 42, 0.08), 0 24px 48px rgba(15, 23, 42, 0.06);
+
+  /* Focus ring — stronger, rounded; Linear-style */
+  --focus-ring: 0 0 0 3px rgba(229, 57, 53, 0.16);
+  --focus-ring-offset: #ffffff;
 
   /* Font size offset for accessibility zoom */
   --font-size-offset: 0px;
@@ -116,27 +132,40 @@ body {
   min-height: 100vh;
 }
 
-/* ── Typography Scale ── */
-.text-heading-1 { font-size: 1.5rem; font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; }
-.text-heading-2 { font-size: 1.25rem; font-weight: 600; line-height: 1.35; }
-.text-heading-3 { font-size: 1rem; font-weight: 600; line-height: 1.4; }
-.text-body { font-size: 0.875rem; font-weight: 400; line-height: 1.6; }
-.text-caption { font-size: 0.75rem; font-weight: 500; line-height: 1.5; color: var(--text-secondary); }
-.text-overline { font-size: 0.625rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+/* ── Typography Scale (Linear/Stripe-style hierarchy) ──
+   Spec: H1 32/40 700, H2 24/32 700, H3 18/28 600,
+         Body 14/22 400-500, Caption 12/18 500.
+   Letter-spacing tightens at larger sizes for editorial polish. */
+.text-heading-1 { font-size: 2rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.text-heading-2 { font-size: 1.5rem; line-height: 2rem; font-weight: 700; letter-spacing: -0.015em; }
+.text-heading-3 { font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; letter-spacing: -0.01em; }
+.text-heading-4 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
+.text-body { font-size: 0.875rem; line-height: 1.375rem; font-weight: 400; }
+.text-body-strong { font-size: 0.875rem; line-height: 1.375rem; font-weight: 500; }
+.text-caption { font-size: 0.75rem; line-height: 1.125rem; font-weight: 500; color: var(--text-secondary); }
+.text-overline { font-size: 0.6875rem; font-weight: 600; line-height: 1; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
 
 /* ══════════════════════════════════════════════════════
    COMPONENT TOKENS
    ══════════════════════════════════════════════════════ */
 
-/* ── Card ── */
+/* ── Card — Linear/Stripe pattern: thin border + barely-there shadow ── */
 .card-modern {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 200ms ease, border-color 200ms ease;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 180ms ease, border-color 180ms ease;
 }
 .card-modern:hover {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.card-modern.is-interactive {
+  cursor: pointer;
+}
+.card-modern.is-interactive:hover {
+  border-color: var(--text-muted);
   box-shadow: var(--shadow-md);
 }
 

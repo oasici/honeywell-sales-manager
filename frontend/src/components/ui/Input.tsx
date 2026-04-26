@@ -1,5 +1,15 @@
 import { forwardRef, useId, type InputHTMLAttributes } from 'react';
 
+/**
+ * Input — single-line text field with label, error, helper.
+ *
+ * Design notes:
+ *   - 44px height (h-11) — touch-friendly, matches Button lg
+ *   - 12px radius — same family as Button md/lg
+ *   - 3px ring on focus (Linear/Stripe pattern); never shifts layout
+ *   - error overrides focus color to red so the affordance is immediate
+ *   - label: 13px / 500 / mb-1.5; helper + error: 12px below the field
+ */
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
@@ -19,7 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300"
           >
             {label}
           </label>
@@ -29,30 +39,35 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={`block w-full rounded-lg border px-3 py-2 text-sm
-            transition-colors duration-200
-            placeholder:text-gray-400 dark:placeholder:text-gray-500
-            bg-white dark:bg-transparent
-            text-gray-900 dark:text-gray-100
-            focus:outline-none focus:ring-2 focus:ring-offset-0
-            ${
-              error
-                ? 'border-red-500 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900/30'
-                : 'border-gray-300 dark:border-gray-600 focus:border-honeywell-red focus:ring-honeywell-light dark:focus:ring-honeywell-red/20'
-            }
-            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
-            ${className}`}
+          className={[
+            'block w-full h-11 px-3.5 text-sm',
+            'rounded-[12px] border bg-white',
+            'text-slate-900 placeholder:text-slate-400',
+            'transition-[border-color,box-shadow] duration-150',
+            'focus:outline-none focus:ring-[3px]',
+            'dark:bg-transparent dark:text-slate-100 dark:placeholder:text-slate-500',
+            'disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed',
+            'dark:disabled:bg-slate-800/50',
+            error
+              ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+              : 'border-slate-200 focus:border-honeywell-red focus:ring-honeywell-red/20 dark:border-slate-700',
+            className,
+          ].join(' ')}
           {...rest}
         />
         {error && (
-          <p id={errorId} className="mt-1 text-xs text-red-600 dark:text-red-400" role="alert">
+          <p
+            id={errorId}
+            className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400"
+            role="alert"
+          >
             {error}
           </p>
         )}
-        {helperText && (
+        {helperText && !error && (
           <p
             id={helperId}
-            className={`mt-1 text-xs ${error ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'}`}
+            className="mt-1.5 text-xs text-slate-500 dark:text-slate-400"
           >
             {helperText}
           </p>

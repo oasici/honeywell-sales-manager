@@ -5,7 +5,7 @@ exports[`Input > renders with error state 1`] = `
   class="w-full"
 >
   <label
-    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+    class="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300"
     for="_r_2_"
   >
     Email
@@ -13,19 +13,11 @@ exports[`Input > renders with error state 1`] = `
   <input
     aria-describedby="_r_2_-error"
     aria-invalid="true"
-    class="block w-full rounded-lg border px-3 py-2 text-sm
-            transition-colors duration-200
-            placeholder:text-gray-400 dark:placeholder:text-gray-500
-            bg-white dark:bg-transparent
-            text-gray-900 dark:text-gray-100
-            focus:outline-none focus:ring-2 focus:ring-offset-0
-            border-red-500 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900/30
-            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
-            "
+    class="block w-full h-11 px-3.5 text-sm rounded-[12px] border bg-white text-slate-900 placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 focus:outline-none focus:ring-[3px] dark:bg-transparent dark:text-slate-100 dark:placeholder:text-slate-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed dark:disabled:bg-slate-800/50 border-red-500 focus:border-red-500 focus:ring-red-500/20 "
     id="_r_2_"
   />
   <p
-    class="mt-1 text-xs text-red-600 dark:text-red-400"
+    class="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400"
     id="_r_2_-error"
     role="alert"
   >
@@ -39,27 +31,19 @@ exports[`Input > renders with helper text 1`] = `
   class="w-full"
 >
   <label
-    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+    class="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300"
     for="_r_1_"
   >
     Sifre
   </label>
   <input
     aria-describedby="_r_1_-helper"
-    class="block w-full rounded-lg border px-3 py-2 text-sm
-            transition-colors duration-200
-            placeholder:text-gray-400 dark:placeholder:text-gray-500
-            bg-white dark:bg-transparent
-            text-gray-900 dark:text-gray-100
-            focus:outline-none focus:ring-2 focus:ring-offset-0
-            border-gray-300 dark:border-gray-600 focus:border-honeywell-red focus:ring-honeywell-light dark:focus:ring-honeywell-red/20
-            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
-            "
+    class="block w-full h-11 px-3.5 text-sm rounded-[12px] border bg-white text-slate-900 placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 focus:outline-none focus:ring-[3px] dark:bg-transparent dark:text-slate-100 dark:placeholder:text-slate-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed dark:disabled:bg-slate-800/50 border-slate-200 focus:border-honeywell-red focus:ring-honeywell-red/20 dark:border-slate-700 "
     id="_r_1_"
     type="password"
   />
   <p
-    class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+    class="mt-1.5 text-xs text-slate-500 dark:text-slate-400"
     id="_r_1_-helper"
   >
     En az 8 karakter
@@ -72,21 +56,13 @@ exports[`Input > renders with label 1`] = `
   class="w-full"
 >
   <label
-    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+    class="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300"
     for="_r_0_"
   >
     Email
   </label>
   <input
-    class="block w-full rounded-lg border px-3 py-2 text-sm
-            transition-colors duration-200
-            placeholder:text-gray-400 dark:placeholder:text-gray-500
-            bg-white dark:bg-transparent
-            text-gray-900 dark:text-gray-100
-            focus:outline-none focus:ring-2 focus:ring-offset-0
-            border-gray-300 dark:border-gray-600 focus:border-honeywell-red focus:ring-honeywell-light dark:focus:ring-honeywell-red/20
-            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
-            "
+    class="block w-full h-11 px-3.5 text-sm rounded-[12px] border bg-white text-slate-900 placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 focus:outline-none focus:ring-[3px] dark:bg-transparent dark:text-slate-100 dark:placeholder:text-slate-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed dark:disabled:bg-slate-800/50 border-slate-200 focus:border-honeywell-red focus:ring-honeywell-red/20 dark:border-slate-700 "
     id="_r_0_"
     placeholder="örnek@test.com"
   />
@@ -98,15 +74,7 @@ exports[`Input > renders without label 1`] = `
   class="w-full"
 >
   <input
-    class="block w-full rounded-lg border px-3 py-2 text-sm
-            transition-colors duration-200
-            placeholder:text-gray-400 dark:placeholder:text-gray-500
-            bg-white dark:bg-transparent
-            text-gray-900 dark:text-gray-100
-            focus:outline-none focus:ring-2 focus:ring-offset-0
-            border-gray-300 dark:border-gray-600 focus:border-honeywell-red focus:ring-honeywell-light dark:focus:ring-honeywell-red/20
-            disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800
-            "
+    class="block w-full h-11 px-3.5 text-sm rounded-[12px] border bg-white text-slate-900 placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 focus:outline-none focus:ring-[3px] dark:bg-transparent dark:text-slate-100 dark:placeholder:text-slate-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed dark:disabled:bg-slate-800/50 border-slate-200 focus:border-honeywell-red focus:ring-honeywell-red/20 dark:border-slate-700 "
     id="_r_3_"
     placeholder="Ara..."
   />
