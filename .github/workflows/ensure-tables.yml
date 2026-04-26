@@ -58,18 +58,20 @@ jobs:
           from sqlalchemy import text
           from app.core.database import engine
 
+          # Actual ``__tablename__`` values from app/models/*.py — do NOT use
+          # migration filename slugs here, those are alembic revision IDs.
           V4_TABLES = [
-              "feature_store_daily",
               "opportunity_features_daily",
+              "account_features_daily",
+              "rep_features_daily",
               "buyer_state_history",
               "decision_gaps",
               "stakeholder_roles",
               "network_segments",
               "segment_benchmarks_daily",
-              "sales_event_shadow",
-              "sales_events_shadow",
-              "deal_replay_snapshots",
-              "sales_dna_snapshots",
+              "v4_sales_events_shadow",
+              "v4_deal_replay_snapshots",
+              "v4_sales_dna_snapshots",
           ]
 
           async def main():
@@ -114,17 +116,17 @@ jobs:
           from app.core.database import engine
 
           V4_TABLES = [
-              "feature_store_daily",
               "opportunity_features_daily",
+              "account_features_daily",
+              "rep_features_daily",
               "buyer_state_history",
               "decision_gaps",
               "stakeholder_roles",
               "network_segments",
               "segment_benchmarks_daily",
-              "sales_event_shadow",
-              "sales_events_shadow",
-              "deal_replay_snapshots",
-              "sales_dna_snapshots",
+              "v4_sales_events_shadow",
+              "v4_deal_replay_snapshots",
+              "v4_sales_dna_snapshots",
           ]
 
           async def main():
