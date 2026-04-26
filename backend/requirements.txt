@@ -51,7 +51,7 @@ cryptography==46.0.7  # CVE-2024-12797, CVE-2026-26007, CVE-2026-34073, CVE-2026
 prometheus-client==0.22.0
 
 # Observability
-sentry-sdk[fastapi]==2.18.0
+sentry-sdk[fastapi]==2.58.0  # security advisory — see pip install --upgrade "sentry-sdk>=2.44.0"
 
 # Vector search
 pgvector==0.3.6
