@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -16,6 +15,7 @@ from app.core.config import settings
 from app.models.activity_log import ActivityLog
 from app.models.opportunity import Opportunity, OpportunitySignal
 from app.models.quote import Quote
+from app.services.llm_json import parse_claude_json
 
 logger = logging.getLogger(__name__)
 
@@ -160,8 +160,8 @@ async def _claude_risk_assessment(opp: Opportunity, context: dict) -> dict | Non
         )
 
         text = response.content[0].text if response.content else None
-        if text:
-            parsed = json.loads(text.strip())
+        parsed = parse_claude_json(text)
+        if parsed is not None:
             valid_levels = {"low", "medium", "high", "critical"}
             if parsed.get("risk_level") in valid_levels:
                 result = {
@@ -395,8 +395,8 @@ async def _claude_close_prediction(opp: Opportunity, context: dict) -> dict | No
         )
 
         text = response.content[0].text if response.content else None
-        if text:
-            parsed = json.loads(text.strip())
+        parsed = parse_claude_json(text)
+        if parsed is not None:
             valid_confidence = {"high", "medium", "low"}
             if parsed.get("confidence") in valid_confidence:
                 return {

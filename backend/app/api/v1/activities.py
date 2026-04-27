@@ -94,29 +94,38 @@ async def list_activities(
     _current_user: User = Depends(get_current_user),
 ):
     """List activities with optional filters and pagination."""
-    # `source_ref` is excluded from the SELECT list — see the feed
-    # endpoint below for the schema-drift rationale.
+    # ``source_ref`` is excluded from the SELECT list because a
+    # partially-applied migration once left this column missing on
+    # production (Sentry HONEYWELL-BACKEND-B/C). ``defer()`` handles
+    # the entity SELECT, but the count subquery has to be built
+    # separately — wrapping ``stmt.subquery()`` re-emits every entity
+    # column on the inner SELECT, which re-introduces ``source_ref``.
+    filters = []
+    if entity_type:
+        filters.append(ActivityLog.entity_type == entity_type)
+    if entity_id is not None:
+        filters.append(ActivityLog.entity_id == entity_id)
+    if opportunity_id is not None:
+        filters.append(ActivityLog.opportunity_id == opportunity_id)
+    if customer_id is not None:
+        filters.append(ActivityLog.customer_id == customer_id)
+    if user_id is not None:
+        filters.append(ActivityLog.user_id == user_id)
+    if activity_type:
+        filters.append(ActivityLog.activity_type == activity_type)
+
+    count_stmt = select(func.count(ActivityLog.id))
+    for f in filters:
+        count_stmt = count_stmt.where(f)
+    total = (await db.execute(count_stmt)).scalar() or 0
+
     stmt = (
         select(ActivityLog)
         .options(defer(ActivityLog.source_ref))
         .order_by(ActivityLog.created_at.desc())
     )
-
-    if entity_type:
-        stmt = stmt.where(ActivityLog.entity_type == entity_type)
-    if entity_id is not None:
-        stmt = stmt.where(ActivityLog.entity_id == entity_id)
-    if opportunity_id is not None:
-        stmt = stmt.where(ActivityLog.opportunity_id == opportunity_id)
-    if customer_id is not None:
-        stmt = stmt.where(ActivityLog.customer_id == customer_id)
-    if user_id is not None:
-        stmt = stmt.where(ActivityLog.user_id == user_id)
-    if activity_type:
-        stmt = stmt.where(ActivityLog.activity_type == activity_type)
-
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total = (await db.execute(count_stmt)).scalar() or 0
+    for f in filters:
+        stmt = stmt.where(f)
 
     offset = (page - 1) * page_size
     rows = (await db.execute(stmt.offset(offset).limit(page_size))).scalars().all()
