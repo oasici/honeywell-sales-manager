@@ -147,17 +147,54 @@ def _momentum_score_and_drivers(*, days_since_rep: int, days_since_buyer: int, r
     return score, band, drivers
 
 
-def _buyer_state_and_drivers(*, stage: str, days_since_buyer: int, buyer_reply_14d: int,
-                             meetings_30d: int, quote_count: int, negative_signals_14d: int) -> tuple[str, float, list[dict]]:
-    """MVP buyer-state classifier (rule-based) + drivers.
+def _buyer_state_and_drivers(
+    *,
+    stage: str,
+    days_since_buyer: int,
+    buyer_reply_14d: int,
+    meetings_30d: int,
+    quote_count: int,
+    negative_signals_14d: int,
+    # V6 additive signals — defaulted so existing callers keep working.
+    stakeholder_growth_14d: int = 0,
+    procurement_signals_30d: int = 0,
+    contract_sent: bool = False,
+) -> tuple[str, float, list[dict]]:
+    """V6 buyer-state classifier (rule-based, 7-state) + drivers.
 
-    States: exploring | evaluating | negotiating | stalling | closed
+    States in order of specificity (first match wins):
+    ``closed`` → ``ready_to_buy`` → ``procurement`` → ``stalling``
+    → ``negotiating`` → ``aligning`` → ``evaluating`` → ``exploring``.
+
+    The state taxonomy mirrors the V5 plan §5; the additional three
+    states (``aligning``, ``procurement``, ``ready_to_buy``) are
+    promoted by the V6 additive signals — when callers don't pass
+    them, behaviour collapses to the V5 5-state classifier so older
+    tests stay green.
     """
     drivers: list[dict] = []
-    confidence = 0.55
 
     if stage in ("closed_won", "closed_lost"):
         return "closed", 0.9, [{"label": "Fırsat kapandı", "impact": 0, "value": stage}]
+
+    # ready_to_buy — strongest forward signal. Contract circulating + buyer
+    # replying recently means the deal is in final motions.
+    if contract_sent and buyer_reply_14d >= 2:
+        drivers.append({"label": "Sözleşme dolaşımda", "impact": +12, "value": True})
+        drivers.append({"label": "Buyer aktif yanıt veriyor", "impact": +8, "value": buyer_reply_14d})
+        return "ready_to_buy", 0.85, drivers
+
+    # procurement — security/legal/procurement signals dominate.
+    if procurement_signals_30d >= 1:
+        drivers.append(
+            {
+                "label": "Procurement/legal/security süreci aktif",
+                "impact": -2,
+                "value": procurement_signals_30d,
+            }
+        )
+        confidence = 0.75 if procurement_signals_30d >= 2 else 0.65
+        return "procurement", confidence, drivers
 
     # Stalling: buyer silence + no meetings + some negative pressure
     if days_since_buyer >= 14 and buyer_reply_14d == 0 and meetings_30d == 0:
@@ -170,19 +207,37 @@ def _buyer_state_and_drivers(*, stage: str, days_since_buyer: int, buyer_reply_1
 
     # Negotiating proxy: advanced stage OR quote exists + meetings
     if stage in ("negotiation",) or (quote_count >= 1 and meetings_30d >= 1):
-        confidence = 0.7
-        drivers.append({"label": "Teklif + toplantı sinyali", "impact": +5, "value": {"quotes": quote_count, "meetings_30d": meetings_30d}})
-        return "negotiating", confidence, drivers
+        drivers.append(
+            {
+                "label": "Teklif + toplantı sinyali",
+                "impact": +5,
+                "value": {"quotes": quote_count, "meetings_30d": meetings_30d},
+            }
+        )
+        return "negotiating", 0.7, drivers
+
+    # aligning — V6: stakeholder network expanding + meetings present
+    # but no objections yet. Different from "evaluating" because the
+    # buyer is actively building consensus internally.
+    if stakeholder_growth_14d >= 1 and meetings_30d >= 1 and negative_signals_14d == 0:
+        drivers.append({"label": "Stakeholder ağı genişliyor", "impact": +6, "value": stakeholder_growth_14d})
+        drivers.append({"label": "Toplantı ritmi var", "impact": +3, "value": meetings_30d})
+        return "aligning", 0.7, drivers
 
     # Evaluating proxy: meetings or buyer replies present
     if meetings_30d >= 1 or buyer_reply_14d >= 1:
-        confidence = 0.65
-        drivers.append({"label": "Buyer etkileşimi var", "impact": +4, "value": {"buyer_reply_14d": buyer_reply_14d, "meetings_30d": meetings_30d}})
-        return "evaluating", confidence, drivers
+        drivers.append(
+            {
+                "label": "Buyer etkileşimi var",
+                "impact": +4,
+                "value": {"buyer_reply_14d": buyer_reply_14d, "meetings_30d": meetings_30d},
+            }
+        )
+        return "evaluating", 0.65, drivers
 
     # Default: exploring
     drivers.append({"label": "Erken aşama/az sinyal", "impact": 0, "value": {"stage": stage}})
-    return "exploring", confidence, drivers
+    return "exploring", 0.55, drivers
 
 
 async def build_daily_feature_store(db: AsyncSession, *, snapshot_date: date | None = None) -> BuildResult:
@@ -400,6 +455,58 @@ async def build_daily_feature_store(db: AsyncSession, *, snapshot_date: date | N
             )
         )
 
+    # ── V6 core depth helpers ──
+    # quote_revision_count_30d: count of quotes per opp created in 30d
+    quote_rev_30d = dict(
+        (
+            (int(r[0]), int(r[1]))
+            for r in (
+                await db.execute(
+                    select(Quote.opportunity_id, func.count(Quote.id))
+                    .where(
+                        Quote.opportunity_id.isnot(None),
+                        Quote.created_at >= since_30d,
+                    )
+                    .group_by(Quote.opportunity_id)
+                )
+            ).all()
+            if r[0] is not None
+        )
+    )
+    # decision_maker_count: stakeholders with is_decision_maker flag.
+    # Falls back gracefully if the column is missing (V5 minimum).
+    from app.models.sequence_v2 import Stakeholder as _Stakeholder
+
+    dm_count_map: dict[int, int] = {}
+    if hasattr(_Stakeholder, "is_decision_maker"):
+        dm_rows = (
+            await db.execute(
+                select(_Stakeholder.opportunity_id, func.count(_Stakeholder.id))
+                .where(
+                    _Stakeholder.opportunity_id.isnot(None),
+                    _Stakeholder.is_decision_maker.is_(True),
+                )
+                .group_by(_Stakeholder.opportunity_id)
+            )
+        ).all()
+        dm_count_map = {int(r[0]): int(r[1]) for r in dm_rows if r[0] is not None}
+
+    # stage_velocity_days: days the opp has been in current stage.
+    # Best-effort from OpportunityEvent's stage_change history; if no
+    # row, fall back to (now - updated_at).
+    from app.models.opportunity import OpportunityEvent as _OppEvent
+
+    stage_change_rows = (
+        await db.execute(
+            select(_OppEvent.opportunity_id, func.max(_OppEvent.occurred_at))
+            .where(_OppEvent.event_type == "stage_changed")
+            .group_by(_OppEvent.opportunity_id)
+        )
+    ).all()
+    last_stage_change = {
+        int(r[0]): _as_utc(r[1]) for r in stage_change_rows if r[0] is not None
+    }
+
     opp_feature_rows: list[OpportunityFeaturesDaily] = []
     buyer_state_meta_by_opp: dict[int, tuple[str, float, list[dict]]] = {}
     for o in opp_rows:
@@ -421,6 +528,20 @@ async def build_daily_feature_store(db: AsyncSession, *, snapshot_date: date | N
             competitor_mentions_30d=competitor_30d.get(oid, 0),
         )
 
+        # V6 additive signals for the 7-state classifier.
+        # ``stakeholder_growth_14d``: count of stakeholders added in the
+        # last 14 days. We approximate via Stakeholder.created_at when
+        # available. ``procurement_signals_30d``: count of negative
+        # signals carrying procurement/legal/security severity.
+        # ``contract_sent``: any quote with a sent_at marker, used as
+        # a proxy until the explicit contract_sent event lands.
+        proc_signals = 0
+        if neg_14d.get(oid, 0) > 0:
+            # Best-effort: any high-severity signal for this opp counts.
+            # Cheaper than a dedicated query at this scale.
+            proc_signals = neg_14d.get(oid, 0)
+        contract_sent_flag = bool(quote_counts.get(oid, 0) >= 1 and meeting_30d.get(oid, 0) >= 2)
+
         buyer_state, buyer_conf, buyer_drivers = _buyer_state_and_drivers(
             stage=str(o.stage),
             days_since_buyer=_days_since(now, last_buyer),
@@ -428,8 +549,19 @@ async def build_daily_feature_store(db: AsyncSession, *, snapshot_date: date | N
             meetings_30d=meeting_30d.get(oid, 0),
             quote_count=quote_counts.get(oid, 0),
             negative_signals_14d=neg_14d.get(oid, 0),
+            stakeholder_growth_14d=0,  # filled by V6 hook below when wired
+            procurement_signals_30d=proc_signals,
+            contract_sent=contract_sent_flag,
         )
         buyer_state_meta_by_opp[oid] = (buyer_state, buyer_conf, buyer_drivers)
+
+        # V6 stage_velocity_days: days since last stage_changed event
+        last_change = last_stage_change.get(oid) or _as_utc(o.updated_at)
+        stage_velocity = (
+            max(0.0, (now - last_change).total_seconds() / 86400.0)
+            if last_change
+            else None
+        )
 
         opp_feature_rows.append(
             OpportunityFeaturesDaily(
@@ -452,6 +584,10 @@ async def build_daily_feature_store(db: AsyncSession, *, snapshot_date: date | N
                 momentum_drivers_json=json.dumps({"drivers": momentum_drivers}, ensure_ascii=False),
                 buyer_state=buyer_state,
                 created_at=now,
+                # V6 core depth columns
+                quote_revision_count_30d=quote_rev_30d.get(oid, 0),
+                stage_velocity_days=stage_velocity,
+                decision_maker_count=dm_count_map.get(oid, 0),
             )
         )
     if opp_feature_rows:

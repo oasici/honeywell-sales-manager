@@ -96,6 +96,10 @@ from app.models.v5_similarity import (
     RepDnaProfile,
 )
 
+# ── V6 intelligence depth ──
+from app.models.v6_replay import DealReplayDelta
+from app.models.v6_federated import FederatedBenchmark
+
 __all__ = [
     "EmailStatus",
     "QuoteStatus",
@@ -216,4 +220,7 @@ __all__ = [
     "DealSimilarityLink",
     "OpportunityEmbedding",
     "RepDnaProfile",
+    # V6
+    "DealReplayDelta",
+    "FederatedBenchmark",
 ]

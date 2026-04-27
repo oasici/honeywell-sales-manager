@@ -30,16 +30,18 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.buyer_state_history import BuyerStateHistory
 from app.models.feature_store_daily import OpportunityFeaturesDaily
 from app.models.opportunity import Opportunity
 from app.models.sequence_v2 import Stakeholder
+from app.models.v5_objection import Objection
 from app.models.v5_similarity import DealSimilarityLink, OpportunityEmbedding
 
 logger = logging.getLogger(__name__)
 
 
-EMBEDDING_VERSION = "v5-structured-1"
-EMBEDDING_DIM = 8
+EMBEDDING_VERSION = "v6-trajectory-1"
+EMBEDDING_DIM = 12
 
 
 # ─────────────────────── helper buckets ──────────────────────────────
@@ -90,10 +92,16 @@ def _clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
 async def build_embedding(
     db: AsyncSession, *, opportunity_id: int
 ) -> list[float] | None:
-    """Build the 8-dim feature vector for one opportunity.
+    """Build the V6 12-dim feature vector for one opportunity.
 
-    Returns ``None`` when the opportunity is missing or has no OFD row
-    yet (caller can decide to skip vs. retry later).
+    Layout: 8 V5 point-in-time dims + 4 V6 trajectory dims:
+
+    - dim 8  ``stage_velocity_norm``  — clamp(stage_velocity_days / 30)
+    - dim 9  ``momentum_trend_norm``  — Δmomentum mean over last 14d → [0,1]
+    - dim 10 ``buyer_state_changes_norm`` — distinct buyer_states / 5
+    - dim 11 ``objection_density_norm`` — open_objections / 5
+
+    Returns ``None`` when the opportunity is missing.
     """
     opp = await db.get(Opportunity, opportunity_id)
     if opp is None:
@@ -122,6 +130,55 @@ async def build_embedding(
     discount = _clamp(float(ofd.latest_discount_pct or 0) / 50.0) if ofd else 0.0
     stakeholder_norm = _clamp(float(sh_count) / 8.0)
 
+    # ── V6 trajectory dims ──
+    stage_velocity_norm = (
+        _clamp(float(ofd.stage_velocity_days) / 30.0)
+        if ofd and ofd.stage_velocity_days is not None
+        else 0.0
+    )
+
+    # 14-day momentum trend: mean(Δmomentum) → centred at 0.5 because
+    # 0 means "no change", positive means improving, negative declining.
+    recent_ofd = (
+        await db.execute(
+            select(OpportunityFeaturesDaily.momentum_score)
+            .where(OpportunityFeaturesDaily.opportunity_id == opportunity_id)
+            .order_by(OpportunityFeaturesDaily.snapshot_date.desc())
+            .limit(14)
+        )
+    ).scalars().all()
+    deltas = [
+        (recent_ofd[i] or 0) - (recent_ofd[i + 1] or 0)
+        for i in range(len(recent_ofd) - 1)
+        if recent_ofd[i] is not None and recent_ofd[i + 1] is not None
+    ]
+    if deltas:
+        mean_delta = sum(deltas) / len(deltas)
+        # Normalize: ±20 momentum points → [0, 1]
+        momentum_trend_norm = _clamp(0.5 + (mean_delta / 40.0))
+    else:
+        momentum_trend_norm = 0.5
+
+    # buyer_state_changes_norm — diversity of buyer states seen in history
+    state_count = (
+        await db.execute(
+            select(func.count(func.distinct(BuyerStateHistory.state))).where(
+                BuyerStateHistory.opportunity_id == opportunity_id
+            )
+        )
+    ).scalar() or 0
+    buyer_state_changes_norm = _clamp(float(state_count) / 5.0)
+
+    # objection_density_norm — open objections / 5 (capped)
+    open_obj = (
+        await db.execute(
+            select(func.count(Objection.id))
+            .where(Objection.opportunity_id == opportunity_id)
+            .where(Objection.resolved_flag.is_(False))
+        )
+    ).scalar() or 0
+    objection_density_norm = _clamp(float(open_obj) / 5.0)
+
     return [
         _amount_score(opp.amount),
         _size_score(getattr(opp, "employee_count", None)),
@@ -131,6 +188,11 @@ async def build_embedding(
         buyer_engagement,
         discount,
         _industry_hash(getattr(opp, "industry", None)),
+        # V6 trajectory dims
+        stage_velocity_norm,
+        momentum_trend_norm,
+        buyer_state_changes_norm,
+        objection_density_norm,
     ]
 
 

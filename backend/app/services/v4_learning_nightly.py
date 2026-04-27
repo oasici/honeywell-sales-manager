@@ -147,8 +147,13 @@ async def run_v5_intelligence_nightly(
         upsert_embedding,
     )
     from app.services.dna_pattern_miner import mine_patterns
+    from app.services.dna_playbook_promoter import (
+        compute_adherence,
+        promote_top_patterns,
+    )
     from app.services.objection_intelligence_service import refresh_patterns as refresh_objection_patterns
     from app.services.rep_dna_service import refresh_all_rep_dna
+    from app.services.replay_delta_service import compute_deltas
     from app.services.timing_engine_service import materialize_windows_for_opportunity
     from app.services.v5_foundation_builder import run_v5_foundation_augmentation
 
@@ -167,6 +172,10 @@ async def run_v5_intelligence_nightly(
         "rep_dna": 0,
         "anomalies": 0,
         "failed_opportunities": 0,
+        # V6 counters
+        "replay_deltas": 0,
+        "dna_playbooks_promoted": 0,
+        "adherence_snapshots": 0,
     }
 
     # 1) Foundation augmentation (account + rep V5 columns).
@@ -178,13 +187,16 @@ async def run_v5_intelligence_nightly(
         await db.rollback()
         logger.warning("v5_foundation_augmentation failed: %s", exc)
 
-    # 2) Per-opportunity work: embeddings, timing windows.
+    # 2) Per-opportunity work: embeddings, timing windows, replay deltas.
     for oid in ids:
         try:
             emb = await upsert_embedding(db, opportunity_id=oid)
             if emb is not None:
                 counters["embeddings"] += 1
             counters["timing_windows"] += await materialize_windows_for_opportunity(
+                db, opportunity_id=oid
+            )
+            counters["replay_deltas"] += await compute_deltas(
                 db, opportunity_id=oid
             )
             await db.commit()
@@ -232,6 +244,37 @@ async def run_v5_intelligence_nightly(
     except Exception as exc:
         await db.rollback()
         logger.warning("v5_anomaly_scan failed: %s", exc)
+
+    # 5) V6 — DNA → Playbook auto-promote (idempotent) + adherence
+    # snapshot per active playbook. Both are best-effort; failures
+    # don't block the rest of the run.
+    try:
+        counters["dna_playbooks_promoted"] = await promote_top_patterns(db)
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("v6_dna_promote failed: %s", exc)
+
+    try:
+        from app.models.playbook import Playbook
+        from sqlalchemy import select as _select
+
+        playbook_ids = (
+            await db.execute(
+                _select(Playbook.id).where(Playbook.is_active.is_(True))
+            )
+        ).scalars().all()
+        for pid in playbook_ids:
+            try:
+                await compute_adherence(db, playbook_id=int(pid))
+                counters["adherence_snapshots"] += 1
+                await db.commit()
+            except Exception as inner_exc:
+                await db.rollback()
+                logger.warning("v6_adherence skip playbook=%s: %s", pid, inner_exc)
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("v6_adherence pass failed: %s", exc)
 
     logger.info(
         "v5_intelligence_nightly done date=%s opps=%s counters=%s",

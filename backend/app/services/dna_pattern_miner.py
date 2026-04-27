@@ -31,21 +31,26 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import func
+
 from app.models.opportunity import Opportunity
 from app.models.sales_event_shadow import SalesEventShadow
+from app.models.sequence_v2 import Stakeholder
+from app.models.feature_store_daily import OpportunityFeaturesDaily
 from app.models.v5_dna_patterns import DnaPattern, DnaRecommendation
 from app.services.segment_key import derive_segment_key
+from app.services.sequence_tokenizer import TokenizerContext, tokenize
 
 logger = logging.getLogger(__name__)
 
 
-# Event types we treat as "high signal" — anything else is dropped from
-# the signature so noise (page views, log entries) doesn't dilute the
-# pattern.
+# Event types we treat as "high signal" — anything else is dropped
+# from the raw filter so the tokenizer only sees relevant inputs.
 _SIGNAL_EVENTS: frozenset[str] = frozenset(
     {
         "email_sent",
         "email_received",
+        "call_logged",
         "meeting_booked",
         "meeting_logged",
         "quote_sent",
@@ -54,6 +59,7 @@ _SIGNAL_EVENTS: frozenset[str] = frozenset(
         "demo_completed",
         "proposal_sent",
         "contract_sent",
+        "stage_changed",
     }
 )
 
@@ -63,8 +69,44 @@ _MAX_PATTERNS_PER_SEGMENT = 5
 
 
 def _signature(events: list[SalesEventShadow]) -> tuple[str, ...]:
-    """Reduce an ordered event list to a tuple of high-signal types."""
+    """Reduce an ordered event list to a tuple of high-signal types.
+
+    Kept for backward compat with the V5 unit tests; the new path
+    used by ``mine_patterns`` is :func:`_tokenize_for_opp` which calls
+    the V6 high-level tokenizer.
+    """
     return tuple(e.event_type for e in events if e.event_type in _SIGNAL_EVENTS)
+
+
+async def _tokenize_for_opp(
+    db, *, opportunity: Opportunity, events: list[SalesEventShadow]
+) -> tuple[str, ...]:
+    """Run the V6 sequence tokenizer with per-opp context loaded from DB."""
+    sh_count = (
+        await db.execute(
+            select(func.count(Stakeholder.id)).where(
+                Stakeholder.opportunity_id == opportunity.id
+            )
+        )
+    ).scalar() or 0
+
+    ofd = (
+        await db.execute(
+            select(OpportunityFeaturesDaily)
+            .where(OpportunityFeaturesDaily.opportunity_id == opportunity.id)
+            .order_by(OpportunityFeaturesDaily.snapshot_date.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    ctx = TokenizerContext(
+        stakeholder_count=int(sh_count),
+        decision_maker_count=int(ofd.decision_maker_count) if ofd else 0,
+        latest_discount_pct=float(ofd.latest_discount_pct) if ofd and ofd.latest_discount_pct else None,
+    )
+    # Pre-filter to high-signal events so the tokenizer scans less.
+    filtered = [e for e in events if e.event_type in _SIGNAL_EVENTS]
+    return tuple(tokenize(filtered, ctx))
 
 
 async def _opportunity_events(
@@ -114,7 +156,7 @@ async def mine_patterns(
         )
         seg_total[seg] = seg_total.get(seg, 0) + 1
         events = await _opportunity_events(db, opportunity_id=int(opp.id), since=cutoff)
-        sig = _signature(events)
+        sig = await _tokenize_for_opp(db, opportunity=opp, events=events)
         if not sig:
             continue
         seg_signatures.setdefault(seg, Counter())[sig] += 1

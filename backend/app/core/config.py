@@ -220,6 +220,13 @@ class Settings(BaseSettings):
     FEATURE_V5_INTELLIGENCE: bool = False
     V5_NIGHTLY_MAX_OPPORTUNITIES: int = 500
 
+    # --- V6 Real-time recompute ---
+    # Depends on: FEATURE_V4_FEATURE_STORE (writes OFD)
+    # When ON, ``activity_logger.log_activity`` triggers a per-opp OFD
+    # recompute + decision-gap rebuild + timing-window refresh on every
+    # write. Off by default so we can stage rollout per tenant.
+    FEATURE_V6_REALTIME: bool = False
+
     # --- Board & Pipeline ---
     # Depends on: DATABASE_URL
     # Required by: Tasks CRUD + recommended actions panel (Sprint 2 prerequisite)

@@ -84,6 +84,17 @@ async def log_activity(
             )
 
         await db.flush()
+
+        # V6: real-time recompute hook. Best-effort — failures here
+        # never propagate to the caller (the event is already
+        # persisted). Gated by FEATURE_V6_REALTIME so old behaviour
+        # is preserved when the flag is off.
+        try:
+            from app.services.event_recompute_hooks import recompute_after_activity
+
+            await recompute_after_activity(db, opportunity_id=opportunity_id)
+        except Exception as hook_exc:
+            logger.debug("V6 recompute hook failed (non-critical): %s", hook_exc)
     except Exception as exc:
         logger.debug("Activity logging failed (non-critical): %s", exc)
 
