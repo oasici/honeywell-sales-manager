@@ -24,7 +24,8 @@ def test_start_scheduler_registers_all_jobs():
         assert "v4_sales_events_shadow" in job_ids, "v4_sales_events_shadow job not registered"
         assert "v4_sales_dna_nightly" in job_ids, "v4_sales_dna_nightly job not registered"
         assert "v4_deal_replay_nightly" in job_ids, "v4_deal_replay_nightly job not registered"
-        assert len(job_ids) == 18, f"Expected 18 jobs, got {len(job_ids)}: {job_ids}"
+        assert "v5_intelligence_nightly" in job_ids, "v5_intelligence_nightly job not registered"
+        assert len(job_ids) == 19, f"Expected 19 jobs, got {len(job_ids)}: {job_ids}"
     finally:
         if scheduler.running:
             scheduler.shutdown(wait=False)
@@ -55,7 +56,7 @@ def test_start_scheduler_idempotent():
 
     try:
         job_ids = [job.id for job in scheduler.get_jobs()]
-        assert len(job_ids) == 18, f"Duplicate jobs detected: {job_ids}"
+        assert len(job_ids) == 19, f"Duplicate jobs detected: {job_ids}"
     finally:
         if scheduler.running:
             scheduler.shutdown(wait=False)

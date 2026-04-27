@@ -213,6 +213,13 @@ class Settings(BaseSettings):
     V4_SALES_DNA_NIGHTLY_MAX_OPPORTUNITIES: int = 300
     V4_DEAL_REPLAY_NIGHTLY_MAX_OPPORTUNITIES: int = 200
 
+    # --- V5 Intelligence Platform ---
+    # Depends on: FEATURE_V4_FEATURE_STORE (reads OFD), FEATURE_V4_SALES_EVENTS_SHADOW (reads shadow)
+    # Required by: objection intel, timing engine, benchmark gap, DNA pattern miner,
+    # deal similarity, rep DNA profiles, network anomaly detection.
+    FEATURE_V5_INTELLIGENCE: bool = False
+    V5_NIGHTLY_MAX_OPPORTUNITIES: int = 500
+
     # --- Board & Pipeline ---
     # Depends on: DATABASE_URL
     # Required by: Tasks CRUD + recommended actions panel (Sprint 2 prerequisite)

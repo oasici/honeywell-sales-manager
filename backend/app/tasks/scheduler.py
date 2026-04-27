@@ -911,6 +911,15 @@ def start_scheduler():
         id="v4_deal_replay_nightly",
         replace_existing=True,
     )
+    # V5: intelligence nightly (after V4 jobs) — gated by FEATURE_V5_INTELLIGENCE
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("v5_intelligence_nightly", build_v5_intelligence_nightly_task)),
+        "cron",
+        hour=5,
+        minute=15,
+        id="v5_intelligence_nightly",
+        replace_existing=True,
+    )
     # In production, this is started from the FastAPI lifespan where an event loop
     # is guaranteed to be running. In sync unit tests, starting an AsyncIOScheduler
     # can fail if the loop is closed; we keep the jobs registered but skip `start()`.
@@ -978,3 +987,18 @@ async def build_v4_deal_replay_nightly_task():
 
     async with async_session() as db:
         await run_v4_deal_replay_nightly(db)
+
+
+async def build_v5_intelligence_nightly_task():
+    """V5 intelligence pipeline: foundation augmentation, miners, anomaly scan.
+
+    Skipped entirely when FEATURE_V5_INTELLIGENCE is off; safe to deploy
+    behind the flag while we backfill the segment_key data.
+    """
+    if not settings.FEATURE_V5_INTELLIGENCE:
+        return
+    from app.core.database import async_session
+    from app.services.v4_learning_nightly import run_v5_intelligence_nightly
+
+    async with async_session() as db:
+        await run_v5_intelligence_nightly(db)

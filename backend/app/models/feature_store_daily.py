@@ -59,6 +59,13 @@ class AccountFeaturesDaily(Base):
     avg_deal_health: Mapped[float | None] = mapped_column(Float, nullable=True)
     last_touch_days: Mapped[int] = mapped_column(Integer, default=999)
 
+    # ── V5 expansion (see 20260427_v5_foundation) ──
+    avg_momentum: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stakeholder_coverage_avg: Mapped[float | None] = mapped_column(Float, nullable=True)
+    buyer_engagement_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    objection_density_30d: Mapped[float] = mapped_column(Float, default=0.0)
+    expansion_signal_score: Mapped[float] = mapped_column(Float, default=0.0)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -75,6 +82,13 @@ class RepFeaturesDaily(Base):
     avg_followup_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
     stakeholder_coverage_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     win_rate_adj: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # ── V5 expansion (see 20260427_v5_foundation) ──
+    objection_recovery_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sequence_adherence_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stage_slippage_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    discount_dependence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sample_deals: Mapped[int] = mapped_column(Integer, default=0)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

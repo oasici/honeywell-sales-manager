@@ -130,3 +130,113 @@ async def run_v4_deal_replay_nightly(
         cap,
     )
     return {"snapshot_date": str(target), "processed": ok, "failed": fail, "capped_at": cap}
+
+
+async def run_v5_intelligence_nightly(
+    db: AsyncSession,
+    target_date: date | None = None,
+) -> dict[str, int | str]:
+    """V5 nightly: foundation augmentation → mine objections/DNA → similarity → rep DNA → anomaly scan.
+
+    Each step commits independently and best-efforts the next; one
+    failing service should not poison the entire run.
+    """
+    from app.services.benchmark_gap_service import scan_anomalies
+    from app.services.deal_similarity_service import (
+        refresh_similarity_links,
+        upsert_embedding,
+    )
+    from app.services.dna_pattern_miner import mine_patterns
+    from app.services.objection_intelligence_service import refresh_patterns as refresh_objection_patterns
+    from app.services.rep_dna_service import refresh_all_rep_dna
+    from app.services.timing_engine_service import materialize_windows_for_opportunity
+    from app.services.v5_foundation_builder import run_v5_foundation_augmentation
+
+    target = target_date or utc_yesterday()
+    cap = max(1, int(settings.V5_NIGHTLY_MAX_OPPORTUNITIES))
+    ids = await collect_active_opportunity_ids(db, target, limit=cap)
+
+    counters: dict[str, int] = {
+        "foundation_accounts": 0,
+        "foundation_reps": 0,
+        "objection_patterns": 0,
+        "dna_patterns": 0,
+        "embeddings": 0,
+        "similarity_links": 0,
+        "timing_windows": 0,
+        "rep_dna": 0,
+        "anomalies": 0,
+        "failed_opportunities": 0,
+    }
+
+    # 1) Foundation augmentation (account + rep V5 columns).
+    try:
+        result = await run_v5_foundation_augmentation(db, snapshot_date=target)
+        counters["foundation_accounts"] = result.accounts_updated
+        counters["foundation_reps"] = result.reps_updated
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("v5_foundation_augmentation failed: %s", exc)
+
+    # 2) Per-opportunity work: embeddings, timing windows.
+    for oid in ids:
+        try:
+            emb = await upsert_embedding(db, opportunity_id=oid)
+            if emb is not None:
+                counters["embeddings"] += 1
+            counters["timing_windows"] += await materialize_windows_for_opportunity(
+                db, opportunity_id=oid
+            )
+            await db.commit()
+        except Exception as exc:
+            await db.rollback()
+            counters["failed_opportunities"] += 1
+            logger.warning("v5_per_opp skip opp=%s: %s", oid, exc)
+
+    # 3) Similarity links — needs embeddings written first.
+    for oid in ids:
+        try:
+            counters["similarity_links"] += await refresh_similarity_links(
+                db, opportunity_id=oid
+            )
+            await db.commit()
+        except Exception as exc:
+            await db.rollback()
+            logger.warning("v5_similarity skip opp=%s: %s", oid, exc)
+
+    # 4) Segment-level miners (cheap globally, run once).
+    try:
+        counters["objection_patterns"] = await refresh_objection_patterns(db)
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("v5_objection_patterns failed: %s", exc)
+
+    try:
+        counters["dna_patterns"] = await mine_patterns(db)
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("v5_dna_patterns failed: %s", exc)
+
+    try:
+        counters["rep_dna"] = await refresh_all_rep_dna(db, snapshot_date=target)
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("v5_rep_dna failed: %s", exc)
+
+    try:
+        counters["anomalies"] = await scan_anomalies(db)
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        logger.warning("v5_anomaly_scan failed: %s", exc)
+
+    logger.info(
+        "v5_intelligence_nightly done date=%s opps=%s counters=%s",
+        target,
+        len(ids),
+        counters,
+    )
+    return {"snapshot_date": str(target), "opportunities": len(ids), **counters}

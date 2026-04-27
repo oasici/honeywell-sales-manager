@@ -73,6 +73,29 @@ from app.models.revenue_recognition import RevenueSchedule, RevenueScheduleEntry
 from app.models.chat import ChatSession, ChatMessage, AutoResponseRule
 from app.models.sequence_v2 import SequenceStepRun, DomainEvent, Stakeholder
 
+# ── V5 intelligence platform ──
+# See docs/v5-intelligence-plan.md. Imported here so SQLAlchemy
+# registers their metadata before any migration runs.
+from app.models.v5_foundation import Contact
+from app.models.v5_objection import (
+    Objection,
+    ObjectionPattern,
+    ObjectionResolutionAction,
+)
+from app.models.v5_timing import RecommendedActionWindow
+from app.models.v5_dna_patterns import DnaPattern, DnaRecommendation
+from app.models.v5_network import NetworkAnomaly, NetworkPattern
+from app.models.v5_playbook import (
+    PlaybookAdherence,
+    PlaybookPerformance,
+    PlaybookStep,
+)
+from app.models.v5_similarity import (
+    DealSimilarityLink,
+    OpportunityEmbedding,
+    RepDnaProfile,
+)
+
 __all__ = [
     "EmailStatus",
     "QuoteStatus",
@@ -177,4 +200,20 @@ __all__ = [
     "SequenceStepRun",
     "DomainEvent",
     "Stakeholder",
+    # V5 intelligence
+    "Contact",
+    "Objection",
+    "ObjectionPattern",
+    "ObjectionResolutionAction",
+    "RecommendedActionWindow",
+    "DnaPattern",
+    "DnaRecommendation",
+    "NetworkAnomaly",
+    "NetworkPattern",
+    "PlaybookAdherence",
+    "PlaybookPerformance",
+    "PlaybookStep",
+    "DealSimilarityLink",
+    "OpportunityEmbedding",
+    "RepDnaProfile",
 ]
