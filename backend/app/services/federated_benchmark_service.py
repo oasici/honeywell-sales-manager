@@ -38,17 +38,28 @@ async def publish_benchmark(
     metric_name: str,
     metric_value: float,
     sample_size: int,
-    tenant_count: int,
+    tenant_count: int | None = None,
+    source_tenant_ids: list[int] | None = None,
     snapshot_date: date | None = None,
     sample_bucket: str | None = None,
 ) -> FederatedBenchmark:
     """Idempotent upsert for a federated benchmark row.
 
-    Below-threshold inputs land with ``suppressed=TRUE`` and
-    ``metric_value=None`` so the dashboard can show the suppression
-    reason instead of leaking the underlying value.
+    Pass either ``tenant_count`` directly (V6 callers) OR
+    ``source_tenant_ids`` (V7 callers); when both are present
+    ``source_tenant_ids`` wins because it can never lie about the
+    distinct count. Below-threshold inputs land with
+    ``suppressed=TRUE`` and ``metric_value=None`` so the dashboard
+    can show the suppression reason instead of leaking the value.
     """
+    from app.services.tenant_context import derive_tenant_count
+
     snap = snapshot_date or datetime.now(timezone.utc).date()
+
+    if source_tenant_ids is not None:
+        tenant_count = derive_tenant_count(source_tenant_ids)
+    if tenant_count is None:
+        tenant_count = 0
 
     suppressed = sample_size < MIN_SAMPLE_SIZE or tenant_count < MIN_TENANT_COUNT
     safe_value = None if suppressed else metric_value

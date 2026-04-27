@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -25,6 +25,14 @@ class DnaPattern(Base):
     baseline_win_rate: Mapped[float] = mapped_column(Float, default=0.0)
     lift_vs_baseline: Mapped[float] = mapped_column(Float, default=0.0)
     confidence_score: Mapped[float] = mapped_column(Float, default=0.0)
+
+    # ── V7 Bayesian uplift (see 20260427_v7_dna_uplift) ──
+    smoothed_win_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    uplift_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ci_low: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ci_high: Mapped[float | None] = mapped_column(Float, nullable=True)
+    is_promotable: Mapped[bool] = mapped_column(Boolean, default=False)
+
     last_trained_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

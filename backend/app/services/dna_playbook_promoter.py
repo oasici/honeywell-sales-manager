@@ -120,22 +120,33 @@ async def promote_top_patterns(
     *,
     min_lift: float = 1.5,
     min_support: int = 10,
+    require_promotable: bool = True,
 ) -> int:
     """Promote qualifying ``DnaPattern`` rows to draft playbooks.
 
-    Only mines patterns whose ``lift_vs_baseline ≥ min_lift`` AND
-    ``support_count ≥ min_support`` qualify. Idempotent — promoting
-    the same pattern twice updates the existing draft instead of
-    duplicating it (matched by ``Playbook.name``).
+    Selection rules (V7):
+    - ``support_count ≥ min_support`` (raw sample floor — protects
+      against tiny-N noise even when Bayesian smoothing thinks the
+      pattern looks good).
+    - ``lift_vs_baseline ≥ min_lift`` (raw lift floor — backwards
+      compat for callers that haven't migrated to uplift yet).
+    - When ``require_promotable=True`` (default), additionally
+      require ``is_promotable``: 95% CI lower bound must sit above
+      baseline. This is the V7 Bayesian gate.
+
+    Idempotent — promoting the same pattern twice updates the
+    existing draft (matched by ``Playbook.name``) rather than
+    duplicating it.
     """
-    candidates = (
-        await db.execute(
-            select(DnaPattern)
-            .where(DnaPattern.lift_vs_baseline >= min_lift)
-            .where(DnaPattern.support_count >= min_support)
-            .order_by(DnaPattern.lift_vs_baseline.desc())
-        )
-    ).scalars().all()
+    stmt = (
+        select(DnaPattern)
+        .where(DnaPattern.lift_vs_baseline >= min_lift)
+        .where(DnaPattern.support_count >= min_support)
+        .order_by(DnaPattern.lift_vs_baseline.desc())
+    )
+    if require_promotable:
+        stmt = stmt.where(DnaPattern.is_promotable.is_(True))
+    candidates = (await db.execute(stmt)).scalars().all()
     if not candidates:
         return 0
 

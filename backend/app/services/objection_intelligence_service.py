@@ -374,3 +374,63 @@ async def detect_and_record(
             )
         )
     return out
+
+
+async def detect_and_record_hybrid(
+    db: AsyncSession,
+    *,
+    opportunity_id: int,
+    text: str,
+    event_id: int | None = None,
+) -> list[Objection]:
+    """V7 hybrid path: keyword first, LLM augments when warranted.
+
+    Routing rule:
+    - Always run the keyword pass.
+    - If keyword pass found 0 detections OR text is longer than the
+      configured threshold (paraphrased risk), call the LLM detector
+      on top.
+    - Merge by objection_type — keyword wins on conflicts because it's
+      deterministic and the keyword evidence is closer to the trigger.
+
+    Falls back gracefully to keyword-only when:
+    - feature flag off
+    - LLM call fails
+    - parser produces nothing usable
+    """
+    from app.core.config import settings  # local import to dodge import cycles
+    from app.services.objection_llm_detector import detect_with_llm
+
+    keyword_hits = list(detect_in_text(text))
+    llm_threshold = int(
+        getattr(settings, "V7_LLM_OBJECTION_TEXT_THRESHOLD", 800)
+    )
+    needs_llm = (
+        getattr(settings, "FEATURE_V7_LLM_OBJECTION", False)
+        and (not keyword_hits or len(text) >= llm_threshold)
+    )
+    llm_hits: list[DetectedObjection] = []
+    if needs_llm:
+        try:
+            llm_hits = await detect_with_llm(text)
+        except Exception as exc:
+            logger.warning("LLM objection augmentation failed: %s", exc)
+
+    seen_types: dict[str, DetectedObjection] = {
+        d.objection_type: d for d in keyword_hits
+    }
+    for d in llm_hits:
+        if d.objection_type not in seen_types:
+            seen_types[d.objection_type] = d
+
+    out: list[Objection] = []
+    for det in seen_types.values():
+        out.append(
+            await record_objection(
+                db,
+                opportunity_id=opportunity_id,
+                detection=det,
+                event_id=event_id,
+            )
+        )
+    return out

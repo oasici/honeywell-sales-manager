@@ -380,6 +380,11 @@ async def test_dna_promote_creates_playbook_with_steps(db: AsyncSession):
             baseline_win_rate=0.3,
             lift_vs_baseline=2.0,
             confidence_score=0.75,
+            # V7 gating: pretend the Bayesian miner already cleared
+            # this pattern. Without is_promotable=True the V7
+            # promoter filters it out.
+            is_promotable=True,
+            uplift_score=0.3,
         )
     )
     await db.commit()

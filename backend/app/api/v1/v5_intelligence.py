@@ -202,7 +202,10 @@ async def detect_objections(
 ):
     opp = await _load_opportunity(db, opportunity_id)
     _opp_rbac_guard(current_user, opp)
-    recorded = await objection_intelligence_service.detect_and_record(
+    # V7: hybrid path — keyword first, LLM augments when text is long
+    # or keyword found nothing. Falls back transparently when the V7
+    # flag is off, so single-tenant deployments don't pay Claude cost.
+    recorded = await objection_intelligence_service.detect_and_record_hybrid(
         db,
         opportunity_id=opportunity_id,
         text=payload.text,

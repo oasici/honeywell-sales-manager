@@ -100,6 +100,9 @@ from app.models.v5_similarity import (
 from app.models.v6_replay import DealReplayDelta
 from app.models.v6_federated import FederatedBenchmark
 
+# ── V7 multi-tenant analytics boundary ──
+from app.models.v7_tenant import Tenant
+
 __all__ = [
     "EmailStatus",
     "QuoteStatus",
@@ -223,4 +226,6 @@ __all__ = [
     # V6
     "DealReplayDelta",
     "FederatedBenchmark",
+    # V7
+    "Tenant",
 ]

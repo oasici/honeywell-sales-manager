@@ -235,18 +235,71 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     return round(dot / (norm_a * norm_b), 4)
 
 
+async def _tokens_for_opp(db: AsyncSession, *, opportunity_id: int) -> list[str]:
+    """Recompute V6 sequence tokens for an opportunity (best-effort)."""
+    from datetime import timedelta
+
+    from app.models.sales_event_shadow import SalesEventShadow
+    from app.services.sequence_tokenizer import TokenizerContext, tokenize
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=180)
+    events = list(
+        (
+            await db.execute(
+                select(SalesEventShadow)
+                .where(SalesEventShadow.opportunity_id == opportunity_id)
+                .where(SalesEventShadow.event_ts >= cutoff)
+                .order_by(SalesEventShadow.event_ts.asc())
+            )
+        ).scalars()
+    )
+    if not events:
+        return []
+
+    sh_count = (
+        await db.execute(
+            select(func.count(Stakeholder.id)).where(
+                Stakeholder.opportunity_id == opportunity_id
+            )
+        )
+    ).scalar() or 0
+
+    ofd = (
+        await db.execute(
+            select(OpportunityFeaturesDaily)
+            .where(OpportunityFeaturesDaily.opportunity_id == opportunity_id)
+            .order_by(OpportunityFeaturesDaily.snapshot_date.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    ctx = TokenizerContext(
+        stakeholder_count=int(sh_count),
+        decision_maker_count=int(ofd.decision_maker_count) if ofd else 0,
+        latest_discount_pct=float(ofd.latest_discount_pct)
+        if ofd and ofd.latest_discount_pct
+        else None,
+    )
+    return list(tokenize(events, ctx))
+
+
 async def refresh_similarity_links(
     db: AsyncSession, *, opportunity_id: int, top_k: int = 5, min_score: float = 0.7
 ) -> int:
     """Refresh the top-K similar deals for ``opportunity_id``.
 
-    Drops existing links for this opp and writes the new top-K set.
-    Returns the number of links written.
+    V7: similarity = 0.7·cosine(structured) + 0.3·LCS-ratio(tokens).
+    The blend keeps the structured-feature signal dominant while
+    tossing out two deals that look numerically alike but actually
+    travelled completely different journeys.
     """
+    from app.services.sequence_similarity import blend_similarity, lcs_ratio
+
     own = await db.get(OpportunityEmbedding, opportunity_id)
     if own is None:
         return 0
     own_vec = json.loads(own.embedding_json)
+    own_tokens = await _tokens_for_opp(db, opportunity_id=opportunity_id)
 
     others = (
         await db.execute(
@@ -256,15 +309,21 @@ async def refresh_similarity_links(
         )
     ).scalars().all()
 
-    scored: list[tuple[int, float]] = []
+    scored: list[tuple[int, float, float, float]] = []
     for other in others:
         try:
             other_vec = json.loads(other.embedding_json)
         except (json.JSONDecodeError, TypeError):
             continue
-        score = cosine_similarity(own_vec, other_vec)
-        if score >= min_score:
-            scored.append((int(other.opportunity_id), score))
+        cos = cosine_similarity(own_vec, other_vec)
+        if cos < min_score:
+            continue
+        other_tokens = await _tokens_for_opp(
+            db, opportunity_id=int(other.opportunity_id)
+        )
+        seq = lcs_ratio(own_tokens, other_tokens)
+        blended = blend_similarity(cos, seq)
+        scored.append((int(other.opportunity_id), blended, cos, seq))
     scored.sort(key=lambda x: -x[1])
     top = scored[:top_k]
 
@@ -280,14 +339,19 @@ async def refresh_similarity_links(
         await db.delete(link)
     await db.flush()
 
-    for sim_id, score in top:
+    for sim_id, score, cos, seq in top:
         db.add(
             DealSimilarityLink(
                 opportunity_id=opportunity_id,
                 similar_opportunity_id=sim_id,
                 similarity_score=score,
                 similarity_reason_json=json.dumps(
-                    {"embedding_version": EMBEDDING_VERSION, "method": "cosine"}
+                    {
+                        "embedding_version": EMBEDDING_VERSION,
+                        "method": "cosine+lcs_blend",
+                        "cosine_score": cos,
+                        "sequence_score": seq,
+                    }
                 ),
             )
         )

@@ -38,6 +38,7 @@ from app.models.sales_event_shadow import SalesEventShadow
 from app.models.sequence_v2 import Stakeholder
 from app.models.feature_store_daily import OpportunityFeaturesDaily
 from app.models.v5_dna_patterns import DnaPattern, DnaRecommendation
+from app.services.bayesian_uplift import compute_uplift
 from app.services.segment_key import derive_segment_key
 from app.services.sequence_tokenizer import TokenizerContext, tokenize
 
@@ -180,10 +181,17 @@ async def mine_patterns(
             lift = local_win_rate / baseline if baseline else 0.0
             if lift < _MIN_LIFT:
                 continue
-            candidates.append((sig, support, local_win_rate, lift))
+            candidates.append((sig, support, won_count, local_win_rate, lift))
 
-        for sig, support, win_rate, lift in candidates[:_MAX_PATTERNS_PER_SEGMENT]:
+        for sig, support, won_count, win_rate, lift in candidates[
+            :_MAX_PATTERNS_PER_SEGMENT
+        ]:
             pattern_name = " → ".join(sig)
+            uplift = compute_uplift(
+                wins=won_count,
+                support=support,
+                baseline_winrate=baseline,
+            )
             existing = (
                 await db.execute(
                     select(DnaPattern)
@@ -202,6 +210,11 @@ async def mine_patterns(
                     baseline_win_rate=round(baseline, 3),
                     lift_vs_baseline=round(lift, 3),
                     confidence_score=round(min(1.0, support / 20.0), 3),
+                    smoothed_win_rate=uplift.smoothed_winrate,
+                    uplift_score=uplift.uplift_score,
+                    ci_low=uplift.ci_low,
+                    ci_high=uplift.ci_high,
+                    is_promotable=uplift.is_promotable,
                 )
                 db.add(pattern)
                 await db.flush()
@@ -213,6 +226,11 @@ async def mine_patterns(
                 existing.baseline_win_rate = round(baseline, 3)
                 existing.lift_vs_baseline = round(lift, 3)
                 existing.confidence_score = round(min(1.0, support / 20.0), 3)
+                existing.smoothed_win_rate = uplift.smoothed_winrate
+                existing.uplift_score = uplift.uplift_score
+                existing.ci_low = uplift.ci_low
+                existing.ci_high = uplift.ci_high
+                existing.is_promotable = uplift.is_promotable
                 existing.last_trained_at = datetime.now(timezone.utc)
                 source_id = existing.id
 
@@ -227,6 +245,11 @@ async def mine_patterns(
                             "baseline": round(baseline, 3),
                             "lift": round(lift, 3),
                             "support": support,
+                            "smoothed_win_rate": uplift.smoothed_winrate,
+                            "uplift_score": uplift.uplift_score,
+                            "ci_low": uplift.ci_low,
+                            "ci_high": uplift.ci_high,
+                            "is_promotable": uplift.is_promotable,
                         }
                     ),
                     source_pattern_id=source_id,

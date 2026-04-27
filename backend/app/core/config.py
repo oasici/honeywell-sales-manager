@@ -227,6 +227,16 @@ class Settings(BaseSettings):
     # write. Off by default so we can stage rollout per tenant.
     FEATURE_V6_REALTIME: bool = False
 
+    # --- V7 LLM-hybrid objection detection ---
+    # Depends on: ANTHROPIC_API_KEY, FEATURE_V5_INTELLIGENCE.
+    # When ON, the keyword detector is augmented with a Claude pass
+    # for paraphrased objections (call transcripts, long emails).
+    # Off by default so Claude cost stays explicit per tenant.
+    FEATURE_V7_LLM_OBJECTION: bool = False
+    # Threshold above which the LLM pass kicks in even when the
+    # keyword pass already returned hits — used for ambiguous text.
+    V7_LLM_OBJECTION_TEXT_THRESHOLD: int = 800
+
     # --- Board & Pipeline ---
     # Depends on: DATABASE_URL
     # Required by: Tasks CRUD + recommended actions panel (Sprint 2 prerequisite)
