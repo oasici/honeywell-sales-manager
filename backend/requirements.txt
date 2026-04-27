@@ -48,7 +48,7 @@ aiosmtplib==3.0.2
 slowapi==0.1.9
 redis[hiredis]==5.2.1
 cryptography==46.0.7  # CVE-2024-12797, CVE-2026-26007, CVE-2026-34073, CVE-2026-39892
-prometheus-client==0.22.0
+prometheus-client==0.25.0
 
 # Observability
 sentry-sdk[fastapi]==2.58.0  # security advisory — see pip install --upgrade "sentry-sdk>=2.44.0"
