@@ -22,6 +22,9 @@ class User(Base):
     manager_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True, index=True,
     )
+    # V8: multi-tenant boundary. NULL → "default tenant" so single-
+    # tenant deployments keep working without backfill.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

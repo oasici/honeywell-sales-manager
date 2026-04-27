@@ -103,6 +103,9 @@ from app.models.v6_federated import FederatedBenchmark
 # ── V7 multi-tenant analytics boundary ──
 from app.models.v7_tenant import Tenant
 
+# ── V8 sequence text embedding ──
+from app.models.v8_text_embedding import OpportunityTextEmbedding
+
 __all__ = [
     "EmailStatus",
     "QuoteStatus",
@@ -228,4 +231,6 @@ __all__ = [
     "FederatedBenchmark",
     # V7
     "Tenant",
+    # V8
+    "OpportunityTextEmbedding",
 ]

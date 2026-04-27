@@ -23,6 +23,8 @@ class Customer(Base):
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     tax_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     preferred_lang: Mapped[str] = mapped_column(String(5), default="tr")
+    # V8: multi-tenant boundary
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     created_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True
     )

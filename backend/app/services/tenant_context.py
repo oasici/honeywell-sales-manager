@@ -96,3 +96,38 @@ def derive_tenant_count(source_tenant_ids: list[int]) -> int:
     when the same tenant produced multiple rows during aggregation.
     """
     return len({int(t) for t in source_tenant_ids if t is not None})
+
+
+# ─────────────────────── V8 CRM-side helpers ──────────────────────────
+
+
+def scoped_for_user(stmt, user, *, column):
+    """Scope a CRM query to the user's tenant.
+
+    Drop-in replacement for ``scoped()`` when the caller already has a
+    User row. Returns the stmt unchanged when ``user.tenant_id`` is
+    None (single-tenant deployments).
+    """
+    if user is None:
+        return stmt
+    tenant_id = getattr(user, "tenant_id", None)
+    return scoped(stmt, tenant_id, column=column)
+
+
+async def resolve_tenant_id(
+    db: AsyncSession,
+    *,
+    header_tenant_id: int | None,
+    user_tenant_id: int | None,
+) -> int | None:
+    """Pick the effective tenant id from the request signals.
+
+    Header wins (admin tooling can target any tenant), falls back to
+    the requesting user's tenant_id. ``None`` for both = the deployment
+    is single-tenant, return None and downstream filters become no-ops.
+    """
+    if header_tenant_id is not None:
+        return header_tenant_id
+    if user_tenant_id is not None:
+        return user_tenant_id
+    return None

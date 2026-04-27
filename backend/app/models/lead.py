@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -30,6 +30,9 @@ class Lead(Base):
     )  # new, contacted, qualified, unqualified, converted
 
     lead_score: Mapped[int] = mapped_column(default=0)  # 0-100
+
+    # V8: multi-tenant boundary
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 

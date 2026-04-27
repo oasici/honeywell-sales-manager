@@ -212,13 +212,57 @@ async def upsert_embedding(
         )
         db.add(row)
         await db.flush()
-        return row
-    existing.embedding_json = json.dumps(vec)
-    existing.dim = EMBEDDING_DIM
-    existing.version = EMBEDDING_VERSION
-    existing.generated_at = datetime.now(timezone.utc)
+    else:
+        existing.embedding_json = json.dumps(vec)
+        existing.dim = EMBEDDING_DIM
+        existing.version = EMBEDDING_VERSION
+        existing.generated_at = datetime.now(timezone.utc)
+        await db.flush()
+        row = existing
+
+    # V8: also upsert the text embedding so the similarity blend has
+    # the third component available. Best-effort — failure here
+    # doesn't roll back the structured embedding write.
+    try:
+        await upsert_text_embedding(db, opportunity_id=opportunity_id)
+    except Exception as exc:
+        logger.warning("v8 text embedding upsert failed opp=%s: %s", opportunity_id, exc)
+    return row
+
+
+async def upsert_text_embedding(
+    db: AsyncSession, *, opportunity_id: int
+) -> "OpportunityTextEmbedding | None":
+    """V8: upsert the bigram-BoW text embedding for one opportunity."""
+    from app.models.v8_text_embedding import OpportunityTextEmbedding
+    from app.services import text_embedder
+
+    tokens = await _tokens_for_opp(db, opportunity_id=opportunity_id)
+    vec = text_embedder.embed_tokens(tokens)
+    if not any(v != 0 for v in vec):
+        # Empty token list → don't pollute the table with zero vectors.
+        return None
+
+    row = await db.get(OpportunityTextEmbedding, opportunity_id)
+    payload = json.dumps(vec)
+    vh = text_embedder.vocab_hash(tokens)
+    if row is None:
+        row = OpportunityTextEmbedding(
+            opportunity_id=opportunity_id,
+            embedding_json=payload,
+            dim=text_embedder.DEFAULT_DIM,
+            version=text_embedder.VERSION,
+            vocab_hash=vh,
+        )
+        db.add(row)
+    else:
+        row.embedding_json = payload
+        row.dim = text_embedder.DEFAULT_DIM
+        row.version = text_embedder.VERSION
+        row.vocab_hash = vh
+        row.generated_at = datetime.now(timezone.utc)
     await db.flush()
-    return existing
+    return row
 
 
 # ─────────────────────── similarity ───────────────────────────────────
@@ -288,11 +332,15 @@ async def refresh_similarity_links(
 ) -> int:
     """Refresh the top-K similar deals for ``opportunity_id``.
 
-    V7: similarity = 0.7·cosine(structured) + 0.3·LCS-ratio(tokens).
-    The blend keeps the structured-feature signal dominant while
-    tossing out two deals that look numerically alike but actually
-    travelled completely different journeys.
+    V8: 3-component blend.
+      ``final = 0.5·cosine(structured) + 0.2·LCS-ratio + 0.3·cosine(text)``
+
+    Text embedding is best-effort — when missing, the blend falls
+    back to V7 (structured + LCS only, with weights re-normalised
+    to sum to 1).
     """
+    from app.models.v8_text_embedding import OpportunityTextEmbedding
+    from app.services import text_embedder
     from app.services.sequence_similarity import blend_similarity, lcs_ratio
 
     own = await db.get(OpportunityEmbedding, opportunity_id)
@@ -300,6 +348,8 @@ async def refresh_similarity_links(
         return 0
     own_vec = json.loads(own.embedding_json)
     own_tokens = await _tokens_for_opp(db, opportunity_id=opportunity_id)
+    own_text = await db.get(OpportunityTextEmbedding, opportunity_id)
+    own_text_vec = json.loads(own_text.embedding_json) if own_text else None
 
     others = (
         await db.execute(
@@ -309,7 +359,7 @@ async def refresh_similarity_links(
         )
     ).scalars().all()
 
-    scored: list[tuple[int, float, float, float]] = []
+    scored: list[tuple[int, float, float, float, float]] = []
     for other in others:
         try:
             other_vec = json.loads(other.embedding_json)
@@ -322,8 +372,25 @@ async def refresh_similarity_links(
             db, opportunity_id=int(other.opportunity_id)
         )
         seq = lcs_ratio(own_tokens, other_tokens)
-        blended = blend_similarity(cos, seq)
-        scored.append((int(other.opportunity_id), blended, cos, seq))
+        text_cos = 0.0
+        if own_text_vec is not None:
+            other_text = await db.get(
+                OpportunityTextEmbedding, int(other.opportunity_id)
+            )
+            if other_text is not None:
+                try:
+                    other_text_vec = json.loads(other_text.embedding_json)
+                    text_cos = text_embedder.cosine(own_text_vec, other_text_vec)
+                except (json.JSONDecodeError, TypeError):
+                    text_cos = 0.0
+
+        if own_text_vec is not None and text_cos > 0.0:
+            # V8 3-component blend
+            blended = round(0.5 * cos + 0.2 * seq + 0.3 * text_cos, 4)
+        else:
+            # V7 fallback (re-normalised to sum=1)
+            blended = blend_similarity(cos, seq)
+        scored.append((int(other.opportunity_id), blended, cos, seq, text_cos))
     scored.sort(key=lambda x: -x[1])
     top = scored[:top_k]
 
@@ -339,7 +406,7 @@ async def refresh_similarity_links(
         await db.delete(link)
     await db.flush()
 
-    for sim_id, score, cos, seq in top:
+    for sim_id, score, cos, seq, text_cos in top:
         db.add(
             DealSimilarityLink(
                 opportunity_id=opportunity_id,
@@ -348,9 +415,10 @@ async def refresh_similarity_links(
                 similarity_reason_json=json.dumps(
                     {
                         "embedding_version": EMBEDDING_VERSION,
-                        "method": "cosine+lcs_blend",
+                        "method": "cosine+lcs+text",
                         "cosine_score": cos,
                         "sequence_score": seq,
+                        "text_score": text_cos,
                     }
                 ),
             )

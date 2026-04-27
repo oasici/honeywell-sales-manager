@@ -38,6 +38,8 @@ class Quote(Base):
 
     valid_days: Mapped[int] = mapped_column(Integer, default=30)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # V8: multi-tenant boundary
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Win/Loss tracking (Feature 3)

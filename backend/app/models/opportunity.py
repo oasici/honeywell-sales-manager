@@ -47,6 +47,9 @@ class Opportunity(Base):
         Integer, ForeignKey("territories.id"), nullable=True, index=True
     )
 
+    # V8: multi-tenant boundary
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
