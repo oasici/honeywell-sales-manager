@@ -8,6 +8,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.security import hash_password
+from app.models.user import User
 from app.models.user_session import UserSession
 from app.services import session_service
 
@@ -18,15 +20,36 @@ def enable_feature_flag(monkeypatch):
     monkeypatch.setattr(settings, "MAX_CONCURRENT_SESSIONS", 3)
 
 
+@pytest_asyncio.fixture
+async def session_user(db: AsyncSession) -> User:
+    """Seed a real user so user_sessions FK constraint passes on PG.
+
+    SQLite ignored the FK; PostgreSQL enforces it. The fixture
+    materialises a user_id=1-equivalent reference and tests use that
+    id explicitly instead of the literal ``1``.
+    """
+    user = User(
+        email="session-test@test.com",
+        full_name="Session Test User",
+        hashed_password=hash_password("x"),
+        role="sales_rep",
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
 class TestSessionService:
     """Unit tests for session_service functions."""
 
     @pytest.mark.asyncio
-    async def test_create_session(self, db: AsyncSession):
+    async def test_create_session(self, db: AsyncSession, session_user: User):
         expires = datetime.now(timezone.utc) + timedelta(hours=1)
         session = await session_service.create_session(
             db=db,
-            user_id=1,
+            user_id=session_user.id,
             jti="test-jti-001",
             device_info="Chrome/Windows",
             ip_address="192.168.1.1",
@@ -34,19 +57,21 @@ class TestSessionService:
         )
 
         assert session.id is not None
-        assert session.user_id == 1
+        assert session.user_id == session_user.id
         assert session.jti == "test-jti-001"
         assert session.is_active is True
 
     @pytest.mark.asyncio
-    async def test_exceed_limit_invalidates_oldest(self, db: AsyncSession):
+    async def test_exceed_limit_invalidates_oldest(
+        self, db: AsyncSession, session_user: User
+    ):
         expires = datetime.now(timezone.utc) + timedelta(hours=1)
 
         sessions = []
         for i in range(4):
             s = await session_service.create_session(
                 db=db,
-                user_id=1,
+                user_id=session_user.id,
                 jti=f"jti-limit-{i}",
                 device_info=f"Device {i}",
                 ip_address="10.0.0.1",
@@ -60,15 +85,17 @@ class TestSessionService:
         assert sessions[0].is_active is False
 
         # The latest 3 should still be active
-        active = await session_service.get_active_sessions(db, 1)
+        active = await session_service.get_active_sessions(db, session_user.id)
         assert len(active) == 3
 
     @pytest.mark.asyncio
-    async def test_invalidate_session(self, db: AsyncSession):
+    async def test_invalidate_session(
+        self, db: AsyncSession, session_user: User
+    ):
         expires = datetime.now(timezone.utc) + timedelta(hours=1)
         session = await session_service.create_session(
             db=db,
-            user_id=1,
+            user_id=session_user.id,
             jti="jti-invalidate-test",
             device_info=None,
             ip_address=None,
@@ -88,35 +115,37 @@ class TestSessionService:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_get_active_sessions(self, db: AsyncSession):
+    async def test_get_active_sessions(
+        self, db: AsyncSession, session_user: User
+    ):
         expires = datetime.now(timezone.utc) + timedelta(hours=1)
 
         await session_service.create_session(
-            db, user_id=1, jti="active-1", device_info=None,
+            db, user_id=session_user.id, jti="active-1", device_info=None,
             ip_address=None, expires_at=expires,
         )
         await session_service.create_session(
-            db, user_id=1, jti="active-2", device_info=None,
+            db, user_id=session_user.id, jti="active-2", device_info=None,
             ip_address=None, expires_at=expires,
         )
         await db.commit()
 
-        active = await session_service.get_active_sessions(db, 1)
+        active = await session_service.get_active_sessions(db, session_user.id)
         assert len(active) == 2
         # Most recent first
         assert active[0].jti == "active-2"
 
     @pytest.mark.asyncio
-    async def test_cleanup_expired(self, db: AsyncSession):
+    async def test_cleanup_expired(self, db: AsyncSession, session_user: User):
         past = datetime.now(timezone.utc) - timedelta(hours=1)
         future = datetime.now(timezone.utc) + timedelta(hours=1)
 
         await session_service.create_session(
-            db, user_id=1, jti="expired-session", device_info=None,
+            db, user_id=session_user.id, jti="expired-session", device_info=None,
             ip_address=None, expires_at=past,
         )
         await session_service.create_session(
-            db, user_id=1, jti="valid-session", device_info=None,
+            db, user_id=session_user.id, jti="valid-session", device_info=None,
             ip_address=None, expires_at=future,
         )
         await db.commit()
@@ -124,7 +153,7 @@ class TestSessionService:
         cleaned = await session_service.cleanup_expired(db)
         assert cleaned == 1
 
-        active = await session_service.get_active_sessions(db, 1)
+        active = await session_service.get_active_sessions(db, session_user.id)
         assert len(active) == 1
         assert active[0].jti == "valid-session"
 

@@ -46,7 +46,14 @@ def embed_text(text: str) -> list[float] | None:
 
 
 async def check_pgvector(db) -> bool:
-    """Check if pgvector extension is available in PostgreSQL."""
+    """Check if pgvector extension is available in PostgreSQL.
+
+    On PG, when a query fails inside an open transaction the whole
+    transaction is poisoned ("current transaction is aborted, commands
+    ignored until end of transaction block"). Each branch below that
+    can fail must therefore ROLLBACK before returning so the caller's
+    next query (the actual search) doesn't pick up the poisoned txn.
+    """
     global _pgvector_available
     if _pgvector_available is not None:
         return _pgvector_available
@@ -55,7 +62,10 @@ async def check_pgvector(db) -> bool:
         result = await db.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'vector'"))
         _pgvector_available = result.scalar() is not None
         if not _pgvector_available:
-            # Try to create it
+            # Try to create it. CREATE EXTENSION needs SUPERUSER on
+            # most managed Postgres tiers (Render, Supabase, RDS without
+            # the rds_superuser role). Failures here leave the txn in
+            # an aborted state — explicit rollback recovers it.
             try:
                 await db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
                 await db.execute(text("COMMIT"))
@@ -63,9 +73,18 @@ async def check_pgvector(db) -> bool:
                 logger.info("pgvector extension created successfully")
             except Exception:
                 _pgvector_available = False
+                # Recover the transaction so downstream queries succeed.
+                try:
+                    await db.rollback()
+                except Exception:
+                    pass
                 logger.info("pgvector extension not available — using ILIKE fallback")
     except Exception:
         _pgvector_available = False
+        try:
+            await db.rollback()
+        except Exception:
+            pass
     return _pgvector_available
 
 
@@ -166,6 +185,12 @@ async def _vector_search(db, query, vec, table, content_column, limit, filters):
         return [{"id": r.id, "title": r.title, "snippet": r.snippet, "score": round(float(r.score), 3)} for r in rows]
     except Exception as e:
         logger.debug("Vector search failed (embedding column may not exist): %s", e)
+        # Roll back so the ILIKE fallback's next query doesn't see
+        # "current transaction aborted".
+        try:
+            await db.rollback()
+        except Exception:
+            pass
         return await _ilike_search(db, query, table, content_column, limit, filters)
 
 
@@ -185,7 +210,11 @@ async def _ilike_search(db, query, table, content_column, limit, filters):
 
     where_clause = " AND ".join(where_parts)
 
-    # Try pg_trgm similarity scoring (PostgreSQL only — typo tolerant)
+    # Try pg_trgm similarity scoring (PostgreSQL only — typo tolerant).
+    # Same poisoned-transaction concern as check_pgvector: if pg_trgm
+    # isn't installed, the failed query aborts the entire transaction
+    # so the next call (LIKE fallback) sees "transaction aborted".
+    # Roll back inside the except so the next query starts clean.
     try:
         params["raw_q"] = query
         trgm_sql = f"""
@@ -201,7 +230,10 @@ async def _ilike_search(db, query, table, content_column, limit, filters):
         if rows:
             return [{"id": r.id, "title": r.title, "snippet": r.snippet, "score": round(float(r.score), 3)} for r in rows]
     except Exception:
-        pass
+        try:
+            await db.rollback()
+        except Exception:
+            pass
 
     # Pure LIKE fallback (SQLite + PG without pg_trgm)
     sql = f"""

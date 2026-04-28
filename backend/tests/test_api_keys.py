@@ -9,7 +9,25 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api_key_auth import generate_api_key, validate_api_key
+from app.core.security import hash_password
 from app.models.api_key import ApiKey
+from app.models.user import User
+
+
+@pytest_asyncio.fixture
+async def api_key_user(db: AsyncSession) -> User:
+    """Seed a real owner so api_keys.user_id FK is satisfied on PG."""
+    user = User(
+        email="api-key-owner@test.com",
+        full_name="API Key Owner",
+        hashed_password=hash_password("x"),
+        role="sales_manager",
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
 class TestGenerateApiKey:
@@ -34,13 +52,13 @@ class TestApiKeyModel:
     """ApiKey model database operations."""
 
     @pytest.mark.asyncio
-    async def test_create_api_key(self, db: AsyncSession):
+    async def test_create_api_key(self, db: AsyncSession, api_key_user: User):
         plain, key_hash = generate_api_key()
 
         api_key = ApiKey(
             key_hash=key_hash,
             name="Test Entegrasyon",
-            user_id=1,
+            user_id=api_key_user.id,
             scopes_json='["read:quotes"]',
         )
         db.add(api_key)
@@ -52,13 +70,13 @@ class TestApiKeyModel:
         assert api_key.rate_limit == 1000
 
     @pytest.mark.asyncio
-    async def test_revoke_api_key(self, db: AsyncSession):
+    async def test_revoke_api_key(self, db: AsyncSession, api_key_user: User):
         _, key_hash = generate_api_key()
 
         api_key = ApiKey(
             key_hash=key_hash,
             name="Silinecek Anahtar",
-            user_id=1,
+            user_id=api_key_user.id,
         )
         db.add(api_key)
         await db.commit()
@@ -71,11 +89,13 @@ class TestApiKeyModel:
         assert api_key.is_active is False
 
     @pytest.mark.asyncio
-    async def test_unique_key_hash_constraint(self, db: AsyncSession):
+    async def test_unique_key_hash_constraint(
+        self, db: AsyncSession, api_key_user: User
+    ):
         _, key_hash = generate_api_key()
 
-        key1 = ApiKey(key_hash=key_hash, name="Key 1", user_id=1)
-        key2 = ApiKey(key_hash=key_hash, name="Key 2", user_id=1)
+        key1 = ApiKey(key_hash=key_hash, name="Key 1", user_id=api_key_user.id)
+        key2 = ApiKey(key_hash=key_hash, name="Key 2", user_id=api_key_user.id)
 
         db.add(key1)
         await db.flush()

@@ -65,11 +65,37 @@ async def rep_headers(db: AsyncSession) -> dict:
 
 
 @pytest_asyncio.fixture
-async def seeded_audit_logs(db: AsyncSession) -> list[AuditLog]:
-    """Three logs across two entity types, two actions, two users, two days."""
+async def seeded_audit_logs(db: AsyncSession) -> dict:
+    """Three logs across two entity types, two actions, two users, two days.
+
+    Seeds the referenced ``users`` rows first because audit_logs has a
+    real FK on user_id — SQLite ignores it but PostgreSQL enforces it.
+
+    Returns ``{"logs": [...], "user_a_id": int, "user_b_id": int}`` so
+    callers can build URL params from the seeded IDs rather than
+    hardcoding 1 and 2 (those collide with other autoincrement state
+    when the test suite reorders).
+    """
+    user_a = User(
+        email="audit-user-a@test.com",
+        full_name="Audit User A",
+        hashed_password=hash_password("x"),
+        role="sales_rep",
+        is_active=True,
+    )
+    user_b = User(
+        email="audit-user-b@test.com",
+        full_name="Audit User B",
+        hashed_password=hash_password("x"),
+        role="sales_rep",
+        is_active=True,
+    )
+    db.add_all([user_a, user_b])
+    await db.flush()
+
     logs = [
         AuditLog(
-            user_id=1,
+            user_id=user_a.id,
             action="customer_created",
             entity_type="customer",
             entity_id=10,
@@ -77,7 +103,7 @@ async def seeded_audit_logs(db: AsyncSession) -> list[AuditLog]:
             created_at=_utc(days_ago=2),
         ),
         AuditLog(
-            user_id=2,
+            user_id=user_b.id,
             action="kvkk_data_delete",
             entity_type="customer",
             entity_id=11,
@@ -85,7 +111,7 @@ async def seeded_audit_logs(db: AsyncSession) -> list[AuditLog]:
             created_at=_utc(days_ago=1),
         ),
         AuditLog(
-            user_id=2,
+            user_id=user_b.id,
             action="kvkk_email_auto_anonymize",
             entity_type="email_request",
             entity_id=99,
@@ -96,7 +122,7 @@ async def seeded_audit_logs(db: AsyncSession) -> list[AuditLog]:
     for log in logs:
         db.add(log)
     await db.commit()
-    return logs
+    return {"logs": logs, "user_a_id": user_a.id, "user_b_id": user_b.id}
 
 
 # ─── list endpoint ────────────────────────────────────────────────
@@ -125,9 +151,12 @@ async def test_list_returns_paginated_logs(
 async def test_list_filter_by_user_id(
     client: AsyncClient, manager_headers: dict, seeded_audit_logs
 ):
-    r = await client.get("/api/v1/audit/?user_id=2", headers=manager_headers)
+    user_b_id = seeded_audit_logs["user_b_id"]
+    r = await client.get(
+        f"/api/v1/audit/?user_id={user_b_id}", headers=manager_headers
+    )
     body = r.json()
-    assert all(item["user_id"] == 2 for item in body["items"])
+    assert all(item["user_id"] == user_b_id for item in body["items"])
     assert body["total"] == 2
 
 

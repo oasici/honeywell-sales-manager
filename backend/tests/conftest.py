@@ -6,10 +6,25 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 # Ensure tests are deterministic even if a `.env` is present for docker runs.
+#
+# Test DB resolution order (so CI / local / Docker all work):
+# 1. Explicit ``TEST_DATABASE_URL`` env var — CI overrides everything.
+# 2. Default: PostgreSQL 16 container exposed on localhost:5434
+#    (``docker-compose.override.yml`` ships ``db-test``). Matches prod
+#    semantics (jsonb, ``to_char``, real transaction isolation, etc.).
+# 3. Fallback: SQLite — kept for fully offline boxes; some PG-specific
+#    features will silently degrade. Set ``TEST_DATABASE_URL=sqlite+aiosqlite:///./test.db``
+#    to opt-in.
 os.environ["ENV"] = "test"
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+_default_pg_test_url = (
+    "postgresql+asyncpg://honeywell:honeywell_test_2026@"
+    "localhost:5434/honeywell_sales_test"
+)
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", _default_pg_test_url)
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["REDIS_URL"] = ""
 for _flag in (
     "FEATURE_DEAL_HEALTH",
@@ -27,9 +42,21 @@ from app.main import app
 from app.models.user import User
 
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+_is_postgres = TEST_DATABASE_URL.startswith("postgresql")
 
-engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+# Postgres connections live for the test session; SQLite uses a fresh
+# in-process file (legacy fallback path).
+_engine_kwargs: dict = {"echo": False, "future": True}
+if _is_postgres:
+    # ``NullPool`` opens + closes a fresh asyncpg connection per
+    # checkout. asyncpg objects are bound to their event loop, and
+    # pytest-asyncio creates a new loop per test (function-scoped),
+    # so any pooled connection becomes "Future attached to a
+    # different loop" on the next test. NullPool sidesteps this by
+    # never persisting connections across the loop boundary.
+    _engine_kwargs.update({"poolclass": NullPool})
+
+engine = create_async_engine(TEST_DATABASE_URL, **_engine_kwargs)
 TestSession = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -41,11 +68,32 @@ async def _dispose_engine_after_tests():
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    """Per-test schema reset.
+
+    On PostgreSQL we DROP + CREATE the schema to avoid leftover
+    constraints from a previous run interfering with FK ordering.
+    Doing this with raw SQL instead of ``metadata.drop_all`` is much
+    faster on PG since the latter walks every table individually.
+
+    On SQLite we keep the legacy create_all/drop_all path because
+    schema=public DDL is not a concept there.
+    """
+    if _is_postgres:
+        async with engine.begin() as conn:
+            # ``CASCADE`` so ALL FK dependencies dissolve at once.
+            await conn.exec_driver_sql("DROP SCHEMA IF EXISTS public CASCADE")
+            await conn.exec_driver_sql("CREATE SCHEMA public")
+            await conn.run_sync(Base.metadata.create_all)
+        yield
+        # Don't bother dropping on teardown — next test's setup wipes
+        # the schema again, and skipping the drop trims a few seconds
+        # off long suites.
+    else:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        yield
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
 
 
 async def override_get_db():

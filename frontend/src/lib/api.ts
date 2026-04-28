@@ -1473,6 +1473,102 @@ export const insightsApi = {
   },
 };
 
+// ── V10 Spare Parts Intelligence ────────────────────────
+// Read-only intelligence layer over SparePart × PriceEntry × QuoteItem.
+// All endpoints gated server-side by FEATURE_V10_PARTS_INTEL — when
+// the flag is off the backend returns 404 and we surface "feature not
+// available" so the UI degrades gracefully.
+export const v10PartsIntelApi = {
+  getSummary: async () => {
+    const { data } = await api.get('/v10/parts-intel/summary');
+    return data;
+  },
+  getVelocity: async (tier?: 'A' | 'B' | 'C') => {
+    const { data } = await api.get('/v10/parts-intel/velocity', {
+      params: tier ? { tier } : undefined,
+    });
+    return data;
+  },
+  getHeatmap: async (windowDays = 180, partId?: number) => {
+    const { data } = await api.get('/v10/parts-intel/heatmap', {
+      params: { window_days: windowDays, part_id: partId },
+    });
+    return data;
+  },
+  getDeadStock: async (minIdleDays = 180, limit = 100) => {
+    const { data } = await api.get('/v10/parts-intel/dead-stock', {
+      params: { min_idle_days: minIdleDays, limit },
+    });
+    return data;
+  },
+  getInflationTax: async (months = 12) => {
+    const { data } = await api.get('/v10/parts-intel/inflation-tax', {
+      params: { months },
+    });
+    return data;
+  },
+  getStalePricing: async (maxAgeDays = 180, limit = 100) => {
+    const { data } = await api.get('/v10/parts-intel/stale-pricing', {
+      params: { max_age_days: maxAgeDays, limit },
+    });
+    return data;
+  },
+  getMarginHealth: async (limit = 100) => {
+    const { data } = await api.get('/v10/parts-intel/margin-health', {
+      params: { limit },
+    });
+    return data;
+  },
+  getObsolescenceWatch: async (topN = 20) => {
+    const { data } = await api.get('/v10/parts-intel/obsolescence-watch', {
+      params: { top_n: topN },
+    });
+    return data;
+  },
+  getEolRisk: async (partId: number) => {
+    const { data } = await api.get(`/v10/parts-intel/parts/${partId}/eol-risk`);
+    return data;
+  },
+  getLastTimeBuy: async () => {
+    const { data } = await api.get('/v10/parts-intel/last-time-buy');
+    return data;
+  },
+  getDataHealth: async () => {
+    const { data } = await api.get('/v10/parts-intel/data-health');
+    return data;
+  },
+  getDuplicates: async (threshold = 0.85, limit = 100) => {
+    const { data } = await api.get('/v10/parts-intel/duplicates', {
+      params: { threshold, limit },
+    });
+    return data;
+  },
+  getOrphanPricing: async (limit = 200) => {
+    const { data } = await api.get('/v10/parts-intel/orphan-pricing', {
+      params: { limit },
+    });
+    return data;
+  },
+  getSubstitutions: async (partId: number, limit = 20) => {
+    const { data } = await api.get(`/v10/parts-intel/parts/${partId}/substitutions`, {
+      params: { limit },
+    });
+    return data;
+  },
+  getCrossCustomer: async (partId: number, months = 12, limit = 50) => {
+    const { data } = await api.get(`/v10/parts-intel/parts/${partId}/cross-customer`, {
+      params: { months, limit },
+    });
+    return data;
+  },
+  getSegmentAffinity: async (partId: number, months = 12) => {
+    const { data } = await api.get(`/v10/parts-intel/parts/${partId}/segment-affinity`, {
+      params: { months },
+    });
+    return data;
+  },
+};
+
 // ── Playbooks ─────────────────────────────────────────
 export const playbookApi = {
   list: async () => {

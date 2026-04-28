@@ -254,6 +254,17 @@ class Settings(BaseSettings):
     # V8 3-component when the transformer vector is missing.
     FEATURE_TRANSFORMER_SEQ_EMBEDDING: bool = False
 
+    # --- V10 spare parts intelligence (read-only layer) ---
+    # Depends on: DATABASE_URL only. No schema changes — pure derivation
+    # over SparePart × PriceEntry × QuoteItem × Quote × Opportunity.
+    # When ON, exposes /v10/parts-intel/* endpoints (velocity Pareto,
+    # dead stock ledger, demand heatmap, inflation tax, stale pricing,
+    # margin health, EOL risk, last-time-buy, master data health,
+    # duplicate detection, substitution patterns, cross-customer demand,
+    # segment affinity) and lights up the Spare Parts Intelligence
+    # dashboard + SparePart detail enhancements.
+    FEATURE_V10_PARTS_INTEL: bool = False
+
     # --- Board & Pipeline ---
     # Depends on: DATABASE_URL
     # Required by: Tasks CRUD + recommended actions panel (Sprint 2 prerequisite)

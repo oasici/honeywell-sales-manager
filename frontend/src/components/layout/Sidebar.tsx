@@ -68,6 +68,12 @@ const yedekParcaItems: NavItem[] = [
   },
   { label: 'nav.parts', to: '/parts', icon: <Cog size={18} className="shrink-0" /> },
   {
+    label: 'nav.parts_intel',
+    to: '/parts-intel',
+    icon: <Cog size={18} className="shrink-0" />,
+    roles: ['sales_manager', 'admin'],
+  },
+  {
     label: 'nav.quotes',
     to: '/quotes',
     icon: <FileText size={18} className="shrink-0" />,

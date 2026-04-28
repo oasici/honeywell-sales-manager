@@ -12,6 +12,9 @@ const EmailListPage = lazy(() => import('../features/emails/EmailListPage'));
 const EmailDetailPage = lazy(() => import('../features/emails/EmailDetailPage'));
 const EmailTemplatesPage = lazy(() => import('../features/emails/EmailTemplatesPage'));
 const PartsPage = lazy(() => import('../features/parts/PartsPage'));
+const PartsIntelligenceDashboardPage = lazy(
+  () => import('../features/parts-intel/PartsIntelligenceDashboardPage'),
+);
 const QuoteListPage = lazy(() => import('../features/quotes/QuoteListPage'));
 const QuoteEditorPage = lazy(() => import('../features/quotes/QuoteEditorPage'));
 const CustomerListPage = lazy(() => import('../features/customers/CustomerListPage'));
@@ -228,6 +231,16 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <PartsPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="parts-intel"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <PartsIntelligenceDashboardPage />
               </ErrorBoundary>
             </Suspense>
           }
