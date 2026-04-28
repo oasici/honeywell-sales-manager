@@ -13,6 +13,16 @@ Auto-generated from inline annotations in `backend/app/core/config.py`. All feat
 | `FEATURE_V4_FEATURE_STORE` | `false` | V4 Intelligence Backbone (Feature Store) | DATABASE_URL |
 | `FEATURE_V4_ADDITIVE_READMODEL` | `false` | V4 additive read-model (no write-path changes) | DATABASE_URL |
 | `FEATURE_V4_SALES_EVENTS_SHADOW` | `false` | V4 shadow sales_events table (nightly sync; no CRM writer changes) | DATABASE_URL |
+| `FEATURE_V4_DEAL_REPLAY` | `false` | V4 deal replay snapshots (derived from additive timeline; manager/ops materialize) | DATABASE_URL (uses same timeline reads as additive read-model; no CRM writer changes) |
+| `FEATURE_V4_SALES_DNA` | `false` | V4 Sales DNA (read-only miner → v4_sales_dna_snapshots; manager/ops materialize) | — |
+| `FEATURE_V5_INTELLIGENCE` | `false` | V5 Intelligence Platform | FEATURE_V4_FEATURE_STORE (reads OFD), FEATURE_V4_SALES_EVENTS_SHADOW (reads shadow) |
+| `FEATURE_V6_REALTIME` | `false` | V6 Real-time recompute | FEATURE_V4_FEATURE_STORE (writes OFD) |
+| `FEATURE_V7_LLM_OBJECTION` | `false` | V7 LLM-hybrid objection detection | ANTHROPIC_API_KEY, FEATURE_V5_INTELLIGENCE. |
+| `FEATURE_V9_CRM_SYNC` | `false` | V9 V2/V3 gap closure | — |
+| `FEATURE_V9_CALENDAR_OAUTH` | `false` | V9 V2/V3 gap closure | — |
+| `FEATURE_V9_NL_SEARCH` | `false` | V9 V2/V3 gap closure | — |
+| `FEATURE_TRANSFORMER_SEQ_EMBEDDING` | `false` | V12 transformer-based sequence embedding | sentence-transformers package + the multilingual MiniLM |
+| `FEATURE_V10_PARTS_INTEL` | `false` | V10 spare parts intelligence (read-only layer) | DATABASE_URL only. No schema changes — pure derivation |
 | `FEATURE_TASKS` | `false` | Board & Pipeline | DATABASE_URL |
 | `FEATURE_AI_SUMMARIES` | `false` | AI-Powered Features | ANTHROPIC_API_KEY |
 | `FEATURE_AI_PIPELINE_SUGGESTIONS` | `false` | AI-Powered Features | ANTHROPIC_API_KEY, FEATURE_V2_BOARD |
@@ -92,6 +102,79 @@ Auto-generated from inline annotations in `backend/app/core/config.py`. All feat
 - **Default:** `false`
 - **Depends on:** DATABASE_URL
 - **Rollback:** Set `FEATURE_V4_SALES_EVENTS_SHADOW=false`, restart backend. No migration to revert.
+
+### V4 deal replay snapshots (derived from additive timeline; manager/ops materialize)
+
+#### `FEATURE_V4_DEAL_REPLAY`
+
+- **Default:** `false`
+- **Depends on:** DATABASE_URL (uses same timeline reads as additive read-model; no CRM writer changes)
+- **Rollback:** Set `FEATURE_V4_DEAL_REPLAY=false`, restart backend. No migration to revert.
+
+### V4 Sales DNA (read-only miner → v4_sales_dna_snapshots; manager/ops materialize)
+
+#### `FEATURE_V4_SALES_DNA`
+
+- **Default:** `false`
+- **Rollback:** Set `FEATURE_V4_SALES_DNA=false`, restart backend. No migration to revert.
+
+### V5 Intelligence Platform
+
+#### `FEATURE_V5_INTELLIGENCE`
+
+- **Default:** `false`
+- **Depends on:** FEATURE_V4_FEATURE_STORE (reads OFD), FEATURE_V4_SALES_EVENTS_SHADOW (reads shadow)
+- **Required by:** objection intel, timing engine, benchmark gap, DNA pattern miner,
+- **Rollback:** Set `FEATURE_V5_INTELLIGENCE=false`, restart backend. No migration to revert.
+
+### V6 Real-time recompute
+
+#### `FEATURE_V6_REALTIME`
+
+- **Default:** `false`
+- **Depends on:** FEATURE_V4_FEATURE_STORE (writes OFD)
+- **Rollback:** Set `FEATURE_V6_REALTIME=false`, restart backend. No migration to revert.
+
+### V7 LLM-hybrid objection detection
+
+#### `FEATURE_V7_LLM_OBJECTION`
+
+- **Default:** `false`
+- **Depends on:** ANTHROPIC_API_KEY, FEATURE_V5_INTELLIGENCE.
+- **Rollback:** Set `FEATURE_V7_LLM_OBJECTION=false`, restart backend. No migration to revert.
+
+### V9 V2/V3 gap closure
+
+#### `FEATURE_V9_CRM_SYNC`
+
+- **Default:** `false`
+- **Rollback:** Set `FEATURE_V9_CRM_SYNC=false`, restart backend. No migration to revert.
+
+#### `FEATURE_V9_CALENDAR_OAUTH`
+
+- **Default:** `false`
+- **Rollback:** Set `FEATURE_V9_CALENDAR_OAUTH=false`, restart backend. No migration to revert.
+
+#### `FEATURE_V9_NL_SEARCH`
+
+- **Default:** `false`
+- **Rollback:** Set `FEATURE_V9_NL_SEARCH=false`, restart backend. No migration to revert.
+
+### V12 transformer-based sequence embedding
+
+#### `FEATURE_TRANSFORMER_SEQ_EMBEDDING`
+
+- **Default:** `false`
+- **Depends on:** sentence-transformers package + the multilingual MiniLM
+- **Rollback:** Set `FEATURE_TRANSFORMER_SEQ_EMBEDDING=false`, restart backend. No migration to revert.
+
+### V10 spare parts intelligence (read-only layer)
+
+#### `FEATURE_V10_PARTS_INTEL`
+
+- **Default:** `false`
+- **Depends on:** DATABASE_URL only. No schema changes — pure derivation
+- **Rollback:** Set `FEATURE_V10_PARTS_INTEL=false`, restart backend. No migration to revert.
 
 ### Board & Pipeline
 

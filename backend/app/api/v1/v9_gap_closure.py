@@ -41,6 +41,7 @@ from app.services import (
 )
 from app.services.crm_sync import run_sync_job
 from app.services.crm_sync.factory import get_adapter
+from app.services.tenant_context import assert_same_tenant
 
 
 router = APIRouter(prefix="/v9", tags=["V9 Gap Closure"])
@@ -412,6 +413,17 @@ async def list_quote_revisions(
     opp = await db.get(Opportunity, opportunity_id)
     if opp is None:
         raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
+
+    # V12 cross-tenant guard before owner check. Cross-tenant access
+    # surfaces as 404 indistinguishable from "not found" so the API
+    # doesn't leak which IDs exist in other tenants.
+    from app.core.exceptions import NotFoundException
+
+    try:
+        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+    except NotFoundException:
+        raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
+
     if (
         current_user.role == UserRole.SALES_REP.value
         and opp.owner_id is not None
@@ -433,6 +445,20 @@ async def revise_quote(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v2_board),
 ):
+    # V12 — load + tenant-check before delegating to the revision
+    # service so cross-tenant probes can't trigger the revision side
+    # effects (new quote row, item clones, FK updates).
+    from app.core.exceptions import NotFoundException
+    from app.models.quote import Quote
+
+    quote = await db.get(Quote, quote_id)
+    if quote is None:
+        raise HTTPException(status_code=404, detail="Quote bulunamadı")
+    try:
+        assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
+    except NotFoundException:
+        raise HTTPException(status_code=404, detail="Quote bulunamadı")
+
     new_quote = await quote_revision_service.create_revision(
         db, quote_id=quote_id, created_by=current_user.id
     )

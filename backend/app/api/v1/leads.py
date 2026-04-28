@@ -498,6 +498,14 @@ async def update_lead(
     _flag=Depends(_require_lead_lifecycle),
 ):
     """Update lead fields."""
+    # V12 cross-tenant guard before delegating to the service.
+    existing = (
+        await db.execute(select(Lead).where(Lead.id == lead_id))
+    ).scalar_one_or_none()
+    if existing is None:
+        raise NotFoundException("Lead bulunamadi")
+    assert_same_tenant(existing, current_user, exception_cls=NotFoundException)
+
     service = LeadService(db)
     updates = data.model_dump(exclude_unset=True)
     lead = await service.update_lead(lead_id, **updates)
@@ -513,6 +521,13 @@ async def convert_lead(
     _flag=Depends(_require_lead_lifecycle),
 ):
     """Convert a qualified lead to Customer + optional Opportunity."""
+    existing = (
+        await db.execute(select(Lead).where(Lead.id == lead_id))
+    ).scalar_one_or_none()
+    if existing is None:
+        raise NotFoundException("Lead bulunamadi")
+    assert_same_tenant(existing, current_user, exception_cls=NotFoundException)
+
     service = LeadService(db)
     result = await service.convert_lead(
         lead_id=lead_id,

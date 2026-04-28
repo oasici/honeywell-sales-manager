@@ -488,6 +488,7 @@ async def delete_customer(
     customer = result.scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     # Check for linked quotes
     quote_count = await db.execute(

@@ -8,6 +8,21 @@ databases:
     user: honeywell
 
 services:
+  # ─────────────────────── Redis (managed by Render) ─────────────────
+  # Required by:
+  #   - rate limiting (per-user counters survive worker restarts)
+  #   - session management (FEATURE_SESSION_MANAGEMENT)
+  #   - deal-health cache, AI summary cache
+  # Without it, the app falls back to in-memory caches per-worker —
+  # functional but loses cross-worker consistency on multi-worker
+  # deployments. Render's managed Redis on the free tier is small
+  # but sufficient for a single-tenant install.
+  - type: redis
+    name: honeywell-redis
+    plan: free
+    ipAllowList: []  # closed; only Render-internal services connect
+
+
   - type: web
     name: honeywell-backend
     runtime: docker
@@ -34,8 +49,28 @@ services:
         value: "https://honeywell-frontend.onrender.com"
       - key: ANTHROPIC_API_KEY
         sync: false
+      # ── Redis (managed) ──
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: honeywell-redis
+          property: connectionString
+      # ── Qdrant (external; FEATURE_RAG=true required) ──
+      # Render does not host Qdrant directly. Set this to your Qdrant
+      # Cloud DSN in the Render dashboard once FEATURE_RAG is on.
+      # When the URL is empty, RAG endpoints return 404 indistinguishably
+      # so the rest of the app stays functional.
+      - key: QDRANT_URL
+        sync: false
+      # SECURITY: ENCRYPTION_KEY decrypts KVKK PII columns (per-row
+      # encryption). If Render regenerates this on a service rebuild
+      # all encrypted data becomes UNREADABLE — an irreversible data
+      # loss. ``sync: false`` pins it to a manually-set Render
+      # dashboard value, backed up out-of-band (1Password / Vault).
+      # Generate the first value with:
+      #   python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
       - key: ENCRYPTION_KEY
-        generateValue: true
+        sync: false
       - key: AUTO_CREATE_TABLES
         value: "false"
       - key: AUTO_SCHEMA_SYNC
