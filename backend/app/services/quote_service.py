@@ -38,6 +38,7 @@ class QuoteService:
         notes: str | None = None,
         created_by: int | None = None,
         valid_days: int = 30,
+        tenant_id: int | None = None,
     ) -> Quote:
         """Create a new quote with optional line items."""
         if customer_id:
@@ -55,6 +56,8 @@ class QuoteService:
             tax_rate=tax_rate,
             valid_days=valid_days,
             notes=notes,
+            # V12 multi-tenant: caller passes the requesting user's tenant.
+            tenant_id=tenant_id,
         )
         self._db.add(quote)
         await self._db.flush()

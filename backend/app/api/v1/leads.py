@@ -22,6 +22,7 @@ from app.models.lead import Lead
 from app.models.user import User
 from app.core.event_bus import event_bus
 from app.services.lead_service import LeadService
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
@@ -274,6 +275,10 @@ async def list_leads(
         query = query.where(combined)
         count_query = count_query.where(combined)
 
+    # V12 multi-tenant: no-op when current_user.tenant_id is None.
+    query = scoped_for_user(query, current_user, column=Lead.tenant_id)
+    count_query = scoped_for_user(count_query, current_user, column=Lead.tenant_id)
+
     total = (await db.execute(count_query)).scalar() or 0
     offset = (page - 1) * page_size
     query = query.order_by(Lead.lead_score.desc(), Lead.created_at.desc()).offset(offset).limit(page_size)
@@ -448,6 +453,7 @@ async def get_lead(
     lead = result.scalar_one_or_none()
     if not lead:
         raise NotFoundException("Lead bulunamadi")
+    assert_same_tenant(lead, current_user, exception_cls=NotFoundException)
 
     lead_dict = _lead_to_dict(lead)
 
@@ -477,6 +483,8 @@ async def create_lead(
         source=data.source,
         owner_id=current_user.id,
         notes=data.notes,
+        # V12 multi-tenant: inherit caller's tenant.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     return _lead_to_dict(lead)
 

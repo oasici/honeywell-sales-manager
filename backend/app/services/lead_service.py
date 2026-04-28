@@ -41,6 +41,7 @@ class LeadService:
         source: str = "manual",
         owner_id: int,
         notes: str | None = None,
+        tenant_id: int | None = None,
     ) -> Lead:
         """Create a new lead and auto-score."""
         # Check duplicate
@@ -60,6 +61,8 @@ class LeadService:
             source=source,
             owner_id=owner_id,
             notes=notes,
+            # V12 multi-tenant: caller passes the requesting user's tenant.
+            tenant_id=tenant_id,
         )
         self.db.add(lead)
         await self.db.flush()

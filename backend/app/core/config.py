@@ -245,6 +245,15 @@ class Settings(BaseSettings):
     # Sprint N — semantic NL search over transcript + email + opp text.
     FEATURE_V9_NL_SEARCH: bool = False
 
+    # --- V12 transformer-based sequence embedding ---
+    # Depends on: sentence-transformers package + the multilingual MiniLM
+    # weights already loaded by the spare parts catalog (no extra cost
+    # when FEATURE_RAG is also on; otherwise warm-up = a few hundred ms).
+    # When ON, ``deal_similarity_service`` adds a 4th component (semantic
+    # transformer cosine, weight 0.2) to the V8 blend; falls back to
+    # V8 3-component when the transformer vector is missing.
+    FEATURE_TRANSFORMER_SEQ_EMBEDDING: bool = False
+
     # --- Board & Pipeline ---
     # Depends on: DATABASE_URL
     # Required by: Tasks CRUD + recommended actions panel (Sprint 2 prerequisite)

@@ -16,6 +16,7 @@ from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.customer import CustomerCreate, CustomerUpdate
 from app.services.enrichment_service import EnrichmentService
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -42,6 +43,10 @@ async def list_customers(
         )
         count_query = count_query.where(search_condition)
 
+    # V12 multi-tenant — apply before counting; no-op when
+    # current_user.tenant_id is None.
+    count_query = scoped_for_user(count_query, current_user, column=Customer.tenant_id)
+
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
@@ -63,6 +68,8 @@ async def list_customers(
 
     if search_condition is not None:
         main_query = main_query.where(search_condition)
+
+    main_query = scoped_for_user(main_query, current_user, column=Customer.tenant_id)
 
     offset = (page - 1) * page_size
     main_query = main_query.order_by(Customer.name).offset(offset).limit(page_size)
@@ -169,6 +176,7 @@ async def get_customer(
     customer = result.scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     # Quote statistics
     quote_count_q = await db.execute(
@@ -409,6 +417,8 @@ async def create_customer(
         tax_id=data.tax_id,
         preferred_lang=data.preferred_lang,
         created_by=current_user.id,
+        # V12 multi-tenant: inherit caller's tenant.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(customer)
     await db.flush()
@@ -431,6 +441,7 @@ async def update_customer(
     customer = result.scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     updates = data.model_dump(exclude_unset=True)
 

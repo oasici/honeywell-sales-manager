@@ -19,6 +19,7 @@ from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
 from app.services.notification_service import create_notification
 from app.services.quote_service import QuoteService
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
@@ -52,6 +53,10 @@ async def list_quotes(
         query = query.where(combined)
         count_query = count_query.where(combined)
 
+    # V12 multi-tenant: no-op when current_user.tenant_id is None.
+    query = scoped_for_user(query, current_user, column=Quote.tenant_id)
+    count_query = scoped_for_user(count_query, current_user, column=Quote.tenant_id)
+
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
@@ -83,6 +88,7 @@ async def get_quote(
     quote = result.scalar_one_or_none()
     if not quote:
         raise NotFoundException("Teklif bulunamadi")
+    assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
 
     # Ownership check: non-managers can only access their own quotes
     if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
@@ -107,6 +113,8 @@ async def create_quote(
         tax_rate=data.tax_rate,
         notes=data.notes,
         created_by=current_user.id,
+        # V12 multi-tenant: inherit caller's tenant.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
 
     await log_activity(

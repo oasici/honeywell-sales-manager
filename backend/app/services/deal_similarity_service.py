@@ -332,15 +332,22 @@ async def refresh_similarity_links(
 ) -> int:
     """Refresh the top-K similar deals for ``opportunity_id``.
 
-    V8: 3-component blend.
-      ``final = 0.5·cosine(structured) + 0.2·LCS-ratio + 0.3·cosine(text)``
+    V12 (when ``FEATURE_TRANSFORMER_SEQ_EMBEDDING`` is on and both
+    sides have a transformer vector): 4-component blend.
+      ``final = 0.4·cos_struct + 0.15·LCS + 0.25·cos_text + 0.2·cos_xfm``
 
-    Text embedding is best-effort — when missing, the blend falls
-    back to V7 (structured + LCS only, with weights re-normalised
-    to sum to 1).
+    V8 (when text vectors exist but transformer doesn't): 3-component blend.
+      ``final = 0.5·cos_struct + 0.2·LCS + 0.3·cos_text``
+
+    V7 fallback (only structured + LCS): ``blend_similarity`` with
+    re-normalised weights summing to 1.
     """
+    from app.core.config import settings
     from app.models.v8_text_embedding import OpportunityTextEmbedding
-    from app.services import text_embedder
+    from app.models.v12_transformer_seq_embedding import (
+        OpportunityTransformerSeqEmbedding,
+    )
+    from app.services import text_embedder, transformer_sequence_embedder
     from app.services.sequence_similarity import blend_similarity, lcs_ratio
 
     own = await db.get(OpportunityEmbedding, opportunity_id)
@@ -351,6 +358,15 @@ async def refresh_similarity_links(
     own_text = await db.get(OpportunityTextEmbedding, opportunity_id)
     own_text_vec = json.loads(own_text.embedding_json) if own_text else None
 
+    own_xfm_vec: list[float] | None = None
+    if settings.FEATURE_TRANSFORMER_SEQ_EMBEDDING:
+        own_xfm = await db.get(OpportunityTransformerSeqEmbedding, opportunity_id)
+        if own_xfm is not None:
+            try:
+                own_xfm_vec = json.loads(own_xfm.embedding_json)
+            except (json.JSONDecodeError, TypeError):
+                own_xfm_vec = None
+
     others = (
         await db.execute(
             select(OpportunityEmbedding).where(
@@ -359,7 +375,7 @@ async def refresh_similarity_links(
         )
     ).scalars().all()
 
-    scored: list[tuple[int, float, float, float, float]] = []
+    scored: list[tuple[int, float, float, float, float, float]] = []
     for other in others:
         try:
             other_vec = json.loads(other.embedding_json)
@@ -384,13 +400,34 @@ async def refresh_similarity_links(
                 except (json.JSONDecodeError, TypeError):
                     text_cos = 0.0
 
-        if own_text_vec is not None and text_cos > 0.0:
-            # V8 3-component blend
+        xfm_cos = 0.0
+        if own_xfm_vec is not None:
+            other_xfm = await db.get(
+                OpportunityTransformerSeqEmbedding, int(other.opportunity_id)
+            )
+            if other_xfm is not None:
+                try:
+                    other_xfm_vec = json.loads(other_xfm.embedding_json)
+                    xfm_cos = transformer_sequence_embedder.cosine(
+                        own_xfm_vec, other_xfm_vec
+                    )
+                except (json.JSONDecodeError, TypeError):
+                    xfm_cos = 0.0
+
+        if own_xfm_vec is not None and xfm_cos > 0.0:
+            # V12 4-component blend.
+            blended = round(
+                0.4 * cos + 0.15 * seq + 0.25 * text_cos + 0.2 * xfm_cos, 4
+            )
+        elif own_text_vec is not None and text_cos > 0.0:
+            # V8 3-component blend.
             blended = round(0.5 * cos + 0.2 * seq + 0.3 * text_cos, 4)
         else:
-            # V7 fallback (re-normalised to sum=1)
+            # V7 fallback (re-normalised to sum=1).
             blended = blend_similarity(cos, seq)
-        scored.append((int(other.opportunity_id), blended, cos, seq, text_cos))
+        scored.append(
+            (int(other.opportunity_id), blended, cos, seq, text_cos, xfm_cos)
+        )
     scored.sort(key=lambda x: -x[1])
     top = scored[:top_k]
 
@@ -406,7 +443,7 @@ async def refresh_similarity_links(
         await db.delete(link)
     await db.flush()
 
-    for sim_id, score, cos, seq, text_cos in top:
+    for sim_id, score, cos, seq, text_cos, xfm_cos in top:
         db.add(
             DealSimilarityLink(
                 opportunity_id=opportunity_id,
@@ -415,10 +452,13 @@ async def refresh_similarity_links(
                 similarity_reason_json=json.dumps(
                     {
                         "embedding_version": EMBEDDING_VERSION,
-                        "method": "cosine+lcs+text",
+                        "method": "cosine+lcs+text+xfm"
+                        if xfm_cos > 0.0
+                        else "cosine+lcs+text",
                         "cosine_score": cos,
                         "sequence_score": seq,
                         "text_score": text_cos,
+                        "transformer_score": xfm_cos,
                     }
                 ),
             )

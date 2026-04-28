@@ -131,3 +131,36 @@ async def resolve_tenant_id(
     if user_tenant_id is not None:
         return user_tenant_id
     return None
+
+
+def is_cross_tenant(record: Any, user: Any) -> bool:
+    """Return True when ``record`` belongs to a tenant other than ``user``'s.
+
+    Used by detail/update/delete endpoints to convert cross-tenant
+    accesses into 404s, so ID enumeration is indistinguishable from
+    "not found". Single-tenant deployments (user.tenant_id is None,
+    record.tenant_id is None) always return False.
+
+    The function is intentionally tolerant: if either side is missing
+    the attribute (e.g. a model that hasn't been migrated yet), we
+    treat the access as same-tenant. Migrations roll out independently
+    of code, so a transient mismatch should not break the API.
+    """
+    if record is None or user is None:
+        return False
+    user_tenant = getattr(user, "tenant_id", None)
+    record_tenant = getattr(record, "tenant_id", None)
+    if user_tenant is None or record_tenant is None:
+        return False
+    return user_tenant != record_tenant
+
+
+def assert_same_tenant(record: Any, user: Any, *, exception_cls: Any) -> None:
+    """Raise ``exception_cls`` when ``record`` is cross-tenant for ``user``.
+
+    Pass ``NotFoundException`` (or your project's 404 class). Caller
+    decides the message; we deliberately don't import the exception
+    here to keep this module dependency-free for tests.
+    """
+    if is_cross_tenant(record, user):
+        raise exception_cls("Not found")

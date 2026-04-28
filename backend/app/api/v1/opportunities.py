@@ -25,6 +25,7 @@ from app.models.user import User
 from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
 from app.services.audit_service import log_action
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(tags=["Opportunities (v2)"])
 
@@ -192,6 +193,12 @@ async def list_opportunities(
         query = query.where(combined)
         count_query = count_query.where(combined)
 
+    # V12 multi-tenant: no-op when current_user.tenant_id is None.
+    query = scoped_for_user(query, current_user, column=Opportunity.tenant_id)
+    count_query = scoped_for_user(
+        count_query, current_user, column=Opportunity.tenant_id
+    )
+
     total = (await db.execute(count_query)).scalar() or 0
     offset = (page - 1) * page_size
     query = query.order_by(Opportunity.updated_at.desc()).offset(offset).limit(page_size)
@@ -338,6 +345,10 @@ async def get_opportunity(
     if not opp:
         raise NotFoundException("Firsat bulunamadi")
 
+    # V12 multi-tenant guard — cross-tenant lookups should look like
+    # a 404 so callers cannot enumerate IDs across tenants.
+    assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+
     # RBAC
     if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
         raise ForbiddenException("Bu firsata erisim yetkiniz yok")
@@ -374,6 +385,7 @@ async def get_opportunity_intelligence(
     ).scalar_one_or_none()
     if not opp:
         raise NotFoundException("Firsat bulunamadi")
+    assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
     if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
         raise ForbiddenException("Bu firsata erisim yetkiniz yok")
 
@@ -508,6 +520,9 @@ async def create_opportunity(
         close_date=datetime.fromisoformat(body.close_date).date() if body.close_date else None,
         customer_id=body.customer_id,
         owner_id=current_user.id,
+        # V12 multi-tenant: inherit caller's tenant. NULL on
+        # single-tenant deployments — schema accepts NULL.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(opp)
     await db.flush()
@@ -549,6 +564,7 @@ async def update_opportunity(
     opp = result.scalar_one_or_none()
     if not opp:
         raise NotFoundException("Firsat bulunamadi")
+    assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
 
     # RBAC: rep can only update own
     if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
