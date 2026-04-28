@@ -1,6 +1,6 @@
 """V13: audit_logs.tenant_id for forensics
 
-Revision ID: 20260428_v13_audit_logs_tenant_id
+Revision ID: 20260428_v13_audit_tenant
 Revises: 20260428_v12_transformer_seq
 Create Date: 2026-04-28
 
@@ -17,12 +17,17 @@ The column is nullable + indexed:
   ``/audit/by-tenant`` endpoints.
 
 Idempotent.
+
+Note: revision id deliberately ≤32 chars because alembic's default
+``alembic_version.version_num`` is ``varchar(32)``. The longer name
+``20260428_v13_audit_logs_tenant_id`` (33 chars) failed the
+bookkeeping UPDATE on prod even though the DDL succeeded.
 """
 
 from alembic import op
 
 
-revision = "20260428_v13_audit_logs_tenant_id"
+revision = "20260428_v13_audit_tenant"
 down_revision = "20260428_v12_transformer_seq"
 branch_labels = None
 depends_on = None
