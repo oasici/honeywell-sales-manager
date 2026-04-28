@@ -27,6 +27,11 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[settings.RATE_LIM
 _login_attempts: dict[str, deque] = defaultdict(deque)
 _ai_attempts: dict[str, deque] = defaultdict(deque)
 _upload_attempts: dict[str, deque] = defaultdict(deque)
+# V12+: per-tenant buckets so a single tenant can't blow through the
+# whole instance's budget. The per-user limit still applies on top —
+# both must pass for a request to proceed.
+_tenant_ai_attempts: dict[str, deque] = defaultdict(deque)
+_tenant_upload_attempts: dict[str, deque] = defaultdict(deque)
 _lock = Lock()
 
 
@@ -118,6 +123,38 @@ def make_user_rate_limit(
     return _dep
 
 
+def make_tenant_rate_limit(
+    bucket: dict[str, deque],
+    rate_setting_name: str,
+    detail: str,
+):
+    """Per-tenant sliding-window limit, layered above the per-user one.
+
+    Two-layer rationale: a single tenant could rotate through several
+    users and consume per-user budgets sequentially, exhausting the
+    instance. The tenant cap above the user cap stops that. Both
+    checks share the same window/timestamp arithmetic.
+
+    No-op for legacy single-tenant deployments where
+    ``current_user.tenant_id`` is None — those keep the per-user
+    enforcement only and don't pay the extra bucket lookup.
+    """
+    from app.core.dependencies import get_current_user
+
+    async def _dep(
+        request: Request,
+        current_user=Depends(get_current_user),
+    ) -> None:
+        tenant_id = getattr(current_user, "tenant_id", None) if current_user else None
+        if tenant_id is None:
+            return  # no-op outside multi-tenant deploys
+        rate = getattr(settings, rate_setting_name)
+        _enforce_window(bucket, f"tenant:{tenant_id}", rate, detail)
+
+    return _dep
+
+
+# Per-user enforcers (existing — protect a single misbehaving user).
 enforce_ai_rate_limit = make_user_rate_limit(
     _ai_attempts,
     "RATE_LIMIT_AI",
@@ -131,3 +168,19 @@ enforce_upload_rate_limit = make_user_rate_limit(
     "Yukleme limiti asildi. Lutfen birkac dakika bekleyin.",
 )
 """Rate-limit file upload endpoints (resource pressure protection). Per-user."""
+
+# Per-tenant enforcers (V12+ multi-tenant) — layered on top of the
+# per-user ones so misbehaving tenant consumes its tenant budget too.
+enforce_tenant_ai_rate_limit = make_tenant_rate_limit(
+    _tenant_ai_attempts,
+    "RATE_LIMIT_TENANT_AI",
+    "Bu kiraci icin AI limit asildi. Birkac dakika sonra tekrar deneyin.",
+)
+"""Rate-limit AI endpoints per tenant (multi-tenant fairness)."""
+
+enforce_tenant_upload_rate_limit = make_tenant_rate_limit(
+    _tenant_upload_attempts,
+    "RATE_LIMIT_TENANT_UPLOAD",
+    "Bu kiraci icin yukleme limiti asildi. Birkac dakika sonra tekrar deneyin.",
+)
+"""Rate-limit file upload endpoints per tenant."""

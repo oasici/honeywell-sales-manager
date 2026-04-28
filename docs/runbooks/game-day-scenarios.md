@@ -169,9 +169,110 @@ Her tatbikatın sonunda `docs/runbooks/last-game-day.md`'ye ekle:
       tag eklenmeli
 ```
 
+## Senaryo 6: Qdrant down (V11 RAG)
+
+**Failure:** Qdrant servisini durdur (docker stop veya QDRANT_URL'i
+geçersiz hostname'e çevir).
+
+**Beklenen davranış:**
+- `POST /v1/rag/answer` 200 döner ama envelope'da
+  `fallback_path: "empty_retrieval"` set olur (RAG değil keyword fallback)
+- `POST /v1/rag/search/*` 200 döner, `items: []`
+- Scheduler `rag_incremental_backfill` cron'u Sentry'ye exception düşer
+  ama backend health'i etkilenmez
+
+**Detection:** Sentry `qdrant_search_failed` event spike.
+
+**Recovery:** Qdrant ayağa kalkınca otomatik düzelir; manuel veri
+kaybı yoksa reindex gerekmez (V11 backfill cron sonraki gün delta'yı
+tamamlar).
+
+**Beklenen süre:** Detection ≤ 2 dk, recovery = Qdrant restart süresi.
+
+**Runbook:** `docs/runbooks/v11-rag-backfill.md`
+
+---
+
+## Senaryo 7: Transformer model load fail (V12 sequence embedding)
+
+**Failure:** ``sentence-transformers`` paketini venv'den kaldır
+(`pip uninstall sentence-transformers`) ya da disk'i model cache'i
+silinerek download'ı bloklar hâle getir.
+
+**Beklenen davranış:**
+- ``deal_similarity_service.refresh_similarity_links`` her opp için
+  V8 3-component blend'e fallback yapar (cosine + LCS + text BoW)
+- Sentry'de ``transformer encoder unavailable for opp ...`` warning
+- ``DealSimilarityLink.method`` field'i ``cosine+lcs+text`` (not +xfm)
+
+**Detection:** Sentry warning rate spike + Sales analytics dashboard'da
+similarity refresh süresi düşer (transformer encode skip).
+
+**Recovery:** Paketi reinstall + backend restart. Model ilk request'te
+re-download.
+
+**Beklenen süre:** Detection ≤ 5 dk, recovery ≈ 2-3 dk (model download).
+
+**Runbook:** `docs/runbooks/v12-transformer-backfill.md`
+
+---
+
+## Senaryo 8: Cross-tenant ID enumeration attack (V12 multi-tenant)
+
+**Failure:** Kullanıcı A (tenant 1) ile token al, sırayla
+``GET /opportunities/1``, ``GET /opportunities/2``, ... probe et.
+Tenant 2'nin ID'lerine kadar git.
+
+**Beklenen davranış:**
+- Tüm cross-tenant probe'lar 404 döner (assert_same_tenant guard)
+- ``http_requests_total{status="404"}`` artar ama tenant 2'nin
+  hassas verisi sızmaz
+- Audit log'da hiçbir cross-tenant access kaydedilmez (V13 tenant scoped read)
+
+**Detection:** Custom Sentry alert: tek user'dan dakikada 10+ 404
+geliyorsa potansiyel ID enumeration. Henüz kurulu değil → P3 backlog.
+
+**Recovery:** Patolojikse user'ı suspend; rate-limit otomatik
+devreye girer (P2.5 per-tenant rate limit).
+
+**Beklenen süre:** Detection ≤ 5 dk (manuel log inceleme),
+recovery = anında.
+
+**Runbook:** `docs/runbooks/v12-multi-tenant-rollout.md`
+
+---
+
+## Senaryo 9: V10 parts intel data drift
+
+**Failure:** Bir gecede 100+ yeni SparePart import et (Excel ile);
+hepsinin ``supplier_price=NULL``.
+
+**Beklenen davranış:**
+- ``GET /v10/parts-intel/dead-stock`` listesi şişer (yeni parçalar
+  hiç quote'lanmadı + supplier_price=0 → frozen capital total = 0)
+- ``GET /v10/parts-intel/data-health`` ``value`` puanı 100'den ~60'a
+  düşer (supplier_price field doldurulma oranı düşer)
+- Manager dashboard'da "Veri Sağlığı" kartında driver breakdown
+  ``supplier_price`` bar'ı kırmızıya geçer
+
+**Detection:** Manager dashboard veya alert kuralı (data_health < 75).
+
+**Recovery:** Excel import'ta ``supplier_price`` kolonu eksik —
+import şablonu güncellenmeli, eski rows ``UPDATE spare_parts SET
+supplier_price = ...`` ile arkadan doldurulmalı.
+
+**Beklenen süre:** Detection ≤ 24 saat (next-day data health
+review), recovery = elle.
+
+**Runbook:** `docs/runbooks/v10-parts-intel.md`
+
+---
+
 ## Eksik / Gelecek
 
 - Otomatik runner (chaos engineering tool) — şu an manuel
 - Prod canary trafiği ile entegrasyon
 - Synthetic transaction (login → opportunity create) Game Day'in
   içinde otomatik koşsun
+- Cross-tenant ID enumeration için Sentry alert kuralı (P3 backlog)
+- V11/V12/V13 senaryolarının staging'de gerçekten koşturulması

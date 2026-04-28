@@ -113,6 +113,12 @@ class Settings(BaseSettings):
     RATE_LIMIT_AI: str = "60/minute"
     # File uploads — bounds disk/memory pressure on top of size limits + PDF semaphore.
     RATE_LIMIT_UPLOAD: str = "10/minute"
+    # V12 multi-tenant: per-tenant AI/upload caps layered above the
+    # per-user limits so one tenant can't burn the whole instance
+    # budget by rotating through users. No-op when
+    # current_user.tenant_id is None (legacy single-tenant deploys).
+    RATE_LIMIT_TENANT_AI: str = "1000/minute"
+    RATE_LIMIT_TENANT_UPLOAD: str = "200/minute"
 
     # ── Database Pool ──
     # Sized for gunicorn -w 4 workers. Total ceiling = workers * (pool + overflow).

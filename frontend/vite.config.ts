@@ -64,6 +64,29 @@ export default defineConfig({
     // plugin uploads these during `npm run build` and `filesToDeleteAfterUpload`
     // strips them locally so no maps are served to end users.
     sourcemap: true,
+    // Manual vendor chunks so the main app bundle doesn't pull every
+    // dependency on first load. Without this Rollup co-locates anything
+    // imported from the App.tsx module graph (sentry/react, recharts,
+    // react-query) into ``index-*.js``, which crosses 700 kB. Splitting
+    // the heaviest libs into named chunks lets the browser cache them
+    // across deploys (only the ``index-*.js`` hash changes on a code
+    // edit) and reduces the warm-cache JS payload.
+    rollupOptions: {
+      output: {
+        // Manual vendor chunking. Rolldown-vite's typings only accept
+        // the function form, so we route the heaviest deps to named
+        // chunks based on the resolved id substring. Anything not
+        // matched falls back to the default heuristic.
+        manualChunks: (id: string) => {
+          if (id.includes('node_modules/recharts')) return 'recharts';
+          if (id.includes('node_modules/@sentry')) return 'sentry';
+          if (id.includes('node_modules/@tanstack/react-query')) {
+            return 'react-query';
+          }
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     proxy: {

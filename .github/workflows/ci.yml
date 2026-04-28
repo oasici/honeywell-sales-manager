@@ -60,6 +60,26 @@ jobs:
   backend-test:
     runs-on: ubuntu-latest
     needs: [backend-migrations]
+    services:
+      # PG service for the test suite. ``conftest.py`` defaults to
+      # ``localhost:5434/honeywell_sales_test``; we map host-5434 →
+      # container-5432 so the same default works in CI as locally
+      # (``docker-compose.override.yml`` provides db-test on 5434).
+      # Using a real PG matches prod semantics (FK enforcement,
+      # ``to_char``, real transaction isolation).
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: honeywell_sales_test
+          POSTGRES_USER: honeywell
+          POSTGRES_PASSWORD: honeywell_test_2026
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd="pg_isready -U honeywell -d honeywell_sales_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -68,8 +88,21 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: pip install -r requirements.txt pytest-cov
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..15}; do
+            nc -zv localhost 5434 && exit 0
+            sleep 2
+          done
+          echo "::error::Postgres on :5434 never became ready"
+          exit 1
       - name: Run tests with coverage
         working-directory: backend
+        env:
+          # Explicit override so conftest's default URL works even when
+          # the runner has a stray ``DATABASE_URL`` env var (e.g. from
+          # a previous job).
+          TEST_DATABASE_URL: postgresql+asyncpg://honeywell:honeywell_test_2026@localhost:5434/honeywell_sales_test
         # Coverage floor is the 2-point buffer below the current baseline
         # (~47%). Don't lower it without an ADR. Don't drop --cov-fail-under
         # — that's what makes the gate actually a gate.

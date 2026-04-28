@@ -66,6 +66,9 @@ async def list_audit_logs(
         action_prefix=action_prefix,
         since=since,
         until=until,
+        # V13 — scope audit list to caller's tenant. None on
+        # single-tenant deployments → unchanged behaviour.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
 
     count_query = select(func.count(AuditLog.id))
@@ -126,6 +129,7 @@ async def export_audit_logs_csv(
         action_prefix=action_prefix,
         since=since,
         until=until,
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
 
     query = (
@@ -251,6 +255,7 @@ def _build_filters(
     action_prefix: str | None,
     since: datetime | None,
     until: datetime | None,
+    tenant_id: int | None = None,
 ) -> list:
     """Build SQLAlchemy filter conditions from query parameters."""
     filters = []
@@ -270,6 +275,11 @@ def _build_filters(
         filters.append(AuditLog.created_at >= since)
     if until is not None:
         filters.append(AuditLog.created_at < until)
+    # V13 multi-tenant scoping — applied transparently when the
+    # caller has a tenant_id; legacy single-tenant audit views
+    # (caller.tenant_id is None) see all rows like before.
+    if tenant_id is not None:
+        filters.append(AuditLog.tenant_id == tenant_id)
     return filters
 
 
@@ -277,6 +287,7 @@ def _audit_log_to_dict(log: AuditLog) -> dict:
     return {
         "id": log.id,
         "user_id": log.user_id,
+        "tenant_id": log.tenant_id,
         "action": log.action,
         "entity_type": log.entity_type,
         "entity_id": log.entity_id,

@@ -23,7 +23,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.rate_limit import enforce_ai_rate_limit
+from app.core.rate_limit import (
+    enforce_ai_rate_limit,
+    enforce_tenant_ai_rate_limit,
+)
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.customer import Customer
 from app.models.email_request import EmailRequest
@@ -40,7 +43,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/ai",
     tags=["AI (v2)"],
-    dependencies=[Depends(enforce_ai_rate_limit)],
+    # Per-tenant cap evaluated first, per-user cap second. Both must
+    # pass; per-tenant is no-op outside multi-tenant deployments.
+    dependencies=[
+        Depends(enforce_tenant_ai_rate_limit),
+        Depends(enforce_ai_rate_limit),
+    ],
 )
 
 # Summary cache: hash(entity_type+entity_id) → {"summary":..., "ts":...}
