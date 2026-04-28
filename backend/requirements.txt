@@ -28,7 +28,7 @@ anthropic==0.40.0
 # AI - HuggingFace (optional, lazy-loaded at runtime)
 # These are large packages. On Railway free tier, install at runtime instead.
 # To enable: pip install sentence-transformers transformers torch --index-url https://download.pytorch.org/whl/cpu
-numpy>=1.24.0
+numpy>=2.4.4
 
 # Microsoft Graph API
 msal==1.36.0  # accepts cryptography 46.x for CVE chain
