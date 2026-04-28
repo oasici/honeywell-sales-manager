@@ -237,6 +237,14 @@ class Settings(BaseSettings):
     # keyword pass already returned hits — used for ambiguous text.
     V7_LLM_OBJECTION_TEXT_THRESHOLD: int = 800
 
+    # --- V9 V2/V3 gap closure ---
+    # Sprint K — bidirectional CRM sync (Salesforce / HubSpot).
+    FEATURE_V9_CRM_SYNC: bool = False
+    # Sprint L — Calendar OAuth + meeting auto-log.
+    FEATURE_V9_CALENDAR_OAUTH: bool = False
+    # Sprint N — semantic NL search over transcript + email + opp text.
+    FEATURE_V9_NL_SEARCH: bool = False
+
     # --- Board & Pipeline ---
     # Depends on: DATABASE_URL
     # Required by: Tasks CRUD + recommended actions panel (Sprint 2 prerequisite)

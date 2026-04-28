@@ -16,3 +16,5 @@ class StageConfig(Base):
     rotting_threshold_days: Mapped[int] = mapped_column(Integer, default=7)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # V9: optional WIP limit per stage. NULL = no limit.
+    wip_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)

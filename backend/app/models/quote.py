@@ -40,6 +40,14 @@ class Quote(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     # V8: multi-tenant boundary
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # V9: revision tree
+    parent_quote_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("quotes.id"), nullable=True
+    )
+    revision_no: Mapped[int] = mapped_column(Integer, default=1)
+    superseded_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("quotes.id"), nullable=True
+    )
     pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Win/Loss tracking (Feature 3)

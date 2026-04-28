@@ -106,6 +106,17 @@ from app.models.v7_tenant import Tenant
 # ── V8 sequence text embedding ──
 from app.models.v8_text_embedding import OpportunityTextEmbedding
 
+# ── V9 V2/V3 gap closure ──
+from app.models.v9_crm_sync import (
+    CrmConnection,
+    CrmFieldMapping,
+    CrmRecordLink,
+    CrmSyncJob,
+)
+from app.models.v9_calendar import CalendarConnection, MeetingAutoLink
+from app.models.v9_board_ux import PipelineReviewQueueEntry
+from app.models.v9_nl_search import EmailEmbedding, TranscriptEmbedding
+
 __all__ = [
     "EmailStatus",
     "QuoteStatus",
@@ -233,4 +244,14 @@ __all__ = [
     "Tenant",
     # V8
     "OpportunityTextEmbedding",
+    # V9
+    "CrmConnection",
+    "CrmFieldMapping",
+    "CrmRecordLink",
+    "CrmSyncJob",
+    "CalendarConnection",
+    "MeetingAutoLink",
+    "PipelineReviewQueueEntry",
+    "EmailEmbedding",
+    "TranscriptEmbedding",
 ]
