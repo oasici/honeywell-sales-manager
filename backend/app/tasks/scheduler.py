@@ -920,6 +920,15 @@ def start_scheduler():
         id="v5_intelligence_nightly",
         replace_existing=True,
     )
+    # V11: RAG incremental backfill (after V5 nightly) — gated by FEATURE_RAG
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("rag_incremental_backfill", build_rag_incremental_backfill_task)),
+        "cron",
+        hour=7,
+        minute=0,
+        id="rag_incremental_backfill",
+        replace_existing=True,
+    )
     # In production, this is started from the FastAPI lifespan where an event loop
     # is guaranteed to be running. In sync unit tests, starting an AsyncIOScheduler
     # can fail if the loop is closed; we keep the jobs registered but skip `start()`.
@@ -1002,3 +1011,14 @@ async def build_v5_intelligence_nightly_task():
 
     async with async_session() as db:
         await run_v5_intelligence_nightly(db)
+
+
+async def build_rag_incremental_backfill_task():
+    """V11 RAG incremental backfill — last ~25 hours of changes."""
+    if not settings.FEATURE_RAG:
+        return
+    from app.core.database import async_session
+    from app.services.rag_backfill_service import run_incremental_backfill
+
+    async with async_session() as db:
+        await run_incremental_backfill(db)

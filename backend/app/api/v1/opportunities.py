@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import math
 from datetime import datetime, timedelta, timezone
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -607,6 +610,16 @@ async def update_opportunity(
             "opportunity_id": opp.id, "old_stage": old_stage,
             "new_stage": updates["stage"], "owner_id": current_user.id,
         })
+        # V11 RAG hook: index closed deals into the deals collection
+        # so retrieve-then-generate has fresh context. Best-effort —
+        # never blocks the stage-change flow.
+        if updates["stage"] in {"closed_won", "closed_lost"}:
+            try:
+                from app.services.rag_backfill_service import index_opportunity_close
+
+                await index_opportunity_close(int(opp.id))
+            except Exception as exc:
+                logger.debug("RAG index_opportunity_close skip: %s", exc)
 
     await log_action(db, user_id=current_user.id, action="update", entity_type="opportunity", entity_id=opp.id)
 

@@ -31,9 +31,9 @@ interface EntityOption {
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'summarize', label: 'AI Özet', icon: <Sparkles size={16} /> },
-  { key: 'pipeline', label: 'Pipeline Onerisi', icon: <TrendingUp size={16} /> },
+  { key: 'pipeline', label: 'Pipeline Önerisi', icon: <TrendingUp size={16} /> },
   { key: 'risk', label: 'Risk Analizi', icon: <AlertTriangle size={16} /> },
-  { key: 'competitive', label: 'Rekabet Istihbarati', icon: <Swords size={16} /> },
+  { key: 'competitive', label: 'Rekabet İstihbaratı', icon: <Swords size={16} /> },
 ];
 
 const RISK_COLORS: Record<string, string> = {

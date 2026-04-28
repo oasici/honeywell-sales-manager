@@ -751,11 +751,16 @@ export const settingsApi = {
 
 // ── Notifications ───────────────────────────────────
 export const notificationsApi = {
-  getNotifications: async (unreadOnly = false, limit = 20) => {
-    const { data } = await api.get('/notifications/', {
+  // Backend wraps the list in `{notifications: [...]}` — unwrap here so
+  // callers receive a plain array (matches `Notification[]` typing in
+  // the Header component and was the root cause of "bell shows count
+  // but list is empty" UAT bug — item #34). The unknown→T cast pushes
+  // the responsibility for shape validation to the typed call site.
+  getNotifications: async <T = unknown>(unreadOnly = false, limit = 20): Promise<T[]> => {
+    const { data } = await api.get<{ notifications: T[] }>('/notifications/', {
       params: { unread_only: unreadOnly, limit },
     });
-    return data;
+    return Array.isArray(data?.notifications) ? data.notifications : [];
   },
   getUnreadCount: async (): Promise<{ unread_count: number }> => {
     const { data } = await api.get<{ unread_count: number }>('/notifications/unread-count');

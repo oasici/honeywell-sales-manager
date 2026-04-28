@@ -56,7 +56,7 @@ export function Header() {
 
   const { data: notifications, isLoading: isNotificationsLoading } = useQuery<Notification[]>({
     queryKey: ['notifications', 'recent'],
-    queryFn: () => notificationsApi.getNotifications(false, RECENT_NOTIFICATIONS_LIMIT),
+    queryFn: () => notificationsApi.getNotifications<Notification>(false, RECENT_NOTIFICATIONS_LIMIT),
     enabled: isDropdownOpen,
   });
 

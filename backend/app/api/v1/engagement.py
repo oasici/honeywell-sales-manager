@@ -102,6 +102,17 @@ async def create_transcript(
         if created_ids:
             await db.flush()
 
+    # V11 RAG hook: index the transcript into the interactions
+    # collection so subsequent /rag/answer queries can retrieve it.
+    # Best-effort — non-blocking, no-op when FEATURE_RAG=false.
+    if settings.FEATURE_RAG:
+        try:
+            from app.services.rag_backfill_service import index_transcript_now
+
+            await index_transcript_now(int(t.id))
+        except Exception:
+            pass
+
     return {
         "id": t.id, "title": t.title, "keywords_found": keywords_found,
         "created_at": t.created_at.isoformat() if t.created_at else None,

@@ -58,6 +58,7 @@ from app.api.v1.sales_dna import router as sales_dna_router
 from app.api.v1.v5_intelligence import router as v5_intelligence_router
 from app.api.v1.v6_intelligence import router as v6_intelligence_router
 from app.api.v1.v9_gap_closure import router as v9_gap_closure_router
+from app.api.v1.rag import router as rag_router
 from app.api.v1.customers import router as customers_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.duplicates import router as duplicates_router
@@ -87,6 +88,7 @@ v1_router.include_router(sales_dna_router)
 v1_router.include_router(v5_intelligence_router)
 v1_router.include_router(v6_intelligence_router)
 v1_router.include_router(v9_gap_closure_router)
+v1_router.include_router(rag_router)
 v1_router.include_router(customers_router)
 v1_router.include_router(quotes_router)
 v1_router.include_router(analytics_router)
