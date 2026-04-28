@@ -22,6 +22,15 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { formatCurrency, formatDateTime, formatDate } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
+import {
+  translateActivityType,
+  translateBuyerState,
+  translateGapType,
+  translateMomentumBand,
+  translateSeverity,
+  translateSignalType,
+  translateTaskStatus,
+} from '../../lib/labelTranslations';
 import SalesPathBar from './SalesPathBar';
 import { SummarySourceLinks } from '../../components/ai/SummarySourceLinks';
 import ActivityLogPanel from './ActivityLogPanel';
@@ -854,7 +863,9 @@ export default function OpportunityDetailPage() {
         {/* Signals */}
         <Card title={t('opp_detail.indicators')}>
           {signals.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-400">Sinyal yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">
+              {t('opp_detail.signals_empty')}
+            </p>
           ) : (
             <div className="space-y-2">
               {signals.slice(0, 8).map((s) => (
@@ -865,7 +876,7 @@ export default function OpportunityDetailPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                        {s.signal_type}
+                        {translateSignalType(s.signal_type, t)}
                       </p>
                       {s.evidence && (
                         <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
@@ -875,11 +886,11 @@ export default function OpportunityDetailPage() {
                     </div>
                     <div className="shrink-0 flex items-center gap-2">
                       <Badge variant={severityVariant(s.severity)} size="sm">
-                        {s.severity}
+                        {translateSeverity(s.severity, t)}
                       </Badge>
                       {s.is_resolved && (
                         <Badge variant="default" size="sm">
-                          çözüldü
+                          {t('opp_detail.signals_resolved')}
                         </Badge>
                       )}
                     </div>
@@ -890,64 +901,66 @@ export default function OpportunityDetailPage() {
                 </div>
               ))}
               {signals.length > 8 && (
-                <p className="text-xs text-slate-400">+{signals.length - 8} daha</p>
+                <p className="text-xs text-slate-400">
+                  {t('opp_detail.more_suffix').replace('{count}', String(signals.length - 8))}
+                </p>
               )}
             </div>
           )}
         </Card>
 
         {/* Daily feature snapshot */}
-        <Card title="Günlük Snapshot">
+        <Card title={t('opp_detail.daily_snapshot')}>
           {!v4LatestFeatures ? (
             <p className="py-6 text-center text-sm text-slate-400">
-              Snapshot yok (feature flag kapalı olabilir)
+              {t('opp_detail.snapshot_empty')}
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[11px] text-slate-500">Snapshot Tarihi</p>
+                <p className="text-[11px] text-slate-500">{t('opp_detail.snapshot_date')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {formatDate(v4LatestFeatures.snapshot_date)}
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[11px] text-slate-500">Deal yaşı</p>
+                <p className="text-[11px] text-slate-500">{t('opp_detail.deal_age')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {v4LatestFeatures.deal_age_days} gün
+                  {v4LatestFeatures.deal_age_days} {t('opp_detail.days_suffix')}
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[11px] text-slate-500">Son rep touch</p>
+                <p className="text-[11px] text-slate-500">{t('opp_detail.last_rep_touch')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {v4LatestFeatures.days_since_last_rep_touch} gün
+                  {v4LatestFeatures.days_since_last_rep_touch} {t('opp_detail.days_suffix')}
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[11px] text-slate-500">Son buyer touch</p>
+                <p className="text-[11px] text-slate-500">{t('opp_detail.last_buyer_touch')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {v4LatestFeatures.days_since_last_buyer_touch} gün
+                  {v4LatestFeatures.days_since_last_buyer_touch} {t('opp_detail.days_suffix')}
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[11px] text-slate-500">Rep touch (14g)</p>
+                <p className="text-[11px] text-slate-500">{t('opp_detail.rep_touch_14d')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.rep_touch_count_14d}
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[11px] text-slate-500">Buyer reply (14g)</p>
+                <p className="text-[11px] text-slate-500">{t('opp_detail.buyer_reply_14d')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.buyer_reply_count_14d}
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[11px] text-slate-500">Meeting (30g)</p>
+                <p className="text-[11px] text-slate-500">{t('opp_detail.meeting_30d')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.meeting_count_30d}
                 </p>
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                <p className="text-[11px] text-slate-500">Negative signals (14g)</p>
+                <p className="text-[11px] text-slate-500">{t('opp_detail.negative_signals_14d')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
                   {v4LatestFeatures.negative_signal_count_14d}
                 </p>
@@ -957,18 +970,20 @@ export default function OpportunityDetailPage() {
         </Card>
 
         {/* V4 Momentum */}
-        <Card title="Momentum">
+        <Card title={t('opp_detail.momentum')}>
           {!v4LatestFeatures?.momentum_score ? (
-            <p className="py-6 text-center text-sm text-slate-400">Momentum hesaplanmadı</p>
+            <p className="py-6 text-center text-sm text-slate-400">
+              {t('opp_detail.momentum_empty')}
+            </p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge variant={momentumVariant(v4LatestFeatures.momentum_band)} size="sm">
-                    {v4LatestFeatures.momentum_band ?? 'unknown'}
+                    {translateMomentumBand(v4LatestFeatures.momentum_band, t)}
                   </Badge>
                   <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Skor: {v4LatestFeatures.momentum_score}
+                    {t('opp_detail.score_label')}: {v4LatestFeatures.momentum_score}
                   </span>
                 </div>
               </div>
@@ -999,19 +1014,23 @@ export default function OpportunityDetailPage() {
                         </div>
                       ));
                     } catch {
-                      return <p className="text-xs text-slate-400">Drivers okunamadı</p>;
+                      return (
+                        <p className="text-xs text-slate-400">
+                          {t('opp_detail.drivers_unparseable')}
+                        </p>
+                      );
                     }
                   })()}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400">Drivers yok</p>
+                <p className="text-xs text-slate-400">{t('opp_detail.drivers_empty')}</p>
               )}
             </div>
           )}
         </Card>
 
         {/* Buyer State Timeline */}
-        <Card title="Buyer State">
+        <Card title={t('opp_detail.buyer_state')}>
           {buyerStateTimeline?.items?.length ? (
             <div className="space-y-2">
               {buyerStateTimeline.items.slice(0, 10).map((it) => (
@@ -1021,7 +1040,7 @@ export default function OpportunityDetailPage() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                      {it.state}
+                      {translateBuyerState(it.state, t)}
                       <span className="ml-2 text-xs text-slate-400">
                         {(it.confidence * 100).toFixed(0)}%
                       </span>
@@ -1029,18 +1048,20 @@ export default function OpportunityDetailPage() {
                     <p className="text-[11px] text-slate-500">{formatDate(it.snapshot_date)}</p>
                   </div>
                   <Badge variant={it.state === 'stalling' ? 'warning' : 'default'} size="sm">
-                    {it.state}
+                    {translateBuyerState(it.state, t)}
                   </Badge>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-slate-400">Buyer state yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">
+              {t('opp_detail.buyer_state_empty')}
+            </p>
           )}
         </Card>
 
         {/* Decision Gaps */}
-        <Card title="Eksikler (Decision Gaps)">
+        <Card title={t('opp_detail.decision_gaps')}>
           {decisionGaps?.items?.length ? (
             <div className="space-y-2">
               {decisionGaps.items.slice(0, 8).map((g) => (
@@ -1050,7 +1071,7 @@ export default function OpportunityDetailPage() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                      {g.gap_type}
+                      {translateGapType(g.gap_type, t)}
                     </p>
                     {g.recommended_actions?.[0] && (
                       <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
@@ -1059,18 +1080,20 @@ export default function OpportunityDetailPage() {
                     )}
                   </div>
                   <Badge variant={severityVariant(g.severity)} size="sm">
-                    {g.severity}
+                    {translateSeverity(g.severity, t)}
                   </Badge>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-slate-400">Eksik yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">
+              {t('opp_detail.decision_gaps_empty')}
+            </p>
           )}
         </Card>
 
         {/* Segment Benchmark Gap */}
-        <Card title="Segment Benchmark Gap">
+        <Card title={t('opp_detail.benchmark_gap_title')}>
           {benchmarkGap?.data ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -1084,7 +1107,7 @@ export default function OpportunityDetailPage() {
                   }
                   size="sm"
                 >
-                  gap: {benchmarkGap.data.gap_score}
+                  {t('opp_detail.benchmark_gap_score')}: {benchmarkGap.data.gap_score}
                 </Badge>
                 <span className="text-xs text-slate-400">{benchmarkGap.data.segment_key}</span>
               </div>
@@ -1111,11 +1134,15 @@ export default function OpportunityDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400">Driver yok</p>
+                <p className="text-xs text-slate-400">
+                  {t('opp_detail.benchmark_drivers_empty')}
+                </p>
               )}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-slate-400">Benchmark verisi yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">
+              {t('opp_detail.benchmark_empty')}
+            </p>
           )}
         </Card>
 
@@ -1359,9 +1386,11 @@ export default function OpportunityDetailPage() {
 
       {/* Tasks */}
       <div className="mt-6">
-        <Card title="Aksiyonlar (Tasks)">
+        <Card title={t('opp_detail.tasks_card_title')}>
           {tasks.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-400">Task yok</p>
+            <p className="py-6 text-center text-sm text-slate-400">
+              {t('opp_detail.tasks_empty')}
+            </p>
           ) : (
             <div className="space-y-2">
               {tasks.slice(0, 12).map((task) => {
@@ -1385,14 +1414,26 @@ export default function OpportunityDetailPage() {
                         </p>
                       )}
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
-                        {task.due_at && <span>due: {formatDate(task.due_at)}</span>}
-                        {task.source && <span>source: {task.source}</span>}
-                        {task.priority && <span>prio: {task.priority}</span>}
+                        {task.due_at && (
+                          <span>
+                            {t('opp_detail.task_due_label')}: {formatDate(task.due_at)}
+                          </span>
+                        )}
+                        {task.source && (
+                          <span>
+                            {t('opp_detail.task_source_label')}: {task.source}
+                          </span>
+                        )}
+                        {task.priority && (
+                          <span>
+                            {t('opp_detail.task_priority_label')}: {task.priority}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="shrink-0 flex items-center gap-2">
                       <Badge variant={isDone ? 'default' : 'warning'} size="sm">
-                        {task.status}
+                        {translateTaskStatus(task.status, t)}
                       </Badge>
                       {!isDone && (
                         <Button
@@ -1406,7 +1447,7 @@ export default function OpportunityDetailPage() {
                             })
                           }
                         >
-                          Tamamla
+                          {t('opp_detail.task_complete')}
                         </Button>
                       )}
                     </div>
@@ -1414,7 +1455,9 @@ export default function OpportunityDetailPage() {
                 );
               })}
               {tasks.length > 12 && (
-                <p className="text-xs text-slate-400">+{tasks.length - 12} daha</p>
+                <p className="text-xs text-slate-400">
+                  {t('opp_detail.more_suffix').replace('{count}', String(tasks.length - 12))}
+                </p>
               )}
             </div>
           )}
@@ -1598,7 +1641,7 @@ export default function OpportunityDetailPage() {
                 <div className="mt-1 flex flex-wrap gap-1">
                   {Object.entries(activitySummary.by_type).map(([type, count]) => (
                     <Badge key={type} variant="default" size="sm">
-                      {type}: {count}
+                      {translateActivityType(type, t)}: {count}
                     </Badge>
                   ))}
                   {Object.keys(activitySummary.by_type).length === 0 && (

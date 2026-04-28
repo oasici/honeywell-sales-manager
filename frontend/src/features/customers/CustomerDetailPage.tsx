@@ -10,7 +10,13 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { customersApi, quotesApi, customerHealthApi, aiApi, opportunitiesApi } from '../../lib/api';
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
-import { translateStatus } from '../../lib/labelTranslations';
+import {
+  translateActivityType,
+  translateOpportunityStage,
+  translateSeverity,
+  translateSignalType,
+  translateStatus,
+} from '../../lib/labelTranslations';
 
 // Map quote status → Badge variant. Mirrors QuoteListPage so the visual
 // language stays identical across surfaces.
@@ -495,7 +501,7 @@ export default function CustomerDetailPage() {
                     <div className="mt-2">
                       <Badge variant="warning" size="sm">
                         <Pin size={10} />
-                        Sabitli
+                        {t('customer_detail.pinned_badge')}
                       </Badge>
                     </div>
                   )}
@@ -510,7 +516,9 @@ export default function CustomerDetailPage() {
                     <Mail size={14} />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-overline text-slate-400 dark:text-slate-500">E-posta</p>
+                    <p className="text-overline text-slate-400 dark:text-slate-500">
+                      {t('customer_detail.lbl_email')}
+                    </p>
                     <p className="truncate text-[13px] text-slate-800 dark:text-slate-200">
                       {customer.email || '—'}
                     </p>
@@ -521,7 +529,9 @@ export default function CustomerDetailPage() {
                     <Phone size={14} />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-overline text-slate-400 dark:text-slate-500">Telefon</p>
+                    <p className="text-overline text-slate-400 dark:text-slate-500">
+                      {t('customer_detail.lbl_phone')}
+                    </p>
                     <p className="truncate text-[13px] text-slate-800 dark:text-slate-200">
                       {customer.phone || '—'}
                     </p>
@@ -532,7 +542,9 @@ export default function CustomerDetailPage() {
                     <FileText size={14} />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-overline text-slate-400 dark:text-slate-500">VKN</p>
+                    <p className="text-overline text-slate-400 dark:text-slate-500">
+                      {t('customer_detail.lbl_tax_id')}
+                    </p>
                     <p className="truncate text-[13px] tabular-nums text-slate-800 dark:text-slate-200">
                       {customer.tax_id || '—'}
                     </p>
@@ -547,13 +559,15 @@ export default function CustomerDetailPage() {
                         : '—'}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-overline text-slate-400 dark:text-slate-500">Tercih Dili</p>
+                    <p className="text-overline text-slate-400 dark:text-slate-500">
+                      {t('customer_detail.lbl_preferred_lang')}
+                    </p>
                     <p className="truncate text-[13px] text-slate-800 dark:text-slate-200">
                       {customer.preferred_lang === 'tr'
-                        ? 'Türkçe'
+                        ? t('customer_detail.lang_tr')
                         : customer.preferred_lang === 'en'
-                          ? 'İngilizce'
-                          : 'Belirtilmedi'}
+                          ? t('customer_detail.lang_en')
+                          : t('customer_detail.lang_unspecified')}
                     </p>
                   </div>
                 </div>
@@ -563,7 +577,9 @@ export default function CustomerDetailPage() {
                       <MapPin size={14} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-overline text-slate-400 dark:text-slate-500">Adres</p>
+                      <p className="text-overline text-slate-400 dark:text-slate-500">
+                        {t('customer_detail.lbl_address')}
+                      </p>
                       <p className="text-[13px] leading-5 text-slate-800 dark:text-slate-200">
                         {customer.address}
                       </p>
@@ -841,16 +857,16 @@ export default function CustomerDetailPage() {
 
         {/* Account Intelligence (v2) */}
         {intelligence && (
-          <Card title="Account Intelligence">
+          <Card title={t('customer_detail.account_intelligence')}>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
-                <p className="text-xs text-slate-500">Aktif fırsat</p>
+                <p className="text-xs text-slate-500">{t('customer_detail.intel_active_opps')}</p>
                 <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {intelligence.opportunities.length}
                 </p>
               </div>
               <div className="rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2">
-                <p className="text-xs text-slate-500">Açık task</p>
+                <p className="text-xs text-slate-500">{t('customer_detail.intel_open_tasks')}</p>
                 <p className="text-lg font-bold text-slate-900 dark:text-white">
                   {intelligence.open_tasks_count}
                 </p>
@@ -859,7 +875,9 @@ export default function CustomerDetailPage() {
 
             {intelligence.signals.length > 0 && (
               <div className="mt-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Son sinyaller</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
+                  {t('customer_detail.intel_recent_signals')}
+                </p>
                 <div className="space-y-2">
                   {intelligence.signals.slice(0, 6).map((s) => (
                     <button
@@ -870,7 +888,7 @@ export default function CustomerDetailPage() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                          {s.signal_type}
+                          {translateSignalType(s.signal_type, t)}
                         </p>
                         <Badge
                           variant={
@@ -882,7 +900,7 @@ export default function CustomerDetailPage() {
                           }
                           size="sm"
                         >
-                          {s.severity}
+                          {translateSeverity(s.severity, t)}
                         </Badge>
                       </div>
                       {s.evidence && (
@@ -898,7 +916,9 @@ export default function CustomerDetailPage() {
 
             {intelligence.opportunities.length > 0 && (
               <div className="mt-4">
-                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Fırsatlar</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
+                  {t('customer_detail.intel_opportunities')}
+                </p>
                 <div className="space-y-2">
                   {intelligence.opportunities.slice(0, 5).map((o) => (
                     <button
@@ -912,7 +932,7 @@ export default function CustomerDetailPage() {
                           {o.title}
                         </p>
                         <Badge variant="default" size="sm">
-                          {o.stage}
+                          {translateOpportunityStage(o.stage, t)}
                         </Badge>
                       </div>
                       <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
@@ -1127,7 +1147,7 @@ export default function CustomerDetailPage() {
                       {opp.title}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {opp.stage} &middot; {opp.status}
+                      {translateOpportunityStage(opp.stage, t)} &middot; {opp.status}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -1141,7 +1161,7 @@ export default function CustomerDetailPage() {
                       }
                       size="sm"
                     >
-                      {opp.stage}
+                      {translateOpportunityStage(opp.stage, t)}
                     </Badge>
                     {opp.amount != null && (
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -1270,7 +1290,7 @@ export default function CustomerDetailPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
-                          {activity.activity_type.replace(/_/g, ' ')}
+                          {translateActivityType(activity.activity_type, t)}
                         </span>
                         <span className="text-[10px] text-slate-400">
                           {formatDate(activity.created_at)}
@@ -1293,7 +1313,7 @@ export default function CustomerDetailPage() {
             <div className="p-4">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                 <Building2 size={16} />
-                Hesap Hiyerarsisi
+                {t('customer_detail.account_hierarchy')}
               </h3>
               {hierarchy.parents.length > 0 && (
                 <div className="mb-3">
@@ -1314,7 +1334,10 @@ export default function CustomerDetailPage() {
               {hierarchy.subsidiaries.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-slate-500 mb-1">
-                    Alt Hesaplar ({hierarchy.subsidiaries.length})
+                    {t('customer_detail.subsidiaries_count').replace(
+                      '{count}',
+                      String(hierarchy.subsidiaries.length),
+                    )}
                   </p>
                   {hierarchy.subsidiaries.map((s) => (
                     <button

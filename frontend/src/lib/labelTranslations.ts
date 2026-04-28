@@ -285,3 +285,158 @@ export function translatePlaybookCategory(category: string, t: TranslateFn): str
   const key = PLAYBOOK_CATEGORY_LABEL_KEYS[category as keyof typeof PLAYBOOK_CATEGORY_LABEL_KEYS];
   return key ? t(key) : category;
 }
+
+// V9 UAT — derinlemesine i18n: backend'den dönen ham değerleri (severity,
+// momentum, buyer_state, signal_type vb.) Türkçeleştirmek için tablolar.
+// Bilinmeyen değer geldiğinde (ör. yeni tip), düşmek için
+// `humanizeSnakeCase` yardımcısı kullanılır — kullanıcıya hâlâ okunaklı bir
+// metin gösterir.
+function humanizeSnakeCase(value: string | null | undefined): string {
+  if (!value) return '-';
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export const SEVERITY_LABEL_KEYS = {
+  low: 'labels.severity.low',
+  med: 'labels.severity.med',
+  medium: 'labels.severity.medium',
+  high: 'labels.severity.high',
+  critical: 'labels.severity.critical',
+  pos: 'labels.severity.pos',
+  positive: 'labels.severity.positive',
+  neg: 'labels.severity.neg',
+  negative: 'labels.severity.negative',
+} as const satisfies Record<string, TranslationKey>;
+
+export function translateSeverity(severity: string | null | undefined, t: TranslateFn): string {
+  if (!severity) return '-';
+  const key = SEVERITY_LABEL_KEYS[severity as keyof typeof SEVERITY_LABEL_KEYS];
+  return key ? t(key) : humanizeSnakeCase(severity);
+}
+
+export const MOMENTUM_LABEL_KEYS = {
+  accelerating: 'labels.momentum.accelerating',
+  steady: 'labels.momentum.steady',
+  declining: 'labels.momentum.declining',
+  dead: 'labels.momentum.dead',
+  unknown: 'labels.momentum.unknown',
+} as const satisfies Record<string, TranslationKey>;
+
+export function translateMomentumBand(
+  band: string | null | undefined,
+  t: TranslateFn,
+): string {
+  if (!band) return t('labels.momentum.unknown');
+  const key = MOMENTUM_LABEL_KEYS[band as keyof typeof MOMENTUM_LABEL_KEYS];
+  return key ? t(key) : humanizeSnakeCase(band);
+}
+
+export const BUYER_STATE_LABEL_KEYS = {
+  engaged: 'labels.buyer_state.engaged',
+  evaluating: 'labels.buyer_state.evaluating',
+  stalling: 'labels.buyer_state.stalling',
+  dormant: 'labels.buyer_state.dormant',
+  committed: 'labels.buyer_state.committed',
+  unknown: 'labels.buyer_state.unknown',
+} as const satisfies Record<string, TranslationKey>;
+
+export function translateBuyerState(state: string | null | undefined, t: TranslateFn): string {
+  if (!state) return '-';
+  const key = BUYER_STATE_LABEL_KEYS[state as keyof typeof BUYER_STATE_LABEL_KEYS];
+  return key ? t(key) : humanizeSnakeCase(state);
+}
+
+export const TASK_STATUS_LABEL_KEYS = {
+  open: 'labels.task_status.open',
+  in_progress: 'labels.task_status.in_progress',
+  done: 'labels.task_status.done',
+  cancelled: 'labels.task_status.cancelled',
+} as const satisfies Record<string, TranslationKey>;
+
+export function translateTaskStatus(status: string | null | undefined, t: TranslateFn): string {
+  if (!status) return '-';
+  const key = TASK_STATUS_LABEL_KEYS[status as keyof typeof TASK_STATUS_LABEL_KEYS];
+  return key ? t(key) : humanizeSnakeCase(status);
+}
+
+export const OPP_STAGE_LABEL_KEYS = {
+  prospecting: 'labels.opp_stage.prospecting',
+  qualified: 'labels.opp_stage.qualified',
+  proposal: 'labels.opp_stage.proposal',
+  negotiation: 'labels.opp_stage.negotiation',
+  closed_won: 'labels.opp_stage.closed_won',
+  closed_lost: 'labels.opp_stage.closed_lost',
+} as const satisfies Record<string, TranslationKey>;
+
+export function translateOpportunityStage(
+  stage: string | null | undefined,
+  t: TranslateFn,
+): string {
+  if (!stage) return '-';
+  const key = OPP_STAGE_LABEL_KEYS[stage as keyof typeof OPP_STAGE_LABEL_KEYS];
+  return key ? t(key) : humanizeSnakeCase(stage);
+}
+
+export const OPP_STATUS_LABEL_KEYS = {
+  active: 'labels.opp_status.active',
+  on_hold: 'labels.opp_status.on_hold',
+  won: 'labels.opp_status.won',
+  lost: 'labels.opp_status.lost',
+} as const satisfies Record<string, TranslationKey>;
+
+export function translateOpportunityStatus(
+  status: string | null | undefined,
+  t: TranslateFn,
+): string {
+  if (!status) return '-';
+  const key = OPP_STATUS_LABEL_KEYS[status as keyof typeof OPP_STATUS_LABEL_KEYS];
+  return key ? t(key) : humanizeSnakeCase(status);
+}
+
+export const ACTIVITY_TYPE_LABEL_KEYS = {
+  quote_created: 'labels.activity_type.quote_created',
+  quote_approved: 'labels.activity_type.quote_approved',
+  quote_sent: 'labels.activity_type.quote_sent',
+  email_received: 'labels.activity_type.email_received',
+  email_parsed: 'labels.activity_type.email_parsed',
+  stage_change: 'labels.activity_type.stage_change',
+  task_created: 'labels.activity_type.task_created',
+  task_completed: 'labels.activity_type.task_completed',
+  call: 'labels.activity_type.call',
+  meeting: 'labels.activity_type.meeting',
+  note: 'labels.activity_type.note',
+} as const satisfies Record<string, TranslationKey>;
+
+export function translateActivityType(type: string | null | undefined, t: TranslateFn): string {
+  if (!type) return '-';
+  const key = ACTIVITY_TYPE_LABEL_KEYS[type as keyof typeof ACTIVITY_TYPE_LABEL_KEYS];
+  return key ? t(key) : humanizeSnakeCase(type);
+}
+
+export const SIGNAL_TYPE_LABEL_KEYS = {
+  email_received: 'labels.signal_type.email_received',
+  email_sent: 'labels.signal_type.email_sent',
+  meeting_completed: 'labels.signal_type.meeting_completed',
+  stage_advanced: 'labels.signal_type.stage_advanced',
+  stage_regressed: 'labels.signal_type.stage_regressed',
+  no_response: 'labels.signal_type.no_response',
+  competitor_mentioned: 'labels.signal_type.competitor_mentioned',
+  budget_concern: 'labels.signal_type.budget_concern',
+  timeline_slip: 'labels.signal_type.timeline_slip',
+} as const satisfies Record<string, TranslationKey>;
+
+export function translateSignalType(type: string | null | undefined, t: TranslateFn): string {
+  if (!type) return '-';
+  const key = SIGNAL_TYPE_LABEL_KEYS[type as keyof typeof SIGNAL_TYPE_LABEL_KEYS];
+  return key ? t(key) : humanizeSnakeCase(type);
+}
+
+// V9 UAT — `gap_type` ve diğer serbest formdaki backend taksonomileri için
+// ortak fallback. Bilinen tipleri özel anahtarla çevirmek isteyenler
+// SIGNAL_TYPE_LABEL_KEYS örüntüsünü çoğaltabilir; aksi takdirde
+// snake_case → "Title Case" yumuşak fallback kullanılır.
+export function translateGapType(type: string | null | undefined, _t: TranslateFn): string {
+  return humanizeSnakeCase(type);
+}
