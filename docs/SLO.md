@@ -43,6 +43,21 @@ excluded — staging breakage is expected during iteration.
 | Login success rate | **> 95%** (exc. 401) | 5% operational failures | — |
 | Critical flow success | **100% nightly** | 0 consecutive failures tolerated | 2 consecutive = page |
 
+### Best-effort surfaces (not part of the core SLO)
+
+V11 RAG and V12 transformer pipelines depend on external models +
+services (Qdrant, Anthropic) and are explicitly **not gated** by
+the same latency targets as the core CRUD path. They have their own
+soft targets so we know when they're misbehaving:
+
+| SLI | Surface | Soft target | Behaviour on breach |
+|-----|---------|-------------|---------------------|
+| RAG search latency (p95) | `POST /v1/rag/search/*` | < 1500ms | Surface fallback path (`empty_retrieval`) |
+| RAG answer latency (p95) | `POST /v1/rag/answer` | < 6000ms | Falls back to `claude_breaker_open` after 3 5xx in 30s |
+| Transformer encode (p95) | `deal_similarity_service` blend | < 250ms per deal | V8 3-component blend used when V12 row missing |
+| RAG nightly backfill | scheduler `rag_incremental_backfill` | Completes within 10 min | Sentry alert + retry next cron |
+| V10 parts-intel summary | `GET /v1/v10/parts-intel/summary` | < 1000ms | Manager dashboard shows skeleton; no page |
+
 Targets are deliberately conservative for a v1 product. We'll tighten
 them after the first quarter of real production traffic.
 
@@ -112,8 +127,15 @@ alerts erode trust in the system.
 Documenting these so we don't forget they exist when scale demands
 them:
 
-- Per-tenant SLOs (only relevant at multi-tenant enterprise stage)
+- Per-tenant SLOs (only relevant at multi-tenant enterprise stage —
+  V12 enforcement now ships, so this becomes relevant when we onboard
+  a second tenant; track via per-tenant request labels)
 - Regional availability zones (we're single-region on Render)
 - Database availability as a separate SLI (piggybacks on /api/health)
 - Claude API degradation (covered by circuit breaker in PR-1, not
   a direct SLI because it's a best-effort feature)
+- Qdrant availability — RAG endpoints already fail-soft to
+  `empty_retrieval`, so a Qdrant outage doesn't move the core
+  SLIs. Track via `rag_*_failed_total` counter.
+- Transformer model warm-up time — only affects similarity refresh,
+  not user-facing requests directly.

@@ -92,16 +92,12 @@ export default function PartsIntelligenceDashboardPage() {
   // a clean "feature unavailable" state instead of a generic error.
   const featureDisabled =
     summaryQuery.isError &&
-    (summaryQuery.error as { response?: { status?: number } })?.response?.status ===
-      404;
+    (summaryQuery.error as { response?: { status?: number } })?.response?.status === 404;
 
   if (featureDisabled) {
     return (
       <div>
-        <PageHeader
-          title="Yedek Parça Zekâsı"
-          description="V10 — okunaklı analitik katmanı"
-        />
+        <PageHeader title="Yedek Parça Zekâsı" description="V10 — okunaklı analitik katmanı" />
         <EmptyState
           variant="default"
           title="Bu özellik henüz açık değil"
@@ -179,11 +175,7 @@ export default function PartsIntelligenceDashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
         <Card
           title="Donmuş Stok Defteri"
-          action={
-            <Badge variant="warning">
-              {deadStockQuery.data?.total ?? 0} parça
-            </Badge>
-          }
+          action={<Badge variant="warning">{deadStockQuery.data?.total ?? 0} parça</Badge>}
         >
           {deadStockQuery.isLoading ? (
             <Skeleton variant="table" />
@@ -250,11 +242,7 @@ export default function PartsIntelligenceDashboardPage() {
 
         <Card
           title="Eskime İzleme (EOL Risk)"
-          action={
-            <Badge variant="danger">
-              Top {obsolescenceQuery.data?.total ?? 0}
-            </Badge>
-          }
+          action={<Badge variant="danger">Top {obsolescenceQuery.data?.total ?? 0}</Badge>}
         >
           {obsolescenceQuery.isLoading ? (
             <Skeleton variant="table" />
@@ -281,11 +269,7 @@ export default function PartsIntelligenceDashboardPage() {
                   header: 'Risk',
                   render: (row) => {
                     const r = row as ObsolescenceRow;
-                    return (
-                      <Badge variant={riskTone(r.risk_score)}>
-                        {r.risk_score}
-                      </Badge>
-                    );
+                    return <Badge variant={riskTone(r.risk_score)}>{r.risk_score}</Badge>;
                   },
                 },
                 {
@@ -327,9 +311,7 @@ export default function PartsIntelligenceDashboardPage() {
             {dataHealthQuery.data.drivers.map((driver) => (
               <div key={driver.label}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
-                    {driver.label}
-                  </span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">{driver.label}</span>
                   <span className="text-xs text-slate-500">
                     {driver.filled_pct?.toFixed(1) ?? '—'}%
                   </span>

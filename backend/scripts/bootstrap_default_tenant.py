@@ -71,6 +71,12 @@ async def main_async(name: str, region: str | None, plan_tier: str, apply: bool)
     from app.services.tenant_context import ensure_tenant
 
     async with async_session() as db:
+        # In dry-run mode we still need to *resolve* the tenant id to
+        # report what the apply phase would target — but we MUST roll
+        # back so we don't leave an orphan ``tenants`` row when the
+        # operator later runs the apply phase (that path calls
+        # ``ensure_tenant`` again and would otherwise create a second
+        # row with the same name + a fresh id, leaking a duplicate).
         tenant = await ensure_tenant(
             db, name=name, region=region, plan_tier=plan_tier
         )
@@ -84,6 +90,13 @@ async def main_async(name: str, region: str | None, plan_tier: str, apply: bool)
             logger.info("  %-15s NULL tenant_id rows: %d", table, null_count)
 
         if not apply:
+            # Roll back so the resolved tenant row doesn't persist.
+            # ``ensure_tenant`` is idempotent against a real (committed)
+            # tenant on the next apply call — but if we'd left an
+            # un-committed row from this session, async_session's
+            # auto-commit-on-close in some configs would persist it
+            # and then the apply call would create a SECOND row.
+            await db.rollback()
             logger.info("DRY-RUN — pass --apply to actually run the UPDATEs.")
             return
 
