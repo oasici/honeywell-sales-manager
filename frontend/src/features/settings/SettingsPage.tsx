@@ -7,9 +7,6 @@ import {
   Trash2,
   Sun,
   Moon,
-  Minus,
-  Plus,
-  RotateCcw,
   Save,
   Bell,
   Copy,
@@ -230,8 +227,7 @@ function FeatureModulesSection() {
 /* ── Display Settings Section ── */
 function DisplaySettingsSection() {
   const t = useT();
-  const { theme, setTheme, language, setLanguage, fontSizeOffset, setFontSizeOffset } =
-    usePreferencesStore();
+  const { theme, setTheme, language, setLanguage } = usePreferencesStore();
 
   // Shared segmented-button style — sits in a slate-50 well with a white
   // active pill (matches QuoteListPage / ContractListPage tabs).
@@ -283,53 +279,6 @@ function DisplaySettingsSection() {
           </div>
         </div>
 
-        {/* Font Size */}
-        <div>
-          <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
-            {t('settings.font_size')}{' '}
-            <span className="ml-1 inline-flex h-5 min-w-[34px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-bold tabular-nums text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
-              {fontSizeOffset >= 0 ? '+' : ''}
-              {fontSizeOffset}
-            </span>
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setFontSizeOffset(fontSizeOffset - 1)}
-              disabled={fontSizeOffset <= -4}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-              title={t('settings.font_decrease')}
-            >
-              <Minus size={14} />
-            </button>
-            <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-              <div
-                className="h-full rounded-full bg-honeywell-red transition-all"
-                style={{ width: `${((fontSizeOffset + 4) / 8) * 100}%` }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setFontSizeOffset(fontSizeOffset + 1)}
-              disabled={fontSizeOffset >= 4}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-              title={t('settings.font_increase')}
-            >
-              <Plus size={14} />
-            </button>
-            {fontSizeOffset !== 0 && (
-              <Button
-                variant="tertiary"
-                size="sm"
-                onClick={() => setFontSizeOffset(0)}
-                title={t('settings.font_reset')}
-              >
-                <RotateCcw size={12} />
-                {t('settings.font_reset')}
-              </Button>
-            )}
-          </div>
-        </div>
       </div>
     </Card>
   );

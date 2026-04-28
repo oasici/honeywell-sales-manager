@@ -896,8 +896,8 @@ export default function OpportunityDetailPage() {
           )}
         </Card>
 
-        {/* V4 Snapshot (Daily Feature Store) */}
-        <Card title="V4 Günlük Snapshot">
+        {/* Daily feature snapshot */}
+        <Card title="Günlük Snapshot">
           {!v4LatestFeatures ? (
             <p className="py-6 text-center text-sm text-slate-400">
               Snapshot yok (feature flag kapalı olabilir)

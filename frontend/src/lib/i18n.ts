@@ -1561,7 +1561,7 @@ const translations = {
     'sequences.resume': 'Devam Et',
     'sequences.ab_test': 'A/B Test',
     'sequences.branching': 'Dallanma',
-    'sequences.analytics_v2_title': 'Dizi Analitiği (V2)',
+    'sequences.analytics_v2_title': 'Dizi Analitiği',
     'sequences.analytics_avg_touches': 'Ort. Temas / Hedef',
     'sequences.analytics_total_step_runs': 'Toplam Step Run',
     'sequences.analytics_exit_reason_dist': 'Çıkış Nedeni Dağılımı',
