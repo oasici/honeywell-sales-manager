@@ -9,6 +9,41 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.2.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.1.0...v1.2.0) (2026-04-28)
+
+
+### Added
+
+* **design-system:** Phase 1 — Linear/Stripe-style design system + 6 primitives ([c2747b7](https://github.com/oasici/honeywell-sales-manager/commit/c2747b749acf2a8f951c18f6ff2a9dd212ca5105))
+* **design-system:** Phases 2–8 — modernize 60+ surfaces with Linear/Stripe/Apple polish ([0101361](https://github.com/oasici/honeywell-sales-manager/commit/0101361b55fa23fc0deda8742fd850fce416e17b))
+* **observability:** emit Sentry metrics for breaker + Claude requests ([8160396](https://github.com/oasici/honeywell-sales-manager/commit/816039630efc8ebc3f621fa2cb90ade4ed6fc162))
+* **observability:** wire Sentry source map upload + release tracking ([7c10ccc](https://github.com/oasici/honeywell-sales-manager/commit/7c10cccdeabb44c36b032720aad8672ea1e1a244))
+* **v10:** spare parts intelligence layer + PG test DB migration ([9762e7f](https://github.com/oasici/honeywell-sales-manager/commit/9762e7f558846af8f30d2d6af770dec43c034c3c))
+* **v11:** Qdrant RAG completion + UAT pass-2 (notification fetch + AI tabs) ([471e377](https://github.com/oasici/honeywell-sales-manager/commit/471e3771c66f3b27b49a459c6bc59e008f303b8c))
+* **v12:** close last 2 backlog items — multi-tenant CRM enforcement + transformer sequence embedding ([afd53fc](https://github.com/oasici/honeywell-sales-manager/commit/afd53fc58dffc303b960e314fc5297caf545bb2d))
+* **v5:** intelligence platform foundation — objections, timing, benchmarks, DNA, similarity ([35be267](https://github.com/oasici/honeywell-sales-manager/commit/35be267942a7bf05688034a04274817e05adbfa7))
+* **v6:** intelligence depth — sequence tokens, 7-state buyer, replay deltas, DNA→playbook, trajectory similarity ([9e66870](https://github.com/oasici/honeywell-sales-manager/commit/9e66870f6b0fe389ac4e21af37fa2f6e61b063bf))
+* **v7:** final stretch — LLM-hybrid objections, Bayesian uplift, sequence similarity, tenant boundary ([c6c71ec](https://github.com/oasici/honeywell-sales-manager/commit/c6c71ec55f7d1c7f8d29cd0945c8805b34fe3207))
+* **v8:** sequence text embedding + multi-tenant CRM core + comprehensive demo seed ([9789583](https://github.com/oasici/honeywell-sales-manager/commit/978958375faa2ff856a7a61248e3c5384806fa50))
+* **v9:** close V2/V3 gaps — CRM sync, calendar OAuth, board UX, NL search, quote revisions, slippage ([9af0221](https://github.com/oasici/honeywell-sales-manager/commit/9af02212a068ed4ab3c8276a651c1c5bc1105c43))
+
+
+### Fixed
+
+* **activities:** defer source_ref on remaining ActivityLog SELECTs ([19b70ee](https://github.com/oasici/honeywell-sales-manager/commit/19b70ee189aa646faa3784f2467ded983d4f44c1))
+* **admin:** cap users dropdown query at the backend's max page_size ([b237b8c](https://github.com/oasici/honeywell-sales-manager/commit/b237b8c187c889bb3fe470c0ce88d502da34402d))
+* **alembic:** widen alembic_version.version_num past 32 chars ([0b4ca58](https://github.com/oasici/honeywell-sales-manager/commit/0b4ca58987a7907f17c08cf617c680f31ba9be47))
+* **observability:** resolve top Sentry issues — activity feed crash + Claude churn parser ([408d268](https://github.com/oasici/honeywell-sales-manager/commit/408d268de0660cce61aa462c08c10c897e71283c))
+* **ops:** use real V4 __tablename__ values in ensure-tables workflow ([7370505](https://github.com/oasici/honeywell-sales-manager/commit/7370505a727812566685bb66545b53f019f9bb5b))
+* **uat:** V9 UAT items 4 + 15 — deep i18n on Opportunity/Customer detail pages ([2b33fe9](https://github.com/oasici/honeywell-sales-manager/commit/2b33fe9d25cc685c710e9616d6cbdcb487c02b9d))
+* **uat:** V9 UAT pass-1 — seed extension + 3 quick UI removals ([4d4b174](https://github.com/oasici/honeywell-sales-manager/commit/4d4b174886549ccedcc3c867278c52d88b59e8a9))
+* **uat:** V9 UAT pass-3 — i18n diacritics + Pipeline key dropdown + Compliance + Sequence template flow + Risk badge fallback ([687f7ac](https://github.com/oasici/honeywell-sales-manager/commit/687f7acd7c3c76c8e7a3f4c33b84f948b99cadb6))
+
+
+### Security
+
+* **deps:** bump sentry-sdk 2.18.0 → 2.58.0 ([3692757](https://github.com/oasici/honeywell-sales-manager/commit/3692757d1468c979113920c913aea1c98e7160f0))
+
 ## [1.1.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.0.0...v1.1.0) (2026-04-25)
 
 
