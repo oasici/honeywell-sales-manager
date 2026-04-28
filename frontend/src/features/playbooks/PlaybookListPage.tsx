@@ -73,7 +73,7 @@ export default function PlaybookListPage() {
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
       playbookApi.update(id, { is_active: !isActive }),
     onSuccess: () => {
-      toast.success('Durum guncellendi');
+      toast.success('Durum güncellendi');
       queryClient.invalidateQueries({ queryKey: ['playbooks'] });
     },
     onError: (err: unknown) =>

@@ -102,12 +102,12 @@ export default function ApprovalRulesPage() {
       payload: Record<string, unknown>;
     }) => approvalsApi.updateRule(id, payload),
     onSuccess: () => {
-      toast.success('Kural guncellendi');
+      toast.success('Kural güncellendi');
       queryClient.invalidateQueries({ queryKey: ['approval-rules'] });
       closeForm();
     },
     onError: () => {
-      toast.error('Kural guncellenemedi');
+      toast.error('Kural güncellenemedi');
     },
   });
 
@@ -295,7 +295,7 @@ export default function ApprovalRulesPage() {
     <div className="space-y-4">
       <PageHeader
         title="Onay Kuralları"
-        description="Teklif ve fırsat için otomatik onay kurallarini yonetin"
+        description="Teklif ve fırsat için otomatik onay kurallarını yönetin"
       >
         <Button onClick={openCreate}>Yeni Kural</Button>
       </PageHeader>
@@ -305,7 +305,7 @@ export default function ApprovalRulesPage() {
           columns={columns}
           data={items}
           loading={isLoading}
-          emptyMessage="Henüz onay kuralı tanimlanmamis"
+          emptyMessage="Henüz onay kuralı tanımlanmamış"
         />
       </Card>
 
@@ -313,12 +313,12 @@ export default function ApprovalRulesPage() {
       <Modal
         isOpen={showForm}
         onClose={closeForm}
-        title={editingRule ? 'Kural Düzenle' : 'Yeni Onay Kuralı'}
+        title={editingRule ? 'Kuralı Düzenle' : 'Yeni Onay Kuralı'}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Kural Adi"
+            label="Kural Adı"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
@@ -334,7 +334,7 @@ export default function ApprovalRulesPage() {
               }
             />
             <Select
-              label="Kosul Tipi"
+              label="Koşul Tipi"
               options={CONDITION_TYPE_OPTIONS}
               value={form.condition_type}
               onChange={(e) =>
@@ -345,7 +345,7 @@ export default function ApprovalRulesPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Select
-              label="Operator"
+              label="Operatör"
               options={OPERATOR_OPTIONS}
               value={form.threshold_operator}
               onChange={(e) =>
@@ -353,7 +353,7 @@ export default function ApprovalRulesPage() {
               }
             />
             <Input
-              label="Esik Değer"
+              label="Eşik Değer"
               type="number"
               step="any"
               value={form.threshold_value}
@@ -374,7 +374,7 @@ export default function ApprovalRulesPage() {
               }
             />
             <Input
-              label="Oncelik"
+              label="Öncelik"
               type="number"
               min="1"
               value={form.priority}
@@ -402,7 +402,7 @@ export default function ApprovalRulesPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         title="Kural Sil"
-        message={`"${deleteTarget?.name}" kuralini silmek istediginizden emin misiniz? Bu işlem geri alinamaz.`}
+        message={`"${deleteTarget?.name}" kuralını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
         confirmLabel="Sil"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}

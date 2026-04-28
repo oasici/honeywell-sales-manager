@@ -21,15 +21,22 @@ import { translateCoachingPlanStatus, translateCoachingRisk } from '../../lib/la
 /**
  * Risk-tier visual tokens.
  *
- * - healthy → emerald
- * - needs_improvement → amber
- * - at_risk → red
+ * - healthy / low → emerald
+ * - needs_improvement / medium → amber
+ * - at_risk / high / critical → red
  *
- * The `bar` color is reused by the indicator progress bars so the rep's
- * dominant risk tier visually matches their score breakdown.
+ * V9 UAT #2: backend may emit either the canonical
+ * ``healthy/needs_improvement/at_risk`` names OR a generic
+ * ``low/medium/high/critical`` flag. We accept both so the badge
+ * color always matches severity instead of silently defaulting to
+ * "healthy" green when the backend uses an unexpected value.
  */
 const RISK_TONE: Record<string, { chip: string; bar: string }> = {
   healthy: {
+    chip: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40',
+    bar: 'bg-emerald-500',
+  },
+  low: {
     chip: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40',
     bar: 'bg-emerald-500',
   },
@@ -37,11 +44,31 @@ const RISK_TONE: Record<string, { chip: string; bar: string }> = {
     chip: 'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-900/40',
     bar: 'bg-amber-500',
   },
+  medium: {
+    chip: 'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-900/40',
+    bar: 'bg-amber-500',
+  },
+  med: {
+    chip: 'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-900/40',
+    bar: 'bg-amber-500',
+  },
   at_risk: {
     chip: 'bg-red-50 text-red-700 ring-red-100 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-900/40',
     bar: 'bg-red-500',
   },
+  high: {
+    chip: 'bg-red-50 text-red-700 ring-red-100 dark:bg-red-950/30 dark:text-red-400 dark:ring-red-900/40',
+    bar: 'bg-red-500',
+  },
+  critical: {
+    chip: 'bg-red-100 text-red-800 ring-red-200 dark:bg-red-950/50 dark:text-red-300 dark:ring-red-900/60',
+    bar: 'bg-red-600',
+  },
 };
+
+/** Fallback uses amber/needs_improvement so unknown values don't
+ * silently render as "healthy" green (UAT #2 root cause). */
+const RISK_TONE_FALLBACK = RISK_TONE.needs_improvement;
 
 /**
  * Score-driven progress bar. Color tier comes from the score itself so
@@ -246,7 +273,7 @@ export default function CoachingOverviewPage() {
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {reps.map((rep) => {
-              const tone = RISK_TONE[rep.risk_level] ?? RISK_TONE.healthy;
+              const tone = RISK_TONE[rep.risk_level] ?? RISK_TONE_FALLBACK;
               const insight = pickStrongAndWeak(rep.indicators);
               const initials = rep.user_name
                 .split(' ')

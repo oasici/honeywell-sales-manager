@@ -192,25 +192,25 @@ async def seed_uat():
         logger.info("Creating pipelines...")
         pipeline_defs = [
             (
-                "Standart Satis",
+                "Standart Satış",
                 True,
                 [
-                    {"key": "prospecting", "label": "Arastirma", "order": 1, "probability": 10},
+                    {"key": "prospecting", "label": "Araştırma", "order": 1, "probability": 10},
                     {"key": "qualified", "label": "Nitelendirme", "order": 2, "probability": 25},
                     {"key": "proposal", "label": "Teklif", "order": 3, "probability": 50},
-                    {"key": "negotiation", "label": "Muzakere", "order": 4, "probability": 75},
-                    {"key": "closed_won", "label": "Kazanildi", "order": 5, "probability": 100},
+                    {"key": "negotiation", "label": "Müzakere", "order": 4, "probability": 75},
+                    {"key": "closed_won", "label": "Kazanıldı", "order": 5, "probability": 100},
                     {"key": "closed_lost", "label": "Kaybedildi", "order": 6, "probability": 0},
                 ],
             ),
             (
-                "Hizli Satis",
+                "Hızlı Satış",
                 False,
                 [
-                    {"key": "lead", "label": "Lead", "order": 1, "probability": 20},
+                    {"key": "lead", "label": "Aday", "order": 1, "probability": 20},
                     {"key": "demo", "label": "Demo", "order": 2, "probability": 50},
-                    {"key": "closing", "label": "Kapanma", "order": 3, "probability": 80},
-                    {"key": "won", "label": "Kazanildi", "order": 4, "probability": 100},
+                    {"key": "closing", "label": "Kapanış", "order": 3, "probability": 80},
+                    {"key": "won", "label": "Kazanıldı", "order": 4, "probability": 100},
                 ],
             ),
             (

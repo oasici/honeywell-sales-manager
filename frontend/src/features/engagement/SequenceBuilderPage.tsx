@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -34,9 +34,65 @@ function htmlToPlainText(html: string): string {
 
 const ACTION_OPTIONS = [
   { value: 'email', label: 'Email' },
-  { value: 'task', label: 'Gorev' },
+  { value: 'task', label: 'Görev' },
   { value: 'wait', label: 'Bekleme' },
 ];
+
+// Template presets keyed by ?template=<slug> in the URL — must match
+// the slugs surfaced from SequencesPage.SEQUENCE_TEMPLATES so the
+// "Bu şablonu kullan" CTA pre-fills the builder (V9 UAT #24).
+interface TemplatePreset {
+  name: string;
+  description: string;
+  steps: SequenceStep[];
+}
+
+const TEMPLATE_PRESETS: Record<string, TemplatePreset> = {
+  'lead-welcome': {
+    name: 'Yeni Lead Karşılama',
+    description:
+      '5 adımda yeni leadi tanıt, ihtiyacını öğren ve demo gününe yönlendir.',
+    steps: [
+      { step: 1, action: 'email', delay_days: 0,
+        template: 'Merhaba {first_name}, aramıza hoş geldin!' },
+      { step: 2, action: 'task', delay_days: 1,
+        template: 'İlk arama: müşteri ihtiyaçlarını dinle ve uygunluğu doğrula.' },
+      { step: 3, action: 'email', delay_days: 3,
+        template: 'Vakit bulduğunda demo planlayalım — uygun saatlerini paylaşır mısın?' },
+      { step: 4, action: 'wait', delay_days: 2, template: '' },
+      { step: 5, action: 'email', delay_days: 0,
+        template: 'Hâlâ cevap alamadık — son bir hatırlatma yollamak istedik.' },
+    ],
+  },
+  'post-quote-followup': {
+    name: 'Teklif Sonrası Takip',
+    description:
+      'Teklif gönderdikten sonra sırasıyla onay, soru-cevap ve müzakere takibi yap.',
+    steps: [
+      { step: 1, action: 'email', delay_days: 0,
+        template: 'Teklifimizi inceleyebildin mi? Sorularını yanıtlamaktan memnuniyet duyarız.' },
+      { step: 2, action: 'task', delay_days: 2,
+        template: 'Telefon takibi: itirazları öğren, öncelik sırasını netleştir.' },
+      { step: 3, action: 'email', delay_days: 4,
+        template: 'Teklifte revize istediğin bir nokta var mı?' },
+      { step: 4, action: 'task', delay_days: 6,
+        template: 'Karar tarihini netleştir; gerekirse müzakere için yöneticiyi dahil et.' },
+    ],
+  },
+  'win-back': {
+    name: 'Riskli Müşteri Geri Kazanım',
+    description:
+      'Health skoru düşen hesaplara değer hatırlatma, başarı hikayesi ve özel teklifle ulaş.',
+    steps: [
+      { step: 1, action: 'email', delay_days: 0,
+        template: 'Seninle uzun süredir konuşamadık — son durum nedir?' },
+      { step: 2, action: 'email', delay_days: 5,
+        template: 'Benzer bir müşteride elde ettiğimiz başarı hikayesini paylaşmak isteriz.' },
+      { step: 3, action: 'task', delay_days: 9,
+        template: 'Yenileme görüşmesi planla — özel kampanya teklifini hazırla.' },
+    ],
+  },
+};
 
 const EMPTY_STEP: SequenceStep = {
   step: 1,
@@ -50,12 +106,23 @@ export default function SequenceBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const isEdit = Boolean(id);
   const sequenceId = id ? Number(id) : null;
+  const templateSlug = searchParams.get('template');
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [steps, setSteps] = useState<SequenceStep[]>([{ ...EMPTY_STEP }]);
+  // Pre-fill from template preset when ?template=slug present and no
+  // existing sequence is being edited (V9 UAT #24).
+  const initialPreset =
+    !isEdit && templateSlug ? TEMPLATE_PRESETS[templateSlug] : undefined;
+
+  const [name, setName] = useState(initialPreset?.name ?? '');
+  const [description, setDescription] = useState(initialPreset?.description ?? '');
+  const [steps, setSteps] = useState<SequenceStep[]>(
+    initialPreset && initialPreset.steps.length > 0
+      ? initialPreset.steps.map((s) => ({ ...s }))
+      : [{ ...EMPTY_STEP }],
+  );
   const [isAutoEnroll, setIsAutoEnroll] = useState(false);
   const [scoreThreshold, setScoreThreshold] = useState(50);
 
@@ -107,7 +174,7 @@ export default function SequenceBuilderPage() {
         ? engagementApi.updateSequence(sequenceId!, payload)
         : engagementApi.createSequence(payload),
     onSuccess: () => {
-      toast.success(isEdit ? 'Sekans guncellendi' : 'Sekans oluşturuldu');
+      toast.success(isEdit ? 'Sekans güncellendi' : 'Sekans oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['sequences'] });
       navigate('/engagement/sequences');
     },

@@ -158,12 +158,12 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Bölge Adi <span className="text-red-400">*</span>
+              Bölge Adı <span className="text-red-400">*</span>
             </label>
             <input
               {...register('name')}
               className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] text-slate-900 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-              placeholder="Örneğin: Marmara Bolgesi"
+              placeholder="Örneğin: Marmara Bölgesi"
             />
             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
           </div>
@@ -242,11 +242,11 @@ function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
     mutationFn: (values: AssignFormData) =>
       territoriesApi.addAssignment(territoryId, { user_id: values.user_id, role: values.role }),
     onSuccess: () => {
-      toast.success('Kullanıcı atandi');
+      toast.success('Kullanıcı atandı');
       queryClient.invalidateQueries({ queryKey: ['territory-detail', territoryId] });
       onClose();
     },
-    onError: () => toast.error('Atama yapilamadi'),
+    onError: () => toast.error('Atama yapılamadı'),
   });
 
   return (
@@ -331,7 +331,7 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
   const updateMutation = useMutation({
     mutationFn: () => territoriesApi.update(territory.id, { rules_json: JSON.stringify(rules) }),
     onSuccess: () => {
-      toast.success('Kurallar guncellendi');
+      toast.success('Kurallar güncellendi');
       queryClient.invalidateQueries({ queryKey: ['territories-tree'] });
       queryClient.invalidateQueries({ queryKey: ['territory-detail', territory.id] });
       onClose();

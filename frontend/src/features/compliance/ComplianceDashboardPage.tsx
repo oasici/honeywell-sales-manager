@@ -5,13 +5,12 @@ import { Link } from 'react-router-dom';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { complianceApi } from '../../lib/api';
+import { complianceApi, customersApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 
 import type { ConsentStatus } from '../../lib/types';
@@ -21,12 +20,30 @@ interface RetentionReport {
   customers: { id: number; name: string; retention_until: string }[];
 }
 
+interface CustomerOption {
+  id: number;
+  name: string;
+  company?: string;
+  email?: string;
+}
+
 export default function ComplianceDashboardPage() {
   const queryClient = useQueryClient();
 
   const [customerIdInput, setCustomerIdInput] = useState('');
   const [searchedCustomerId, setSearchedCustomerId] = useState<number | null>(null);
   const [isAnonymizeOpen, setIsAnonymizeOpen] = useState(false);
+
+  // V9 UAT #28: replace manual ID input with a customer dropdown so
+  // the user picks from existing customers instead of typing an ID.
+  const customersQuery = useQuery<{ items: CustomerOption[] }>({
+    queryKey: ['compliance', 'customer-options'],
+    queryFn: () =>
+      customersApi.getCustomers({ page: 1, page_size: 200 }) as Promise<{
+        items: CustomerOption[];
+      }>,
+  });
+  const customerOptions: CustomerOption[] = customersQuery.data?.items ?? [];
 
   const consentQuery = useQuery<ConsentStatus>({
     queryKey: ['compliance', 'consent', searchedCustomerId],
@@ -55,19 +72,19 @@ export default function ComplianceDashboardPage() {
 
   const exportDataMutation = useMutation({
     mutationFn: () => complianceApi.exportData(searchedCustomerId!),
-    onSuccess: () => toast.success('Veri aktarimi baslatildi'),
-    onError: () => toast.error('Veri aktarimi başarısız'),
+    onSuccess: () => toast.success('Veri aktarımı başlatıldı'),
+    onError: () => toast.error('Veri aktarımı başarısız'),
   });
 
   const anonymizeDataMutation = useMutation({
     mutationFn: () => complianceApi.anonymizeData(searchedCustomerId!),
     onSuccess: () => {
-      toast.success('Veri anonimlestirildi');
+      toast.success('Veri anonimleştirildi');
       setIsAnonymizeOpen(false);
       queryClient.invalidateQueries({ queryKey: ['compliance', 'consent', searchedCustomerId] });
     },
     onError: () => {
-      toast.error('Anonimlestime başarısız');
+      toast.error('Anonimleştirme başarısız');
       setIsAnonymizeOpen(false);
     },
   });
@@ -87,7 +104,7 @@ export default function ComplianceDashboardPage() {
 
   const retentionColumns = [
     { key: 'id', header: 'Müşteri ID', sortable: true },
-    { key: 'name', header: 'Müşteri Adi', sortable: true },
+    { key: 'name', header: 'Müşteri Adı', sortable: true },
     {
       key: 'retention_until',
       header: 'Saklama Tarihi',
@@ -106,18 +123,30 @@ export default function ComplianceDashboardPage() {
 
       {/* Search */}
       <div className="mb-6 flex items-end gap-3">
-        <div className="max-w-xs flex-1">
-          <Input
-            label="Müşteri ID"
-            placeholder="Müşteri ID giriniz"
+        <div className="max-w-md flex-1">
+          <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+            Müşteri Seçin
+          </label>
+          <select
             value={customerIdInput}
             onChange={(e) => setCustomerIdInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSearch();
-            }}
-          />
+            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-honeywell-red focus:outline-none focus:ring-2 focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          >
+            <option value="">— Müşteri seçin —</option>
+            {customerOptions.map((c) => (
+              <option key={c.id} value={String(c.id)}>
+                #{c.id} — {c.name}
+                {c.company && c.company !== c.name ? ` (${c.company})` : ''}
+              </option>
+            ))}
+          </select>
+          {customersQuery.isLoading && (
+            <p className="mt-1 text-[11px] text-slate-500">Müşteriler yükleniyor…</p>
+          )}
         </div>
-        <Button onClick={handleSearch}>Ara</Button>
+        <Button onClick={handleSearch} disabled={!customerIdInput}>
+          Ara
+        </Button>
       </div>
 
       {/* Consent status */}
@@ -139,15 +168,15 @@ export default function ComplianceDashboardPage() {
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Yontem</p>
+              <p className="text-xs font-medium text-slate-500">Yöntem</p>
               <p className="text-sm text-slate-900">{consent.method ?? '-'}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Amac</p>
+              <p className="text-xs font-medium text-slate-500">Amaç</p>
               <p className="text-sm text-slate-900">{consent.purpose ?? '-'}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500">Saklama Bitis</p>
+              <p className="text-xs font-medium text-slate-500">Saklama Bitişi</p>
               <p className="text-sm text-slate-900">
                 {consent.retention_until ? formatDateTime(consent.retention_until) : '-'}
               </p>
@@ -174,7 +203,7 @@ export default function ComplianceDashboardPage() {
               onClick={() => setIsAnonymizeOpen(true)}
               disabled={!searchedCustomerId}
             >
-              Anonimlesitir
+              Anonimleştir
             </Button>
           </div>
         </Card>
@@ -196,24 +225,24 @@ export default function ComplianceDashboardPage() {
           <DataTable
             columns={retentionColumns}
             data={report?.customers ?? []}
-            emptyMessage="Gecikme bulunamadi"
+            emptyMessage="Gecikme bulunamadı"
           />
         )}
       </Card>
 
-      {/* Navigation links */}
-      <div className="flex gap-3">
+      {/* Tab-style navigation to retention + breach surfaces (V9 UAT #28) */}
+      <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900/40">
         <Link
           to="/compliance/retention"
-          className="text-sm font-medium text-honeywell-red hover:underline"
+          className="flex-1 rounded-md px-4 py-2 text-center text-sm font-medium text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
         >
-          Saklama Politikalari
+          Saklama Politikaları
         </Link>
         <Link
           to="/compliance/breaches"
-          className="text-sm font-medium text-honeywell-red hover:underline"
+          className="flex-1 rounded-md px-4 py-2 text-center text-sm font-medium text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
         >
-          Ihlal Bildirimleri
+          İhlal Bildirimleri
         </Link>
       </div>
 
@@ -221,9 +250,9 @@ export default function ComplianceDashboardPage() {
         isOpen={isAnonymizeOpen}
         onClose={() => setIsAnonymizeOpen(false)}
         onConfirm={() => anonymizeDataMutation.mutate()}
-        title="Veriyi Anonimletir"
-        message="Bu müşteri verisi kalici olarak anonimlestirilecektir. Devam etmek istediginizden emin misiniz?"
-        confirmLabel="Anonimlesitir"
+        title="Veriyi Anonimleştir"
+        message="Bu müşteri verisi kalıcı olarak anonimleştirilecektir. Devam etmek istediğinizden emin misiniz?"
+        confirmLabel="Anonimleştir"
         confirmVariant="danger"
         isLoading={anonymizeDataMutation.isPending}
       />

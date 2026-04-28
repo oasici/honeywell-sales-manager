@@ -35,6 +35,18 @@ function buildPipelineSchema(t: ReturnType<typeof useT>) {
 
 // ── Stage Helper ─────────────────────────────────────
 
+// Standardised stage keys used across V4/V5/V6 pipelines. Manager picks
+// from this list when adding a stage so the analytics layer always
+// recognises the value (UAT item #27).
+const STAGE_KEY_OPTIONS = [
+  { value: 'prospecting', label: 'Araştırma (prospecting)' },
+  { value: 'qualified', label: 'Yeterlilik (qualified)' },
+  { value: 'proposal', label: 'Teklif (proposal)' },
+  { value: 'negotiation', label: 'Müzakere (negotiation)' },
+  { value: 'closed_won', label: 'Kazanıldı (closed_won)' },
+  { value: 'closed_lost', label: 'Kaybedildi (closed_lost)' },
+] as const;
+
 function parseStages(
   stagesJson: string | undefined,
 ): { key: string; label: string; probability: number }[] {
@@ -74,7 +86,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
       stages:
         parseStages(pipeline?.stages_json).length > 0
           ? parseStages(pipeline?.stages_json)
-          : [{ key: 'prospecting', label: 'Arastirma', probability: 10 }],
+          : [{ key: 'prospecting', label: 'Araştırma', probability: 10 }],
     },
   });
 
@@ -193,11 +205,19 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
                 >
                   <div className="flex-1 grid grid-cols-3 gap-2">
                     <div>
-                      <input
+                      <select
                         {...register(`stages.${index}.key`)}
-                        placeholder={t('pipelines.stage_key_placeholder')}
                         className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                      />
+                      >
+                        <option value="">
+                          {t('pipelines.stage_key_placeholder')}
+                        </option>
+                        {STAGE_KEY_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
                       {errors.stages?.[index]?.key && (
                         <p className="mt-0.5 text-[10px] text-red-400">
                           {errors.stages[index]?.key?.message}
