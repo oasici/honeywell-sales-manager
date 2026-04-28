@@ -1,0 +1,87 @@
+name: Bootstrap Default Tenant
+
+# One-shot workflow to flip a single-tenant deployment into V12
+# multi-tenant mode by:
+#   1. Creating (or reusing) a Tenant row with the supplied name.
+#   2. Backfilling NULL ``tenant_id`` columns across the 5 CRM core
+#      tables (users, customers, opportunities, quotes, leads) to
+#      that tenant id.
+#
+# The bootstrap script is idempotent — re-running is a no-op once the
+# rows are linked. The dry-run path (without "APPLY" confirmation)
+# only prints the row counts, so operators can review before flipping
+# production.
+#
+# Required secret:
+#   PROD_DATABASE_URL — postgres URL with write access. Use the
+#   "External Database URL" from Render → Database → Connections.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenant_name:
+        description: 'Tenant display name (e.g. "Honeywell TR")'
+        required: true
+        default: 'Honeywell TR'
+      tenant_region:
+        description: 'Optional region label'
+        required: false
+        default: 'TR'
+      plan_tier:
+        description: 'Plan tier label'
+        required: false
+        default: 'standard'
+      confirm:
+        description: 'Type "APPLY" to actually run the backfill (otherwise dry-run)'
+        required: true
+        default: ''
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Verify PROD_DATABASE_URL secret is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      # The script's own dry-run mode does the heavy lifting (prints
+      # NULL counts per table) when ``--apply`` is omitted, so we run
+      # it unconditionally first so the workflow log records what
+      # would change before the operator hits APPLY.
+      - name: Dry-run summary
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python -m scripts.bootstrap_default_tenant \
+            --name "${{ github.event.inputs.tenant_name }}" \
+            --region "${{ github.event.inputs.tenant_region }}" \
+            --plan-tier "${{ github.event.inputs.plan_tier }}"
+
+      - name: Apply backfill (only when confirm=APPLY)
+        if: ${{ github.event.inputs.confirm == 'APPLY' }}
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python -m scripts.bootstrap_default_tenant \
+            --name "${{ github.event.inputs.tenant_name }}" \
+            --region "${{ github.event.inputs.tenant_region }}" \
+            --plan-tier "${{ github.event.inputs.plan_tier }}" \
+            --apply
