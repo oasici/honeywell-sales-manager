@@ -1,0 +1,142 @@
+name: Prod Table Census (read-only)
+
+# Lists every public.* table with its row count. Read-only and
+# safe to run anytime — output goes to the Job Summary so we can
+# pick out which derived/computed tables are empty and need
+# seeding. The prod-db-audit workflow only spot-checks a curated
+# set of tables; this one shows the full picture.
+#
+# Required secret:
+#   PROD_DATABASE_URL — same one as prod-db-audit.yml.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal deps
+        run: pip install asyncpg==0.30.0
+
+      - name: Verify PROD_DATABASE_URL is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      - name: Table census
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python <<'PY'
+          import asyncio
+          import os
+          import re
+          import asyncpg
+
+          url = os.environ["DATABASE_URL"]
+          url = re.sub(r"^postgresql\+asyncpg://", "postgresql://", url)
+          url = re.sub(r"^postgres://", "postgresql://", url)
+
+          # Tables we know are source-of-truth and should never be
+          # touched by seeding — list them so the report flags any
+          # accidentally-empty ones as warnings instead of seed
+          # candidates.
+          SOURCE_OF_TRUTH = {
+              "users", "customers", "leads", "quotes", "opportunities",
+              "spare_parts", "tenants", "alembic_version",
+          }
+
+          async def main():
+              conn = await asyncpg.connect(url, timeout=10)
+              try:
+                  # ANALYZE is cheap on a small DB and fixes pg_stat
+                  # row estimates that may be stale after a fresh
+                  # bootstrap. Without it n_live_tup can read 0 even
+                  # for newly populated tables.
+                  await conn.execute("ANALYZE")
+
+                  rows = await conn.fetch(
+                      """
+                      SELECT
+                        c.relname AS table_name,
+                        c.reltuples::bigint AS approx_rows,
+                        s.n_live_tup AS live_rows
+                      FROM pg_class c
+                      JOIN pg_namespace n ON n.oid = c.relnamespace
+                      LEFT JOIN pg_stat_user_tables s ON s.relname = c.relname
+                      WHERE n.nspname = 'public'
+                        AND c.relkind = 'r'
+                      ORDER BY c.relname
+                      """
+                  )
+
+                  empty: list[str] = []
+                  populated: list[tuple[str, int]] = []
+                  for r in rows:
+                      tbl = r["table_name"]
+                      # Get exact count for empty-detection (pg_stat
+                      # estimates can lag a freshly seeded run by minutes).
+                      n = await conn.fetchval(f"SELECT COUNT(*) FROM {tbl}")
+                      if n == 0:
+                          empty.append(tbl)
+                      else:
+                          populated.append((tbl, n))
+
+                  out: list[str] = []
+                  out.append("# Prod Table Census")
+                  out.append("")
+                  out.append(f"**Total tables:** {len(rows)}  ")
+                  out.append(f"**Empty:** {len(empty)}  ")
+                  out.append(f"**Populated:** {len(populated)}")
+                  out.append("")
+
+                  out.append("## Empty tables (seed candidates)")
+                  out.append("")
+                  if not empty:
+                      out.append("_None — every table has at least one row._")
+                  else:
+                      sot_empty = [t for t in empty if t in SOURCE_OF_TRUTH]
+                      derived_empty = [t for t in empty if t not in SOURCE_OF_TRUTH]
+                      if sot_empty:
+                          out.append("### ⚠️ Source-of-truth tables that are empty (NOT seed candidates)")
+                          out.append("")
+                          for t in sot_empty:
+                              out.append(f"- `{t}`")
+                          out.append("")
+                      out.append("### Derived/computed tables that are empty (seed candidates)")
+                      out.append("")
+                      for t in derived_empty:
+                          out.append(f"- `{t}`")
+                      out.append("")
+
+                  out.append("## Populated tables")
+                  out.append("")
+                  out.append("| table | rows |")
+                  out.append("|-------|-----:|")
+                  for tbl, n in sorted(populated, key=lambda p: -p[1]):
+                      out.append(f"| `{tbl}` | {n} |")
+                  out.append("")
+
+                  md = "\n".join(out)
+                  print(md)
+                  summary = os.environ.get("GITHUB_STEP_SUMMARY")
+                  if summary:
+                      with open(summary, "a") as f:
+                          f.write(md)
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
