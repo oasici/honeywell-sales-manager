@@ -1,0 +1,87 @@
+name: Prod Schema Repair (one-shot)
+
+# Idempotent DDL for columns/indexes the alembic chain claims are
+# applied but a previous deploy half-ran. Each statement uses
+# ``IF NOT EXISTS`` so re-running is a no-op.
+#
+# When you find another drift (model has a column the DB doesn't),
+# add it here with the same idempotent shape and rerun.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "REPAIR" to actually run the DDL'
+        required: true
+        default: ''
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm intent
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "REPAIR" ]; then
+            echo "::error::Type REPAIR in the input field to confirm."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal deps
+        run: pip install asyncpg==0.30.0
+
+      - name: Verify PROD_DATABASE_URL is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      - name: Apply repair DDL
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python <<'PY'
+          import asyncio
+          import os
+          import re
+
+          import asyncpg
+
+
+          # Curated list of DDL the chain says is applied but might
+          # not be (drift seen in audit run 25099809100). All
+          # ``IF NOT EXISTS`` so safe to rerun.
+          STATEMENTS: list[str] = [
+              # 20260425_activity_logs_source_ref
+              "ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS source_ref VARCHAR(120)",
+              "CREATE INDEX IF NOT EXISTS ix_activity_logs_source_ref ON activity_logs (source_ref)",
+          ]
+
+
+          url = os.environ["DATABASE_URL"]
+          url = re.sub(r"^postgresql\+asyncpg://", "postgresql://", url)
+          url = re.sub(r"^postgres://", "postgresql://", url)
+
+
+          async def main():
+              conn = await asyncpg.connect(url, timeout=10)
+              try:
+                  for stmt in STATEMENTS:
+                      print(f"$ {stmt}")
+                      await conn.execute(stmt)
+                  print("\nRepair complete.")
+              finally:
+                  await conn.close()
+
+
+          asyncio.run(main())
+          PY
