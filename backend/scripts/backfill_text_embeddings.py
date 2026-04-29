@@ -47,7 +47,13 @@ async def main_async(
 
     from app.core.database import async_session
     from app.models.opportunity import Opportunity
-    from app.services.deal_similarity_service import upsert_text_embedding
+    # Use ``upsert_embedding`` (V5 entry point) which writes the V5
+    # structured embedding *and* best-efforts the V8 text embedding
+    # in one shot. The previous version called ``upsert_text_embedding``
+    # which only populated V8 — leaving V5 empty meant the V12
+    # transformer backfill found nothing to iterate (it walks
+    # OpportunityEmbedding to discover "deals worth comparing").
+    from app.services.deal_similarity_service import upsert_embedding
 
     async with async_session() as db:
         # Optional: prime sales_events_shadow first so the V6
@@ -93,7 +99,7 @@ async def main_async(
         written = 0
         skipped = 0
         for i, opp_id in enumerate(ids, start=1):
-            row = await upsert_text_embedding(db, opportunity_id=int(opp_id))
+            row = await upsert_embedding(db, opportunity_id=int(opp_id))
             if row is None:
                 skipped += 1
             else:
@@ -109,7 +115,9 @@ async def main_async(
 
         await db.commit()
         logger.info(
-            "Backfill complete: total=%d written=%d skipped=%d (skipped = no V6 token sequence yet)",
+            "Backfill complete: total=%d written=%d skipped=%d "
+            "(written → V5 structured + best-effort V8 text; "
+            "skipped → opportunity row missing)",
             len(ids), written, skipped,
         )
 
