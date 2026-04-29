@@ -62,10 +62,18 @@ def _tenant(user: User) -> int | None:
 
 
 def _manager_or_admin_only(user: User) -> None:
-    """Pareto / dead-stock / obsolescence views are manager-tier."""
+    """Pareto / dead-stock / obsolescence views are manager-tier.
+
+    ``UserRole.ADMIN`` used to be in this allow-list but the enum
+    only ever defined SALES_REP / SALES_MANAGER / OPERATIONS — the
+    ADMIN reference was a leftover from an older role taxonomy and
+    raised AttributeError on every call, surfacing in Sentry as
+    ``AttributeError('ADMIN')``. The OPERATIONS role covers the
+    "admin-tier inventory ops" use case the original allow-list
+    was reaching for, so dropping ADMIN is the correct fix.
+    """
     if user.role not in (
         UserRole.SALES_MANAGER.value,
-        UserRole.ADMIN.value,
         UserRole.OPERATIONS.value,
     ):
         raise HTTPException(status_code=403, detail="Yetkisiz")
