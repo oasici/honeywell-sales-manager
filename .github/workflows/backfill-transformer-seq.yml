@@ -40,6 +40,22 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
+      # ``sentence-transformers`` is deliberately *not* in
+      # requirements.txt — it pulls in torch + transformers, which
+      # together exceed the Render free-tier image budget. The V12
+      # encoder loads it lazily, so the prod container falls back to
+      # V8 when the library is missing. For one-shot backfill jobs
+      # we install it just on the GH Actions runner so the encoder
+      # actually fires; the resulting 384-dim vectors are then sat
+      # in the DB until the prod deployment also installs the
+      # library (or the feature flag stays off and the V8 fallback
+      # path remains in use).
+      - name: Install transformer encoder (runner-local)
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu \
+            torch==2.4.1
+          pip install sentence-transformers==3.1.1 transformers==4.45.2
+
       - name: Verify PROD_DATABASE_URL is set
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
