@@ -87,7 +87,11 @@ async def backfill_transformer_seq_embeddings(
 
     Returns ``{"processed": N, "written": M, "skipped": K}``.
     """
-    from app.models.v5_intelligence import OpportunityEmbedding
+    # Sit in v5_similarity, not v5_intelligence — the latter never
+    # existed; the rename happened during V5 cleanup but this import
+    # path was never updated. Caught only at backfill runtime because
+    # nothing else exercises the repository helper.
+    from app.models.v5_similarity import OpportunityEmbedding
     from app.services.deal_similarity_service import _tokens_for_opp
 
     if opportunity_ids is None:
