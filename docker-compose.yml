@@ -14,17 +14,10 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-changeme}
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+  # Redis service removed — see app/core/redis_client.py for the
+  # rationale. Caches degrade to in-memory; multi-worker deploys
+  # lose cross-worker consistency. Re-add the ``redis:`` service +
+  # depends_on entries below if a Redis-equivalent is reintroduced.
 
   backend:
     build: ./backend
@@ -32,14 +25,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       qdrant:
         condition: service_healthy
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-honeywell}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-honeywell_sales}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
       SCHEDULER_ENABLED: "false"
     volumes:
@@ -59,14 +49,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       qdrant:
         condition: service_healthy
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-honeywell}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-honeywell_sales}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
       SCHEDULER_ENABLED: "true"
     command: ["python", "-m", "app.tasks.run_scheduler"]
     volumes:
@@ -100,6 +87,5 @@ services:
 
 volumes:
   pgdata:
-  redisdata:
   backend_data:
   qdrant_data:

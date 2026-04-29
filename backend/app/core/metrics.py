@@ -23,6 +23,16 @@ http_request_duration_seconds = Histogram(
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10),
 )
 
+# V13 security signal: every blocked cross-tenant access bumps this
+# counter. A single user spiking here = ID enumeration probe;
+# wire an alert in Grafana / Sentry on
+# ``rate(hsm_cross_tenant_blocked_total[5m]) > N``.
+cross_tenant_blocked_total = Counter(
+    "hsm_cross_tenant_blocked_total",
+    "Cross-tenant access attempts blocked by assert_same_tenant",
+    ["user_id", "target_tenant"],
+)
+
 
 def _safe_path(path: str) -> str:
     # Reduce cardinality: collapse numeric IDs into :id.

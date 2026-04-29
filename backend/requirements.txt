@@ -46,7 +46,9 @@ aiosmtplib==3.0.2
 
 # Security
 slowapi==0.1.9
-redis[hiredis]==5.2.1
+# redis[hiredis] removed — see app/core/redis_client.py for the rationale.
+# All caches degrade to in-memory; cross-worker invalidation is lost
+# but the project intentionally runs without Redis now.
 cryptography==46.0.7  # CVE-2024-12797, CVE-2026-26007, CVE-2026-34073, CVE-2026-39892
 prometheus-client==0.25.0
 
@@ -59,7 +61,10 @@ qdrant-client==1.13.3
 
 # Background jobs
 apscheduler==3.10.4
-arq==0.28.0
+# arq removed alongside Redis — job_queue.py runs jobs inline now.
+# WorkerSettings registry kept so a future Redis-equivalent (arq,
+# dramatiq, RQ on Upstash, etc.) can re-attach without re-touching
+# every callsite.
 
 # Web crawling — moved to optional install (requirements-optional.txt) because
 # crawl4ai pins lxml~=5.3 which blocks the lxml 6.x bump needed to clear

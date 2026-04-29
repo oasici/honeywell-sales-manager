@@ -721,7 +721,7 @@ async def root():
     UptimeRobot's free tier defaults to monitoring the root URL of the
     monitored host. Returning 200 here gives a second up/down signal
     independent of /api/health (which can flip to ``degraded`` when a
-    breaker is open). Intentionally minimal — no DB, no Redis, no I/O.
+    breaker is open). Intentionally minimal — no DB, no I/O.
     """
     return {"service": "honeywell-sales-suite", "status": "ok"}
 
@@ -729,7 +729,7 @@ async def root():
 @app.api_route("/api/health", methods=["GET", "HEAD"], tags=["health"])
 async def health_check():
     """Enhanced health check with dependency status."""
-    checks: dict[str, str] = {"database": "unknown", "redis": "unknown"}
+    checks: dict[str, str] = {"database": "unknown"}
 
     # DB check
     try:
@@ -739,19 +739,10 @@ async def health_check():
     except Exception:
         checks["database"] = "error"
 
-    # Redis check — get_redis() is sync; the connection itself is lazy so
-    # ping() is what actually exercises the wire.
-    try:
-        from app.core.redis_client import get_redis
-
-        redis = get_redis()
-        if redis is None:
-            checks["redis"] = "unavailable"
-        else:
-            await redis.ping()
-            checks["redis"] = "ok"
-    except Exception:
-        checks["redis"] = "error"
+    # Redis intentionally not probed — the project no longer uses Redis.
+    # ``app/core/redis_client.py`` is a no-op stub; reporting "redis" in
+    # this payload would just confuse operators looking for a dependency
+    # we don't actually have. See the stub's docstring for the rationale.
 
     # Qdrant check
     if settings.FEATURE_RAG:

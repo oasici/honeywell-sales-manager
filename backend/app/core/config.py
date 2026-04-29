@@ -21,7 +21,10 @@ class Settings(BaseSettings):
     AUTO_SCHEMA_SYNC: bool = False  # dev convenience only (ALTER TABLE ADD COLUMN IF NOT EXISTS)
 
     # ── Redis ──
-    REDIS_URL: str = "redis://redis:6379/0"
+    # Retired. Default empty so ``app/core/redis_client.py`` returns
+    # ``None`` and every cache/limiter/revoker falls back to in-memory.
+    # Documented in detail in that module's docstring.
+    REDIS_URL: str = ""
 
     # ── Auth / JWT ──
     JWT_SECRET_KEY: str = secrets.token_hex(32)  # Random per-start in dev; MUST set in .env for prod

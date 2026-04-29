@@ -35,10 +35,20 @@ async def list_opportunity_gaps(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v4),
 ):
-    opp = (
-        await db.execute(select(Opportunity).where(Opportunity.id == opportunity_id))
-    ).scalar_one_or_none()
-    if not opp:
+    # V13 cross-tenant guard: load + 404 if missing or in sibling tenant.
+    from app.core.exceptions import NotFoundException
+    from app.services.tenant_context import load_with_tenant_check
+
+    try:
+        opp = await load_with_tenant_check(
+            db,
+            Opportunity,
+            opportunity_id,
+            current_user=current_user,
+            exception_cls=NotFoundException,
+            message="Fırsat bulunamadı",
+        )
+    except NotFoundException:
         raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
     _opp_rbac_guard(current_user, opp)
 

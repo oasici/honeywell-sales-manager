@@ -73,8 +73,20 @@ async def get_opportunity_benchmark_gap(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v4),
 ):
-    opp = (await db.execute(select(Opportunity).where(Opportunity.id == opportunity_id))).scalar_one_or_none()
-    if not opp:
+    # V13 cross-tenant guard
+    from app.core.exceptions import NotFoundException
+    from app.services.tenant_context import load_with_tenant_check
+
+    try:
+        opp = await load_with_tenant_check(
+            db,
+            Opportunity,
+            opportunity_id,
+            current_user=current_user,
+            exception_cls=NotFoundException,
+            message="Fırsat bulunamadı",
+        )
+    except NotFoundException:
         raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
     if current_user.role == UserRole.SALES_REP.value and int(opp.owner_id) != int(current_user.id):
         raise HTTPException(status_code=403, detail="Yetkisiz")

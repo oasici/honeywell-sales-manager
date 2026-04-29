@@ -155,12 +155,99 @@ def is_cross_tenant(record: Any, user: Any) -> bool:
     return user_tenant != record_tenant
 
 
+def _record_cross_tenant_attempt(record: Any, user: Any) -> None:
+    """Side-channel signal so SOC tooling can spot ID enumeration.
+
+    Bumps a Prometheus counter (``hsm_cross_tenant_blocked_total``)
+    labelled by user and target tenant, and adds a Sentry breadcrumb
+    so the next exception captured on the same thread carries the
+    context. Both sides are best-effort — a missing prometheus client
+    or a Sentry SDK that isn't configured must not break the request.
+    """
+    user_tenant = getattr(user, "tenant_id", None)
+    record_tenant = getattr(record, "tenant_id", None)
+    user_id = getattr(user, "id", None)
+
+    # Prometheus — counter is created on demand so the helper module
+    # stays import-free of prometheus_client when not used.
+    try:
+        from app.core.metrics import cross_tenant_blocked_total
+
+        cross_tenant_blocked_total.labels(
+            user_id=str(user_id) if user_id is not None else "unknown",
+            target_tenant=str(record_tenant)
+            if record_tenant is not None
+            else "unknown",
+        ).inc()
+    except Exception:
+        pass
+
+    # Sentry breadcrumb — surfaces in the next exception captured by
+    # this request handler. Catches the case where a single user
+    # probes hundreds of IDs and triggers a 5xx later.
+    try:
+        import sentry_sdk
+
+        sentry_sdk.add_breadcrumb(
+            category="security.cross_tenant",
+            level="warning",
+            message="cross-tenant access blocked",
+            data={
+                "user_id": user_id,
+                "user_tenant": user_tenant,
+                "target_tenant": record_tenant,
+            },
+        )
+    except Exception:
+        pass
+
+
 def assert_same_tenant(record: Any, user: Any, *, exception_cls: Any) -> None:
     """Raise ``exception_cls`` when ``record`` is cross-tenant for ``user``.
 
     Pass ``NotFoundException`` (or your project's 404 class). Caller
     decides the message; we deliberately don't import the exception
     here to keep this module dependency-free for tests.
+
+    Every blocked attempt also fires the side-channel observability
+    helper above so SOC dashboards can spot ID enumeration even
+    though the API responds with a polite 404.
     """
     if is_cross_tenant(record, user):
+        _record_cross_tenant_attempt(record, user)
         raise exception_cls("Not found")
+
+
+async def load_with_tenant_check(
+    db,
+    model,
+    id_,
+    *,
+    current_user,
+    exception_cls,
+    message: str = "Not found",
+):
+    """Load + tenant-check pattern used across V4-V12 read endpoints.
+
+    Replaces the boilerplate:
+        opp = (await db.execute(select(M).where(M.id == id))).scalar_one_or_none()
+        if opp is None: raise NotFoundException(...)
+        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+        return opp
+
+    Returns the loaded ORM object. Both "doesn't exist" and "exists in
+    another tenant" map to the same 404 + message so the API never
+    leaks cross-tenant existence.
+
+    Imported lazily inside the function to keep this module's import
+    graph free of SQLAlchemy at test-collection time (the unit tests
+    on ``is_cross_tenant`` / ``assert_same_tenant`` use plain
+    dataclasses, not real SQLAlchemy objects).
+    """
+    from sqlalchemy import select
+
+    obj = (await db.execute(select(model).where(model.id == id_))).scalar_one_or_none()
+    if obj is None:
+        raise exception_cls(message)
+    assert_same_tenant(obj, current_user, exception_cls=exception_cls)
+    return obj

@@ -1,55 +1,31 @@
-"""Async job queue using arq (Redis-backed).
+"""Async job queue — Redis/arq removed, runs inline.
 
 Handles: sequence step execution, PDF generation, email sending.
-Features: retry with exponential backoff, dead letter logging, job monitoring.
-Falls back gracefully if Redis/arq unavailable — jobs execute inline.
+
+Originally backed by arq + Redis with retry/dead-letter/job-monitoring.
+After the Redis removal we run jobs **inline** in the calling request:
+the caller awaits the job function instead of enqueueing. The
+``execute_sequence_step`` and ``generate_pdf_job`` bodies are
+unchanged so any Redis-equivalent we wire in later can pick them up
+via the ``WorkerSettings`` registry below.
+
+Tradeoff vs. arq:
+- No background isolation: a failing job surfaces inside the request
+  that triggered it (good for visibility, bad for latency on slow jobs
+  like PDF generation). PDF generation is already wrapped in a
+  timeout in ``quote_service`` so the worst case is bounded.
+- No retries: a transient failure isn't auto-retried. Sequence steps
+  reschedule themselves via ``next_action_at`` so this is OK; PDF
+  generation surfaces an error to the user, who can retry.
+- Single-worker scope: the v2 sequence engine's ``StepRun``
+  unique-constraint still prevents double execution within the same
+  worker, but multi-worker installs lose cross-worker dedupe.
 """
 
 import logging
 from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
-
-_arq_available = False
-_redis_settings = None
-
-
-def _get_redis_settings():
-    """Get arq RedisSettings from app config."""
-    global _redis_settings
-    if _redis_settings is not None:
-        return _redis_settings
-    try:
-        from arq.connections import RedisSettings
-        from app.core.config import settings
-        if not settings.REDIS_URL:
-            return None
-        # Parse redis://[:password]@host:port/db
-        url = settings.REDIS_URL
-        password = None
-        host = "redis"
-        port = 6379
-        db = 0
-        if "://" in url:
-            parts = url.split("://", 1)[1]
-            if "@" in parts:
-                auth, hostpart = parts.rsplit("@", 1)
-                password = auth.lstrip(":") or None
-            else:
-                hostpart = parts
-            if "/" in hostpart:
-                hostpart, db_str = hostpart.rsplit("/", 1)
-                db = int(db_str) if db_str else 0
-            if ":" in hostpart:
-                host, port_str = hostpart.split(":", 1)
-                port = int(port_str)
-            else:
-                host = hostpart
-        _redis_settings = RedisSettings(host=host, port=port, password=password, database=db)
-        return _redis_settings
-    except Exception as e:
-        logger.debug("arq Redis settings parse failed: %s", e)
-        return None
 
 
 # ── Job Functions ──
@@ -149,56 +125,55 @@ async def generate_pdf_job(ctx: dict, quote_id: int, user_id: int) -> str:
         return f"PDF generated: {pdf_path}"
 
 
-# ── arq Worker Config ──
+# ── Worker registry (preserved so a future Redis-equivalent can re-register) ──
+
 
 async def startup(ctx: dict) -> None:
-    logger.info("arq worker started")
+    """No-op startup hook — kept for symmetry with the worker contract."""
+    logger.info("Inline job runner active (no background worker)")
 
 
 async def shutdown(ctx: dict) -> None:
-    logger.info("arq worker stopped")
+    """No-op shutdown hook — kept for symmetry with the worker contract."""
+    return None
 
 
 class WorkerSettings:
-    """arq worker configuration — import this in arq CLI."""
+    """Job function registry. Background-worker fields removed; if a
+    Redis-equivalent is reintroduced (e.g. arq, dramatiq, RQ), this
+    class is the canonical list of function objects to wire in."""
+
     functions = [execute_sequence_step, generate_pdf_job]
     on_startup = startup
     on_shutdown = shutdown
-    max_jobs = 10
-    job_timeout = 300  # 5 min per job
-    retry_jobs = True
-    max_tries = 3
-    health_check_interval = 30
-
-    @staticmethod
-    def redis_settings():
-        return _get_redis_settings()
 
 
-# ── Enqueue Helper ──
+# ── Enqueue Helper (inline) ──
+
+# Static dispatch table mirroring ``WorkerSettings.functions`` so
+# ``enqueue_job`` can resolve a name → callable without importing the
+# functions twice.
+_FUNCTION_MAP = {
+    "execute_sequence_step": execute_sequence_step,
+    "generate_pdf_job": generate_pdf_job,
+}
+
 
 async def enqueue_job(function_name: str, *args, **kwargs) -> bool:
-    """Enqueue a job to arq. Falls back to inline execution if arq unavailable."""
+    """Run the named job inline.
+
+    Pre-Redis-removal this would push to arq; now it ``await``s the
+    function directly. The signature still returns ``bool`` so callers
+    don't need to change. ``True`` = job ran without raising;
+    ``False`` = job raised (already logged).
+    """
+    func = _FUNCTION_MAP.get(function_name)
+    if func is None:
+        logger.error("Unknown job function: %s", function_name)
+        return False
     try:
-        from arq import create_pool
-        rs = _get_redis_settings()
-        if not rs:
-            raise RuntimeError("No Redis")
-        pool = await create_pool(rs)
-        await pool.enqueue_job(function_name, *args, **kwargs)
-        await pool.close()
+        await func({}, *args, **kwargs)
         return True
-    except Exception as e:
-        logger.debug("arq enqueue failed (%s), executing inline: %s", e, function_name)
-        # Inline fallback
-        func_map = {
-            "execute_sequence_step": execute_sequence_step,
-            "generate_pdf_job": generate_pdf_job,
-        }
-        func = func_map.get(function_name)
-        if func:
-            try:
-                await func({}, *args, **kwargs)
-            except Exception as exc:
-                logger.error("Inline job execution failed: %s", exc)
+    except Exception as exc:
+        logger.error("Inline job execution failed (%s): %s", function_name, exc)
         return False
