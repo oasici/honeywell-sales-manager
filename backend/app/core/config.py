@@ -2,10 +2,32 @@
 
 from __future__ import annotations
 
+import logging as _log
 import secrets
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+
+def _critical_config_warning(message: str) -> None:
+    """Log a CRITICAL config warning + best-effort Sentry capture.
+
+    Used by production-environment validators that previously raised
+    ValueError. Raising at boot turned config housekeeping (stale
+    env vars left over from staging) into a full outage. CRITICAL
+    log + Sentry capture keeps the signal loud — paging once a
+    Sentry alert rule fires on level=critical messages — without
+    blocking startup.
+    """
+    _log.getLogger(__name__).critical("[config] %s", message)
+    try:
+        import sentry_sdk
+
+        sentry_sdk.capture_message(f"config: {message}", level="error")
+    except Exception:
+        # Sentry SDK not installed or DSN absent — log line is
+        # already emitted, so the operator still sees this in stdout.
+        pass
 
 
 class Settings(BaseSettings):
@@ -38,7 +60,6 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_production_settings(self):
-        import logging as _log
         if self.ENV == "production":
             if not self.DATABASE_URL:
                 raise ValueError("DATABASE_URL must be set in production environment")
@@ -68,19 +89,23 @@ class Settings(BaseSettings):
             # They were set up for the synthetic Playwright run
             # (``E2E_*_EMAIL`` / ``E2E_*_PASSWORD``) and any prod
             # bleed-over creates accounts a tester can log in to.
-            # Surface as a hard error during ``pydantic_settings``
-            # parse so the app refuses to boot until they're cleared
-            # from Render.
+            #
+            # Earlier this was a hard ValueError so the app refused
+            # to boot. That turned a config-housekeeping issue into
+            # a full outage when the operator hadn't yet pruned the
+            # vars from Render. Now we log CRITICAL + Sentry-capture
+            # so the warning is loud (paging-loud once Sentry alert
+            # rules see CRITICAL) without blocking startup.
             import os
-            e2e_keys = [
+            e2e_keys = sorted(
                 k for k in os.environ
                 if k.startswith("E2E_") and k.endswith(("_EMAIL", "_PASSWORD"))
-            ]
+            )
             if e2e_keys:
-                raise ValueError(
-                    "E2E credentials must not be set in production: "
-                    + ", ".join(sorted(e2e_keys))
-                    + " — move them to staging-only env."
+                _critical_config_warning(
+                    "E2E credentials present in production env: "
+                    + ", ".join(e2e_keys)
+                    + " — clear them from Render to remove this warning."
                 )
 
             # ``ENABLE_ALL_FEATURES`` is a deprecated env that was
@@ -88,8 +113,8 @@ class Settings(BaseSettings):
             # operator notices it's a no-op (and probably wanted
             # to set the individual ``FEATURE_*`` flags).
             if os.environ.get("ENABLE_ALL_FEATURES"):
-                _log.getLogger(__name__).warning(
-                    "ENABLE_ALL_FEATURES is set but unused. "
+                _critical_config_warning(
+                    "ENABLE_ALL_FEATURES is set in production but unused. "
                     "Set individual FEATURE_* flags in Render instead, "
                     "then remove this env var."
                 )
