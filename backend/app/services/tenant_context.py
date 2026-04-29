@@ -158,18 +158,31 @@ def is_cross_tenant(record: Any, user: Any) -> bool:
 def _record_cross_tenant_attempt(record: Any, user: Any) -> None:
     """Side-channel signal so SOC tooling can spot ID enumeration.
 
-    Bumps a Prometheus counter (``hsm_cross_tenant_blocked_total``)
-    labelled by user and target tenant, and adds a Sentry breadcrumb
-    so the next exception captured on the same thread carries the
-    context. Both sides are best-effort — a missing prometheus client
-    or a Sentry SDK that isn't configured must not break the request.
+    Three layered signals, all best-effort (missing SDK never breaks
+    the request handler):
+
+    1. **Prometheus counter** ``hsm_cross_tenant_blocked_total`` —
+       per-user, per-target-tenant. For Grafana / scrape rules.
+    2. **Sentry breadcrumb** — attached to the next exception
+       captured on the same thread; useful for forensics.
+    3. **Sentry capture_message escalation** when a single user
+       crosses the per-window threshold (default: 10 blocked
+       attempts in 60s). Fires *once* per window per user so we
+       don't spam Sentry with one event per probe. Configurable
+       via ``CROSS_TENANT_ALERT_THRESHOLD`` and
+       ``CROSS_TENANT_ALERT_WINDOW_SECONDS`` settings.
+
+    The escalation is a code-level alert: it works even if the
+    operator hasn't wired a Sentry alert rule yet, and gives a
+    "single capture per spike" semantics that's hard to express in
+    Sentry's rule UI.
     """
     user_tenant = getattr(user, "tenant_id", None)
     record_tenant = getattr(record, "tenant_id", None)
     user_id = getattr(user, "id", None)
 
-    # Prometheus — counter is created on demand so the helper module
-    # stays import-free of prometheus_client when not used.
+    # 1) Prometheus — counter is created on demand so the helper
+    # module stays import-free of prometheus_client when not used.
     try:
         from app.core.metrics import cross_tenant_blocked_total
 
@@ -182,9 +195,8 @@ def _record_cross_tenant_attempt(record: Any, user: Any) -> None:
     except Exception:
         pass
 
-    # Sentry breadcrumb — surfaces in the next exception captured by
-    # this request handler. Catches the case where a single user
-    # probes hundreds of IDs and triggers a 5xx later.
+    # 2) Sentry breadcrumb — surfaces in the next exception captured
+    # by this request handler.
     try:
         import sentry_sdk
 
@@ -197,6 +209,76 @@ def _record_cross_tenant_attempt(record: Any, user: Any) -> None:
                 "user_tenant": user_tenant,
                 "target_tenant": record_tenant,
             },
+        )
+    except Exception:
+        pass
+
+    # 3) Threshold-based Sentry capture_message — fires once per
+    # window per user when probe count crosses the threshold.
+    _maybe_escalate_cross_tenant(
+        user_id=user_id,
+        user_tenant=user_tenant,
+        target_tenant=record_tenant,
+    )
+
+
+# In-memory rolling window per user. Key: user_id, value: list of
+# timestamps within the alert window. Per-worker scope — that's OK
+# for alerting because a probe spike is fast enough that any worker
+# seeing the load will trip independently.
+_CROSS_TENANT_WINDOW: dict[Any, list[float]] = {}
+_CROSS_TENANT_LAST_ALERT_AT: dict[Any, float] = {}
+
+
+def _maybe_escalate_cross_tenant(
+    *, user_id: Any, user_tenant: Any, target_tenant: Any
+) -> None:
+    """Fire a Sentry ``capture_message`` once per spike per user.
+
+    Spike = ``threshold`` distinct blocked attempts within the last
+    ``window_seconds``. We rate-limit the capture itself to one per
+    cooldown so a sustained attack doesn't generate 100 events.
+    """
+    import time
+
+    try:
+        from app.core.config import settings
+    except Exception:
+        return  # config not loadable; bail out
+
+    threshold = int(getattr(settings, "CROSS_TENANT_ALERT_THRESHOLD", 10))
+    window_s = int(getattr(settings, "CROSS_TENANT_ALERT_WINDOW_SECONDS", 60))
+    cooldown_s = int(getattr(settings, "CROSS_TENANT_ALERT_COOLDOWN_SECONDS", 300))
+
+    if user_id is None or threshold <= 0:
+        return
+
+    now = time.time()
+    window = _CROSS_TENANT_WINDOW.setdefault(user_id, [])
+    cutoff = now - window_s
+
+    # Compact the window: drop timestamps older than the cutoff.
+    while window and window[0] < cutoff:
+        window.pop(0)
+    window.append(now)
+
+    if len(window) < threshold:
+        return
+
+    # Rate-limit Sentry captures — one per cooldown per user.
+    last_alert = _CROSS_TENANT_LAST_ALERT_AT.get(user_id, 0)
+    if now - last_alert < cooldown_s:
+        return
+
+    _CROSS_TENANT_LAST_ALERT_AT[user_id] = now
+
+    try:
+        import sentry_sdk
+
+        sentry_sdk.capture_message(
+            f"Cross-tenant ID enumeration suspected: user={user_id} "
+            f"crossed {threshold} blocks in {window_s}s",
+            level="error",
         )
     except Exception:
         pass

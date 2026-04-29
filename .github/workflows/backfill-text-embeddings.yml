@@ -1,0 +1,62 @@
+name: Backfill V8 Text Embeddings
+
+# One-shot: runs ``scripts/backfill_text_embeddings.py`` against
+# PROD_DATABASE_URL. Without this populated the 4-component blend
+# in deal_similarity_service silently degrades to V7 (cosine + LCS).
+#
+# Required secret:
+#   PROD_DATABASE_URL — same one used by manual-migrate.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "APPLY" to actually run the upserts (otherwise dry-run)'
+        required: true
+        default: ''
+      status:
+        description: 'Opportunity status filter (default "active", "" = all)'
+        required: false
+        default: 'active'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install backend deps
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Verify PROD_DATABASE_URL is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      - name: Dry-run summary
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python -m scripts.backfill_text_embeddings \
+            --status "${{ github.event.inputs.status }}"
+
+      - name: Apply backfill (only when confirm=APPLY)
+        if: ${{ github.event.inputs.confirm == 'APPLY' }}
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python -m scripts.backfill_text_embeddings \
+            --status "${{ github.event.inputs.status }}" \
+            --apply

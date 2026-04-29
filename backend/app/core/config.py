@@ -53,6 +53,16 @@ class Settings(BaseSettings):
                     "CORS_ORIGINS contains localhost entries — remove for strict production: "
                     + ", ".join(local_origins)
                 )
+            # Reject wildcard CORS in production. ``*`` works with
+            # ``allow_credentials=False`` only; combined with our
+            # JWT cookie auth it would either silently break auth
+            # or open the API to every site on the internet — both
+            # bad. Operators must list explicit origins.
+            if "*" in origins:
+                raise ValueError(
+                    "CORS_ORIGINS=* is forbidden in production. "
+                    "List explicit origins (e.g. https://app.example.com)."
+                )
         return self
 
     # ── CORS ──
@@ -122,6 +132,17 @@ class Settings(BaseSettings):
     # current_user.tenant_id is None (legacy single-tenant deploys).
     RATE_LIMIT_TENANT_AI: str = "1000/minute"
     RATE_LIMIT_TENANT_UPLOAD: str = "200/minute"
+
+    # ── Cross-tenant probe alerting (V13 security signal) ──
+    # When a single user accumulates >= ``CROSS_TENANT_ALERT_THRESHOLD``
+    # blocked cross-tenant accesses inside ``CROSS_TENANT_ALERT_WINDOW_SECONDS``,
+    # a Sentry ``capture_message`` fires once per
+    # ``CROSS_TENANT_ALERT_COOLDOWN_SECONDS``. Set threshold to 0
+    # to disable the escalation entirely (Prometheus counter +
+    # Sentry breadcrumb still fire).
+    CROSS_TENANT_ALERT_THRESHOLD: int = 10
+    CROSS_TENANT_ALERT_WINDOW_SECONDS: int = 60
+    CROSS_TENANT_ALERT_COOLDOWN_SECONDS: int = 300
 
     # ── Database Pool ──
     # Sized for gunicorn -w 4 workers. Total ceiling = workers * (pool + overflow).
