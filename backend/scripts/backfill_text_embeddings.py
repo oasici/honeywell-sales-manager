@@ -41,6 +41,7 @@ async def main_async(
     opportunity_ids: list[int] | None,
     status: str | None,
     apply: bool,
+    sync_shadow_days: int | None = None,
 ) -> None:
     from sqlalchemy import select
 
@@ -49,6 +50,26 @@ async def main_async(
     from app.services.deal_similarity_service import upsert_text_embedding
 
     async with async_session() as db:
+        # Optional: prime sales_events_shadow first so the V6
+        # tokenizer has data to work on. Without this the
+        # tokenizer returns empty lists and every upsert ends up
+        # in "skipped". The nightly cron eventually fills the
+        # shadow but for ad-hoc backfills we'd rather pull a
+        # rolling window inline so the run is self-contained.
+        if sync_shadow_days and apply:
+            from app.services.sales_events_shadow_sync import (
+                sync_sales_events_shadow_last_n_days,
+            )
+
+            logger.info(
+                "Pre-sync sales_events_shadow window=%dd",
+                sync_shadow_days,
+            )
+            counts = await sync_sales_events_shadow_last_n_days(
+                db, days=sync_shadow_days
+            )
+            await db.commit()
+            logger.info("Shadow sync counts: %s", counts)
         if opportunity_ids:
             ids = list(opportunity_ids)
             logger.info("Targeting %d explicit opportunity ids", len(ids))
@@ -112,8 +133,22 @@ def main() -> None:
         default="active",
         help="Filter opps by status (default: active). Pass empty string for any.",
     )
+    parser.add_argument(
+        "--sync-shadow-days",
+        type=int,
+        default=None,
+        help="Optional: pre-sync sales_events_shadow for the last N days "
+        "before backfilling (avoids 'skipped — no V6 token sequence' on first run).",
+    )
     args = parser.parse_args()
-    asyncio.run(main_async(args.opp, args.status or None, args.apply))
+    asyncio.run(
+        main_async(
+            args.opp,
+            args.status or None,
+            args.apply,
+            sync_shadow_days=args.sync_shadow_days,
+        )
+    )
 
 
 if __name__ == "__main__":

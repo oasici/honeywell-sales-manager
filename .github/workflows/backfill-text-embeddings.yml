@@ -18,6 +18,10 @@ on:
         description: 'Opportunity status filter (default "active", "" = all)'
         required: false
         default: 'active'
+      sync_shadow_days:
+        description: 'Pre-sync sales_events_shadow for last N days (0 = skip)'
+        required: false
+        default: '180'
 
 jobs:
   backfill:
@@ -57,6 +61,9 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
         run: |
-          python -m scripts.backfill_text_embeddings \
-            --status "${{ github.event.inputs.status }}" \
-            --apply
+          SHADOW_DAYS="${{ github.event.inputs.sync_shadow_days }}"
+          ARGS=(--status "${{ github.event.inputs.status }}" --apply)
+          if [ -n "$SHADOW_DAYS" ] && [ "$SHADOW_DAYS" != "0" ]; then
+            ARGS+=(--sync-shadow-days "$SHADOW_DAYS")
+          fi
+          python -m scripts.backfill_text_embeddings "${ARGS[@]}"
