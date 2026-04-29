@@ -74,26 +74,25 @@ logger = logging.getLogger("seed_activity_history")
 RNG = random.Random(42)
 
 
-# Activity types weighted by realistic prevalence.
-ACTIVITY_TYPES = [
-    ("call", 25),
-    ("email_sent", 30),
-    ("email_received", 20),
-    ("meeting", 12),
-    ("stage_change", 5),
-    ("note_added", 5),
-    ("task_completed", 3),
-]
-_ACTIVITY_POOL = [t for t, w in ACTIVITY_TYPES for _ in range(w)]
-
-
-# Map activity → opportunity_event type.
-_EVENT_TYPE_MAP = {
-    "call": "call",
+# Activity-type names follow the V6 sequence-tokenizer vocabulary,
+# not the activity_logs registry — the canonical projector passes
+# ``activity_type`` through verbatim into ``sales_events_shadow``,
+# and the tokenizer matches on the *shadow* event_type strings
+# (``email_sent``, ``call_logged``, ``meeting_logged``, ``quote_sent``,
+# ``stage_changed``, ``objection_logged``). Using these names ensures
+# the synthesised events actually trigger tokenizer rules instead of
+# silently passing through and producing empty token lists.
+#
+# Map activity_type → opportunity_event type. OpportunityEvent rows
+# also feed the shadow, so we use the same vocabulary on both sides.
+_EVENT_TYPE_MAP: dict[str, str] = {
     "email_sent": "email",
     "email_received": "email",
-    "meeting": "meeting",
-    "stage_change": "stage_change",
+    "call_logged": "call",
+    "meeting_logged": "meeting",
+    "quote_sent": "quote",
+    "stage_changed": "stage_change",
+    "objection_logged": "note",
     "note_added": "note",
     "task_completed": "task",
 }
@@ -101,13 +100,7 @@ _EVENT_TYPE_MAP = {
 
 # Realistic Turkish summary templates, chosen to give the V6
 # tokenizer + V8 BoW something with vocabulary variety.
-_SUMMARY_TEMPLATES = {
-    "call": [
-        "Müşteri ile fiyat görüşmesi yapıldı, ek bilgi talep edildi.",
-        "Teknik şartname üzerinde mutabık kalındı.",
-        "Sipariş süreci sorgulandı; satın alma onayı bekleniyor.",
-        "Rakip teklif karşılaştırması istendi.",
-    ],
+_SUMMARY_TEMPLATES: dict[str, list[str]] = {
     "email_sent": [
         "Revize teklif gönderildi.",
         "Teknik dokümantasyon ve referanslar paylaşıldı.",
@@ -120,16 +113,30 @@ _SUMMARY_TEMPLATES = {
         "Teknik onay onaylandığı yönünde geri dönüş.",
         "Karşı tarafın sözleşme revizyonları alındı.",
     ],
-    "meeting": [
+    "call_logged": [
+        "Müşteri ile fiyat görüşmesi yapıldı, ek bilgi talep edildi.",
+        "Teknik şartname üzerinde mutabık kalındı.",
+        "Sipariş süreci sorgulandı; satın alma onayı bekleniyor.",
+        "Rakip teklif karşılaştırması istendi.",
+    ],
+    "meeting_logged": [
         "Karar mercileri ile demo toplantısı yapıldı.",
         "Yerinde keşif ve gereksinim çalışması.",
         "Pilot uygulama plan toplantısı.",
         "Yönetim seviyesi onay görüşmesi.",
     ],
-    "stage_change": [
-        "Aşama ilerletildi: müzakere",
+    "quote_sent": [
+        "İlk teklif paylaşıldı, kalem detayları onaya gönderildi.",
+        "Revize teklif numarası paylaşıldı.",
+    ],
+    "stage_changed": [
+        "Aşama ilerletildi: nitelendirildi",
         "Aşama: teklif onayı",
         "Pipeline aşaması güncellendi",
+    ],
+    "objection_logged": [
+        "Müşteri fiyat itirazını gündeme getirdi.",
+        "Rakip teklif baskısı oluştu, revizyon talep edildi.",
     ],
     "note_added": [
         "Karar verici tatildeydi, geri döndüğünde aranacak.",
@@ -147,6 +154,28 @@ _SUMMARY_TEMPLATES = {
 def _pick_summary(activity_type: str) -> str:
     pool = _SUMMARY_TEMPLATES.get(activity_type) or ["Etkileşim kaydı."]
     return RNG.choice(pool)
+
+
+# Token-firing sequence template. Each tuple is ``(activity_type,
+# days_back, hours_back)`` measured from ``now``. Designed to fire 4
+# tokenizer rules per opp:
+#   1. ``buyer_replied_within_48h`` — email_sent → email_received +12h
+#   2. ``meeting_before_quote``      — meeting_logged precedes quote_sent
+#   3. ``followup_within_24h_after_quote`` — call_logged +6h after quote_sent
+#   4. ``stage_progressed_within_7d`` — two stage_changed within 7 days
+# ``objection_logged`` then a later ``quote_sent`` would also fire
+# ``quote_revised_after_objection`` but adding it would push the
+# sequence past 8 events; we stop at the high-signal four.
+_PATTERN_SEQUENCE: list[tuple[str, int, int]] = [
+    ("stage_changed",   75,  0),  # day -75: prospecting → qualified
+    ("email_sent",      60,  0),  # day -60: outreach
+    ("email_received",  59, 12),  # day -59 +12h: buyer replies (rule 1)
+    ("meeting_logged",  45,  0),  # day -45: discovery (precedes quote, rule 2)
+    ("stage_changed",   42,  0),  # day -42: qualified → proposal (rule 8 with -75)
+    ("quote_sent",      30,  0),  # day -30: first quote (rule 2 trigger)
+    ("call_logged",     29, 18),  # day -29 +6h: followup (rule 6 — 24h window)
+    ("note_added",      14,  0),  # day -14: noise/colour
+]
 
 
 def _pick_signal_type() -> tuple[str, str]:
@@ -173,18 +202,31 @@ def _pick_signal_type() -> tuple[str, str]:
     return "positive", "low"
 
 
-def _spread_timestamps(
-    n: int, window_days: int, now: datetime
-) -> list[datetime]:
-    """Generate ``n`` timestamps within the last ``window_days``,
-    weighted toward the *recent* end so the tokenizer's 180-day
-    window catches most of them."""
-    out: list[datetime] = []
-    for _ in range(n):
-        # Bias toward recent: square-root distribution.
-        days_back = (RNG.random() ** 0.5) * window_days
-        out.append(now - timedelta(days=days_back, hours=RNG.randint(0, 23)))
-    out.sort()
+def _build_pattern(
+    *, count: int, window_days: int, now: datetime
+) -> list[tuple[str, datetime]]:
+    """Materialise the token-firing template into ``(activity_type, ts)``
+    pairs in chronological order.
+
+    ``count`` selects how many of the 8-event template to emit (4-8).
+    The template is ordered so the first 4 events already trigger
+    rules 1+2+6 (buyer-reply, meeting-before-quote, 24h-followup), so
+    truncating to a smaller count still produces a non-empty token
+    list. Timestamps are derived from the template offsets but
+    rescaled to fit ``window_days`` if it's tighter than the default
+    75-day pattern span.
+    """
+    pattern = _PATTERN_SEQUENCE[:count]
+    max_days = max(d for _, d, _ in pattern)
+    scale = min(1.0, window_days / max_days) if max_days else 1.0
+    out: list[tuple[str, datetime]] = []
+    for act_type, days_back, hours_back in pattern:
+        offset = timedelta(
+            days=days_back * scale,
+            hours=hours_back * scale,
+        )
+        out.append((act_type, now - offset))
+    out.sort(key=lambda p: p[1])
     return out
 
 
@@ -217,21 +259,32 @@ async def main_async(
 
         plan: list[tuple[Opportunity, int]] = []
         for opp in opps:
+            # Skip predicate counts only token-firing v2 seed rows
+            # (and any non-seed organic activity). The v1 seed rows
+            # had non-canonical activity_types that don't trigger
+            # tokenizer rules, so they shouldn't count toward the
+            # "already has enough activity" threshold.
             existing = (
                 await db.execute(
                     select(func.count(ActivityLog.id)).where(
-                        ActivityLog.opportunity_id == opp.id
+                        ActivityLog.opportunity_id == opp.id,
+                        (
+                            ActivityLog.source_ref.is_(None)
+                            | ~ActivityLog.source_ref.like("seed:%")
+                        ),
                     )
                 )
             ).scalar_one()
             if existing >= min_activities:
                 logger.info(
-                    "  opp=%d (%r) skipped: already has %d activities",
+                    "  opp=%d (%r) skipped: already has %d non-v1-seed activities",
                     opp.id, opp.title, existing,
                 )
                 continue
-            count = RNG.randint(4, 8)
-            plan.append((opp, count))
+            # Always emit the full 8-event token-firing template so
+            # rules 1+2+6+8 fire. Smaller counts would still produce
+            # tokens but with weaker coverage.
+            plan.append((opp, len(_PATTERN_SEQUENCE)))
 
         logger.info(
             "Plan: %d opps will be seeded (min_activities=%d, window=%dd)",
@@ -248,13 +301,21 @@ async def main_async(
         total_act = total_evt = total_sig = 0
 
         for opp, count in plan:
-            timestamps = _spread_timestamps(count, window_days, now)
-            for i, ts in enumerate(timestamps):
-                act_type = RNG.choice(_ACTIVITY_POOL)
+            sequence = _build_pattern(count=count, window_days=window_days, now=now)
+            for i, (act_type, ts) in enumerate(sequence):
                 summary = _pick_summary(act_type)
                 # Stable source_ref so the V4 shadow-sync de-dupes
-                # on idempotent re-runs.
-                source_ref = f"seed:opp{opp.id}:act{i}:{act_type}"
+                # on idempotent re-runs (and so re-running this
+                # script after a vocabulary fix doesn't duplicate
+                # rows that already use the new naming).
+                # ``seed.v2`` prefix: the v1 prefix used registry
+                # names like ``call`` / ``meeting`` that the V6
+                # tokenizer doesn't match. Those rows still live in
+                # the DB as inert noise; v2 rows use tokenizer-canon
+                # vocabulary so rules actually fire. Skipping a
+                # prefix bump would risk source_ref collisions in
+                # sales_events_shadow on re-runs.
+                source_ref = f"seed.v2:opp{opp.id}:act{i}:{act_type}"
                 db.add(
                     ActivityLog(
                         activity_type=act_type,
@@ -271,25 +332,27 @@ async def main_async(
                 )
                 total_act += 1
 
-                # Mirror ~half of the activities into opportunity_events
-                # so the legacy timeline view also lights up.
-                if RNG.random() < 0.5:
-                    db.add(
-                        OpportunityEvent(
-                            opportunity_id=opp.id,
-                            event_type=_EVENT_TYPE_MAP.get(act_type, "note"),
-                            entity_type="opportunity",
-                            entity_id=opp.id,
-                            description=summary,
-                            occurred_at=ts,
-                        )
+                # Mirror every activity into opportunity_events so
+                # both projections feed the shadow with consistent
+                # timing — the tokenizer reads from the *union*, so
+                # duplicate signals just reinforce rule firing.
+                db.add(
+                    OpportunityEvent(
+                        opportunity_id=opp.id,
+                        event_type=_EVENT_TYPE_MAP.get(act_type, "note"),
+                        entity_type="opportunity",
+                        entity_id=opp.id,
+                        description=summary,
+                        occurred_at=ts,
                     )
-                    total_evt += 1
+                )
+                total_evt += 1
 
             # 0-2 signals per opp.
             sig_count = RNG.choice([0, 1, 1, 2])
+            last_ts = sequence[-1][1] if sequence else now
             for j in range(sig_count):
-                ts = timestamps[-1] if timestamps else now
+                ts = last_ts
                 st, sv = _pick_signal_type()
                 db.add(
                     OpportunitySignal(
