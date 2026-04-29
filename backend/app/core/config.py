@@ -63,6 +63,36 @@ class Settings(BaseSettings):
                     "CORS_ORIGINS=* is forbidden in production. "
                     "List explicit origins (e.g. https://app.example.com)."
                 )
+
+            # E2E test credentials must NOT exist in production env.
+            # They were set up for the synthetic Playwright run
+            # (``E2E_*_EMAIL`` / ``E2E_*_PASSWORD``) and any prod
+            # bleed-over creates accounts a tester can log in to.
+            # Surface as a hard error during ``pydantic_settings``
+            # parse so the app refuses to boot until they're cleared
+            # from Render.
+            import os
+            e2e_keys = [
+                k for k in os.environ
+                if k.startswith("E2E_") and k.endswith(("_EMAIL", "_PASSWORD"))
+            ]
+            if e2e_keys:
+                raise ValueError(
+                    "E2E credentials must not be set in production: "
+                    + ", ".join(sorted(e2e_keys))
+                    + " — move them to staging-only env."
+                )
+
+            # ``ENABLE_ALL_FEATURES`` is a deprecated env that was
+            # never wired into config. Surface a warning so the
+            # operator notices it's a no-op (and probably wanted
+            # to set the individual ``FEATURE_*`` flags).
+            if os.environ.get("ENABLE_ALL_FEATURES"):
+                _log.getLogger(__name__).warning(
+                    "ENABLE_ALL_FEATURES is set but unused. "
+                    "Set individual FEATURE_* flags in Render instead, "
+                    "then remove this env var."
+                )
         return self
 
     # ── CORS ──

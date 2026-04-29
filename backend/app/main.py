@@ -48,6 +48,32 @@ async def lifespan(app: FastAPI):
     """Async lifespan: startup and shutdown logic."""
     init_sentry(dsn=os.environ.get("SENTRY_DSN"), env=settings.ENV)
 
+    # Production observability sanity check — log the Sentry-side
+    # configuration once at boot so an operator scanning Render
+    # logs immediately sees what's wired and what isn't.
+    # Doesn't print secret values, only "configured/missing" booleans.
+    if settings.ENV == "production":
+        _obs_log = logging.getLogger(__name__)
+        sentry_backend = bool(os.environ.get("SENTRY_DSN"))
+        sentry_frontend = bool(os.environ.get("VITE_SENTRY_DSN"))
+        sentry_release_token = bool(os.environ.get("SENTRY_AUTH_TOKEN"))
+        sentry_tunnel = bool(os.environ.get("SENTRY_ALLOWED_PROJECT_IDS"))
+        _obs_log.info(
+            "observability: sentry_backend=%s sentry_frontend=%s "
+            "sentry_release_token=%s sentry_tunnel_allowlist=%s",
+            sentry_backend, sentry_frontend,
+            sentry_release_token, sentry_tunnel,
+        )
+        if not sentry_backend:
+            _obs_log.warning(
+                "SENTRY_DSN not set — backend errors will not reach Sentry."
+            )
+        if not sentry_frontend:
+            _obs_log.warning(
+                "VITE_SENTRY_DSN not set on frontend service — "
+                "frontend errors will not reach Sentry."
+            )
+
     from app.core.database import Base
 
     _is_postgres = settings.DATABASE_URL.startswith("postgresql")

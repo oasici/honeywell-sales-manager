@@ -1,0 +1,118 @@
+name: Sentry Open Issues
+
+# Read-only Sentry API query: list unresolved issues for the
+# backend + frontend projects, sorted by event count, with stack
+# traces summarised. Output goes straight to the GH Actions Job
+# Summary so the link is shareable.
+#
+# Required repo secret:
+#   SENTRY_AUTH_TOKEN — create at:
+#     https://sentry.io/settings/account/api/auth-tokens/
+#   Scopes needed: project:read, event:read.
+#   Add via:
+#     gh secret set SENTRY_AUTH_TOKEN \
+#       --body "<token>" --repo oasici/honeywell-sales-manager
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Sentry project slug (default: honeywell-frontend)'
+        required: false
+        default: 'honeywell-frontend'
+      org:
+        description: 'Sentry org slug'
+        required: false
+        default: 'onur-asc'
+      limit:
+        description: 'Max issues to list'
+        required: false
+        default: '25'
+      query:
+        description: 'Sentry search query (default: is:unresolved)'
+        required: false
+        default: 'is:unresolved'
+
+jobs:
+  list-issues:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify SENTRY_AUTH_TOKEN secret is set
+        env:
+          TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::SENTRY_AUTH_TOKEN secret missing."
+            echo "::error::Create one at https://sentry.io/settings/account/api/auth-tokens/"
+            echo "::error::Scopes needed: project:read, event:read"
+            echo "::error::Then: gh secret set SENTRY_AUTH_TOKEN --body \"<token>\""
+            exit 1
+          fi
+
+      - name: Query Sentry issues
+        env:
+          TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          ORG: ${{ github.event.inputs.org }}
+          PROJECT: ${{ github.event.inputs.project }}
+          LIMIT: ${{ github.event.inputs.limit }}
+          QUERY: ${{ github.event.inputs.query }}
+        run: |
+          set -euo pipefail
+
+          API="https://sentry.io/api/0/projects/${ORG}/${PROJECT}/issues/"
+          # URL-encode the query
+          QUERY_ENC=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['QUERY']))")
+
+          echo "Fetching: ${API}?query=${QUERY_ENC}&limit=${LIMIT}"
+
+          RESPONSE=$(curl -sS \
+            -H "Authorization: Bearer ${TOKEN}" \
+            "${API}?query=${QUERY_ENC}&limit=${LIMIT}&sort=freq")
+
+          if [ -z "$RESPONSE" ] || echo "$RESPONSE" | grep -q '"detail":'; then
+            echo "::error::Sentry API call failed:"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          # Parse + render to Markdown.
+          python3 <<PY > issues.md
+          import json
+          import os
+
+          response = json.loads('''$RESPONSE''')
+          if isinstance(response, dict) and "detail" in response:
+              print(f"❌ Sentry error: {response['detail']}")
+              raise SystemExit(1)
+
+          issues = response if isinstance(response, list) else []
+          org = os.environ['ORG']
+          project = os.environ['PROJECT']
+
+          print(f"# Sentry — {org}/{project}")
+          print()
+          print(f"**Query:** \`{os.environ['QUERY']}\`")
+          print(f"**Total returned:** {len(issues)}")
+          print()
+
+          if not issues:
+              print("_No matching issues — clean slate._")
+          else:
+              print("| Count | Users | Level | Title | Last seen |")
+              print("|------:|------:|-------|-------|-----------|")
+              for issue in issues[:int(os.environ['LIMIT'])]:
+                  title = (issue.get("title") or "").replace("|", "\\|")
+                  count = issue.get("count", "?")
+                  users = issue.get("userCount", "?")
+                  level = issue.get("level", "?")
+                  last = (issue.get("lastSeen") or "")[:19]
+                  url = issue.get("permalink", "")
+                  cell_title = f"[{title}]({url})" if url else title
+                  print(f"| {count} | {users} | {level} | {cell_title} | {last} |")
+          PY
+
+          cat issues.md
+          if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+            cat issues.md >> "$GITHUB_STEP_SUMMARY"
+          fi

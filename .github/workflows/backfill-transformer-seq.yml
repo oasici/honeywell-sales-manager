@@ -1,0 +1,87 @@
+name: Backfill V12 Transformer Sequence Embeddings
+
+# One-shot: runs ``scripts/backfill_transformer_seq.py`` against
+# PROD_DATABASE_URL after pre-syncing the V4 sales-events shadow
+# (so the V6 tokenizer has data to chew on) and the V8 BoW table
+# (deal_similarity_service blends V8 + V12 — both must be present
+# for the 4-component blend to actually use the V12 vector).
+#
+# Required secret:
+#   PROD_DATABASE_URL — same one used by manual-migrate.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "APPLY" to actually run the backfill (otherwise dry-run)'
+        required: true
+        default: ''
+      sync_shadow_days:
+        description: 'Pre-sync sales_events_shadow for last N days (0 = skip)'
+        required: false
+        default: '180'
+      run_v8_first:
+        description: 'Pre-run V8 BoW backfill (recommended: true)'
+        required: false
+        default: 'true'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install backend deps
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Verify PROD_DATABASE_URL is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      # Pre-step 1: V8 BoW (also pre-syncs the V4 shadow). Skipped
+      # if run_v8_first=false, e.g. when re-running V12 only.
+      - name: Pre-run V8 BoW backfill
+        if: ${{ github.event.inputs.run_v8_first == 'true' && github.event.inputs.confirm == 'APPLY' }}
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          SHADOW_DAYS="${{ github.event.inputs.sync_shadow_days }}"
+          ARGS=(--status active --apply)
+          if [ -n "$SHADOW_DAYS" ] && [ "$SHADOW_DAYS" != "0" ]; then
+            ARGS+=(--sync-shadow-days "$SHADOW_DAYS")
+          fi
+          python -m scripts.backfill_text_embeddings "${ARGS[@]}"
+
+      # Pre-step 2: dry-run summary so the operator log shows what
+      # the apply step is about to encode.
+      - name: V12 dry-run summary
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          # ``backfill_transformer_seq.py`` short-circuits when the
+          # flag is off — set it explicitly so the dry-run is
+          # informative even if the prod env doesn't have it on yet.
+          FEATURE_TRANSFORMER_SEQ_EMBEDDING: 'true'
+        run: |
+          python -m scripts.backfill_transformer_seq
+
+      - name: Apply V12 backfill (only when confirm=APPLY)
+        if: ${{ github.event.inputs.confirm == 'APPLY' }}
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          FEATURE_TRANSFORMER_SEQ_EMBEDDING: 'true'
+        run: |
+          python -m scripts.backfill_transformer_seq --apply
