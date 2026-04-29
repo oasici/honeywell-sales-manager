@@ -1,0 +1,98 @@
+name: Seed Activity History
+
+# One-shot workflow to fill the V4 → V5 → V8 → V12 dataflow gap on
+# fresh production deployments: synthesises 4-8 ActivityLog rows
+# (plus mirrored OpportunityEvent + OpportunitySignal rows) per
+# Opportunity that currently has < min_activities entries, so the
+# downstream embedding/backfill jobs have something to tokenise.
+#
+# Idempotent: re-running skips opps that already meet the threshold,
+# and ``source_ref`` de-dupes individual ActivityLog rows even if the
+# threshold is lowered. Does NOT touch stages, owners, customers,
+# quotes, leads, or spare_parts — purely additive on activity tables.
+#
+# Required secret:
+#   PROD_DATABASE_URL — postgres URL with write access. Use the
+#   "External Database URL" from Render → Database → Connections.
+#
+# Typical sequence on a freshly bootstrapped tenant:
+#   1. seed-activity-history.yml         (this workflow, confirm=APPLY)
+#   2. backfill-text-embeddings.yml      (V4 shadow + V8 BoW)
+#   3. backfill-transformer-seq.yml      (V12 transformer encoding)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "APPLY" to actually insert rows (otherwise dry-run)'
+        required: true
+        default: ''
+      min_activities:
+        description: 'Skip opps already having >= N activities'
+        required: false
+        default: '3'
+      window_days:
+        description: 'Spread synthesised timestamps over the last N days'
+        required: false
+        default: '90'
+      opportunity_id:
+        description: 'Optional: restrict to a single opportunity id (blank = all)'
+        required: false
+        default: ''
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Verify PROD_DATABASE_URL secret is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      # The script's dry-run mode prints which opps would be seeded
+      # plus the row counts. Always run it first so the workflow log
+      # records the planned diff before the operator hits APPLY.
+      - name: Dry-run plan
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          ARGS=(
+            "--min-activities" "${{ github.event.inputs.min_activities }}"
+            "--window-days" "${{ github.event.inputs.window_days }}"
+          )
+          if [ -n "${{ github.event.inputs.opportunity_id }}" ]; then
+            ARGS+=("--opp" "${{ github.event.inputs.opportunity_id }}")
+          fi
+          python -m scripts.seed_activity_history "${ARGS[@]}"
+
+      - name: Apply inserts (only when confirm=APPLY)
+        if: ${{ github.event.inputs.confirm == 'APPLY' }}
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          ARGS=(
+            "--apply"
+            "--min-activities" "${{ github.event.inputs.min_activities }}"
+            "--window-days" "${{ github.event.inputs.window_days }}"
+          )
+          if [ -n "${{ github.event.inputs.opportunity_id }}" ]; then
+            ARGS+=("--opp" "${{ github.event.inputs.opportunity_id }}")
+          fi
+          python -m scripts.seed_activity_history "${ARGS[@]}"
