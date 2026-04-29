@@ -1,0 +1,210 @@
+name: Prod DB Audit (read-only)
+
+# Reads the prod schema + key row counts so we can spot drift
+# without ssh'ing into Render. Runs only on workflow_dispatch — no
+# scheduled job because the audit hits the prod connection pool.
+#
+# Required secret:
+#   PROD_DATABASE_URL — same secret used by manual-migrate.yml.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal deps
+        run: pip install asyncpg==0.30.0
+
+      - name: Verify PROD_DATABASE_URL is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      - name: Schema + row count audit
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          python <<'PY'
+          import asyncio
+          import os
+          import re
+
+          import asyncpg
+
+
+          # The script writes a Markdown report to stdout that GitHub
+          # renders inline in the workflow log, so an operator skimming
+          # the run page sees the picture without downloading artefacts.
+          REPORT: list[str] = []
+
+
+          def w(line: str = "") -> None:
+              REPORT.append(line)
+
+
+          # Convert sqlalchemy-style URL to asyncpg's expected scheme.
+          url = os.environ["DATABASE_URL"]
+          url = re.sub(r"^postgresql\+asyncpg://", "postgresql://", url)
+          url = re.sub(r"^postgres://", "postgresql://", url)
+
+
+          async def main():
+              conn = await asyncpg.connect(url, timeout=10)
+              try:
+                  # 1) Migration head
+                  head = await conn.fetchval(
+                      "SELECT version_num FROM alembic_version LIMIT 1"
+                  )
+                  w("# Production DB audit")
+                  w("")
+                  w(f"**Alembic head:** `{head}`")
+                  w("")
+
+                  # 2) Tenant inventory
+                  tenants = await conn.fetch(
+                      "SELECT id, name, region, plan_tier FROM tenants ORDER BY id"
+                  )
+                  w("## Tenants")
+                  w("")
+                  if not tenants:
+                      w("_(no rows)_")
+                  else:
+                      w("| id | name | region | plan_tier |")
+                      w("|----|------|--------|-----------|")
+                      for t in tenants:
+                          w(f"| {t['id']} | {t['name']} | {t['region'] or '-'} | {t['plan_tier']} |")
+                  w("")
+
+                  # 3) tenant_id NULL counts on the V8/V12 core tables.
+                  # These should all be 0 once bootstrap_default_tenant has run.
+                  w("## NULL `tenant_id` rows (V8/V12 core)")
+                  w("")
+                  w("| table | total | null_tenant_id |")
+                  w("|-------|------:|---------------:|")
+                  for table in ("users", "customers", "opportunities", "quotes", "leads"):
+                      total = await conn.fetchval(f"SELECT COUNT(*) FROM {table}")
+                      nulls = await conn.fetchval(
+                          f"SELECT COUNT(*) FROM {table} WHERE tenant_id IS NULL"
+                      )
+                      flag = " ⚠️" if nulls > 0 else ""
+                      w(f"| {table} | {total} | {nulls}{flag} |")
+                  w("")
+
+                  # 4) V13 audit_logs.tenant_id rollout — show fill ratio.
+                  total_audit = await conn.fetchval("SELECT COUNT(*) FROM audit_logs")
+                  null_audit_tenant = await conn.fetchval(
+                      "SELECT COUNT(*) FROM audit_logs WHERE tenant_id IS NULL"
+                  )
+                  w("## V13 audit_logs.tenant_id coverage")
+                  w("")
+                  w(f"- Total rows: **{total_audit}**")
+                  w(f"- Rows with `tenant_id IS NULL`: **{null_audit_tenant}** "
+                    f"(expected: legacy rows pre-V13 migration)")
+                  w("")
+
+                  # 5) Catalog snapshot — quick sanity that the spare-parts
+                  # data didn't disappear under us.
+                  active_parts = await conn.fetchval(
+                      "SELECT COUNT(*) FROM spare_parts WHERE is_active = true"
+                  )
+                  total_parts = await conn.fetchval("SELECT COUNT(*) FROM spare_parts")
+                  total_quotes = await conn.fetchval("SELECT COUNT(*) FROM quotes")
+                  total_opps = await conn.fetchval("SELECT COUNT(*) FROM opportunities")
+                  total_users = await conn.fetchval("SELECT COUNT(*) FROM users")
+                  w("## Snapshot")
+                  w("")
+                  w(f"- spare_parts: **{active_parts}** active / {total_parts} total")
+                  w(f"- quotes: **{total_quotes}**")
+                  w(f"- opportunities: **{total_opps}**")
+                  w(f"- users: **{total_users}**")
+                  w("")
+
+                  # 6) V11 RAG / V12 transformer / V10 parts intel readiness.
+                  # Tables exist? Rows in them?
+                  for table, label in [
+                      ("opportunity_text_embeddings", "V8 BoW seq embeddings"),
+                      ("opportunity_transformer_seq_embeddings", "V12 transformer embeddings"),
+                  ]:
+                      exists = await conn.fetchval(
+                          "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name=$1)",
+                          table,
+                      )
+                      count = await conn.fetchval(f"SELECT COUNT(*) FROM {table}") if exists else None
+                      w(f"- {label} (`{table}`): exists={exists}, rows={count}")
+                  w("")
+
+                  # 7) Index inventory on the hot tenant_id columns. Missing
+                  # indexes → slow per-tenant queries, easy to spot here.
+                  idx_rows = await conn.fetch(
+                      """
+                      SELECT t.relname AS table_name, i.relname AS index_name
+                      FROM pg_class t
+                      JOIN pg_index ix ON ix.indrelid = t.oid
+                      JOIN pg_class i ON ix.indexrelid = i.oid
+                      JOIN pg_attribute a
+                        ON a.attrelid = t.oid
+                       AND a.attnum = ANY(ix.indkey)
+                      WHERE a.attname = 'tenant_id'
+                        AND t.relkind = 'r'
+                      ORDER BY t.relname, i.relname
+                      """
+                  )
+                  w("## Indexes on `tenant_id` columns")
+                  w("")
+                  if not idx_rows:
+                      w("_(none — that's a problem)_")
+                  else:
+                      for r in idx_rows:
+                          w(f"- `{r['table_name']}` → `{r['index_name']}`")
+                  w("")
+
+                  # 8) Connection-pool / deadlock indicators: any long-running
+                  # transactions? In a healthy install this is empty.
+                  long_txns = await conn.fetch(
+                      """
+                      SELECT pid, state, age(clock_timestamp(), xact_start) AS age, query
+                      FROM pg_stat_activity
+                      WHERE xact_start IS NOT NULL
+                        AND clock_timestamp() - xact_start > interval '60 seconds'
+                      ORDER BY xact_start
+                      LIMIT 5
+                      """
+                  )
+                  w("## Long-running transactions (>60s)")
+                  w("")
+                  if not long_txns:
+                      w("_None — pool healthy._")
+                  else:
+                      w("⚠️ Found long-running txns:")
+                      for r in long_txns:
+                          w(f"- pid={r['pid']} state={r['state']} age={r['age']}")
+                  w("")
+
+              finally:
+                  await conn.close()
+
+              # Surface the report in two places: the workflow log AND
+              # the GitHub Actions Job Summary so it's clickable later.
+              md = "\n".join(REPORT)
+              print(md)
+              summary = os.environ.get("GITHUB_STEP_SUMMARY")
+              if summary:
+                  with open(summary, "a") as f:
+                      f.write(md)
+
+
+          asyncio.run(main())
+          PY
