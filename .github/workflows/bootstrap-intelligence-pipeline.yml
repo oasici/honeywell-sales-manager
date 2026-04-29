@@ -1,0 +1,95 @@
+name: Bootstrap Intelligence Pipeline
+
+# Fills the V4 → V5 derived/aggregate tables on a fresh tenant.
+# Phase 1 seeds the raw inputs operators normally write (stakeholders,
+# objections, buyer_state_history, revenue_signals). Phase 2 then
+# runs the actual production V4/V5 nightly code paths, which compute
+# the rest from the V1 backbone + raw context — no synthetic data
+# beyond phase 1.
+#
+# Idempotent end-to-end: phase 1 skips opps that already have rows in
+# each target table; phase 2 production code paths upsert by
+# (id, snapshot_date) so re-runs only refresh today's snapshot.
+#
+# Required secret:
+#   PROD_DATABASE_URL — same one used by manual-migrate.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "APPLY" to actually execute (otherwise dry-run)'
+        required: true
+        default: ''
+      phase:
+        description: 'Restrict to phase 1 (raw seed) or 2 (run nightlies); blank = both'
+        required: false
+        default: ''
+      install_transformer_encoder:
+        description: 'Install sentence-transformers/torch on the runner (needed for V12 transformer encoding)'
+        required: false
+        default: 'false'
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      # The V5 intelligence nightly's similarity step calls the V12
+      # encoder when FEATURE_TRANSFORMER_SEQ_EMBEDDING is on. Without
+      # the library it falls back to V8 (fine, just less rich
+      # embeddings). Toggle this when you want the runner to also
+      # populate ``opportunity_transformer_seq_embeddings`` rows.
+      - name: Install transformer encoder (runner-local)
+        if: ${{ github.event.inputs.install_transformer_encoder == 'true' }}
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu \
+            torch==2.4.1
+          pip install sentence-transformers==3.1.1 transformers==4.45.2
+
+      - name: Verify PROD_DATABASE_URL secret is set
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is missing."
+            exit 1
+          fi
+
+      - name: Dry-run plan
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          # Transformer flag must be on for V12 encoding even in
+          # dry-run mode so the script's import of the encoder
+          # module doesn't trip the short-circuit guard.
+          FEATURE_TRANSFORMER_SEQ_EMBEDDING: 'true'
+        run: |
+          ARGS=()
+          if [ -n "${{ github.event.inputs.phase }}" ]; then
+            ARGS+=("--phase" "${{ github.event.inputs.phase }}")
+          fi
+          python -m scripts.bootstrap_intelligence_pipeline "${ARGS[@]}"
+
+      - name: Apply (only when confirm=APPLY)
+        if: ${{ github.event.inputs.confirm == 'APPLY' }}
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          FEATURE_TRANSFORMER_SEQ_EMBEDDING: 'true'
+        run: |
+          ARGS=("--apply")
+          if [ -n "${{ github.event.inputs.phase }}" ]; then
+            ARGS+=("--phase" "${{ github.event.inputs.phase }}")
+          fi
+          python -m scripts.bootstrap_intelligence_pipeline "${ARGS[@]}"
