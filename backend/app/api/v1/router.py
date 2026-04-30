@@ -45,6 +45,7 @@ from app.api.v1.territories import router as territories_router
 from app.api.v1.revenue_recognition import router as revenue_recognition_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.config import router as config_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.stakeholders import router as stakeholders_router
 from app.api.v1.customer_health import router as customer_health_router
@@ -74,6 +75,7 @@ from app.api.v1.users import router as users_router
 v1_router = APIRouter()
 
 v1_router.include_router(auth_router)
+v1_router.include_router(config_router)
 v1_router.include_router(dashboard_router)
 v1_router.include_router(emails_router)
 v1_router.include_router(parts_router)

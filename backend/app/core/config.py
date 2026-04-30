@@ -323,6 +323,16 @@ class Settings(BaseSettings):
     V7_LLM_OBJECTION_TEXT_THRESHOLD: int = 800
 
     # --- V9 V2/V3 gap closure ---
+    #
+    # WARNING — V9 endpoints are backend-only as of 2026-04-30. The
+    # data audit found zero frontend clients consuming any of these
+    # routes (no api.ts surface, no router entries, no widgets), so
+    # flipping a flag to True only exposes endpoints that produce
+    # 404s on every UI navigation. Keep these defaulted False until
+    # the V9 UI sprint lands; see docs/backlog/V9-UI.md for the work
+    # required (CRM-connections page, calendar consent page, board
+    # page, NL search box) before un-gating.
+    #
     # Sprint K — bidirectional CRM sync (Salesforce / HubSpot).
     FEATURE_V9_CRM_SYNC: bool = False
     # Sprint L — Calendar OAuth + meeting auto-log.

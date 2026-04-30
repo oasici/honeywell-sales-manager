@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { initSentry } from './lib/sentry';
+import { FeatureFlagProvider } from './contexts/FeatureFlagContext';
 import App from './app/App';
 import './index.css';
 
@@ -26,7 +27,13 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
-          <App />
+          {/* FeatureFlagProvider wraps the whole app so any route or
+              sidebar entry can call useFeatureFlag() without prop-
+              drilling. The provider itself delays nothing — pages can
+              render placeholders while the flags fetch lands. */}
+          <FeatureFlagProvider>
+            <App />
+          </FeatureFlagProvider>
           {/* Toast styling tuned to design system: 12px radius, slate-200
               border, --shadow-lg elevation, white surface (light) / slate-900
               (dark). richColors keeps the colored variants (success/error/

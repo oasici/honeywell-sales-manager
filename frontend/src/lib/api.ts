@@ -2902,6 +2902,27 @@ export interface NetworkAnomaly {
   detected_at: string | null;
 }
 
+// ── Public Config (feature flags) ───────────────────
+//
+// Returns the live feature-flag state for the running deployment so
+// the frontend can hide routes, sidebar entries, and dashboards that
+// depend on flags currently disabled. Backend allow-lists which
+// flags are exposed (see app/api/v1/config.py); secrets and DB URLs
+// are intentionally never returned.
+
+export interface FeatureFlagsResponse {
+  env: string;
+  release: string;
+  flags: Record<string, boolean>;
+}
+
+export const configApi = {
+  getFeatureFlags: async (): Promise<FeatureFlagsResponse> => {
+    const { data } = await api.get<FeatureFlagsResponse>('/config/feature-flags');
+    return data;
+  },
+};
+
 export const v5IntelligenceApi = {
   getSimilar: async (opportunityId: number, limit = 5) => {
     const { data } = await api.get(`/v5/opportunities/${opportunityId}/similar`, {

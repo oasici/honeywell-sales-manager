@@ -25,6 +25,7 @@ const ReportsPage = lazy(() => import('../features/admin/ReportsPage'));
 const UserManagementPage = lazy(() => import('../features/admin/UserManagementPage'));
 const AuditLogPage = lazy(() => import('../features/admin/AuditLogPage'));
 const DataExportPage = lazy(() => import('../features/admin/DataExportPage'));
+const SystemHealthPage = lazy(() => import('../features/admin/SystemHealthPage'));
 
 // v2 pages (behind FEATURE_V2_BOARD flag)
 const BoardPage = lazy(() => import('../features/board/BoardPage'));
@@ -341,6 +342,16 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <AuditLogPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/system-health"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <SystemHealthPage />
               </ErrorBoundary>
             </Suspense>
           }

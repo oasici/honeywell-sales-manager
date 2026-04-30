@@ -47,6 +47,7 @@ import {
   UsersRound,
   Database,
   History,
+  Activity,
 } from 'lucide-react';
 import { approvalsApi } from '../../lib/api';
 
@@ -469,6 +470,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                 <NavLink to="/kvkk-export" className={navLinkClass} onClick={onNavigate}>
                   <Database size={18} className="shrink-0" />
                   KVKK Veri Aktarma
+                </NavLink>
+                <NavLink to="/admin/system-health" className={navLinkClass} onClick={onNavigate}>
+                  <Activity size={18} className="shrink-0" />
+                  Sistem Sağlığı
                 </NavLink>
               </>
             )}
