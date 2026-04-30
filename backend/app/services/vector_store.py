@@ -57,22 +57,51 @@ def _ensure_collection(name: str, vector_size: int = VECTOR_SIZE) -> None:
 
 
 def _get_embedding_model():
-    """Lazy-load and cache the embedding model (singleton)."""
-    global _embedding_model
-    if _embedding_model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
+    """Lazy-load and cache the embedding model (singleton).
 
-            _embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-            logger.info("Embedding model loaded and cached")
-        except ImportError:
-            # Warning, not error: the Docker image intentionally skips
-            # sentence-transformers (it's ~500 MB of CUDA wheels) when
-            # FEATURE_RAG=false. Sentry's LoggingIntegration promotes
-            # ERROR to events; we don't want a Sentry issue every restart
-            # in a configuration that's working as designed.
-            logger.warning("sentence-transformers not installed — RAG unavailable")
-            raise RuntimeError("sentence-transformers required for RAG")
+    On Render the RAG deps install in the background after the
+    container starts (see ``scripts/start.sh``), so this function
+    can be called *before* sentence-transformers is importable. We
+    distinguish three states to make the failure mode legible:
+
+      * ``$HOME/.rag_deps_installed`` exists → install is done; if
+        the import still fails it's a real misconfiguration.
+      * Marker file missing AND ``INSTALL_RAG_DEPS=1`` → install
+        likely still in progress, surface as RAGNotReady so the API
+        layer can return 503 + a Retry-After hint instead of 500.
+      * ``INSTALL_RAG_DEPS`` unset → operator hasn't enabled RAG;
+        the legacy "not available" RuntimeError stays.
+    """
+    global _embedding_model
+    if _embedding_model is not None:
+        return _embedding_model
+
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError:
+        import os
+        from pathlib import Path
+
+        marker_path = Path(os.path.expanduser("~/.rag_deps_installed"))
+        install_requested = os.environ.get("INSTALL_RAG_DEPS") == "1"
+
+        if install_requested and not marker_path.exists():
+            logger.info(
+                "RAG deps install still in progress — sentence-transformers not yet importable"
+            )
+            raise RuntimeError(
+                "RAG dependencies are still installing in the background; "
+                "retry in a few minutes."
+            )
+
+        # Either the operator hasn't requested RAG (clean degraded
+        # state) or the install completed but the import still fails
+        # (genuine misconfiguration).
+        logger.warning("sentence-transformers not installed — RAG unavailable")
+        raise RuntimeError("sentence-transformers required for RAG")
+
+    _embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+    logger.info("Embedding model loaded and cached")
     return _embedding_model
 
 
