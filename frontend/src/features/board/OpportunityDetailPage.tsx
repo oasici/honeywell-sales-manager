@@ -36,6 +36,7 @@ import { SummarySourceLinks } from '../../components/ai/SummarySourceLinks';
 import ActivityLogPanel from './ActivityLogPanel';
 import CommentThread from './CommentThread';
 import BuyerRelationshipMap from '../opportunities/BuyerRelationshipMap';
+import OpportunityIntelligencePanel from '../intelligence/OpportunityIntelligencePanel';
 import type {
   OpportunityEvent,
   ForecastAdjustment,
@@ -692,6 +693,15 @@ export default function OpportunityDetailPage() {
             )}
           </Card>
         </div>
+      </div>
+
+      {/* V4/V5 intelligence — collapsible panel showing momentum
+          drivers, similar deals, objections, and timing windows.
+          Defaults closed so the page stays compact for users who
+          don't need the deeper analytics; preference persists in
+          sessionStorage. */}
+      <div className="mt-6">
+        <OpportunityIntelligencePanel opportunityId={oppId} />
       </div>
 
       {/* Deal Health Section */}

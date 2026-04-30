@@ -906,10 +906,13 @@ export interface PlaybookExecution {
   id: number;
   playbook_id: number;
   opportunity_id: number | null;
+  triggered_by_signal_id?: number | null;
   status: string;
   current_step: number;
   started_at: string;
   completed_at: string | null;
+  /** When the next step is scheduled to run (delayed execution). */
+  next_action_at?: string | null;
 }
 
 export interface PlaybookTemplate {

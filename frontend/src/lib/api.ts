@@ -1109,6 +1109,23 @@ export const dnaApi = {
   },
 };
 
+/**
+ * Driver behind a buyer-state classification or a decision-gap.
+ * Each driver is a small dict the backend builds from feature-store
+ * deltas (stakeholder added, discount widened, meeting held, etc.).
+ * Modelled here as an open-ended record so unknown driver types
+ * still render ``label`` + ``magnitude`` without breaking the page.
+ */
+export interface IntelligenceDriver {
+  driver_type?: string;
+  label?: string;
+  magnitude?: number | null;
+  direction?: 'positive' | 'negative' | 'neutral';
+  weight?: number;
+  evidence?: string;
+  [key: string]: unknown;
+}
+
 export const buyerStateApi = {
   getTimeline: async (opportunityId: number, limit = 30) => {
     const { data } = await api.get(`/buyer-state/opportunities/${opportunityId}/timeline`, {
@@ -1119,7 +1136,7 @@ export const buyerStateApi = {
         snapshot_date: string;
         state: string;
         confidence: number;
-        drivers: unknown[];
+        drivers: IntelligenceDriver[];
       }>;
       total: number;
     };
@@ -1138,7 +1155,7 @@ export const decisionGapsApi = {
         expected_roles: string[];
         observed_roles: string[];
         recommended_actions: string[];
-        drivers: unknown[];
+        drivers: IntelligenceDriver[];
         created_at: string | null;
       }>;
       total: number;
@@ -2776,6 +2793,157 @@ export const sequenceV2Api = {
     if (eventType) params.set('event_type', eventType);
     const { data } = await api.get(`/engagement/sequences/domain-events?${params}`);
     return data;
+  },
+};
+
+// ── V4 Feature Store ─────────────────────────────────
+//
+// Per-opportunity daily feature snapshot (momentum, drivers, buyer
+// state, etc.). The audit found this endpoint had no client wired up
+// at all, so the deal-health card couldn't surface momentum drivers
+// even though the backend was computing them nightly.
+export interface OpportunityFeatureSnapshot {
+  opportunity_id: number;
+  snapshot_date: string;
+  deal_age_days: number | null;
+  days_since_last_rep_touch: number | null;
+  days_since_last_buyer_touch: number | null;
+  rep_touch_count_14d: number | null;
+  buyer_reply_count_14d: number | null;
+  meeting_count_30d: number | null;
+  quote_count: number | null;
+  latest_discount_pct: number | null;
+  competitor_mentions_30d: number | null;
+  pricing_objections_30d: number | null;
+  positive_signal_count_14d: number | null;
+  negative_signal_count_14d: number | null;
+  momentum_score: number | null;
+  momentum_band: 'low' | 'medium' | 'high' | string | null;
+  /** Deserialised list of driver objects (label, contribution, weight). */
+  momentum_drivers: Array<{
+    label?: string;
+    contribution?: number;
+    weight?: number;
+    direction?: 'positive' | 'negative';
+    [key: string]: unknown;
+  }>;
+  buyer_state: string | null;
+  close_probability: number | null;
+  stage_velocity_days: number | null;
+  objection_density_norm: number | null;
+}
+
+export const featureStoreApi = {
+  getLatest: async (opportunityId: number): Promise<OpportunityFeatureSnapshot | null> => {
+    const { data } = await api.get(`/v4/opportunities/${opportunityId}/features/latest`);
+    return (data?.data ?? null) as OpportunityFeatureSnapshot | null;
+  },
+};
+
+// ── V5 Intelligence ──────────────────────────────────
+//
+// Wraps the entire ``/v5/...`` router. Five separate sub-features
+// (similarity, objection patterns, timing windows, rep DNA, network
+// anomalies) used to live without any frontend client at all — the
+// audit flagged them as the largest unwired surface in the codebase.
+//
+// Types favour conservative shapes (nullable fields, json-blob-as-
+// array fallbacks) because some payloads come from experimental
+// V5 services where missing fields are common in practice.
+
+export interface SimilarDealLink {
+  related_opportunity_id: number;
+  similarity_score: number;
+  reason?: string | null;
+  related_title?: string | null;
+  related_stage?: string | null;
+  related_amount?: number | null;
+}
+
+export interface ObjectionRecord {
+  id: number;
+  objection_type: string;
+  severity: 'low' | 'med' | 'high' | string;
+  evidence_text: string | null;
+  resolved_flag: boolean;
+  ttr_hours: number | null;
+  created_at: string | null;
+}
+
+export interface TimingWindow {
+  id: number;
+  action_type: string;
+  window_start: string | null;
+  window_end: string | null;
+  urgency_score: number | null;
+  reason_codes: string[];
+  status: string;
+}
+
+export interface RepDnaProfile {
+  cluster_label: string | null;
+  strengths: Array<{ label?: string; score?: number; [k: string]: unknown }>;
+  gaps: Array<{ label?: string; score?: number; [k: string]: unknown }>;
+  metrics: Record<string, unknown> | null;
+  sample_period_start: string | null;
+  sample_period_end: string | null;
+  generated_at: string | null;
+}
+
+export interface NetworkAnomaly {
+  id: number;
+  segment_key: string;
+  metric_name: string;
+  expected_value: number | null;
+  actual_value: number | null;
+  z_score: number | null;
+  severity: string;
+  explanation: unknown;
+  detected_at: string | null;
+}
+
+export const v5IntelligenceApi = {
+  getSimilar: async (opportunityId: number, limit = 5) => {
+    const { data } = await api.get(`/v5/opportunities/${opportunityId}/similar`, {
+      params: { limit },
+    });
+    return data as { opportunity_id: number; items: SimilarDealLink[]; total: number };
+  },
+  getObjections: async (opportunityId: number) => {
+    const { data } = await api.get(`/v5/opportunities/${opportunityId}/objections`);
+    return data as { opportunity_id: number; items: ObjectionRecord[]; total: number };
+  },
+  detectObjections: async (opportunityId: number) => {
+    const { data } = await api.post(`/v5/opportunities/${opportunityId}/objections/detect`);
+    return data;
+  },
+  resolveObjection: async (objectionId: number, payload: Record<string, unknown>) => {
+    const { data } = await api.post(`/v5/objections/${objectionId}/resolution`, payload);
+    return data;
+  },
+  getTimingWindows: async (opportunityId: number) => {
+    const { data } = await api.get(`/v5/opportunities/${opportunityId}/timing-windows`);
+    return data as { opportunity_id: number; items: TimingWindow[]; total: number };
+  },
+  markTimingWindowDone: async (opportunityId: number, windowId: number) => {
+    const { data } = await api.post(
+      `/v5/opportunities/${opportunityId}/timing-windows/${windowId}/done`,
+    );
+    return data;
+  },
+  getDnaRecommendations: async (segmentKey: string, limit = 10) => {
+    const { data } = await api.get(`/v5/segments/${encodeURIComponent(segmentKey)}/dna-recommendations`, {
+      params: { limit },
+    });
+    return data as { segment_key: string; items: unknown[]; total: number };
+  },
+  getRecentNetworkAnomalies: async (limit = 50) => {
+    const { data } = await api.get(`/v5/network/anomalies/recent`, { params: { limit } });
+    return data as { items: NetworkAnomaly[]; total: number };
+  },
+  getRepDna: async (repId: number) => {
+    const { data } = await api.get(`/v5/reps/${repId}/dna`);
+    return data as { rep_id: number; profile: RepDnaProfile | null };
   },
 };
 

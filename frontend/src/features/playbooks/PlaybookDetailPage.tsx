@@ -311,8 +311,9 @@ export default function PlaybookDetailPage() {
                     <th className="pb-2 font-medium text-slate-500">ID</th>
                     <th className="pb-2 font-medium text-slate-500">Durum</th>
                     <th className="pb-2 font-medium text-slate-500">Mevcut Adım</th>
-                    <th className="pb-2 font-medium text-slate-500">Baslangic</th>
-                    <th className="pb-2 font-medium text-slate-500">Bitis</th>
+                    <th className="pb-2 font-medium text-slate-500">Başlangıç</th>
+                    <th className="pb-2 font-medium text-slate-500">Sonraki Aksiyon</th>
+                    <th className="pb-2 font-medium text-slate-500">Bitiş</th>
                     <th className="pb-2 font-medium text-slate-500">İşlem</th>
                   </tr>
                 </thead>
@@ -330,6 +331,13 @@ export default function PlaybookDetailPage() {
                       </td>
                       <td className="py-2 text-slate-700 dark:text-slate-300">{exec.current_step}</td>
                       <td className="py-2 text-slate-500">{formatDateTime(exec.started_at)}</td>
+                      {/* next_action_at — when the delayed scheduler
+                          will fire the next step. Was returned by the
+                          backend but never typed/rendered, so reps
+                          couldn't see "1 gün sonra" countdowns. */}
+                      <td className="py-2 text-slate-500">
+                        {exec.next_action_at ? formatDateTime(exec.next_action_at) : '—'}
+                      </td>
                       <td className="py-2 text-slate-500">
                         {exec.completed_at ? formatDateTime(exec.completed_at) : '-'}
                       </td>

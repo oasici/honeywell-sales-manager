@@ -12,7 +12,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { coachingApi } from '../../lib/api';
+import { coachingApi, v5IntelligenceApi } from '../../lib/api';
 import { formatPercent } from '../../lib/formatters';
 
 import type {
@@ -142,6 +142,98 @@ function TrendChart({ snapshots }: { snapshots: CoachingSnapshot[] }) {
         </ComposedChart>
       </ResponsiveContainer>
     </div>
+  );
+}
+
+/**
+ * RepDnaCard — V5 cluster classification + strengths/gaps for a rep.
+ *
+ * The endpoint returns ``profile = null`` when the rep doesn't yet
+ * have enough history for the miner to converge; we surface that as
+ * a friendly placeholder rather than hiding the card so managers
+ * understand why the analytics aren't showing.
+ */
+function RepDnaCard({ userId }: { userId: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['v5-rep-dna', userId],
+    queryFn: () => v5IntelligenceApi.getRepDna(userId),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+
+  if (isLoading) {
+    return (
+      <Card title="Satış DNA'sı">
+        <Skeleton variant="card" />
+      </Card>
+    );
+  }
+
+  const profile = data?.profile ?? null;
+  if (!profile) {
+    return (
+      <Card title="Satış DNA'sı">
+        <p className="text-[12px] text-slate-500">
+          Henüz yeterli anlaşma geçmişi yok — V5 nightly job daha fazla veri biriktiğinde
+          DNA profili üretecek.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Satış DNA'sı">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="text-[14px] font-semibold text-slate-900 dark:text-white">
+          {profile.cluster_label ?? 'Sınıflandırılmadı'}
+        </span>
+        {profile.generated_at && (
+          <span className="text-[11px] text-slate-400 tabular-nums">
+            {profile.generated_at.slice(0, 10)}
+          </span>
+        )}
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <p className="text-overline text-emerald-600 dark:text-emerald-400">Güçlü Yönler</p>
+          {profile.strengths.length === 0 ? (
+            <p className="mt-1 text-[12px] text-slate-500">—</p>
+          ) : (
+            <ul className="mt-1 space-y-1">
+              {profile.strengths.slice(0, 5).map((s, i) => (
+                <li key={i} className="text-[12px] text-slate-700 dark:text-slate-300">
+                  {String(s.label ?? `Güçlü ${i + 1}`)}
+                  {typeof s.score === 'number' && (
+                    <span className="ml-1 tabular-nums text-[11px] text-slate-400">
+                      ({s.score.toFixed(2)})
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <p className="text-overline text-rose-600 dark:text-rose-400">Gelişim Alanları</p>
+          {profile.gaps.length === 0 ? (
+            <p className="mt-1 text-[12px] text-slate-500">—</p>
+          ) : (
+            <ul className="mt-1 space-y-1">
+              {profile.gaps.slice(0, 5).map((g, i) => (
+                <li key={i} className="text-[12px] text-slate-700 dark:text-slate-300">
+                  {String(g.label ?? `Gelişim ${i + 1}`)}
+                  {typeof g.score === 'number' && (
+                    <span className="ml-1 tabular-nums text-[11px] text-slate-400">
+                      ({g.score.toFixed(2)})
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -301,6 +393,12 @@ export default function CoachingRepPage() {
         </Card>
         </div>
       </div>
+
+      {/* V5 Rep DNA — cluster classification + strengths/gaps mined
+          from the rep's deal history. Backend was producing this
+          nightly but no client called the endpoint, so coaching had
+          no behavioural context. */}
+      <RepDnaCard userId={userId} />
 
       {/* Recommendations */}
       <Card title="Öneriler">

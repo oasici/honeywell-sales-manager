@@ -71,7 +71,13 @@ async def execute_sequence_step(ctx: dict, enrollment_id: int) -> str:
         steps = json.loads(seq.steps_json) if seq.steps_json else []
         current = enrollment.current_step
         if current > len(steps):
+            # ``exit_reason`` was a typed nullable column the analytics
+            # endpoint already aggregates over (engagement.py:456-460)
+            # but no writer ever populated it on the natural-completion
+            # path, so the dashboard always saw "unknown". Stamp the
+            # canonical reason here so the funnel report is meaningful.
             enrollment.status = "completed"
+            enrollment.exit_reason = "all_steps_completed"
             await db.commit()
             return f"Sequence completed for enrollment {enrollment_id}"
 
@@ -96,6 +102,7 @@ async def execute_sequence_step(ctx: dict, enrollment_id: int) -> str:
         enrollment.current_step = current + 1
         if enrollment.current_step > len(steps):
             enrollment.status = "completed"
+            enrollment.exit_reason = "all_steps_completed"
         else:
             next_delay = steps[current].get("delay_days", 1) if current < len(steps) else 0
             enrollment.next_action_at = datetime.now(timezone.utc) + timedelta(days=next_delay)

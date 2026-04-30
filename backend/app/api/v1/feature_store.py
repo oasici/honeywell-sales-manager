@@ -58,6 +58,27 @@ async def get_latest_opportunity_features(
     ).scalar_one_or_none()
     if not row:
         return {"data": None}
+
+    # ``momentum_drivers_json`` is the column name for what is logically
+    # a list of driver objects (each with label, contribution, weight).
+    # The previous version returned the raw JSON string, which forced
+    # every consumer to JSON.parse() on the client. Deserialise here so
+    # the API contract is "rich list of driver dicts" and the column
+    # name stays an implementation detail.
+    import json as _json
+
+    drivers: list = []
+    if row.momentum_drivers_json:
+        try:
+            parsed = _json.loads(row.momentum_drivers_json)
+            if isinstance(parsed, list):
+                drivers = parsed
+        except Exception:
+            # Malformed payload — log nothing here (the daily build job
+            # is the right place to alert on bad writes); just emit an
+            # empty list so the UI degrades gracefully.
+            drivers = []
+
     return {
         "data": {
             "opportunity_id": row.opportunity_id,
@@ -76,9 +97,18 @@ async def get_latest_opportunity_features(
             "negative_signal_count_14d": row.negative_signal_count_14d,
             "momentum_score": row.momentum_score,
             "momentum_band": row.momentum_band,
+            # Keep the raw column for any back-compat consumer; surface
+            # the parsed list under ``momentum_drivers`` so new UI
+            # callers don't need to JSON.parse client-side.
             "momentum_drivers_json": row.momentum_drivers_json,
+            "momentum_drivers": drivers,
             "buyer_state": row.buyer_state,
             "close_probability": row.close_probability,
+            # V6 trajectory fields if present on the row — these are
+            # surfaced for the deal-health card to render trajectory
+            # arrows alongside the headline momentum score.
+            "stage_velocity_days": getattr(row, "stage_velocity_days", None),
+            "objection_density_norm": getattr(row, "objection_density_norm", None),
         }
     }
 
