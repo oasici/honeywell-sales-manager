@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { ArrowLeft } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -55,8 +56,24 @@ function parseSteps(raw: string | null): PlaybookStepDef[] {
   }
 }
 
+/**
+ * A step is a "stub" when the auto-promoter / seeder created the row
+ * but never filled in the template/description. The read-only step
+ * card would render as an empty rectangle in that case, which made it
+ * look like the page itself was broken. We treat any step with no
+ * meaningful textual content as a stub so the UI can hint that
+ * editing is required to bring it to life.
+ */
+function isStepStub(step: PlaybookStepDef): boolean {
+  const hasTemplate = typeof step.template === 'string' && step.template.trim().length > 0;
+  const hasDescription =
+    typeof step.description === 'string' && step.description.trim().length > 0;
+  return !hasTemplate && !hasDescription;
+}
+
 export default function PlaybookDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const playbookId = Number(id);
   const queryClient = useQueryClient();
 
@@ -134,24 +151,77 @@ export default function PlaybookDetailPage() {
   const triggerConditions = parseConditions(playbook.trigger_conditions_json);
   const steps = parseSteps(playbook.steps_json);
   const executions: PlaybookExecution[] = executionsData?.items ?? [];
+  // When *every* step is a stub the read-only view would render
+  // numbered circles next to empty boxes — looks broken even though
+  // the data is technically valid. Surface a banner so the user
+  // knows to click Düzenle and fill the steps in.
+  const hasStubSteps = steps.length > 0 && steps.every(isStepStub);
+
+  // Save handler shared by the header button + form submit so the
+  // header-level "Kaydet" can drive the same mutation as before.
+  const handleSave = () => {
+    updateMutation.mutate({
+      ...form,
+      trigger_conditions_json: JSON.stringify(editConditions),
+      steps_json: JSON.stringify(editSteps),
+    });
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader title={playbook.name} description={playbook.description ?? undefined}>
-        {!isEditing && <Button onClick={startEditing}>Düzenle</Button>}
+        {/* Geri (Back) is always visible — works whether the page was
+            reached from the playbooks list or via deep link, falling
+            back to the list when there is no history. */}
+        <Button
+          variant="secondary"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/playbooks'))}
+        >
+          <ArrowLeft className="mr-1 inline h-4 w-4" />
+          Geri
+        </Button>
+        {!isEditing ? (
+          <Button onClick={startEditing}>Düzenle</Button>
+        ) : (
+          <>
+            <Button variant="secondary" type="button" onClick={() => setIsEditing(false)}>
+              İptal
+            </Button>
+            <Button type="button" loading={updateMutation.isPending} onClick={handleSave}>
+              Kaydet
+            </Button>
+          </>
+        )}
       </PageHeader>
 
-      {/* Edit form */}
+      {hasStubSteps && !isEditing && (
+        <Card>
+          <div className="flex items-start gap-3 p-4 text-sm">
+            <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              !
+            </span>
+            <div>
+              <p className="font-medium text-slate-900 dark:text-white">
+                Adımların içeriği henüz tanımlanmadı
+              </p>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">
+                Bu playbook otomatik şablondan oluşturuldu; her adım için aksiyon tipi, mesaj ve
+                önceliği <em>Düzenle</em> ile doldurun. Bilgileri girip <em>Kaydet</em> dediğinizde
+                şablon canlı hale gelir.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Edit form (general-info card) — Save/Cancel now live in the
+          PageHeader, so this card focuses on metadata only. */}
       {isEditing && (
         <Card>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              updateMutation.mutate({
-                ...form,
-                trigger_conditions_json: JSON.stringify(editConditions),
-                steps_json: JSON.stringify(editSteps),
-              });
+              handleSave();
             }}
             className="space-y-3 p-4"
           >
@@ -194,14 +264,9 @@ export default function PlaybookDetailPage() {
                 Aktif
               </label>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="secondary" type="button" onClick={() => setIsEditing(false)}>
-                İptal
-              </Button>
-              <Button type="submit" loading={updateMutation.isPending}>
-                Kaydet
-              </Button>
-            </div>
+            {/* Hidden submit so Enter inside an input still triggers
+                the same Kaydet flow as the header button. */}
+            <button type="submit" className="hidden" aria-hidden />
           </form>
         </Card>
       )}

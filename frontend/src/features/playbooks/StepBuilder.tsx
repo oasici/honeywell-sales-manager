@@ -87,14 +87,18 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
 
             <div className="flex-1 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="info">{getActionLabel(step.action_type)}</Badge>
+                {step.action_type ? (
+                  <Badge variant="info">{getActionLabel(step.action_type)}</Badge>
+                ) : (
+                  <Badge variant="default">Aksiyon tipi seçilmedi</Badge>
+                )}
                 {step.priority && (
                   <Badge variant={PRIORITY_BADGE_VARIANT[step.priority] ?? 'default'}>
                     {getPriorityLabel(step.priority)}
                   </Badge>
                 )}
                 {step.delay_days != null && step.delay_days > 0 && (
-                  <span className="text-xs text-slate-500">{step.delay_days} gun bekleme</span>
+                  <span className="text-xs text-slate-500">{step.delay_days} gün bekleme</span>
                 )}
               </div>
               {step.template && (
@@ -103,10 +107,18 @@ export function StepBuilder({ steps, onChange, readOnly }: StepBuilderProps) {
               {step.description && (
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{step.description}</p>
               )}
+              {/* When neither template nor description is set the box
+                  used to render empty — show an italic placeholder so
+                  the read-only state is still legible. */}
+              {!step.template && !step.description && (
+                <p className="mt-1 text-sm italic text-slate-400 dark:text-slate-500">
+                  Bu adımın içeriği henüz tanımlanmadı — düzenleyerek mesaj şablonunu girin.
+                </p>
+              )}
               {step.action_type === 'condition' && (
                 <div className="mt-1 flex gap-3 text-xs text-slate-500">
-                  {step.if_true_step != null && <span>Dogru ise: Adim {step.if_true_step}</span>}
-                  {step.if_false_step != null && <span>Yanlis ise: Adim {step.if_false_step}</span>}
+                  {step.if_true_step != null && <span>Doğru ise: Adım {step.if_true_step}</span>}
+                  {step.if_false_step != null && <span>Yanlış ise: Adım {step.if_false_step}</span>}
                 </div>
               )}
             </div>

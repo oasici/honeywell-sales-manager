@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Users, Plus, Target, Clock, TrendingUp } from 'lucide-react';
+import { Users, Plus, Target, Clock, TrendingUp, Trash2 } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -29,6 +29,66 @@ interface SegmentCustomersResponse {
   customers: SegmentCustomer[];
 }
 
+/**
+ * One row in the structured rule builder. Mirrors the JSON shape the
+ * backend already accepts (`{field, operator, value}`) so we can
+ * round-trip between the two editors without translation.
+ */
+interface SegmentRule {
+  field: string;
+  operator: string;
+  value: string | number;
+}
+
+/**
+ * Fields the segmentation engine can match on. Listed explicitly so
+ * the dropdown stays in sync with what the backend understands; a
+ * "Diğer / Özel" escape hatch lets power users hit fields the catalog
+ * hasn't surfaced yet (it just renders a free-text field input).
+ */
+const FIELD_OPTIONS: Array<{ value: string; label: string; valueType: 'number' | 'text' }> = [
+  { value: 'health_score', label: 'Health skoru', valueType: 'number' },
+  { value: 'last_activity_days', label: 'Son aktivite (gün)', valueType: 'number' },
+  { value: 'total_quote_value', label: 'Toplam teklif değeri (TRY)', valueType: 'number' },
+  { value: 'open_quote_value', label: 'Açık teklif değeri (TRY)', valueType: 'number' },
+  { value: 'open_opportunity_count', label: 'Açık fırsat sayısı', valueType: 'number' },
+  { value: 'industry', label: 'Sektör', valueType: 'text' },
+  { value: 'territory', label: 'Bölge', valueType: 'text' },
+  { value: '__custom__', label: 'Diğer / Özel alan…', valueType: 'text' },
+];
+
+const OPERATOR_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'eq', label: '= (eşit)' },
+  { value: 'ne', label: '≠ (eşit değil)' },
+  { value: 'gt', label: '> (büyük)' },
+  { value: 'gte', label: '≥ (büyük/eşit)' },
+  { value: 'lt', label: '< (küçük)' },
+  { value: 'lte', label: '≤ (küçük/eşit)' },
+  { value: 'contains', label: 'içerir' },
+];
+
+const DEFAULT_RULE: SegmentRule = {
+  field: 'health_score',
+  operator: 'gte',
+  value: 50,
+};
+
+function safeParseRules(raw: string): SegmentRule[] | null {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    // Coerce each entry so a partial JSON (e.g. missing operator)
+    // still yields a workable rule rather than silently dropping it.
+    return parsed.map((r: Record<string, unknown>) => ({
+      field: typeof r.field === 'string' ? r.field : 'health_score',
+      operator: typeof r.operator === 'string' ? r.operator : 'eq',
+      value: (r.value as string | number) ?? '',
+    }));
+  } catch {
+    return null;
+  }
+}
+
 export default function SegmentsPage() {
   const t = useT();
   const queryClient = useQueryClient();
@@ -39,8 +99,13 @@ export default function SegmentsPage() {
   const [form, setForm] = useState({
     name: '',
     description: '',
-    rulesJson: '[]',
+    rules: [{ ...DEFAULT_RULE }] as SegmentRule[],
   });
+  // Operator-mode toggle: "structured" is the default friendly UI;
+  // "json" surfaces a raw textarea for power users / pasting in
+  // payloads from the API. The two stay in sync via parse/stringify.
+  const [ruleMode, setRuleMode] = useState<'structured' | 'json'>('structured');
+  const [rulesJsonText, setRulesJsonText] = useState('[]');
 
   const { data, isLoading } = useQuery<{ segments: Segment[] }>({
     queryKey: ['segments'],
@@ -65,7 +130,9 @@ export default function SegmentsPage() {
   });
 
   function resetForm() {
-    setForm({ name: '', description: '', rulesJson: '[]' });
+    setForm({ name: '', description: '', rules: [{ ...DEFAULT_RULE }] });
+    setRuleMode('structured');
+    setRulesJsonText('[]');
   }
 
   function handleCreate() {
@@ -73,18 +140,79 @@ export default function SegmentsPage() {
       toast.error(t('segments.err_name_required'));
       return;
     }
-    let rules: unknown[];
-    try {
-      rules = JSON.parse(form.rulesJson);
-    } catch {
-      toast.error(t('segments.err_json'));
+
+    // Resolve rules from whichever editor the user was last in. JSON
+    // mode parses the textarea; structured mode uses the form state.
+    // ``coerceValue`` honours the field's declared value type so
+    // numbers don't go through the wire as strings (the backend's
+    // "gte 80" check would otherwise compare lexicographically).
+    let rules: SegmentRule[] = [];
+    if (ruleMode === 'json') {
+      const parsed = safeParseRules(rulesJsonText);
+      if (parsed === null) {
+        toast.error(t('segments.err_json'));
+        return;
+      }
+      rules = parsed;
+    } else {
+      rules = form.rules.map((r) => {
+        const fieldDef = FIELD_OPTIONS.find((f) => f.value === r.field);
+        const valueType = fieldDef?.valueType ?? 'text';
+        const coerced =
+          valueType === 'number' && typeof r.value === 'string'
+            ? Number(r.value)
+            : r.value;
+        return { ...r, value: coerced };
+      });
+    }
+
+    if (rules.length === 0) {
+      toast.error('En az bir kural ekleyin');
       return;
     }
+
     createMutation.mutate({
       name: form.name,
       ...(form.description && { description: form.description }),
       rules,
     });
+  }
+
+  function addRule() {
+    setForm((f) => ({ ...f, rules: [...f.rules, { ...DEFAULT_RULE }] }));
+  }
+
+  function updateRule(index: number, patch: Partial<SegmentRule>) {
+    setForm((f) => ({
+      ...f,
+      rules: f.rules.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+    }));
+  }
+
+  function removeRule(index: number) {
+    setForm((f) => ({ ...f, rules: f.rules.filter((_, i) => i !== index) }));
+  }
+
+  /**
+   * Switch from structured → JSON: dump the current rules so the
+   * textarea starts pre-filled with what the user already built.
+   * The reverse direction parses + falls back to the old rules if
+   * the JSON is malformed (the toast surfaces the issue but we
+   * don't lose the user's structured work).
+   */
+  function switchRuleMode(next: 'structured' | 'json') {
+    if (next === 'json') {
+      setRulesJsonText(JSON.stringify(form.rules, null, 2));
+    } else {
+      const parsed = safeParseRules(rulesJsonText);
+      if (parsed) {
+        setForm((f) => ({ ...f, rules: parsed }));
+      } else {
+        toast.error(t('segments.err_json'));
+        return;
+      }
+    }
+    setRuleMode(next);
   }
 
   const segments = data?.segments ?? [];
@@ -126,11 +254,21 @@ export default function SegmentsPage() {
   ];
 
   function applyTemplate(tpl: (typeof SEGMENT_TEMPLATES)[number]) {
+    // Map template rules onto the structured editor shape so the
+    // user lands on a populated form they can tweak inline rather
+    // than facing a JSON blob they have to mentally parse.
+    const structured: SegmentRule[] = tpl.rules.map((r) => ({
+      field: typeof r.field === 'string' ? r.field : 'health_score',
+      operator: typeof r.operator === 'string' ? r.operator : 'eq',
+      value: (r.value as string | number) ?? '',
+    }));
     setForm({
       name: tpl.title,
       description: tpl.description,
-      rulesJson: JSON.stringify(tpl.rules, null, 2),
+      rules: structured,
     });
+    setRulesJsonText(JSON.stringify(tpl.rules, null, 2));
+    setRuleMode('structured');
     setIsCreateOpen(true);
   }
 
@@ -317,16 +455,140 @@ export default function SegmentsPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              {t('segments.lbl_rules_json')}
-            </label>
-            <textarea
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              rows={6}
-              value={form.rulesJson}
-              onChange={(e) => setForm((f) => ({ ...f, rulesJson: e.target.value }))}
-              placeholder='[{"field": "total_quote_value", "operator": "gt", "value": 10000}]'
-            />
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-sm font-medium text-slate-700">Kurallar</label>
+              {/* Mode toggle — structured rows vs raw JSON. Hidden
+                  unless the user explicitly opts in so the default
+                  experience stays friendly. */}
+              <div className="inline-flex overflow-hidden rounded-md border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => switchRuleMode('structured')}
+                  className={`px-2.5 py-1 ${
+                    ruleMode === 'structured'
+                      ? 'bg-honeywell-red text-white'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  Form
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchRuleMode('json')}
+                  className={`px-2.5 py-1 ${
+                    ruleMode === 'json'
+                      ? 'bg-honeywell-red text-white'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  JSON
+                </button>
+              </div>
+            </div>
+
+            {ruleMode === 'structured' ? (
+              <div className="space-y-2">
+                {form.rules.map((rule, idx) => {
+                  const fieldDef =
+                    FIELD_OPTIONS.find((f) => f.value === rule.field) ?? FIELD_OPTIONS[0];
+                  const isCustom = rule.field === '__custom__';
+                  return (
+                    <div
+                      key={idx}
+                      className="grid grid-cols-1 items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-2.5 sm:grid-cols-[1.4fr_1fr_1.2fr_auto]"
+                    >
+                      {/* Field */}
+                      {isCustom ? (
+                        <input
+                          type="text"
+                          placeholder="Özel alan adı"
+                          value={rule.field === '__custom__' ? '' : rule.field}
+                          onChange={(e) => updateRule(idx, { field: e.target.value })}
+                          className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        />
+                      ) : (
+                        <select
+                          value={rule.field}
+                          onChange={(e) => updateRule(idx, { field: e.target.value })}
+                          className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                        >
+                          {FIELD_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      {/* Operator */}
+                      <select
+                        value={rule.operator}
+                        onChange={(e) => updateRule(idx, { operator: e.target.value })}
+                        className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      >
+                        {OPERATOR_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Value */}
+                      <input
+                        type={fieldDef.valueType === 'number' ? 'number' : 'text'}
+                        value={String(rule.value ?? '')}
+                        onChange={(e) =>
+                          updateRule(idx, {
+                            value:
+                              fieldDef.valueType === 'number' && e.target.value !== ''
+                                ? Number(e.target.value)
+                                : e.target.value,
+                          })
+                        }
+                        placeholder="Değer"
+                        className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      />
+
+                      {/* Remove */}
+                      <button
+                        type="button"
+                        onClick={() => removeRule(idx)}
+                        disabled={form.rules.length <= 1}
+                        className={`flex h-9 w-9 items-center justify-center rounded-md ${
+                          form.rules.length <= 1
+                            ? 'cursor-not-allowed text-slate-300'
+                            : 'text-red-500 hover:bg-red-50'
+                        }`}
+                        aria-label="Kuralı sil"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={addRule}
+                  className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:border-honeywell-red/40 hover:text-honeywell-red"
+                >
+                  <Plus size={12} />
+                  Kural Ekle
+                </button>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Tüm kurallar AND mantığıyla birleştirilir — bir hesabın segmente girmesi için
+                  hepsini sağlaması gerekir.
+                </p>
+              </div>
+            ) : (
+              <textarea
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                rows={6}
+                value={rulesJsonText}
+                onChange={(e) => setRulesJsonText(e.target.value)}
+                placeholder='[{"field": "total_quote_value", "operator": "gt", "value": 10000}]'
+              />
+            )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)}>

@@ -401,7 +401,7 @@ export default function SequenceBuilderPage() {
                 onChange={(e) => setIsAutoEnroll(e.target.checked)}
                 className="h-4 w-4 rounded border-slate-200 text-blue-600 focus:ring-blue-500"
               />
-              Otomatik kayıt kurallarini etkinlestir
+              Otomatik kayıt kurallarını etkinleştir
             </label>
             {isAutoEnroll && (
               <div className="max-w-xs">
@@ -414,12 +414,51 @@ export default function SequenceBuilderPage() {
                   onChange={(e) => setScoreThreshold(Number(e.target.value))}
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Bu skor degerini asan leadler otomatik olarak sekansa kaydedilir.
+                  Bu skor değerini aşan leadler otomatik olarak sekansa kaydedilir.
                 </p>
               </div>
             )}
           </div>
         </Card>
+
+        {/* Ready-template gallery — only surfaced when viewing an
+            existing sequence so the user has a "what could I build
+            next?" reference without leaving the page. New-sequence
+            mode already gets templates via the empty-state on
+            SequencesPage, so duplicating them here would be noise. */}
+        {isEdit && (
+          <Card title="Hazır Şablonlar">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Object.entries(TEMPLATE_PRESETS).map(([slug, preset]) => (
+                <button
+                  key={slug}
+                  type="button"
+                  onClick={() => navigate(`/engagement/sequences/new?template=${slug}`)}
+                  className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <h4 className="text-[14px] font-semibold text-slate-900 dark:text-white">
+                    {preset.name}
+                  </h4>
+                  <p className="mt-1.5 text-[12px] leading-5 text-slate-500 dark:text-slate-400 line-clamp-3">
+                    {preset.description}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between text-[12px]">
+                    <span className="tabular-nums text-slate-500 dark:text-slate-400">
+                      {preset.steps.length} adım
+                    </span>
+                    <span className="font-medium text-honeywell-red">
+                      Bu şablondan oluştur →
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+              Şablonu seçtiğinizde yeni bir sekans oluşturma sayfası açılır; mevcut sekans
+              değiştirilmez.
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   );

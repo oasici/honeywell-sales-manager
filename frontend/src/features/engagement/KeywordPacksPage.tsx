@@ -15,9 +15,9 @@ import { engagementApi } from '../../lib/api';
 import type { KeywordPack } from '../../lib/types';
 
 const CATEGORY_OPTIONS = [
-  { value: 'pricing', label: 'Fiyatlandirma' },
+  { value: 'pricing', label: 'Fiyatlandırma' },
   { value: 'competitor', label: 'Rakip' },
-  { value: 'objection', label: 'Itiraz' },
+  { value: 'objection', label: 'İtiraz' },
   { value: 'positive', label: 'Olumlu' },
   { value: 'technical', label: 'Teknik' },
   { value: 'custom', label: 'Özel' },
@@ -71,7 +71,7 @@ export default function KeywordPacksPage() {
 
   function handleCreate() {
     if (!form.name.trim()) {
-      toast.error('Paket adi zorunludur');
+      toast.error('Paket adı zorunludur');
       return;
     }
     const keywords = form.keywordsText
@@ -93,7 +93,7 @@ export default function KeywordPacksPage() {
 
   return (
     <div>
-      <PageHeader title="Anahtar Kelime Paketleri" description="Görüşme analizi için kelime gruplari">
+      <PageHeader title="Anahtar Kelime Paketleri" description="Görüşme analizi için kelime grupları">
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Paket</Button>
       </PageHeader>
 
@@ -101,8 +101,8 @@ export default function KeywordPacksPage() {
         <Skeleton variant="card" count={3} />
       ) : packs.length === 0 ? (
         <EmptyState
-          title="Paket bulunamadi"
-          description="Henüz anahtar kelime paketi eklenmemis"
+          title="Paket bulunamadı"
+          description="Henüz anahtar kelime paketi eklenmemiş"
           icon={<Tag size={40} />}
           action={<Button onClick={() => setIsCreateOpen(true)}>İlk Paketi Ekle</Button>}
         />
@@ -148,7 +148,7 @@ export default function KeywordPacksPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Paket Adi</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Paket Adı</label>
             <Input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -171,7 +171,7 @@ export default function KeywordPacksPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
-              Anahtar Kelimeler (virgul ile ayirin)
+              Anahtar Kelimeler (virgül ile ayırın)
             </label>
             <Input
               value={form.keywordsText}

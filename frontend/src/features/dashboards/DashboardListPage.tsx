@@ -30,26 +30,139 @@ function parseWidgetCount(widgetsJson: string | undefined | null): number {
   }
 }
 
+interface ExecutedWidget {
+  widget_id?: string;
+  title?: string;
+  type?: string;
+  // Values arrive in different shapes depending on widget type — KPIs
+  // surface a single number, charts return arrays. We just need the
+  // first numeric scalar we can find for the preview tile.
+  value?: number | string;
+  data?: unknown;
+  total?: number;
+  count?: number;
+}
+
+interface ExecuteResponse {
+  data?: { widgets?: ExecutedWidget[] };
+  widgets?: ExecutedWidget[];
+}
+
 /**
- * PreviewThumbnail — a synthetic 4-cell mini-grid that visually represents
- * a dashboard's widgets. Filled cells signal "this many widgets configured";
- * empty cells signal "room to grow". Keeps the card from feeling barren.
+ * Try to pull a "headline number" out of an executed-widget payload.
+ * Different widget types serialise their data differently (KPI,
+ * counter, bar chart, table…) so we walk a small set of common
+ * shapes; anything we can't reduce to a primitive is rendered as
+ * "—" and the user can click into the dashboard for the full view.
  */
-function PreviewThumbnail({ widgetCount }: { widgetCount: number }) {
-  const cells = Array.from({ length: 4 }, (_, i) => i < Math.min(widgetCount, 4));
+function extractHeadline(widget: ExecutedWidget): string {
+  const candidates: unknown[] = [
+    widget.value,
+    widget.total,
+    widget.count,
+    typeof widget.data === 'number' ? widget.data : undefined,
+  ];
+  if (Array.isArray(widget.data)) {
+    candidates.push(widget.data.length);
+  } else if (widget.data && typeof widget.data === 'object') {
+    const obj = widget.data as Record<string, unknown>;
+    candidates.push(obj.value, obj.total, obj.count);
+  }
+  for (const c of candidates) {
+    if (typeof c === 'number' && Number.isFinite(c)) {
+      return c >= 1000 ? `${(c / 1000).toFixed(1)}k` : String(c);
+    }
+    if (typeof c === 'string' && c.length > 0) {
+      return c;
+    }
+  }
+  return '—';
+}
+
+/**
+ * LivePreviewTiles — runs the dashboard's `execute` endpoint and
+ * renders up to 4 KPI tiles using real values. Replaces the earlier
+ * synthetic 4-cell skeleton that just showed how many widgets were
+ * configured. Errors fall back to the skeleton tiles so a flaky
+ * widget can't take the whole list page down.
+ */
+function LivePreviewTiles({
+  dashboardId,
+  widgetCount,
+}: {
+  dashboardId: number;
+  widgetCount: number;
+}) {
+  const { data, isLoading, isError } = useQuery<ExecuteResponse>({
+    queryKey: ['dashboard-execute', dashboardId],
+    queryFn: () => dashboardsApi.execute(dashboardId),
+    // Each card runs the dashboard, so cache aggressively to avoid
+    // refetching on every list render. A user opening + closing the
+    // detail page will still get fresh data via that page's own
+    // execute call.
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    enabled: widgetCount > 0,
+  });
+
+  const widgets = (data?.data?.widgets ?? data?.widgets ?? []).slice(0, 4);
+  const skeletonCells = Array.from({ length: 4 }, (_, i) => i < Math.min(widgetCount, 4));
+
+  if (widgetCount === 0 || isError || (!isLoading && widgets.length === 0)) {
+    // Fall back to the original "filled square" preview when there
+    // is nothing executable yet (empty dashboard, save before run,
+    // or transient backend error).
+    return (
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-linear-to-br from-slate-50 to-white p-2 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/40">
+        {skeletonCells.map((filled, i) => (
+          <div
+            key={i}
+            className={[
+              'h-10 rounded-md',
+              filled
+                ? 'bg-honeywell-red/10 ring-1 ring-inset ring-honeywell-red/15'
+                : 'bg-slate-100 ring-1 ring-inset ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700/60',
+            ].join(' ')}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-linear-to-br from-slate-50 to-white p-2 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/40">
-      {cells.map((filled, i) => (
-        <div
-          key={i}
-          className={[
-            'h-10 rounded-md',
-            filled
-              ? 'bg-honeywell-red/10 ring-1 ring-inset ring-honeywell-red/15'
-              : 'bg-slate-100 ring-1 ring-inset ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700/60',
-          ].join(' ')}
-        />
-      ))}
+    <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-linear-to-br from-slate-50 to-white p-2 dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/40">
+      {Array.from({ length: 4 }, (_, i) => {
+        const w = widgets[i];
+        if (isLoading) {
+          return (
+            <div
+              key={i}
+              className="h-12 animate-pulse rounded-md bg-slate-100 ring-1 ring-inset ring-slate-200/60 dark:bg-slate-800/60 dark:ring-slate-700/60"
+            />
+          );
+        }
+        if (!w) {
+          return (
+            <div
+              key={i}
+              className="h-12 rounded-md bg-slate-100 ring-1 ring-inset ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700/60"
+            />
+          );
+        }
+        return (
+          <div
+            key={i}
+            className="flex h-12 flex-col justify-center overflow-hidden rounded-md bg-honeywell-red/5 px-2 ring-1 ring-inset ring-honeywell-red/15"
+          >
+            <span className="truncate text-[10px] uppercase tracking-wider text-honeywell-red/80">
+              {w.title ?? w.type ?? `Widget ${i + 1}`}
+            </span>
+            <span className="truncate text-[14px] font-semibold tabular-nums text-honeywell-red">
+              {extractHeadline(w)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -165,7 +278,7 @@ export default function DashboardListPage() {
                     )}
                   </div>
 
-                  <PreviewThumbnail widgetCount={widgetCount} />
+                  <LivePreviewTiles dashboardId={d.id} widgetCount={widgetCount} />
 
                   <dl className="grid grid-cols-2 gap-3 text-[12px]">
                     <div>
