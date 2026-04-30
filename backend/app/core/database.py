@@ -18,6 +18,23 @@ else:
     elif not _db_url.startswith("postgresql+asyncpg://"):
         _db_url = f"postgresql+asyncpg://{_db_url}"
 
+    # Render Postgres enforces SSL/TLS — connecting without it raises
+    # ``InvalidAuthorizationSpecificationError: SSL/TLS required``. The
+    # libpq-style ``?sslmode=require`` parameter is silently dropped by
+    # the asyncpg dialect, so we pass ``ssl="require"`` directly through
+    # ``connect_args`` (asyncpg interprets the string as "use TLS, skip
+    # cert verification" — appropriate for Render's managed certs).
+    # Localhost dev/test paths skip this so SQLite + local Postgres
+    # without TLS keep working.
+    _connect_args: dict = {"server_settings": {"client_encoding": "utf8"}}
+    _is_local = (
+        "localhost" in _db_url
+        or "127.0.0.1" in _db_url
+        or "@db:" in _db_url  # docker-compose service name
+    )
+    if not _is_local:
+        _connect_args["ssl"] = "require"
+
     # Pool size per worker — env-driven so we can tune without redeploys.
     # Total ceiling = workers * (DB_POOL_SIZE + DB_MAX_OVERFLOW).
     # Defaults assume 4 workers + Postgres max_connections >= 150. Drop the
@@ -32,7 +49,7 @@ else:
         pool_timeout=settings.DB_POOL_TIMEOUT,
         pool_pre_ping=True,
         pool_recycle=settings.DB_POOL_RECYCLE,
-        connect_args={"server_settings": {"client_encoding": "utf8"}},
+        connect_args=_connect_args,
     )
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

@@ -62,7 +62,10 @@ jobs:
 
 
           async def main():
-              conn = await asyncpg.connect(url, timeout=10)
+              # Render Postgres requires SSL/TLS — asyncpg defaults to
+              # plaintext, so without ``ssl="require"`` we get
+              # ``InvalidAuthorizationSpecificationError: SSL/TLS required``.
+              conn = await asyncpg.connect(url, timeout=10, ssl="require")
               try:
                   # 1) Migration head
                   head = await conn.fetchval(
