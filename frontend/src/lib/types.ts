@@ -30,6 +30,10 @@ export interface Customer {
   enriched_at?: string | null;
   /** Present on GET /customers/:id — current user's pin for high-intent list. */
   pinned?: boolean;
+  /** Account hierarchy — parent account id when this is a child entity. */
+  parent_id?: number | null;
+  /** Territory FK; used by territory-scoped list filters. */
+  territory_id?: number | null;
 }
 
 export interface CustomerIntelligenceOpportunityItem {
@@ -180,7 +184,19 @@ export interface EmailRequest {
   review_status: string | null;
   assigned_to: number | null;
   reviewed_by: number | null;
+  thread_id?: string | null;
+  in_reply_to?: string | null;
   is_read: boolean;
+  // AI triage outputs — populated by the email parsing pipeline.
+  // ``priority`` drives inbox sorting/colouring, ``triage_reason``
+  // is a one-line rationale, ``sentiment`` is a coarse bucket
+  // (positive/neutral/negative) with an accompanying numeric score
+  // [-1, 1]. ``data_classification`` flags KVKK-sensitive payloads.
+  priority?: 'low' | 'normal' | 'high' | 'urgent' | null;
+  triage_reason?: string | null;
+  sentiment?: 'positive' | 'neutral' | 'negative' | null;
+  sentiment_score?: number | null;
+  data_classification?: 'public' | 'internal' | 'confidential' | 'restricted' | null;
   last_parsed_at: string | null;
   created_at: string;
 }
@@ -256,10 +272,30 @@ export interface Quote {
   notes: string;
   pdf_path: string | null;
   version: number;
+  /** Win/loss tracking — populated when status moves to closed_won or closed_lost. */
+  closed_at?: string | null;
+  close_reason?: string | null;
   created_at: string;
   updated_at: string;
   customer?: Customer;
   items: QuoteItem[];
+}
+
+/**
+ * Generic in-app notification. Returned by ``notification_service``
+ * but the frontend used to ad-hoc this shape per consumer; now
+ * centralised so notification UIs (toasts, bell-tray, count badges)
+ * agree on the schema.
+ */
+export interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  entity_type?: string | null;
+  entity_id?: number | null;
+  created_at: string;
 }
 
 // ── Dashboard / Analytics ────────────────────────────
@@ -386,6 +422,20 @@ export interface Opportunity {
   customer_id: number | null;
   status: string;
   probability?: number; // stage probability (0-1 or 0-100, depends on backend)
+  // Loss reason (closed-lost detail) and forecast classification
+  // (commit / best_case / pipeline / omitted) — both are returned by
+  // the backend and now typed so the deal pages can render them.
+  loss_reason?: string | null;
+  forecast_category?: 'commit' | 'best_case' | 'pipeline' | 'omitted' | null;
+  // Segmentation FKs — surfaced for territory + pipeline filters.
+  pipeline_id?: number | null;
+  territory_id?: number | null;
+  // Revenue-leak audit (previous values when stage/close_date/amount
+  // last changed). Used by the closed-lost detail page to render
+  // the "deal slipped from X → Y" diff.
+  previous_stage?: string | null;
+  previous_close_date?: string | null;
+  previous_amount?: number | null;
   rotting_days: number;
   last_activity_at?: string | null;
   open_tasks_count?: number;

@@ -134,6 +134,15 @@ async def cockpit_gaps(
             return None
         return None
 
+    def all_actions(x: str | None) -> list[str]:
+        if not x:
+            return []
+        try:
+            arr = json.loads(x)
+            return [str(a) for a in arr] if isinstance(arr, list) else []
+        except Exception:
+            return []
+
     return {
         "items": [
             {
@@ -145,7 +154,13 @@ async def cockpit_gaps(
                 "currency": r.currency,
                 "gap_type": r.gap_type,
                 "severity": r.severity,
+                # ``recommended_action`` keeps backward compatibility
+                # for any caller still reading the headline string.
+                # ``recommended_actions`` exposes the full list so the
+                # cockpit can render every action as a chip instead of
+                # silently truncating to one.
                 "recommended_action": first_action(r.recommended_actions_json),
+                "recommended_actions": all_actions(r.recommended_actions_json),
                 "created_at": r.created_at.isoformat() if r.created_at else None,
             }
             for r in rows

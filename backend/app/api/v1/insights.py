@@ -80,11 +80,22 @@ async def signals_dashboard(
     ):
         topic_counts.setdefault(k, 0)
 
+    impacted_sorted = sorted(impacted)
+    # We cap the embedded id list at 200 to keep the payload light,
+    # but emit the unfiltered total + a `has_more` flag so the UI
+    # can render "X+ etkilenen fırsat" instead of silently misleading
+    # the operator. Callers that need the full list can paginate via
+    # the dedicated signals endpoint.
+    impacted_total = len(impacted_sorted)
+    impacted_returned = impacted_sorted[:200]
     return {
         "window_days": window,
         "topic_counts": topic_counts,
         "severity_buckets": severity_buckets,
-        "impacted_opportunity_ids": sorted(impacted)[:200],
+        "impacted_opportunity_ids": impacted_returned,
+        "impacted_total": impacted_total,
+        "impacted_returned": len(impacted_returned),
+        "impacted_has_more": impacted_total > len(impacted_returned),
     }
 
 

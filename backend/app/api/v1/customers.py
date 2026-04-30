@@ -892,7 +892,14 @@ async def get_customer_rollup(
 
 
 def _customer_to_dict(customer: Customer) -> dict:
-    """Convert Customer to a dictionary response."""
+    """Convert Customer to a dictionary response.
+
+    Note on KVKK fields: ``kvkk_consent`` / ``kvkk_consent_date`` /
+    ``kvkk_consent_method`` are intentionally NOT projected here.
+    They are PII-grade and surface only via the dedicated KVKK
+    admin endpoint so that audit logging and access controls can be
+    applied at that boundary.
+    """
     return {
         "id": customer.id,
         "name": customer.name,
@@ -911,4 +918,9 @@ def _customer_to_dict(customer: Customer) -> dict:
         "website": customer.website,
         "linkedin_url": customer.linkedin_url,
         "enriched_at": customer.enriched_at.isoformat() if customer.enriched_at else None,
+        # Account hierarchy + segmentation. Useful for territory
+        # filters and parent/child breadcrumbs once those UIs land;
+        # exposing now so the API contract is consistent.
+        "parent_id": getattr(customer, "parent_id", None),
+        "territory_id": getattr(customer, "territory_id", None),
     }

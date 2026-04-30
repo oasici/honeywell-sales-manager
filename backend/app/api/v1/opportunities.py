@@ -127,6 +127,22 @@ def _opp_to_dict(
         "status": opp.status,
         "probability": getattr(opp, "probability", 0.0),
         "loss_reason": getattr(opp, "loss_reason", None),
+        # Forecast classification + segmentation FKs that the model
+        # carries but the serializer used to drop. The board view
+        # filters by these and the forecast page shows category
+        # rollups, so they need to round-trip cleanly.
+        "forecast_category": getattr(opp, "forecast_category", None),
+        "pipeline_id": getattr(opp, "pipeline_id", None),
+        "territory_id": getattr(opp, "territory_id", None),
+        # Revenue-leak tracking — the previous_* columns store the
+        # prior values whenever stage/close_date/amount change. We
+        # surface them so closed-lost detail pages can render a
+        # "this deal slipped from X → Y" diff.
+        "previous_stage": getattr(opp, "previous_stage", None),
+        "previous_close_date": (
+            str(opp.previous_close_date) if getattr(opp, "previous_close_date", None) else None
+        ),
+        "previous_amount": getattr(opp, "previous_amount", None),
         "rotting_days": rotting_days,
         "customer": {
             "id": opp.customer.id,

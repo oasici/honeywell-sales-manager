@@ -305,6 +305,48 @@ export default function EmailListPage() {
         );
       },
     },
+    {
+      key: 'priority',
+      header: 'Öncelik',
+      // AI-assigned priority — drives default sort + colour. The
+      // tooltip below surfaces the model's reason so the user can
+      // sanity-check why a message was flagged urgent.
+      render: (row: EmailRequest) => {
+        const p = row.priority;
+        if (!p) return <span className="text-[12px] text-slate-400">—</span>;
+        const tone =
+          p === 'urgent'
+            ? 'danger'
+            : p === 'high'
+              ? 'warning'
+              : p === 'low'
+                ? 'default'
+                : 'info';
+        const label =
+          p === 'urgent' ? 'Acil' : p === 'high' ? 'Yüksek' : p === 'low' ? 'Düşük' : 'Normal';
+        return (
+          <Badge variant={tone} size="sm" title={row.triage_reason ?? undefined}>
+            {label}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'sentiment',
+      header: 'Duygu',
+      render: (row: EmailRequest) => {
+        const s = row.sentiment;
+        if (!s) return <span className="text-[12px] text-slate-400">—</span>;
+        const tone = s === 'positive' ? 'success' : s === 'negative' ? 'danger' : 'default';
+        const label = s === 'positive' ? 'Olumlu' : s === 'negative' ? 'Olumsuz' : 'Nötr';
+        const score = typeof row.sentiment_score === 'number' ? row.sentiment_score : null;
+        return (
+          <Badge variant={tone} size="sm" title={score != null ? `Skor: ${score.toFixed(2)}` : undefined}>
+            {label}
+          </Badge>
+        );
+      },
+    },
   ];
 
   const detailParsed = activeEmail ? getParsedData(activeEmail) : null;

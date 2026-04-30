@@ -783,6 +783,15 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
         "thread_id": getattr(email, "thread_id", None),
         "in_reply_to": getattr(email, "in_reply_to", None),
         "is_read": getattr(email, "is_read", False),
+        # AI triage outputs — these are computed by the email parsing
+        # pipeline and stored on the row but were never serialised,
+        # so the inbox couldn't show priority badges, sentiment dots,
+        # or the AI's reason for the triage decision.
+        "priority": getattr(email, "priority", None),
+        "triage_reason": getattr(email, "triage_reason", None),
+        "sentiment": getattr(email, "sentiment", None),
+        "sentiment_score": getattr(email, "sentiment_score", None),
+        "data_classification": getattr(email, "data_classification", None),
         "last_parsed_at": email.last_parsed_at.isoformat() if getattr(email, "last_parsed_at", None) else None,
         "created_at": email.created_at.isoformat() if email.created_at else None,
     }

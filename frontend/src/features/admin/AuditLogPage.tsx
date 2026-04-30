@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, RotateCcw } from 'lucide-react';
+import { Download, RotateCcw, FileSearch } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DataTable } from '../../components/ui/DataTable';
+import { Modal } from '../../components/ui/Modal';
 import { Select } from '../../components/ui/Select';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -93,10 +94,29 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Pretty-print a `changes` JSON blob for the detail modal. Falls
+ * back to the raw string if the payload doesn't parse — better to
+ * show *something* than to drop the field on a malformed entry.
+ */
+function formatChanges(raw: string | null | undefined): string {
+  if (!raw) return '';
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+}
+
 export default function AuditLogPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [exporting, setExporting] = useState(false);
+  // Selected row for the "Detay" modal that surfaces the raw
+  // ``changes`` JSON. We keep this local rather than routing because
+  // the data is purely advisory and shouldn't pollute browser
+  // history with audit-id deep links.
+  const [detailRow, setDetailRow] = useState<AuditLog | null>(null);
 
   const queryParams = buildQueryParams(filters, page);
 
@@ -202,6 +222,27 @@ export default function AuditLogPage() {
         </span>
       ),
     },
+    {
+      key: 'changes',
+      header: 'Detay',
+      // The ``changes`` column carries a JSON diff (before/after).
+      // We surface it as an icon button so the table stays compact
+      // — clicking opens a modal with the formatted payload.
+      render: (row: AuditLog) =>
+        row.changes ? (
+          <button
+            type="button"
+            onClick={() => setDetailRow(row)}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            aria-label="Değişiklik detayını görüntüle"
+          >
+            <FileSearch size={12} />
+            Görüntüle
+          </button>
+        ) : (
+          <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
+        ),
+    },
   ];
 
   return (
@@ -284,6 +325,51 @@ export default function AuditLogPage() {
         totalPages={totalPages}
         onPageChange={setPage}
       />
+
+      <Modal
+        isOpen={detailRow !== null}
+        onClose={() => setDetailRow(null)}
+        title={detailRow ? `Denetim #${detailRow.id} — ${detailRow.action}` : 'Denetim Detayı'}
+        size="lg"
+      >
+        {detailRow && (
+          <div className="space-y-3">
+            <dl className="grid grid-cols-2 gap-3 text-[13px]">
+              <div>
+                <dt className="text-overline text-slate-400">Tarih</dt>
+                <dd className="text-slate-700 dark:text-slate-200">
+                  {formatDateTime(detailRow.created_at)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-overline text-slate-400">Kullanıcı</dt>
+                <dd className="text-slate-700 dark:text-slate-200">
+                  {detailRow.user_email ?? `#${detailRow.user_id ?? '—'}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-overline text-slate-400">Varlık</dt>
+                <dd className="text-slate-700 dark:text-slate-200">
+                  {detailRow.entity_type}
+                  {detailRow.entity_id != null && ` #${detailRow.entity_id}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-overline text-slate-400">IP</dt>
+                <dd className="font-mono text-slate-700 dark:text-slate-200">
+                  {detailRow.ip_address || '—'}
+                </dd>
+              </div>
+            </dl>
+            <div>
+              <dt className="text-overline mb-1 text-slate-400">Değişiklikler (JSON)</dt>
+              <pre className="max-h-96 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[12px] text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                {formatChanges(detailRow.changes) || '— (değişiklik kaydı yok)'}
+              </pre>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

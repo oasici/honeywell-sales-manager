@@ -1383,10 +1383,33 @@ function DecisionGapsPanel() {
                 <p className="mt-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
                   {g.title}
                 </p>
-                {g.recommended_action && (
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                    {g.recommended_action}
-                  </p>
+                {/* Show every recommended action as a chip rather than
+                    truncating to the first one — the API used to drop
+                    the rest, so reps couldn't see the full guidance.
+                    Falls back to the legacy headline string if the
+                    plural field is empty (older payloads). */}
+                {(g.recommended_actions?.length ?? 0) > 0 ? (
+                  <ul className="mt-1 flex flex-wrap gap-1">
+                    {g.recommended_actions.slice(0, 4).map((action, i) => (
+                      <li
+                        key={i}
+                        className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      >
+                        {action}
+                      </li>
+                    ))}
+                    {g.recommended_actions.length > 4 && (
+                      <li className="rounded-md bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                        +{g.recommended_actions.length - 4}
+                      </li>
+                    )}
+                  </ul>
+                ) : (
+                  g.recommended_action && (
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                      {g.recommended_action}
+                    </p>
+                  )
                 )}
               </div>
               <Button

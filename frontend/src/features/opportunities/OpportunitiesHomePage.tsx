@@ -242,6 +242,36 @@ export default function OpportunitiesHomePage() {
                     <Badge variant={stageVariant(o.stage) as never} size="sm">
                       {stageLabel(o.stage)}
                     </Badge>
+                    {/* Forecast classification — drives commit/best-case
+                        rollups in the forecast view. Only render when
+                        the manager has set it. */}
+                    {o.forecast_category && (
+                      <Badge
+                        variant={
+                          o.forecast_category === 'commit'
+                            ? 'success'
+                            : o.forecast_category === 'best_case'
+                              ? 'info'
+                              : 'default'
+                        }
+                        size="sm"
+                      >
+                        {o.forecast_category === 'commit'
+                          ? 'Taahhüt'
+                          : o.forecast_category === 'best_case'
+                            ? 'En İyi Senaryo'
+                            : o.forecast_category === 'pipeline'
+                              ? 'Pipeline'
+                              : 'Hariç'}
+                      </Badge>
+                    )}
+                    {/* Probability badge — backend stores 0-100. Hide
+                        when 0/null since that's just the default. */}
+                    {typeof o.probability === 'number' && o.probability > 0 && (
+                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        %{Math.round(o.probability)}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-3 text-sm text-slate-500">
                     <span>{formatCurrency(Number(o.amount || 0), o.currency || 'TRY')}</span>
@@ -250,6 +280,14 @@ export default function OpportunitiesHomePage() {
                         {(o as unknown as { customer_name?: string }).customer_name}
                       </span>
                     ) : null}
+                    {/* Closed-lost reason badge — surfaces the manual
+                        loss reason when the opportunity is closed_lost
+                        so reps can see "neden kaybedildi" at a glance. */}
+                    {o.status === 'closed' && o.stage === 'closed_lost' && o.loss_reason && (
+                      <span className="truncate text-rose-600 dark:text-rose-400">
+                        Kayıp: {o.loss_reason}
+                      </span>
+                    )}
                   </div>
                 </div>
 

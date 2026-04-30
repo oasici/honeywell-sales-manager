@@ -723,7 +723,9 @@ export default function OpportunityDetailPage() {
                 {dealHealth.indicators.map((ind) => (
                   <div key={ind.name}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-700 dark:text-slate-300">{ind.label}</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-300">
+                        {ind.label}
+                      </span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
                         {ind.score}/100 ({t('opp_detail.weight')}: {ind.weight})
                       </span>
@@ -765,7 +767,9 @@ export default function OpportunityDetailPage() {
               )}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-slate-400">{t('opp_detail.health_empty')}</p>
+            <p className="py-8 text-center text-sm text-slate-400">
+              {t('opp_detail.health_empty')}
+            </p>
           )}
         </Card>
       </div>
@@ -896,7 +900,9 @@ export default function OpportunityDetailPage() {
                     </div>
                   </div>
                   {s.created_at && (
-                    <p className="mt-1 text-[10px] text-slate-400">{formatDateTime(s.created_at)}</p>
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      {formatDateTime(s.created_at)}
+                    </p>
                   )}
                 </div>
               ))}
@@ -1134,9 +1140,7 @@ export default function OpportunityDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400">
-                  {t('opp_detail.benchmark_drivers_empty')}
-                </p>
+                <p className="text-xs text-slate-400">{t('opp_detail.benchmark_drivers_empty')}</p>
               )}
             </div>
           ) : (
@@ -1388,9 +1392,7 @@ export default function OpportunityDetailPage() {
       <div className="mt-6">
         <Card title={t('opp_detail.tasks_card_title')}>
           {tasks.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-400">
-              {t('opp_detail.tasks_empty')}
-            </p>
+            <p className="py-6 text-center text-sm text-slate-400">{t('opp_detail.tasks_empty')}</p>
           ) : (
             <div className="space-y-2">
               {tasks.slice(0, 12).map((task) => {
@@ -1524,7 +1526,9 @@ export default function OpportunityDetailPage() {
                   </table>
                 </div>
               ) : (
-                <p className="py-4 text-center text-sm text-slate-400">{t('opp_detail.adj_none')}</p>
+                <p className="py-4 text-center text-sm text-slate-400">
+                  {t('opp_detail.adj_none')}
+                </p>
               )}
 
               {/* Adjustment form (manager only) */}

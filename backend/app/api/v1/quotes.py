@@ -703,6 +703,15 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
         "has_pdf": bool(quote.pdf_path),
         "version": quote.version,
         "parent_quote_id": quote.parent_quote_id,
+        # Win/loss tracking — closed_at + close_reason were stored
+        # but never returned, blocking quote-level analytics from
+        # rendering the actual outcome timestamp / rationale.
+        "closed_at": (
+            quote.closed_at.isoformat()
+            if getattr(quote, "closed_at", None)
+            else None
+        ),
+        "close_reason": getattr(quote, "close_reason", None),
         "created_at": quote.created_at.isoformat() if quote.created_at else None,
         "updated_at": quote.updated_at.isoformat() if quote.updated_at else None,
         "customer": {

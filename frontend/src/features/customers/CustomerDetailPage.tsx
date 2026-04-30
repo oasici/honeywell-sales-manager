@@ -770,7 +770,9 @@ export default function CustomerDetailPage() {
                 {account360.last_touch.summary}
               </p>
               {account360.last_touch.at && (
-                <p className="text-xs text-slate-400 mt-1">{formatDate(account360.last_touch.at)}</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {formatDate(account360.last_touch.at)}
+                </p>
               )}
             </div>
 
@@ -804,7 +806,9 @@ export default function CustomerDetailPage() {
                         onClick={() => navigate(`/opportunities/${o.id}`)}
                         className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-2 py-1.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
                       >
-                        <span className="font-medium text-slate-900 dark:text-white">{o.title}</span>
+                        <span className="font-medium text-slate-900 dark:text-white">
+                          {o.title}
+                        </span>
                         <span className="text-xs text-slate-500 ml-2">{o.stage}</span>
                       </button>
                     ))
@@ -1184,7 +1188,9 @@ export default function CustomerDetailPage() {
               </span>
               <TrendingUp size={16} className="text-blue-400" />
             </div>
-            <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{quotes.length}</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+              {quotes.length}
+            </p>
           </div>
           <div className="rounded-xl border-l-4 border-l-red-500 border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-800">
             <div className="flex items-center justify-between">

@@ -135,6 +135,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const canSeeSettings = !userRole || ['sales_manager', 'operations'].includes(userRole);
   const canSeeReports = userRole === 'sales_manager';
   const canSeeApprovals = userRole === 'sales_rep' || userRole === 'sales_manager';
+  // Audit + KVKK export gate. The backend endpoints require
+  // SALES_MANAGER specifically (operations gets 403), so showing
+  // these links to operations users used to surface a confusing
+  // "Beklenmeyen bir hata oluştu" toast when they clicked through.
+  const canSeeAudit = userRole === 'sales_manager';
 
   const { data: pendingData } = useQuery({
     queryKey: ['approvals', 'pending'],
@@ -455,14 +460,18 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               <MessageSquare size={18} className="shrink-0" />
               {t('nav.live_chat')}
             </NavLink>
-            <NavLink to="/audit" className={navLinkClass} onClick={onNavigate}>
-              <History size={18} className="shrink-0" />
-              Denetim Kayıtları
-            </NavLink>
-            <NavLink to="/kvkk-export" className={navLinkClass} onClick={onNavigate}>
-              <Database size={18} className="shrink-0" />
-              KVKK Veri Aktarma
-            </NavLink>
+            {canSeeAudit && (
+              <>
+                <NavLink to="/audit" className={navLinkClass} onClick={onNavigate}>
+                  <History size={18} className="shrink-0" />
+                  Denetim Kayıtları
+                </NavLink>
+                <NavLink to="/kvkk-export" className={navLinkClass} onClick={onNavigate}>
+                  <Database size={18} className="shrink-0" />
+                  KVKK Veri Aktarma
+                </NavLink>
+              </>
+            )}
           </>
         )}
       </nav>

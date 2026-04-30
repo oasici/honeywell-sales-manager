@@ -293,9 +293,7 @@ export function translatePlaybookCategory(category: string, t: TranslateFn): str
 // metin gösterir.
 function humanizeSnakeCase(value: string | null | undefined): string {
   if (!value) return '-';
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export const SEVERITY_LABEL_KEYS = {
@@ -324,10 +322,7 @@ export const MOMENTUM_LABEL_KEYS = {
   unknown: 'labels.momentum.unknown',
 } as const satisfies Record<string, TranslationKey>;
 
-export function translateMomentumBand(
-  band: string | null | undefined,
-  t: TranslateFn,
-): string {
+export function translateMomentumBand(band: string | null | undefined, t: TranslateFn): string {
   if (!band) return t('labels.momentum.unknown');
   const key = MOMENTUM_LABEL_KEYS[band as keyof typeof MOMENTUM_LABEL_KEYS];
   return key ? t(key) : humanizeSnakeCase(band);

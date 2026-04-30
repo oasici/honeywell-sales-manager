@@ -113,17 +113,60 @@ const clearAuthAndRedirect = () => {
   }
 };
 
+/**
+ * Map a backend error code to a Turkish user-facing message.
+ *
+ * Backend errors are emitted as ``{error: {code, message}}`` (see
+ * ``backend/app/core/exceptions.py``). The default toast used to
+ * collapse everything into a generic "Beklenmeyen bir hata oluştu",
+ * losing the structured signal the API was already sending. This
+ * map preserves the operator's intent for the codes we know about
+ * and falls through to the raw ``message`` for the rest.
+ */
+const ERROR_CODE_MESSAGES: Record<string, string> = {
+  CSRF_INVALID: 'Oturum doğrulaması başarısız — sayfayı yenileyip tekrar deneyin.',
+  NOT_FOUND: 'Aranan kayıt bulunamadı.',
+  TENANT_MISMATCH: 'Bu kayda erişim yetkiniz yok (farklı tenant).',
+  VALIDATION_ERROR: 'Girilen bilgiler geçerli değil.',
+  RATE_LIMITED: 'Çok fazla istek attınız — biraz bekleyip tekrar deneyin.',
+  FEATURE_DISABLED: 'Bu özellik şu anda etkin değil.',
+  AI_QUOTA_EXCEEDED: 'AI kullanım kotası doldu — yöneticinize başvurun.',
+  INTERNAL_ERROR: 'Sunucuda beklenmeyen bir hata oluştu.',
+};
+
+/**
+ * Build the toast string for an error response. We always append a
+ * short request-id reference (first 8 chars of the X-Request-ID
+ * header) so support tickets can be correlated to backend logs
+ * without asking the user to reproduce. The full id stays in the
+ * console for engineers digging into Sentry.
+ */
+function formatErrorToast(message: string, requestId?: string | null): string {
+  if (!requestId) return message;
+  const short = requestId.slice(0, 8);
+  return `${message} (ref: ${short})`;
+}
+
 // Response interceptor – handle errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (!error.response) {
-      toast.error('Baglanti hatasi');
+      toast.error('Bağlantı hatası');
       return Promise.reject(error);
     }
 
-    const { status, data } = error.response;
+    const { status, data, headers } = error.response;
     const originalRequest = error.config;
+    // Backend sets X-Request-ID via middleware; surface it so users
+    // can copy it into a support ticket. Header names are case-
+    // insensitive in HTTP but axios normalises to lowercase, so we
+    // try both for safety.
+    const requestId: string | null =
+      headers?.['x-request-id'] ?? headers?.['X-Request-ID'] ?? null;
+    // Pull the structured error code if the backend sent one.
+    const errorCode: string | undefined = data?.error?.code ?? data?.code;
+    const errorMessage: string | undefined = data?.error?.message ?? data?.message;
 
     if (status === 401 && !originalRequest._retry) {
       const refreshToken = COOKIE_AUTH_ONLY ? null : localStorage.getItem('refreshToken');
@@ -175,21 +218,31 @@ api.interceptors.response.use(
     } else if (originalRequest?._skipToast) {
       // Skip toast for requests that handle errors themselves (e.g. PDF download)
     } else if (status === 403) {
-      toast.error(tt('errors.api_forbidden'));
+      const codeMessage = errorCode ? ERROR_CODE_MESSAGES[errorCode] : null;
+      toast.error(formatErrorToast(codeMessage ?? tt('errors.api_forbidden'), requestId));
     } else if (status === 422) {
       const detail = data?.detail;
       if (Array.isArray(detail)) {
         const messages = detail.map(
           (err: { loc?: string[]; msg?: string }) => err.msg || JSON.stringify(err),
         );
-        toast.error(messages.join(', '));
+        toast.error(formatErrorToast(messages.join(', '), requestId));
       } else if (typeof detail === 'string') {
-        toast.error(detail);
+        toast.error(formatErrorToast(detail, requestId));
       } else {
-        toast.error(tt('errors.api_invalid_data'));
+        toast.error(formatErrorToast(tt('errors.api_invalid_data'), requestId));
       }
     } else if (status >= 500) {
-      toast.error(tt('errors.api_server_error'));
+      // Prefer the backend's structured message + code over the
+      // generic fallback when present. Sentry already has the full
+      // trace keyed on the same request_id.
+      const codeMessage = errorCode ? ERROR_CODE_MESSAGES[errorCode] : null;
+      const message = codeMessage ?? errorMessage ?? tt('errors.api_server_error');
+      toast.error(formatErrorToast(message, requestId));
+    } else if (status >= 400 && errorCode) {
+      // Catch-all for 4xx with a structured error code we recognise.
+      const codeMessage = ERROR_CODE_MESSAGES[errorCode] ?? errorMessage ?? 'İstek başarısız';
+      toast.error(formatErrorToast(codeMessage, requestId));
     }
 
     return Promise.reject(error);
@@ -1103,7 +1156,11 @@ export const decisionGapsApi = {
         currency: string;
         gap_type: string;
         severity: string;
+        // ``recommended_action`` is the headline (legacy string).
+        // ``recommended_actions`` is the full array — render this in
+        // new UI; the singular field stays for backwards compat.
         recommended_action: string | null;
+        recommended_actions: string[];
         created_at: string | null;
       }>;
       total: number;
