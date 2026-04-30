@@ -22,10 +22,21 @@ _embedding_model = None  # Module-level singleton
 
 
 def _get_client() -> QdrantClient:
-    """Return a lazily-initialised Qdrant client."""
+    """Return a lazily-initialised Qdrant client.
+
+    Reads ``QDRANT_API_KEY`` from settings; when it's empty (local
+    docker-compose) the client is constructed without auth, which is
+    what self-hosted Qdrant expects. Qdrant Cloud rejects unauth'd
+    requests with 403, so prod must always have the key set.
+    """
     global _client
     if _client is None:
-        _client = QdrantClient(url=settings.QDRANT_URL, timeout=10)
+        api_key = settings.QDRANT_API_KEY or None
+        _client = QdrantClient(
+            url=settings.QDRANT_URL,
+            api_key=api_key,
+            timeout=10,
+        )
     return _client
 
 

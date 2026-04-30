@@ -43,12 +43,30 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
       # ── Qdrant (external; FEATURE_RAG=true required) ──
-      # Render does not host Qdrant directly. Set this to your Qdrant
-      # Cloud DSN in the Render dashboard once FEATURE_RAG is on.
-      # When the URL is empty, RAG endpoints return 404 indistinguishably
-      # so the rest of the app stays functional.
+      # Render does not host Qdrant directly. Set these to your
+      # Qdrant Cloud cluster's URL + API key in the Render dashboard
+      # once FEATURE_RAG is on. When QDRANT_URL is empty, RAG
+      # endpoints return 404 indistinguishably so the rest of the
+      # app stays functional. See docs/runbooks/rag-activation.md
+      # for the full activation walkthrough.
       - key: QDRANT_URL
         sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: FEATURE_RAG
+        # Default off so the heavyweight ML wheels don't ship until
+        # operator explicitly enables RAG. Toggle to "true" in the
+        # dashboard *and* set INSTALL_RAG_DEPS below to "1" so the
+        # build step pulls torch + sentence-transformers. The
+        # backend's vector_store falls back gracefully if the deps
+        # are missing, but Qdrant queries will fail.
+        value: "false"
+      # When set to "1" at build time the Dockerfile's RAG step
+      # installs torch + sentence-transformers from the CPU wheel
+      # index. Adds ~500 MB to the image, ~1 GB resident RAM —
+      # requires Render Standard plan or higher.
+      - key: INSTALL_RAG_DEPS
+        value: "0"
       # SECURITY: ENCRYPTION_KEY decrypts KVKK PII columns (per-row
       # encryption). If Render regenerates this on a service rebuild
       # all encrypted data becomes UNREADABLE — an irreversible data

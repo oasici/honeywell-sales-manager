@@ -1,0 +1,25 @@
+# Optional RAG dependencies — install only when FEATURE_RAG=true.
+#
+# These are the heaviest packages in the stack (~500 MB compressed,
+# ~1.2 GB on disk after install) so they live in their own file
+# instead of polluting the base image. Two consumers pull them in:
+#
+#   1. Render web service (when FEATURE_RAG=true on the dashboard).
+#      Configured in render.yaml's build command — see the comment
+#      block there.
+#
+#   2. Ad-hoc backfill workflows (V12 transformer encoding, RAG
+#      reindex). Configured in the GH Actions workflows directly,
+#      installed only on the runner.
+#
+# Pin exact versions so a torch CUDA-wheel upgrade doesn't silently
+# bloat the container by another 200 MB.
+#
+# Use:
+#   pip install -r requirements-rag.txt --index-url https://download.pytorch.org/whl/cpu
+# The PyTorch CPU index is critical — the default PyPI ships GPU
+# wheels which are 4× larger and useless on Render's CPU-only nodes.
+
+torch==2.4.1
+transformers==4.45.2
+sentence-transformers==3.1.1

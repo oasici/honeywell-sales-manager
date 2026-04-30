@@ -255,6 +255,11 @@ class Settings(BaseSettings):
 
     # ── Qdrant Vector DB ──
     QDRANT_URL: str = "http://qdrant:6333"
+    # Qdrant Cloud (and any auth-protected self-hosted instance)
+    # requires an API key in the request header. Local docker-compose
+    # Qdrant doesn't, so leave empty in dev. The client passes
+    # ``api_key=None`` cleanly when this is unset.
+    QDRANT_API_KEY: str = ""
     QDRANT_COLLECTION_DEALS: str = "deals"
     QDRANT_COLLECTION_INTERACTIONS: str = "interactions"
     QDRANT_COLLECTION_COMPETITORS: str = "competitors"
