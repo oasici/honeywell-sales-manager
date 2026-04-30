@@ -59,6 +59,200 @@ function healthTone(score: number): 'success' | 'warning' | 'danger' {
   return 'danger';
 }
 
+// ── V10 pricing intelligence panels ─────────────────────────────────
+//
+// Three side-by-side cards that consume previously-unwired endpoints:
+// margin-health, inflation-tax, stale-pricing. Each panel renders a
+// compact summary (count + headline metric) and a top-N table so the
+// dashboard stays scannable without growing into a multi-screen page.
+
+interface MarginHealthRow {
+  spare_part_id: number;
+  honeywell_code: string | null;
+  derived_margin_pct: number | null;
+  min_margin_pct: number | null;
+  severity: 'danger' | 'warning' | string;
+}
+
+interface StalePricingRow {
+  spare_part_id: number;
+  honeywell_code: string | null;
+  last_price_at: string | null;
+  valid_until: string | null;
+  age_days: number;
+  reason: string;
+}
+
+interface InflationTaxEnvelope {
+  generated_at?: string;
+  value: number;
+  confidence: 'low' | 'medium' | 'high' | string;
+  drivers: Array<{
+    label?: string;
+    drift_pct?: number;
+    exposure?: number;
+    [k: string]: unknown;
+  }>;
+  recommended_actions?: string[];
+}
+
+function MarginHealthPanel() {
+  const q = useQuery<{ items: MarginHealthRow[]; total: number }>({
+    queryKey: ['v10', 'parts-intel', 'margin-health'],
+    queryFn: () => v10PartsIntelApi.getMarginHealth(50),
+    retry: false,
+  });
+  const total = q.data?.total ?? 0;
+  return (
+    <Card
+      title="Marj Sağlığı"
+      action={<Badge variant={total > 0 ? 'danger' : 'success'}>{total}</Badge>}
+    >
+      {q.isLoading ? (
+        <Skeleton variant="table" />
+      ) : total === 0 ? (
+        <p className="text-[12px] text-slate-500">
+          Marj eşiğini ihlal eden parça yok — fiyat tabanları korunuyor.
+        </p>
+      ) : (
+        <ul className="space-y-1.5">
+          {q.data!.items.slice(0, 8).map((r) => (
+            <li
+              key={r.spare_part_id}
+              className="flex items-center justify-between gap-2 rounded-md border border-slate-100 px-2 py-1.5 dark:border-slate-800"
+            >
+              <Link
+                to={`/parts/${r.spare_part_id}`}
+                className="truncate font-mono text-[12px] font-semibold text-honeywell-red hover:underline"
+              >
+                {r.honeywell_code ?? `#${r.spare_part_id}`}
+              </Link>
+              <div className="flex items-center gap-2 text-[11px] tabular-nums">
+                <span className="text-slate-500">
+                  taban %{(r.min_margin_pct ?? 0).toFixed(1)}
+                </span>
+                <Badge
+                  variant={r.severity === 'danger' ? 'danger' : 'warning'}
+                  size="sm"
+                >
+                  %{(r.derived_margin_pct ?? 0).toFixed(1)}
+                </Badge>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function InflationTaxPanel() {
+  const q = useQuery<InflationTaxEnvelope>({
+    queryKey: ['v10', 'parts-intel', 'inflation-tax'],
+    queryFn: () => v10PartsIntelApi.getInflationTax(12),
+    retry: false,
+  });
+  return (
+    <Card
+      title="Enflasyon Vergisi"
+      action={
+        q.data?.confidence ? (
+          <Badge variant="info" size="sm">
+            {q.data.confidence}
+          </Badge>
+        ) : null
+      }
+    >
+      {q.isLoading ? (
+        <Skeleton variant="card" />
+      ) : !q.data || q.data.value === 0 ? (
+        <p className="text-[12px] text-slate-500">
+          Anlamlı fiyat sürüklenmesi tespit edilmedi.
+        </p>
+      ) : (
+        <>
+          <p className="text-3xl font-bold tabular-nums text-slate-900 dark:text-white">
+            {formatCurrency(q.data.value, 'USD')}
+          </p>
+          <p className="mt-0.5 text-[11px] text-slate-500">
+            12 aylık fiyat sürüklenmesinden kaynaklanan tahmini açık teklif maruziyeti.
+          </p>
+          {q.data.drivers.length > 0 && (
+            <ul className="mt-3 space-y-1">
+              {q.data.drivers.slice(0, 5).map((d, i) => (
+                <li
+                  key={i}
+                  className="flex items-center justify-between text-[11px]"
+                >
+                  <span className="truncate text-slate-700 dark:text-slate-300">
+                    {String(d.label ?? `Sürücü ${i + 1}`)}
+                  </span>
+                  <span className="tabular-nums text-slate-500">
+                    {d.drift_pct != null && `Δ %${d.drift_pct.toFixed(1)} · `}
+                    {d.exposure != null && formatCurrency(d.exposure, 'USD')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+function StalePricingPanel() {
+  const q = useQuery<{ items: StalePricingRow[]; total: number }>({
+    queryKey: ['v10', 'parts-intel', 'stale-pricing'],
+    queryFn: () => v10PartsIntelApi.getStalePricing(180, 50),
+    retry: false,
+  });
+  const total = q.data?.total ?? 0;
+  return (
+    <Card
+      title="Eski Fiyatlandırma"
+      action={<Badge variant={total > 0 ? 'warning' : 'success'}>{total}</Badge>}
+    >
+      {q.isLoading ? (
+        <Skeleton variant="table" />
+      ) : total === 0 ? (
+        <p className="text-[12px] text-slate-500">
+          Tüm aktif parçaların fiyatları 180 günden yeni.
+        </p>
+      ) : (
+        <ul className="space-y-1.5">
+          {q.data!.items.slice(0, 8).map((r) => (
+            <li
+              key={r.spare_part_id}
+              className="flex items-center justify-between gap-2 rounded-md border border-slate-100 px-2 py-1.5 dark:border-slate-800"
+            >
+              <Link
+                to={`/parts/${r.spare_part_id}`}
+                className="truncate font-mono text-[12px] font-semibold text-honeywell-red hover:underline"
+              >
+                {r.honeywell_code ?? `#${r.spare_part_id}`}
+              </Link>
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="tabular-nums text-slate-500">{r.age_days}g</span>
+                <span
+                  className="text-[10px] uppercase text-slate-400"
+                  title={r.reason}
+                >
+                  {r.reason === 'expired_valid_until'
+                    ? 'süresi geçmiş'
+                    : r.reason === 'no_price_entry'
+                      ? 'fiyat yok'
+                      : 'eski'}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 export default function PartsIntelligenceDashboardPage() {
   const summaryQuery = useQuery<SummaryPayload>({
     queryKey: ['v10', 'parts-intel', 'summary'],
@@ -215,7 +409,14 @@ export default function PartsIntelligenceDashboardPage() {
                   render: (row) => {
                     const r = row as DeadStockItem;
                     return (
-                      <span className="text-sm font-mono tabular-nums text-honeywell-red">
+                      // ``frozen_capital_estimate`` is supplier_price
+                      // *per unit* — not multiplied by on-hand
+                      // quantity (V10 schema doesn't track stock).
+                      // Tooltip prevents the natural misreading.
+                      <span
+                        className="text-sm font-mono tabular-nums text-honeywell-red"
+                        title="Birim başına tedarikçi fiyatı — V10 envanter sayısı tutmuyor, gerçek toplam donmuş sermaye için stok adediyle çarpın."
+                      >
                         {formatCurrency(r.frozen_capital_estimate, 'USD')}
                       </span>
                     );
@@ -296,12 +497,57 @@ export default function PartsIntelligenceDashboardPage() {
                     );
                   },
                 },
+                // Two driver columns the dashboard used to drop —
+                // the backend's _composite_score weights these
+                // alongside inactivity + price-age (35/25/20/20),
+                // so without them ops couldn't tell *why* a part
+                // was flagged.
+                {
+                  key: 'missing_fields_count',
+                  header: 'Eksik Alan',
+                  render: (row) => {
+                    const r = row as ObsolescenceRow;
+                    const v = (r as unknown as { missing_fields_count?: number })
+                      .missing_fields_count;
+                    return (
+                      <span
+                        className="text-xs text-slate-600"
+                        title="Hareketsizlik + fiyat yaşı + eksik alan + talep azalışı bileşik risk skorunu oluşturur"
+                      >
+                        {v == null ? '—' : `${v} / 4`}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  key: 'quote_freq_decay_pct',
+                  header: 'Talep Azalışı',
+                  render: (row) => {
+                    const r = row as ObsolescenceRow;
+                    const v = (r as unknown as { quote_freq_decay_pct?: number })
+                      .quote_freq_decay_pct;
+                    return (
+                      <span className="text-xs text-slate-600 tabular-nums">
+                        {v == null ? '—' : `%${v.toFixed(0)}`}
+                      </span>
+                    );
+                  },
+                },
               ]}
               data={obsolescenceQuery.data?.items ?? []}
               emptyMessage="EOL risk altında parça yok"
             />
           )}
         </Card>
+      </div>
+
+      {/* V10 pricing intelligence — three panels that previously had
+          API endpoints but no UI consumer. Each runs against its own
+          query so a slow/failing one doesn't cascade. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 mb-6">
+        <MarginHealthPanel />
+        <InflationTaxPanel />
+        <StalePricingPanel />
       </div>
 
       {/* Data health driver breakdown */}
