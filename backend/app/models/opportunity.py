@@ -34,6 +34,10 @@ class Opportunity(Base):
     # DB may contain NULL for legacy rows; keep nullable for production safety.
     probability: Mapped[float | None] = mapped_column(Float, default=0.0, nullable=True)
     loss_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Lead-source attribution. Migration 20260422_opportunity_foundation.py:33
+    # creates the column; the model never declared it, so reads/writes
+    # were silently no-op'd (audit DB-6).
+    source: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
     # Revenue leak tracking — previous values before last update
     previous_stage: Mapped[str | None] = mapped_column(String(30), nullable=True)

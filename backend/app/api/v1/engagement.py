@@ -159,6 +159,8 @@ async def list_transcripts(
     result = await db.execute(query.order_by(Transcript.created_at.desc()).offset(offset).limit(page_size))
     items = result.scalars().all()
 
+    import math as _math
+
     return {
         "items": [
             {
@@ -175,6 +177,8 @@ async def list_transcripts(
             for t in items
         ],
         "total": total, "page": page, "page_size": page_size,
+        # Audit A-10: standardize on the canonical envelope shape.
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
     }
 
 
@@ -320,15 +324,35 @@ async def list_sequences(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all sequences."""
-    seqs = (await db.execute(select(Sequence).where(Sequence.is_active.is_(True)))).scalars().all()
+    """List all sequences.
+
+    Returns the canonical envelope ``{items, total, page, page_size, pages}``
+    so frontend list components don't need a sequence-specific shape
+    (audit A-11). The legacy ``sequences`` key is retained for one
+    release of back-compat.
+    """
+    seqs = (
+        await db.execute(select(Sequence).where(Sequence.is_active.is_(True)))
+    ).scalars().all()
+    items = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "description": s.description,
+            "steps": json.loads(s.steps_json) if s.steps_json else [],
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        }
+        for s in seqs
+    ]
+    total = len(items)
     return {
-        "sequences": [
-            {"id": s.id, "name": s.name, "description": s.description,
-             "steps": json.loads(s.steps_json) if s.steps_json else [],
-             "created_at": s.created_at.isoformat() if s.created_at else None}
-            for s in seqs
-        ],
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        # Back-compat key — remove in v1.9.x once frontend has migrated.
+        "sequences": items,
     }
 
 

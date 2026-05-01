@@ -49,10 +49,13 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
     "FEATURE_AI_SUMMARIES",
     "FEATURE_AI_PIPELINE_SUGGESTIONS",
     "FEATURE_BUYER_MAP",
-    "FEATURE_INSIGHTS",
-    "FEATURE_COCKPIT",
-    "FEATURE_COMPLIANCE",
-    "FEATURE_KVKK",
+    # Audit FLAG-2 — FEATURE_INSIGHTS / FEATURE_COCKPIT /
+    # FEATURE_COMPLIANCE / FEATURE_KVKK are intentionally *not* listed
+    # because the matching `Settings` fields don't exist. Adding them
+    # would silently always evaluate to False on the frontend (the
+    # loop below uses `hasattr(settings, name)`); the round-2 audit
+    # claimed they were present but a re-check showed they aren't.
+    # Re-add if/when the corresponding settings flag is declared.
 }
 
 

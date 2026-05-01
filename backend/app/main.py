@@ -202,6 +202,11 @@ async def lifespan(app: FastAPI):
         event_bus.subscribe("lead.converted", _webhook_service.handle_event)
         event_bus.subscribe("customer.created", _webhook_service.handle_event)
         event_bus.subscribe("email.parsed", _webhook_service.handle_event)
+        # Score-change events (added in v1.7.0 EVT-1/EVT-2) — webhook
+        # subscribers used to miss these because the bus subscription
+        # list never grew. Audit EVT-5.
+        event_bus.subscribe("lead.score_changed", _webhook_service.handle_event)
+        event_bus.subscribe("opportunity.score_changed", _webhook_service.handle_event)
         # Campaign member conversion tracking
         if settings.FEATURE_CAMPAIGNS:
             async def _update_campaign_on_lead_convert(event_type: str, event_data: dict):

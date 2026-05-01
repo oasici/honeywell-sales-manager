@@ -740,6 +740,7 @@ async def bulk_action_customers(
         # Manager only
         if current_user.role != UserRole.SALES_MANAGER.value:
             raise BadRequestException("Silme islemi yalnizca yonetici tarafindan yapilabilir")
+        from app.services.activity_logger import log_activity
         affected_count = 0
         for customer in customers:
             quote_count = await db.execute(
@@ -752,6 +753,19 @@ async def bulk_action_customers(
                 EmailRequest.__table__.update()
                 .where(EmailRequest.customer_id == customer.id)
                 .values(customer_id=None)
+            )
+            # KVKK / SOX-style audit trail for destructive bulk actions
+            # (audit AUD-2). Logged before delete so the entity_id is
+            # still resolvable.
+            await log_activity(
+                db,
+                activity_type="customer_deleted_bulk",
+                entity_type="customer",
+                entity_id=customer.id,
+                customer_id=customer.id,
+                user_id=current_user.id,
+                summary=f"Toplu silme: {customer.name or customer.company or '#' + str(customer.id)}",
+                source_ref=f"bulk_action:{customer.id}",
             )
             await db.delete(customer)
             affected_count += 1

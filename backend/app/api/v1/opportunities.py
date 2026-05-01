@@ -143,6 +143,11 @@ def _opp_to_dict(
             str(opp.previous_close_date) if getattr(opp, "previous_close_date", None) else None
         ),
         "previous_amount": getattr(opp, "previous_amount", None),
+        # Lead-source attribution — column existed since the V2
+        # foundation migration but was unmapped on the model until
+        # audit DB-6 (v1.8.0). Surfacing now so the funnel report
+        # can group conversions by source.
+        "source": getattr(opp, "source", None),
         "rotting_days": rotting_days,
         "customer": {
             "id": opp.customer.id,

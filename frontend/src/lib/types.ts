@@ -22,6 +22,10 @@ export interface Customer {
   tax_id: string;
   preferred_lang: string;
   created_at: string;
+  /** Owner — round-tripped by the API but missing from TS pre-audit (TS-3). */
+  created_by?: number;
+  /** Last-update timestamp — needed to render "updated X ago" labels. */
+  updated_at?: string | null;
   quote_count?: number;
   total_quote_value?: number;
   industry?: string | null;
@@ -283,6 +287,12 @@ export interface Quote {
   valid_days: number;
   notes: string;
   pdf_path: string | null;
+  /** Convenience boolean from the serializer (audit TS-2); avoids round-tripping the path. */
+  has_pdf?: boolean;
+  /** Linked opportunity — needed by the back-link button on quote detail. */
+  opportunity_id?: number | null;
+  /** Revision tree — points at the prior quote when this is a revision. */
+  parent_quote_id?: number | null;
   version: number;
   /** V8 multi-tenant boundary — round-tripped so the UI can verify isolation. */
   tenant_id?: number | null;
@@ -565,8 +575,20 @@ export interface OpportunityFeaturesDailyLatest {
   momentum_score: number | null;
   momentum_band?: string | null;
   momentum_drivers_json?: string | null;
+  /** Pre-parsed driver list from the backend (audit TS-4). Avoids
+      client-side JSON.parse. Each entry is the deserialized form of
+      what's stored in `momentum_drivers_json`. */
+  momentum_drivers?: Array<{
+    label?: string;
+    contribution?: number;
+    weight?: number;
+    direction?: 'positive' | 'negative' | string;
+    [key: string]: unknown;
+  }>;
   buyer_state: string | null;
   close_probability: number | null;
+  /** V6 trajectory: days the opportunity has spent in its current stage. */
+  stage_velocity_days?: number | null;
   /** Optional V6 expansion field; null on rows seeded before V6. */
   objection_density_norm?: number | null;
 }
