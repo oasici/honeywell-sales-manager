@@ -103,19 +103,27 @@ async def list_high_intent_accounts(
     from app.services.prospecting_agent import ProspectingAgent
 
     rows = await ProspectingAgent(db).list_high_intent_accounts(current_user, limit=limit)
+    items = [
+        {
+            "customer_id": r.customer_id,
+            "name": r.name,
+            "company": r.company,
+            "score": r.score,
+            "signals": r.signals,
+            "pinned": r.pinned,
+        }
+        for r in rows
+    ]
+    total = len(rows)
+    # Aligned with the canonical pagination envelope
+    # ({items,total,page,page_size,pages}) used by list_customers so
+    # frontend list components don't need to special-case this endpoint.
     return {
-        "items": [
-            {
-                "customer_id": r.customer_id,
-                "name": r.name,
-                "company": r.company,
-                "score": r.score,
-                "signals": r.signals,
-                "pinned": r.pinned,
-            }
-            for r in rows
-        ],
-        "total": len(rows),
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": limit,
+        "pages": 1 if total > 0 else 0,
     }
 
 

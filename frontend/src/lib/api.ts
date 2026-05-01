@@ -162,8 +162,7 @@ api.interceptors.response.use(
     // can copy it into a support ticket. Header names are case-
     // insensitive in HTTP but axios normalises to lowercase, so we
     // try both for safety.
-    const requestId: string | null =
-      headers?.['x-request-id'] ?? headers?.['X-Request-ID'] ?? null;
+    const requestId: string | null = headers?.['x-request-id'] ?? headers?.['X-Request-ID'] ?? null;
     // Pull the structured error code if the backend sent one.
     const errorCode: string | undefined = data?.error?.code ?? data?.code;
     const errorMessage: string | undefined = data?.error?.message ?? data?.message;
@@ -2953,9 +2952,12 @@ export const v5IntelligenceApi = {
     return data;
   },
   getDnaRecommendations: async (segmentKey: string, limit = 10) => {
-    const { data } = await api.get(`/v5/segments/${encodeURIComponent(segmentKey)}/dna-recommendations`, {
-      params: { limit },
-    });
+    const { data } = await api.get(
+      `/v5/segments/${encodeURIComponent(segmentKey)}/dna-recommendations`,
+      {
+        params: { limit },
+      },
+    );
     return data as { segment_key: string; items: unknown[]; total: number };
   },
   getRecentNetworkAnomalies: async (limit = 50) => {

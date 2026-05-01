@@ -156,7 +156,7 @@ async def reset_user_password(
     user.password_change_required = False
     await db.flush()
 
-    return {"message": "Sifre sifirlandi", "user_id": user.id, "email": user.email}
+    return {"message": "Sifre sifirlandi", "id": user.id, "email": user.email}
 
 
 @router.post(

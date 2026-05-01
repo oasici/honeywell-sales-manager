@@ -84,6 +84,13 @@ EVENT_PAYLOAD_SCHEMAS: dict[str, dict] = {
         "new_score": "float",
         "reason": "str",
     },
+    DomainEvents.SIGNAL_CREATED: {
+        "signal_id": "int",
+        "signal_type": "str",
+        "severity": "str",
+        "opportunity_id": "int|None",
+        "depth": "int|None",
+    },
 }
 
 

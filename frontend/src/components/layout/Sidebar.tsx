@@ -48,6 +48,7 @@ import {
   Database,
   History,
   Activity,
+  ListTree,
 } from 'lucide-react';
 import { approvalsApi } from '../../lib/api';
 
@@ -474,6 +475,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                 <NavLink to="/admin/system-health" className={navLinkClass} onClick={onNavigate}>
                   <Activity size={18} className="shrink-0" />
                   Sistem Sağlığı
+                </NavLink>
+                <NavLink to="/admin/event-audit" className={navLinkClass} onClick={onNavigate}>
+                  <ListTree size={18} className="shrink-0" />
+                  Olay Denetim Kaydı
                 </NavLink>
               </>
             )}

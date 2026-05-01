@@ -235,6 +235,16 @@ export interface PriceEntry {
 }
 
 // ── Quote ────────────────────────────────────────────
+// Mirrors backend QuoteStatus enum (app/models/enums.py).
+export type QuoteStatus =
+  | 'draft'
+  | 'pending_approval'
+  | 'approved'
+  | 'sent'
+  | 'accepted'
+  | 'rejected'
+  | 'expired';
+
 export interface QuoteItem {
   id: number;
   quote_id: number;
@@ -260,7 +270,7 @@ export interface Quote {
   email_request_id: number | null;
   created_by: number;
   approved_by: number | null;
-  status: string;
+  status: QuoteStatus;
   language: string;
   currency: string;
   subtotal: number;
@@ -356,6 +366,15 @@ export interface HealthIndicator {
   description: string;
 }
 
+export interface HealthExplanation {
+  indicator: string;
+  label: string;
+  value: string | number | null;
+  weight: number;
+  contribution: number;
+  recommendation: string | null;
+}
+
 export interface CustomerHealthReport {
   customer_id: number;
   customer_name: string;
@@ -364,6 +383,8 @@ export interface CustomerHealthReport {
   risk_level: 'healthy' | 'at_risk' | 'churning';
   indicators: HealthIndicator[];
   recommendations: string[];
+  /** Populated only when the request includes `?include_explanations=true`. */
+  explanations?: HealthExplanation[];
 }
 
 export interface HealthOverview {
@@ -447,10 +468,30 @@ export interface Opportunity {
   updated_at: string;
 }
 
+// Mirrors backend OpportunitySignalType enum (app/models/enums.py).
+// Adding new values here when the backend enum grows keeps switch
+// statements / label maps in the UI from silently falling through.
+export type OpportunitySignalType =
+  | 'pricing_concern'
+  | 'competitor'
+  | 'objection'
+  | 'no_touch'
+  | 'discount_risk'
+  | 'sla_breach'
+  | 'positive'
+  | 'workflow_triggered'
+  | 'coaching_needed'
+  | 'stage_change'
+  | 'email_parsed'
+  | 'expansion_signal'
+  | 'playbook_completed';
+
+export type OpportunitySignalSeverity = 'low' | 'med' | 'high';
+
 export interface OpportunitySignal {
   id: number;
-  signal_type: string;
-  severity: string;
+  signal_type: OpportunitySignalType;
+  severity: OpportunitySignalSeverity;
   evidence: string | null;
   source_type: string | null;
   source_id: number | null;
@@ -522,6 +563,8 @@ export interface OpportunityFeaturesDailyLatest {
   momentum_drivers_json?: string | null;
   buyer_state: string | null;
   close_probability: number | null;
+  /** Optional V6 expansion field; null on rows seeded before V6. */
+  objection_density_norm?: number | null;
 }
 
 export interface KanbanColumn {
@@ -1883,3 +1926,7 @@ export interface ChatMessage {
   is_read: boolean;
   created_at: string;
 }
+
+// Re-export so consumers can import from the canonical types module
+// (the interface is defined in api.ts to keep it next to the v5 client).
+export type { IntelligenceDriver } from './api';

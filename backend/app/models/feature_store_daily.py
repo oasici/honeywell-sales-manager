@@ -68,8 +68,14 @@ class AccountFeaturesDaily(Base):
     avg_momentum: Mapped[float | None] = mapped_column(Float, nullable=True)
     stakeholder_coverage_avg: Mapped[float | None] = mapped_column(Float, nullable=True)
     buyer_engagement_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    objection_density_30d: Mapped[float] = mapped_column(Float, default=0.0)
-    expansion_signal_score: Mapped[float] = mapped_column(Float, default=0.0)
+    # Migration declares NOT NULL with DEFAULT 0; add nullable=False
+    # explicitly so SQLAlchemy autogenerate doesn't drift.
+    objection_density_30d: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
+    expansion_signal_score: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -93,7 +99,7 @@ class RepFeaturesDaily(Base):
     sequence_adherence_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     stage_slippage_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     discount_dependence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    sample_deals: Mapped[int] = mapped_column(Integer, default=0)
+    sample_deals: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

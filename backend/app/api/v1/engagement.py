@@ -12,7 +12,7 @@ import logging
 import math
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,7 +36,23 @@ router = APIRouter(tags=["Engagement"])
 # every @router.<method> decorator has registered — so include_router sees
 # the full route list. Importers must pull both ``router`` (canonical paths)
 # and ``legacy_router`` (``/engagement/*`` paths).
-legacy_router = APIRouter(prefix="/engagement", tags=["Engagement"])
+#
+# DEPRECATED: scheduled for removal 2026-09. Frontend should migrate to the
+# canonical ``router`` paths; the dependency below logs and tags every hit
+# so we can quantify remaining traffic before deletion.
+async def _legacy_engagement_warning(request: Request) -> None:
+    logger.warning(
+        "Deprecated /engagement/* endpoint hit: %s %s — migrate caller before 2026-09",
+        request.method,
+        request.url.path,
+    )
+
+legacy_router = APIRouter(
+    prefix="/engagement",
+    tags=["Engagement (deprecated)"],
+    deprecated=True,
+    dependencies=[Depends(_legacy_engagement_warning)],
+)
 
 
 # ══════════════════════════════════════════

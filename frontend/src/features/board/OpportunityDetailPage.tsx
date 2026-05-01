@@ -932,7 +932,7 @@ export default function OpportunityDetailPage() {
               {t('opp_detail.snapshot_empty')}
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
                 <p className="text-[11px] text-slate-500">{t('opp_detail.snapshot_date')}</p>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -981,6 +981,54 @@ export default function OpportunityDetailPage() {
                   {v4LatestFeatures.negative_signal_count_14d}
                 </p>
               </div>
+              {(v4LatestFeatures.positive_signal_count_14d ?? 0) > 0 && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                  <p className="text-[11px] text-slate-500">{t('opp_detail.positive_signals_14d')}</p>
+                  <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    {v4LatestFeatures.positive_signal_count_14d}
+                  </p>
+                </div>
+              )}
+              {(v4LatestFeatures.quote_count ?? 0) > 0 && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                  <p className="text-[11px] text-slate-500">{t('opp_detail.quote_count')}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {v4LatestFeatures.quote_count}
+                  </p>
+                </div>
+              )}
+              {v4LatestFeatures.latest_discount_pct != null && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                  <p className="text-[11px] text-slate-500">{t('opp_detail.latest_discount')}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    %{v4LatestFeatures.latest_discount_pct.toFixed(1)}
+                  </p>
+                </div>
+              )}
+              {(v4LatestFeatures.competitor_mentions_30d ?? 0) > 0 && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                  <p className="text-[11px] text-slate-500">{t('opp_detail.competitor_mentions_30d')}</p>
+                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                    {v4LatestFeatures.competitor_mentions_30d}
+                  </p>
+                </div>
+              )}
+              {(v4LatestFeatures.pricing_objections_30d ?? 0) > 0 && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                  <p className="text-[11px] text-slate-500">{t('opp_detail.pricing_objections_30d')}</p>
+                  <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                    {v4LatestFeatures.pricing_objections_30d}
+                  </p>
+                </div>
+              )}
+              {v4LatestFeatures.objection_density_norm != null && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
+                  <p className="text-[11px] text-slate-500">{t('opp_detail.objection_density')}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {v4LatestFeatures.objection_density_norm.toFixed(2)}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </Card>
@@ -1089,10 +1137,22 @@ export default function OpportunityDetailPage() {
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">
                       {translateGapType(g.gap_type, t)}
                     </p>
-                    {g.recommended_actions?.[0] && (
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                        {g.recommended_actions[0]}
-                      </p>
+                    {((g.recommended_actions ?? []) as string[]).length > 0 && (
+                      <ul className="mt-1 flex flex-wrap gap-1">
+                        {((g.recommended_actions ?? []) as string[]).slice(0, 4).map((action, i) => (
+                          <li
+                            key={i}
+                            className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          >
+                            {action}
+                          </li>
+                        ))}
+                        {((g.recommended_actions ?? []) as string[]).length > 4 && (
+                          <li className="rounded-md bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                            +{((g.recommended_actions ?? []) as string[]).length - 4}
+                          </li>
+                        )}
+                      </ul>
                     )}
                   </div>
                   <Badge variant={severityVariant(g.severity)} size="sm">

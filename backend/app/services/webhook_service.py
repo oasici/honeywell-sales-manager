@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import ipaddress
@@ -24,6 +25,11 @@ logger = logging.getLogger(__name__)
 DELIVERY_TIMEOUT_SECONDS = 10
 MAX_RESPONSE_BODY_LENGTH = 1000
 MAX_FAILURE_COUNT = 10
+# Per-event retry policy: total = 3 attempts, sleeping 1s then 2s
+# between failures. Keeps brief receiver flaps from costing all events
+# while bounding the worst-case latency below the 10 s timeout × 3.
+DELIVERY_MAX_ATTEMPTS = 3
+DELIVERY_BACKOFF_SECONDS = (1, 2)
 
 
 _BLOCKED_HOST_SUFFIXES = (
@@ -201,48 +207,60 @@ class WebhookService:
         body = json.dumps(payload, default=str, ensure_ascii=False)
         headers = _build_webhook_headers(subscription.secret, body)
 
-        status_code = None
-        response_body = None
+        status_code: int | None = None
+        response_body: str | None = None
+        attempts = 0
+        is_success = False
 
-        try:
-            # Re-validate right before the request as a best-effort DNS rebinding guard.
-            # (We still rely on the resolver used by the HTTP client; follow_redirects is disabled.)
-            validate_webhook_url(subscription.url)
+        for attempt in range(DELIVERY_MAX_ATTEMPTS):
+            attempts = attempt + 1
+            try:
+                # Re-validate right before each request as a best-effort
+                # DNS rebinding guard (follow_redirects stays disabled).
+                validate_webhook_url(subscription.url)
 
-            async with httpx.AsyncClient(
-                timeout=DELIVERY_TIMEOUT_SECONDS,
-                follow_redirects=False,
-            ) as client:
-                response = await client.post(
-                    subscription.url,
-                    content=body,
-                    headers=headers,
-                )
-                status_code = response.status_code
-                response_body = response.text[:MAX_RESPONSE_BODY_LENGTH]
+                async with httpx.AsyncClient(
+                    timeout=DELIVERY_TIMEOUT_SECONDS,
+                    follow_redirects=False,
+                ) as client:
+                    response = await client.post(
+                        subscription.url,
+                        content=body,
+                        headers=headers,
+                    )
+                    status_code = response.status_code
+                    response_body = response.text[:MAX_RESPONSE_BODY_LENGTH]
 
-            is_success = 200 <= status_code < 300
-            if is_success:
-                subscription.failure_count = 0
-            else:
-                subscription.failure_count += 1
+                is_success = 200 <= status_code < 300
+                if is_success:
+                    break
                 logger.warning(
-                    "Webhook delivery failed for %s: HTTP %s",
-                    subscription.name,
-                    status_code,
+                    "Webhook delivery attempt %d/%d failed for %s: HTTP %s",
+                    attempts, DELIVERY_MAX_ATTEMPTS, subscription.name, status_code,
+                )
+            except httpx.TimeoutException:
+                response_body = "Zaman asimi hatasi"
+                logger.warning(
+                    "Webhook delivery attempt %d/%d timed out for %s",
+                    attempts, DELIVERY_MAX_ATTEMPTS, subscription.name,
+                )
+            except Exception as exc:
+                response_body = str(exc)[:MAX_RESPONSE_BODY_LENGTH]
+                logger.warning(
+                    "Webhook delivery attempt %d/%d error for %s: %s",
+                    attempts, DELIVERY_MAX_ATTEMPTS, subscription.name, exc,
                 )
 
-        except httpx.TimeoutException:
-            subscription.failure_count += 1
-            response_body = "Zaman asimi hatasi"
-            logger.warning("Webhook delivery timed out for %s", subscription.name)
+            # Sleep between failed attempts (skip after the last one).
+            if attempt < DELIVERY_MAX_ATTEMPTS - 1:
+                await asyncio.sleep(DELIVERY_BACKOFF_SECONDS[attempt])
 
-        except Exception as exc:
+        if is_success:
+            subscription.failure_count = 0
+        else:
             subscription.failure_count += 1
-            response_body = str(exc)[:MAX_RESPONSE_BODY_LENGTH]
-            logger.warning("Webhook delivery error for %s: %s", subscription.name, exc)
 
-        # Auto-disable after too many failures
+        # Auto-disable after too many consecutive failures
         if subscription.failure_count >= MAX_FAILURE_COUNT:
             subscription.is_active = False
             logger.warning(
@@ -259,6 +277,7 @@ class WebhookService:
             payload_json=body,
             status_code=status_code,
             response_body=response_body,
+            retry_count=attempts - 1,
             delivered_at=datetime.now(timezone.utc),
         )
         db.add(delivery)

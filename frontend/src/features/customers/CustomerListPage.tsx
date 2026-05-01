@@ -289,11 +289,16 @@ export default function CustomerListPage() {
 
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => customersApi.createCustomer(payload),
-    onSuccess: () => {
+    onSuccess: (newCustomer) => {
       toast.success(t('customers.toast_created'));
       setModalOpen(false);
       setForm(INITIAL_FORM);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      // Hydrate the detail-page cache so navigating to the freshly
+      // created record doesn't show stale/empty data until F5.
+      if (newCustomer?.id != null) {
+        queryClient.setQueryData(['customer', newCustomer.id], newCustomer);
+      }
     },
     onError: () => toast.error(t('customers.toast_create_failed')),
   });

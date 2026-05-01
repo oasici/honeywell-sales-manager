@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { Fragment, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 import {
@@ -630,6 +630,10 @@ function CoachingPanel() {
     refetchInterval: 120_000,
   });
 
+  // Track which rep rows are expanded so users can drill into the
+  // per-indicator score breakdown without leaving the cockpit.
+  const [expandedRep, setExpandedRep] = useState<number | null>(null);
+
   const riskVariant = (level: string): BadgeVariant => {
     if (level === 'high' || level === 'critical') return 'danger';
     if (level === 'medium') return 'warning';
@@ -662,25 +666,68 @@ function CoachingPanel() {
               </tr>
             </thead>
             <tbody>
-              {data.reps.map((rep) => (
-                <tr
-                  key={rep.user_id}
-                  className="border-b border-slate-100 last:border-0 dark:border-slate-800"
-                >
-                  <td className="py-2 font-medium text-slate-800 dark:text-slate-200">
-                    {rep.user_name}
-                  </td>
-                  <td className="py-2 text-slate-700 dark:text-slate-300">{rep.score.toFixed(0)}</td>
-                  <td className="py-2">
-                    <Badge variant={riskVariant(rep.risk_level)} size="sm">
-                      {rep.risk_level}
-                    </Badge>
-                  </td>
-                  <td className="py-2 text-xs text-slate-500 dark:text-slate-400">
-                    {rep.recommendations.slice(0, 2).join('; ')}
-                  </td>
-                </tr>
-              ))}
+              {data.reps.map((rep) => {
+                const isExpanded = expandedRep === rep.user_id;
+                const hasIndicators = (rep.indicators?.length ?? 0) > 0;
+                return (
+                  <Fragment key={rep.user_id}>
+                    <tr
+                      className={`border-b border-slate-100 dark:border-slate-800 ${
+                        hasIndicators
+                          ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                          : ''
+                      } ${!isExpanded && 'last:border-0'}`}
+                      onClick={() =>
+                        hasIndicators && setExpandedRep(isExpanded ? null : rep.user_id)
+                      }
+                    >
+                      <td className="py-2 font-medium text-slate-800 dark:text-slate-200">
+                        {hasIndicators && (
+                          <span className="mr-1 inline-block w-3 text-slate-400">
+                            {isExpanded ? '▾' : '▸'}
+                          </span>
+                        )}
+                        {rep.user_name}
+                      </td>
+                      <td className="py-2 text-slate-700 dark:text-slate-300">
+                        {rep.score.toFixed(0)}
+                      </td>
+                      <td className="py-2">
+                        <Badge variant={riskVariant(rep.risk_level)} size="sm">
+                          {rep.risk_level}
+                        </Badge>
+                      </td>
+                      <td className="py-2 text-xs text-slate-500 dark:text-slate-400">
+                        {rep.recommendations.slice(0, 2).join('; ')}
+                      </td>
+                    </tr>
+                    {isExpanded && hasIndicators && (
+                      <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+                        <td colSpan={4} className="py-2 px-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {rep.indicators.map((ind) => (
+                              <div
+                                key={ind.name}
+                                className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5"
+                              >
+                                <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                                  {ind.label}
+                                </p>
+                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                  {ind.score.toFixed(0)}
+                                  <span className="ml-1 text-[10px] text-slate-400">
+                                    × {ind.weight.toFixed(2)}
+                                  </span>
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -771,11 +818,16 @@ function CompetitiveIntelPanel() {
                             : t('cockpit.sentiment_neutral')}
                       </p>
                     )}
-                    {comp.recent_mentions?.slice(0, 1).map((m, i) => (
+                    {comp.recent_mentions?.slice(0, 3).map((m, i) => (
                       <p key={i} className="text-xs text-slate-400 truncate">
                         [{m.source_type}] {m.context_snippet}
                       </p>
                     ))}
+                    {(comp.recent_mentions?.length ?? 0) > 3 && (
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        +{(comp.recent_mentions?.length ?? 0) - 3} {t('cockpit.more_mentions')}
+                      </p>
+                    )}
                   </div>
                 );
               },
@@ -1051,7 +1103,9 @@ function SequencesTab() {
   if (!isManager) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-slate-500 dark:text-slate-400">{t('cockpit.seq_manager_only')}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {t('cockpit.seq_manager_only')}
+        </p>
         <Card
           title={t('cockpit.seq_active_title').replace('{count}', String(activeEnrollments.length))}
         >
@@ -1393,7 +1447,7 @@ function DecisionGapsPanel() {
                     produces TS7006 under strict noImplicitAny. We
                     pin the action array to ``string[]`` here so the
                     inner callback gets the correct types. */}
-                {(((g.recommended_actions ?? []) as string[]).length) > 0 ? (
+                {((g.recommended_actions ?? []) as string[]).length > 0 ? (
                   <ul className="mt-1 flex flex-wrap gap-1">
                     {((g.recommended_actions ?? []) as string[])
                       .slice(0, 4)

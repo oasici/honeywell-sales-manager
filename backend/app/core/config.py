@@ -480,6 +480,11 @@ class Settings(BaseSettings):
     # Depends on: DATABASE_URL
     # Required by: invoice list/detail, PDF generation, billing workflow
     FEATURE_INVOICING: bool = False
+    # Off by default — emit `invoice.paid` to the in-process event bus
+    # when an invoice transitions to `paid`. Behind a flag because
+    # downstream subscribers (revenue rollup, contract actuals) haven't
+    # been re-validated against current data.
+    FEATURE_INVOICE_PAID_EVENT: bool = False
 
     # --- E-Signature ---
     # Depends on: DATABASE_URL

@@ -61,9 +61,6 @@ class Quote(Base):
 
     # Versioning
     version: Mapped[int] = mapped_column(Integer, default=1)
-    parent_quote_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("quotes.id"), nullable=True
-    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

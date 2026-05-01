@@ -46,6 +46,12 @@ class CrmConnection(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
+    __table_args__ = (
+        # Mirrors migration 20260428_v9_crm_sync — kept here so
+        # `alembic --autogenerate` doesn't try to drop the index.
+        Index("ix_crm_connections_tenant_active", "tenant_id", "is_active"),
+    )
+
 
 class CrmFieldMapping(Base):
     __tablename__ = "crm_field_mappings"

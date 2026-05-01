@@ -94,9 +94,10 @@ function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
  * Used to surface "Güçlü alan" / "Gelişim alanı" copy on each card so
  * managers can scan the grid without drilling into every rep.
  */
-function pickStrongAndWeak(
-  indicators: { name: string; label: string; score: number }[],
-): { strong?: { label: string; score: number }; weak?: { label: string; score: number } } {
+function pickStrongAndWeak(indicators: { name: string; label: string; score: number }[]): {
+  strong?: { label: string; score: number };
+  weak?: { label: string; score: number };
+} {
   if (indicators.length === 0) return {};
   const sorted = [...indicators].sort((a, b) => b.score - a.score);
   return {

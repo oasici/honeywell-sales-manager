@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -19,6 +20,8 @@ from app.models.invoice import Invoice
 from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -266,6 +269,27 @@ async def update_invoice_status(
     invoice.status = body.status
     await db.commit()
     await db.refresh(invoice)
+
+    # Best-effort: notify downstream listeners (revenue rollup, contract
+    # actual-revenue) when an invoice transitions to paid. Behind a flag
+    # because handlers haven't been re-validated; failures are swallowed
+    # so a downstream bug never blocks the user-visible status update.
+    if body.status == "paid" and settings.FEATURE_INVOICE_PAID_EVENT:
+        try:
+            from app.core.event_bus import event_bus
+
+            await event_bus.publish(
+                "invoice.paid",
+                {
+                    "invoice_id": invoice.id,
+                    "customer_id": invoice.customer_id,
+                    "amount": float(invoice.grand_total or 0.0),
+                    "currency": invoice.currency,
+                },
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("invoice.paid publish failed: %s", exc)
+
     return {"message": "Fatura durumu guncellendi", "id": invoice_id, "status": body.status}
 
 
