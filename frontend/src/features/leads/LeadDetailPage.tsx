@@ -226,6 +226,40 @@ export default function LeadDetailPage() {
               {t('lead_detail.source_prefix')}: {lead.source}
             </p>
           </div>
+          {/* score_breakdown is computed by the backend specifically for
+              the detail view (audit F-5). Each row shows which factor
+              contributed how many points so reps know *why* the lead is
+              scored what it's scored. */}
+          {Array.isArray(lead.score_breakdown) && lead.score_breakdown.length > 0 && (
+            <div className="border-t mt-3 pt-3">
+              <p className="text-xs font-medium text-slate-500 mb-2">
+                {t('lead_detail.score_breakdown')}
+              </p>
+              <ul className="space-y-1">
+                {(lead.score_breakdown as Array<{
+                  factor: string;
+                  points: number;
+                  reason?: string;
+                }>).slice(0, 8).map((b, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300"
+                  >
+                    <span className="truncate">{b.reason ?? b.factor}</span>
+                    <span
+                      className={[
+                        'shrink-0 tabular-nums font-semibold',
+                        b.points >= 0 ? 'text-emerald-600' : 'text-red-600',
+                      ].join(' ')}
+                    >
+                      {b.points >= 0 ? '+' : ''}
+                      {b.points}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <ScoreHistory leadId={lead.id} />
         </Card>
 

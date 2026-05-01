@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronDown, ExternalLink, FileText, TrendingUp, Users } from 'lucide-react';
+import { ChevronDown, ExternalLink, FileText, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -125,6 +125,31 @@ function CustomerCard({
             </h3>
             {c.company && <p className="mt-0.5 truncate text-[13px] text-slate-500">{c.company}</p>}
             <p className="mt-0.5 truncate text-xs text-slate-400">{c.email}</p>
+            {/* Enrichment metadata — surfaces industry + an "AI" badge
+                when the customer has been auto-enriched (audit F-2). */}
+            {(c.industry || c.enriched_at) && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                {c.industry && (
+                  <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                    {c.industry}
+                  </span>
+                )}
+                {c.employee_count != null && (
+                  <span className="text-[10px] text-slate-400">
+                    {c.employee_count.toLocaleString()} {t('customers.employees_suffix')}
+                  </span>
+                )}
+                {c.enriched_at && (
+                  <span
+                    title={t('customers.enriched_tooltip')}
+                    className="inline-flex items-center gap-0.5 rounded-full bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700"
+                  >
+                    <Sparkles size={10} />
+                    AI
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </button>
       </div>
@@ -264,6 +289,10 @@ const INITIAL_FORM = {
   address: '',
   tax_id: '',
   preferred_lang: 'tr',
+  // Auto-enrichment writes website + linkedin_url; reps need the
+  // ability to correct bad enrichment manually (audit F-1).
+  website: '',
+  linkedin_url: '',
 };
 
 export default function CustomerListPage() {
@@ -549,6 +578,20 @@ export default function CustomerListPage() {
             value={form.address}
             onChange={(e) => updateField('address', e.target.value)}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label={t('customers.website')}
+              value={form.website}
+              onChange={(e) => updateField('website', e.target.value)}
+              placeholder="https://"
+            />
+            <Input
+              label={t('customers.linkedin_url')}
+              value={form.linkedin_url}
+              onChange={(e) => updateField('linkedin_url', e.target.value)}
+              placeholder="https://linkedin.com/company/…"
+            />
+          </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               {t('common.cancel')}

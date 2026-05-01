@@ -84,12 +84,7 @@ export default function EventAuditLogPage() {
         title="Olay Denetim Kaydı"
         description="Sistemin yaydığı domain olaylarını canlı izleyin (her 30 sn yenilenir)."
       >
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => refetch()}
-          loading={isFetching}
-        >
+        <Button variant="secondary" size="sm" onClick={() => refetch()} loading={isFetching}>
           <RotateCw size={14} className="mr-1.5" />
           Yenile
         </Button>
@@ -128,10 +123,16 @@ export default function EventAuditLogPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th className="pb-2 pr-3 font-medium text-slate-500 dark:text-slate-400">Zaman</th>
+                  <th className="pb-2 pr-3 font-medium text-slate-500 dark:text-slate-400">
+                    Zaman
+                  </th>
                   <th className="pb-2 pr-3 font-medium text-slate-500 dark:text-slate-400">Olay</th>
-                  <th className="pb-2 pr-3 font-medium text-slate-500 dark:text-slate-400">Varlık</th>
-                  <th className="pb-2 pr-3 font-medium text-slate-500 dark:text-slate-400">Aktör</th>
+                  <th className="pb-2 pr-3 font-medium text-slate-500 dark:text-slate-400">
+                    Varlık
+                  </th>
+                  <th className="pb-2 pr-3 font-medium text-slate-500 dark:text-slate-400">
+                    Aktör
+                  </th>
                   <th className="pb-2 font-medium text-slate-500 dark:text-slate-400">Payload</th>
                 </tr>
               </thead>

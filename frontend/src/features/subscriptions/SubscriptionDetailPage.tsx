@@ -215,6 +215,41 @@ export default function SubscriptionDetailPage() {
               {sub.created_at ? formatDate(sub.created_at) : '-'}
             </p>
           </div>
+          {/* Customer + originating quote links — round-tripped by the
+              API but previously not surfaced (audit F-8). Without these
+              the rep had to open another tab to navigate. */}
+          {sub.customer_id != null && (
+            <div>
+              <p className="text-xs text-slate-500">{t('subscription.lbl_customer')}</p>
+              <button
+                type="button"
+                onClick={() => navigate(`/customers/${sub.customer_id}`)}
+                className="font-medium text-honeywell-red hover:underline"
+              >
+                #{sub.customer_id}
+              </button>
+            </div>
+          )}
+          {sub.quote_id != null && (
+            <div>
+              <p className="text-xs text-slate-500">{t('subscription.lbl_quote')}</p>
+              <button
+                type="button"
+                onClick={() => navigate(`/quotes/${sub.quote_id}`)}
+                className="font-medium text-honeywell-red hover:underline"
+              >
+                #{sub.quote_id}
+              </button>
+            </div>
+          )}
+          {sub.updated_at && (
+            <div>
+              <p className="text-xs text-slate-500">{t('subscription.lbl_updated')}</p>
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                {formatDate(sub.updated_at)}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

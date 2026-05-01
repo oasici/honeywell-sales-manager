@@ -180,6 +180,39 @@ export default function SubscriptionListPage() {
         </div>
       )}
 
+      {/* Top customers by MRR — fetched in /mrr-dashboard but never
+          rendered before audit F-7. Hide if the backend returns an
+          empty list (single-customer deployments etc.). */}
+      {mrrData?.top_customers && mrrData.top_customers.length > 0 && (
+        <div
+          className="rounded-xl border p-4"
+          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}
+        >
+          <h3 className="mb-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {t('subscription.top_customers_title')}
+          </h3>
+          <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            {mrrData.top_customers.slice(0, 5).map((tc) => (
+              <li
+                key={tc.customer_id}
+                className="flex items-center justify-between py-2 text-sm"
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate(`/customers/${tc.customer_id}`)}
+                  className="truncate text-left text-slate-700 hover:text-honeywell-red"
+                >
+                  {tc.name}
+                </button>
+                <span className="ml-3 shrink-0 font-semibold tabular-nums text-slate-900">
+                  {formatCurrency(tc.mrr, 'TRY')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
           {t('subscription.title')}

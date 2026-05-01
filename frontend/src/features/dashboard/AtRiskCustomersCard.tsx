@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { customerHealthApi } from '../../lib/api';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -30,6 +31,11 @@ const SCORE_TONE_CLASSES: Record<'critical' | 'warn' | 'ok', string> = {
 
 export function AtRiskCustomersCard() {
   const navigate = useNavigate();
+  // Track which row's recommendations are expanded — the API returns
+  // 2-3 actionable recommendations per customer (audit F-3) that the
+  // previous card silently dropped.
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
   const { data: atRiskData } = useQuery<AtRiskResponse>({
     queryKey: ['at-risk-customers'],
     queryFn: () => customerHealthApi.getAtRiskCustomers(5),
@@ -68,23 +74,30 @@ export function AtRiskCustomersCard() {
           {customers.map((c) => {
             const tone = getScoreTone(c.score);
             const isChurning = c.risk_level === 'churning';
+            const recs = c.recommendations ?? [];
+            const isExpanded = expandedId === c.customer_id;
+            const hasRecs = recs.length > 0;
             return (
               <li key={c.customer_id}>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/customers/${c.customer_id}`)}
+                <div
                   className="group flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
-                      {c.company || c.customer_name}
-                    </p>
-                    {c.company && (
-                      <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
-                        {c.customer_name}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/customers/${c.customer_id}`)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+                        {c.company || c.customer_name}
                       </p>
-                    )}
-                  </div>
+                      {c.company && (
+                        <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
+                          {c.customer_name}
+                        </p>
+                      )}
+                    </div>
+                  </button>
                   <Badge variant={isChurning ? 'danger' : 'warning'} size="sm" dot>
                     {isChurning ? 'Kayıp' : 'Risk'}
                   </Badge>
@@ -97,11 +110,35 @@ export function AtRiskCustomersCard() {
                   >
                     {c.score}
                   </span>
-                  <ChevronRight
-                    size={14}
-                    className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-500"
-                  />
-                </button>
+                  {hasRecs ? (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(isExpanded ? null : c.customer_id)}
+                      aria-label="Önerileri göster"
+                      className="rounded p-0.5 text-slate-300 hover:bg-slate-100 hover:text-slate-500 dark:hover:bg-slate-800"
+                    >
+                      <ChevronDown
+                        size={14}
+                        className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  ) : (
+                    <ChevronRight size={14} className="text-slate-300" />
+                  )}
+                </div>
+                {isExpanded && hasRecs && (
+                  <ul className="space-y-0.5 border-t border-slate-100 bg-slate-50/40 px-5 py-2 dark:border-slate-800 dark:bg-slate-900/40">
+                    {recs.slice(0, 4).map((r, i) => (
+                      <li
+                        key={i}
+                        className="flex gap-1.5 text-[12px] text-slate-600 dark:text-slate-300"
+                      >
+                        <span className="text-amber-500">›</span>
+                        <span>{r}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             );
           })}

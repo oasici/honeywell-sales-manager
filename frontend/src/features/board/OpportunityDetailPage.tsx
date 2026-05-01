@@ -983,7 +983,9 @@ export default function OpportunityDetailPage() {
               </div>
               {(v4LatestFeatures.positive_signal_count_14d ?? 0) > 0 && (
                 <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                  <p className="text-[11px] text-slate-500">{t('opp_detail.positive_signals_14d')}</p>
+                  <p className="text-[11px] text-slate-500">
+                    {t('opp_detail.positive_signals_14d')}
+                  </p>
                   <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                     {v4LatestFeatures.positive_signal_count_14d}
                   </p>
@@ -1007,7 +1009,9 @@ export default function OpportunityDetailPage() {
               )}
               {(v4LatestFeatures.competitor_mentions_30d ?? 0) > 0 && (
                 <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                  <p className="text-[11px] text-slate-500">{t('opp_detail.competitor_mentions_30d')}</p>
+                  <p className="text-[11px] text-slate-500">
+                    {t('opp_detail.competitor_mentions_30d')}
+                  </p>
                   <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
                     {v4LatestFeatures.competitor_mentions_30d}
                   </p>
@@ -1015,7 +1019,9 @@ export default function OpportunityDetailPage() {
               )}
               {(v4LatestFeatures.pricing_objections_30d ?? 0) > 0 && (
                 <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2">
-                  <p className="text-[11px] text-slate-500">{t('opp_detail.pricing_objections_30d')}</p>
+                  <p className="text-[11px] text-slate-500">
+                    {t('opp_detail.pricing_objections_30d')}
+                  </p>
                   <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
                     {v4LatestFeatures.pricing_objections_30d}
                   </p>
@@ -1097,25 +1103,59 @@ export default function OpportunityDetailPage() {
         <Card title={t('opp_detail.buyer_state')}>
           {buyerStateTimeline?.items?.length ? (
             <div className="space-y-2">
-              {buyerStateTimeline.items.slice(0, 10).map((it) => (
-                <div
-                  key={it.snapshot_date}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+              {buyerStateTimeline.items.slice(0, 10).map((it) => {
+                // `drivers[]` is the *reason* the buyer was classified
+                // engaged/stalling/etc. Previously fetched then dropped
+                // (audit F-6). Backend ships them as opaque objects so
+                // we narrow defensively.
+                const drivers = Array.isArray((it as { drivers?: unknown }).drivers)
+                  ? ((it as { drivers: unknown[] }).drivers
+                      .map((d) =>
+                        typeof d === 'string'
+                          ? d
+                          : typeof d === 'object' && d !== null && 'label' in d
+                            ? String((d as { label: unknown }).label)
+                            : null,
+                      )
+                      .filter((s): s is string => Boolean(s)))
+                  : [];
+                return (
+                  <div
+                    key={it.snapshot_date}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {translateBuyerState(it.state, t)}
+                        <span className="ml-2 text-xs text-slate-400">
+                          {(it.confidence * 100).toFixed(0)}%
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-slate-500">{formatDate(it.snapshot_date)}</p>
+                      {drivers.length > 0 && (
+                        <ul className="mt-1 flex flex-wrap gap-1">
+                          {drivers.slice(0, 3).map((d, i) => (
+                            <li
+                              key={i}
+                              className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              {d}
+                            </li>
+                          ))}
+                          {drivers.length > 3 && (
+                            <li className="rounded-md bg-slate-50 px-1.5 py-0.5 text-[10px] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                              +{drivers.length - 3}
+                            </li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                    <Badge variant={it.state === 'stalling' ? 'warning' : 'default'} size="sm">
                       {translateBuyerState(it.state, t)}
-                      <span className="ml-2 text-xs text-slate-400">
-                        {(it.confidence * 100).toFixed(0)}%
-                      </span>
-                    </p>
-                    <p className="text-[11px] text-slate-500">{formatDate(it.snapshot_date)}</p>
+                    </Badge>
                   </div>
-                  <Badge variant={it.state === 'stalling' ? 'warning' : 'default'} size="sm">
-                    {translateBuyerState(it.state, t)}
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="py-6 text-center text-sm text-slate-400">
@@ -1139,14 +1179,16 @@ export default function OpportunityDetailPage() {
                     </p>
                     {((g.recommended_actions ?? []) as string[]).length > 0 && (
                       <ul className="mt-1 flex flex-wrap gap-1">
-                        {((g.recommended_actions ?? []) as string[]).slice(0, 4).map((action, i) => (
-                          <li
-                            key={i}
-                            className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                          >
-                            {action}
-                          </li>
-                        ))}
+                        {((g.recommended_actions ?? []) as string[])
+                          .slice(0, 4)
+                          .map((action, i) => (
+                            <li
+                              key={i}
+                              className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              {action}
+                            </li>
+                          ))}
                         {((g.recommended_actions ?? []) as string[]).length > 4 && (
                           <li className="rounded-md bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                             +{((g.recommended_actions ?? []) as string[]).length - 4}

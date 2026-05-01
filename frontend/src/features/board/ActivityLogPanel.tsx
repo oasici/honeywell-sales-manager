@@ -121,6 +121,55 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
                         <p className="mt-0.5 text-sm text-slate-900 dark:text-white">
                           {item.summary}
                         </p>
+                        {/* agenda + attendees are write-only without
+                            this block — captured by QuickActivityModal
+                            but never read back (audit F-11). */}
+                        {item.agenda && (
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            <span className="font-medium text-slate-600 dark:text-slate-300">
+                              Gündem:
+                            </span>{' '}
+                            {item.agenda}
+                          </p>
+                        )}
+                        {(() => {
+                          if (!item.attendees_json) return null;
+                          let names: string[] = [];
+                          try {
+                            const parsed = JSON.parse(item.attendees_json) as unknown;
+                            if (Array.isArray(parsed)) {
+                              names = parsed
+                                .map((p) =>
+                                  typeof p === 'string'
+                                    ? p
+                                    : typeof p === 'object' && p !== null && 'name' in p
+                                      ? String((p as { name: unknown }).name)
+                                      : null,
+                                )
+                                .filter((n): n is string => Boolean(n));
+                            }
+                          } catch {
+                            return null;
+                          }
+                          if (names.length === 0) return null;
+                          return (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {names.slice(0, 5).map((n, i) => (
+                                <span
+                                  key={i}
+                                  className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                >
+                                  {n}
+                                </span>
+                              ))}
+                              {names.length > 5 && (
+                                <span className="rounded-full bg-slate-50 px-1.5 py-0.5 text-[10px] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                                  +{names.length - 5}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}

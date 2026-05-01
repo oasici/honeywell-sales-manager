@@ -85,6 +85,9 @@ export default function CustomerDetailPage() {
     address: '',
     tax_id: '',
     preferred_lang: '',
+    // Editable so reps can correct bad enrichment results (audit F-1).
+    website: '',
+    linkedin_url: '',
   });
 
   const { data: customer, isLoading } = useQuery<Customer>({
@@ -240,6 +243,8 @@ export default function CustomerDetailPage() {
           address: customer.address || '',
           tax_id: customer.tax_id || '',
           preferred_lang: customer.preferred_lang || '',
+          website: customer.website || '',
+          linkedin_url: customer.linkedin_url || '',
         }),
       );
     }
@@ -405,6 +410,8 @@ export default function CustomerDetailPage() {
                     address: customer.address || '',
                     tax_id: customer.tax_id || '',
                     preferred_lang: customer.preferred_lang || '',
+                    website: customer.website || '',
+                    linkedin_url: customer.linkedin_url || '',
                   });
                 }
               }}
@@ -476,6 +483,18 @@ export default function CustomerDetailPage() {
                   onChange={(e) => updateField('address', e.target.value)}
                 />
               </div>
+              <Input
+                label={t('customers.website')}
+                value={form.website}
+                onChange={(e) => updateField('website', e.target.value)}
+                placeholder="https://"
+              />
+              <Input
+                label={t('customers.linkedin_url')}
+                value={form.linkedin_url}
+                onChange={(e) => updateField('linkedin_url', e.target.value)}
+                placeholder="https://linkedin.com/company/…"
+              />
             </div>
           ) : (
             <div className="space-y-5">

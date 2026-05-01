@@ -19,6 +19,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { insightsApi, usersApi } from '../../lib/api';
+import { formatDate } from '../../lib/formatters';
 import type {
   ConversationInsightsResponse,
   ConversationSearchResponse,
@@ -389,29 +390,51 @@ export default function InsightsPage() {
           ) : null}
 
           {searchData?.items?.length ? (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800 border rounded-lg">
-              {searchData.items.map((it) => (
-                <li key={`${it.type}-${it.id}`} className="p-3 text-sm">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="info" size="sm">
-                      {it.type}
-                    </Badge>
-                    <button
-                      type="button"
-                      className="font-medium text-blue-600 hover:underline"
-                      onClick={() => navigate(`/opportunities/${it.opportunity_id}`)}
-                    >
-                      #{it.opportunity_id}
-                    </button>
-                    <span className="text-xs text-slate-500">{it.stage}</span>
-                  </div>
-                  <p className="mt-1 font-medium text-slate-900 dark:text-white">{it.title}</p>
-                  <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
-                    {it.snippet}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <>
+              {/* Result-count summary — backend always returns `total`,
+                  audit F-10 surfaces it so users can tell how truncated
+                  the visible list is. */}
+              {typeof searchData.total === 'number' && (
+                <p className="mb-2 text-xs text-slate-500">
+                  {searchData.items.length} / {searchData.total} {t('insights.search_count_suffix')}
+                </p>
+              )}
+              <ul className="divide-y divide-slate-100 dark:divide-slate-800 border rounded-lg">
+                {searchData.items.map((it) => (
+                  <li key={`${it.type}-${it.id}`} className="p-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="info" size="sm">
+                        {it.type}
+                      </Badge>
+                      <button
+                        type="button"
+                        className="font-medium text-blue-600 hover:underline"
+                        onClick={() => navigate(`/opportunities/${it.opportunity_id}`)}
+                      >
+                        #{it.opportunity_id}
+                      </button>
+                      <span className="text-xs text-slate-500">{it.stage}</span>
+                      {/* Stale-vs-fresh signal + owner — both round-tripped
+                          but never displayed before audit F-10. */}
+                      {it.occurred_at && (
+                        <span className="text-xs text-slate-400">
+                          · {formatDate(it.occurred_at)}
+                        </span>
+                      )}
+                      {it.owner_id != null && (
+                        <span className="text-xs text-slate-400">
+                          · {t('insights.search_owner_prefix')} #{it.owner_id}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 font-medium text-slate-900 dark:text-white">{it.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                      {it.snippet}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : null}
         </div>
       </Card>

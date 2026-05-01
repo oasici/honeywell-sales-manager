@@ -219,7 +219,43 @@ function StakeholderCard({
             {ROLE_LABELS[s.buyer_role] ?? s.buyer_role}
           </span>
         )}
+        {/* Auto-detected stakeholders shown with an "AI" pill so the
+            rep can tell apart confirmed contacts from algorithmic
+            inferences (audit F-12). */}
+        {s.is_auto_detected && (
+          <span
+            title={s.notes ?? undefined}
+            className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-purple-50 text-purple-700"
+          >
+            AI
+          </span>
+        )}
       </div>
+      {/* Direct contact channels — captured at form-time but hidden
+          before audit F-12. mailto/tel let the rep act without a
+          second tab. */}
+      {(s.email || s.phone) && (
+        <div className="mt-2 flex flex-col gap-0.5 text-[11px]">
+          {s.email && (
+            <a
+              href={`mailto:${s.email}`}
+              className="truncate text-blue-600 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {s.email}
+            </a>
+          )}
+          {s.phone && (
+            <a
+              href={`tel:${s.phone}`}
+              className="truncate text-slate-600 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {s.phone}
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }

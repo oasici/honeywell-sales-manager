@@ -367,27 +367,47 @@ export default function CoachingRepPage() {
             <EmptyState title="Gösterge verisi bulunmuyor" />
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {rep.indicators.map((indicator) => (
-                <div
-                  key={indicator.name}
-                  className="flex items-center gap-4 px-4 py-3"
-                >
-                  <div className="min-w-[120px]">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">
-                      {indicator.label}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Agirlik: {formatPercent(indicator.weight)}
-                    </p>
+              {rep.indicators.map((indicator) => {
+                // raw_value/description ship from the coaching API but
+                // were dropped before audit F-9. The rep saw "score 47"
+                // with no explanation; now they see what's measured and
+                // what the underlying number is.
+                const ind = indicator as typeof indicator & {
+                  raw_value?: string | number | null;
+                  description?: string | null;
+                };
+                return (
+                  <div key={indicator.name} className="px-4 py-3">
+                    <div className="flex items-center gap-4">
+                      <div className="min-w-[140px]">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">
+                          {indicator.label}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Agirlik: {formatPercent(indicator.weight)}
+                        </p>
+                      </div>
+                      <div className="flex-1">
+                        <ProgressBar value={indicator.score} />
+                      </div>
+                      <span className="min-w-[40px] text-right text-sm font-semibold text-slate-900 dark:text-white">
+                        {indicator.score}
+                      </span>
+                    </div>
+                    {(ind.description || ind.raw_value != null) && (
+                      <p className="mt-1 pl-1 text-xs text-slate-500 dark:text-slate-400">
+                        {ind.description}
+                        {ind.description && ind.raw_value != null ? ' · ' : ''}
+                        {ind.raw_value != null && (
+                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {String(ind.raw_value)}
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <ProgressBar value={indicator.score} />
-                  </div>
-                  <span className="min-w-[40px] text-right text-sm font-semibold text-slate-900 dark:text-white">
-                    {indicator.score}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>

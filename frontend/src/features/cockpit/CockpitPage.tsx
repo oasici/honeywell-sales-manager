@@ -104,6 +104,13 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
         label: t('cockpit.kpi_signals'),
         value: String(data.signal_stats.total),
         icon: <Activity size={18} className="text-indigo-500" />,
+        // Surface the severity breakdown — the headline numbers a
+        // sales manager actually scans for (audit F-4).
+        sub:
+          data.signal_stats.critical_count > 0 || data.signal_stats.high_count > 0
+            ? `crit ${data.signal_stats.critical_count} · high ${data.signal_stats.high_count}`
+            : null,
+        subTone: data.signal_stats.critical_count > 0 ? 'danger' : 'warn',
       },
     ];
   }, [data, t]);
@@ -141,6 +148,18 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
           <span className="text-[28px] font-bold leading-none tracking-tight text-slate-900 tabular-nums dark:text-white">
             {kpi.value}
           </span>
+          {'sub' in kpi && kpi.sub && (
+            <span
+              className={[
+                'text-[11px] font-medium tabular-nums',
+                kpi.subTone === 'danger'
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-amber-600 dark:text-amber-400',
+              ].join(' ')}
+            >
+              {kpi.sub}
+            </span>
+          )}
         </div>
       ))}
     </div>
