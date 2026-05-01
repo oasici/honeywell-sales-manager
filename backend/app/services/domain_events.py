@@ -91,6 +91,12 @@ EVENT_PAYLOAD_SCHEMAS: dict[str, dict] = {
         "opportunity_id": "int|None",
         "depth": "int|None",
     },
+    DomainEvents.OPP_SCORE_CHANGED: {
+        "opportunity_id": "int",
+        "old_score": "float|None",
+        "new_score": "float",
+        "reason": "str",
+    },
 }
 
 

@@ -277,15 +277,34 @@ async def lifespan(app: FastAPI):
         if settings.FEATURE_WORKFLOW_RULES:
             from app.services.workflow_service import WorkflowService
 
+            # Required-field map per event_type (audit EVT-4). If a
+            # publisher omits one of these keys the workflow handler
+            # used to fail deep inside svc.evaluate_event with a
+            # KeyError that got swallowed; now we log+skip so misuse
+            # surfaces in logs without taking the dispatcher down.
+            _WORKFLOW_REQUIRED_KEYS: dict[str, tuple[str, ...]] = {
+                "opportunity.stage_changed": ("opportunity_id",),
+                "quote.approved": ("quote_id",),
+                "email.parsed": ("email_id",),
+            }
+
             async def _on_workflow_event(event_type: str, payload: dict):
+                event_map = {
+                    "opportunity.stage_changed": ("opportunity", "stage_changed"),
+                    "quote.approved": ("quote", "approved"),
+                    "email.parsed": ("email", "parsed"),
+                }
+                required = _WORKFLOW_REQUIRED_KEYS.get(event_type, ())
+                missing = [k for k in required if payload.get(k) is None]
+                if missing:
+                    logger.warning(
+                        "Workflow event %s missing required keys %s — skipping",
+                        event_type, missing,
+                    )
+                    return
                 try:
                     async with async_session() as wf_db:
                         svc = WorkflowService(wf_db)
-                        event_map = {
-                            "opportunity.stage_changed": ("opportunity", "stage_changed"),
-                            "quote.approved": ("quote", "approved"),
-                            "email.parsed": ("email", "parsed"),
-                        }
                         mapping = event_map.get(event_type)
                         if mapping:
                             await svc.evaluate_event(

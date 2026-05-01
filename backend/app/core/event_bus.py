@@ -66,6 +66,20 @@ class EventBus:
                         event_type,
                         exc,
                     )
+                    # Forward to Sentry so silent handler failures
+                    # surface on the error dashboard alongside HTTP
+                    # exceptions (audit EVT-3). Wrapped in try/except
+                    # because sentry_sdk may not be configured in unit
+                    # tests; we never want observability to break the
+                    # bus itself.
+                    try:
+                        import sentry_sdk
+
+                        sentry_sdk.set_tag("event_type", event_type)
+                        sentry_sdk.set_tag("handler", handler_name)
+                        sentry_sdk.capture_exception(exc)
+                    except Exception:
+                        pass
 
     def clear(self) -> None:
         """Remove all handlers. Useful for testing."""

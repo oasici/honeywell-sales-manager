@@ -273,7 +273,7 @@ export default function RevenueRecognitionPage() {
 
   const { data: contractsData } = useQuery<{ items: Contract[] }>({
     queryKey: ['contracts-simple'],
-    queryFn: () => contractsApi.list({ limit: 200 }),
+    queryFn: () => contractsApi.list({ page_size: 200 }),
     enabled: isCreateOpen,
   });
 

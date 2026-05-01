@@ -12,6 +12,8 @@ export interface User {
 // ── Customer ─────────────────────────────────────────
 export interface Customer {
   id: number;
+  /** V8 multi-tenant boundary — round-tripped so the UI can verify isolation. */
+  tenant_id?: number | null;
   name: string;
   company: string;
   email: string;
@@ -282,6 +284,8 @@ export interface Quote {
   notes: string;
   pdf_path: string | null;
   version: number;
+  /** V8 multi-tenant boundary — round-tripped so the UI can verify isolation. */
+  tenant_id?: number | null;
   /** Win/loss tracking — populated when status moves to closed_won or closed_lost. */
   closed_at?: string | null;
   close_reason?: string | null;

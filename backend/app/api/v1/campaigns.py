@@ -101,15 +101,24 @@ def _member_to_dict(member: CampaignMember) -> dict:
 
 @router.get("/")
 async def list_campaigns(
-    skip: int = 0,
-    limit: int = 20,
+    page: int = 1,
+    page_size: int = 20,
     status: Optional[str] = None,
     type: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_campaigns),
 ):
-    """List campaigns with optional status/type filters and pagination."""
+    """List campaigns with optional status/type filters and pagination.
+
+    Returns the canonical envelope ``{items, total, page, page_size, pages}``
+    so the frontend list component doesn't need a campaigns-specific
+    pagination shape (audit A-5).
+    """
+    if page < 1:
+        page = 1
+    if page_size < 1 or page_size > 200:
+        page_size = 20
     query = select(Campaign).order_by(Campaign.created_at.desc())
     if status:
         query = query.where(Campaign.status == status)
@@ -121,7 +130,8 @@ async def list_campaigns(
     )
     total = count_result.scalar_one()
 
-    result = await db.execute(query.offset(skip).limit(limit))
+    offset = (page - 1) * page_size
+    result = await db.execute(query.offset(offset).limit(page_size))
     campaigns = result.scalars().all()
 
     items = []
@@ -134,7 +144,15 @@ async def list_campaigns(
         member_count = count_res.scalar_one()
         items.append(_campaign_to_dict(campaign, member_count))
 
-    return {"items": items, "total": total, "skip": skip, "limit": limit}
+    import math
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": math.ceil(total / page_size) if total > 0 else 0,
+    }
 
 
 @router.post("/", status_code=201)

@@ -94,9 +94,37 @@ class LeadService:
             if hasattr(lead, field) and value is not None:
                 setattr(lead, field, value)
 
+        old_score = lead.lead_score
         lead.lead_score, _ = await self._compute_score(lead)
         await self.db.flush()
         await self.db.refresh(lead)
+
+        # Emit lead.score_changed when the score actually moved (audit
+        # EVT-1). Constant + payload schema were defined in
+        # domain_events.py but no producer existed, so the
+        # LeadDetailPage score-history feed was always empty.
+        if lead.lead_score != old_score:
+            try:
+                from app.services.domain_events import (
+                    DomainEvents,
+                    emit_domain_event,
+                )
+
+                await emit_domain_event(
+                    self.db,
+                    DomainEvents.LEAD_SCORE_CHANGED,
+                    {
+                        "lead_id": lead.id,
+                        "old_score": old_score,
+                        "new_score": lead.lead_score,
+                        "reason": "lead_updated",
+                    },
+                    entity_type="lead",
+                    entity_id=lead.id,
+                )
+            except Exception as exc:  # noqa: BLE001
+                # Never let audit-event emission break the user-visible write.
+                logger.warning("emit lead.score_changed failed: %s", exc)
         return lead
 
     async def convert_lead(

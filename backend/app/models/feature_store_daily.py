@@ -43,7 +43,9 @@ class OpportunityFeaturesDaily(Base):
     # ── V6 core depth (see 20260427_v6_core_depth) ──
     quote_revision_count_30d: Mapped[int] = mapped_column(Integer, default=0)
     stage_velocity_days: Mapped[float | None] = mapped_column(Float, nullable=True)
-    decision_maker_count: Mapped[int] = mapped_column(Integer, default=0)
+    decision_maker_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0,
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

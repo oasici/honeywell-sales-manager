@@ -139,7 +139,10 @@ export default function ContractListPage() {
     });
   }, [formTitle, formCustomerId, formStartDate, formEndDate, formValue, createMutation, t]);
 
-  const contracts: Contract[] = contractsData?.contracts || [];
+  // Backend canonicalized to {items,total,page,page_size,pages} in
+  // audit A-6; keep `contracts` fallback for in-flight responses
+  // mid-deploy.
+  const contracts: Contract[] = contractsData?.items || contractsData?.contracts || [];
   const expiringContracts: Contract[] = expiringData?.contracts || [];
   const expiringCount = expiringData?.count || 0;
 

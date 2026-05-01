@@ -617,8 +617,36 @@ async def update_opportunity(
             setattr(opp, field, value)
 
     # Auto-set probability on stage change
+    old_probability = opp.probability
     if "stage" in updates and updates["stage"] != old_stage:
         opp.probability = await _stage_probability(db, updates["stage"])
+
+    # Emit opportunity.score_changed when probability moves (audit
+    # EVT-2). The constant + payload schema were defined but no
+    # publisher existed; downstream subscribers (workflow rules,
+    # forecasts) silently saw nothing.
+    if opp.probability != old_probability:
+        try:
+            from app.services.domain_events import (
+                DomainEvents,
+                emit_domain_event,
+            )
+
+            await emit_domain_event(
+                db,
+                DomainEvents.OPP_SCORE_CHANGED,
+                {
+                    "opportunity_id": opp.id,
+                    "old_score": old_probability,
+                    "new_score": opp.probability,
+                    "reason": "stage_change" if "stage" in updates else "manual_update",
+                },
+                entity_type="opportunity",
+                entity_id=opp.id,
+                actor_id=current_user.id,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("emit opportunity.score_changed failed: %s", exc)
 
     # Stage change event
     if "stage" in updates and updates["stage"] != old_stage:

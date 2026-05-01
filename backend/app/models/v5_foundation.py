@@ -39,8 +39,8 @@ class Contact(Base):
     department: Mapped[str | None] = mapped_column(String(120), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     phone: Mapped[str | None] = mapped_column(String(60), nullable=True)
-    seniority_score: Mapped[int] = mapped_column(Integer, default=50)
-    is_decision_maker: Mapped[bool] = mapped_column(Boolean, default=False)
+    seniority_score: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
+    is_decision_maker: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     linkedin_url: Mapped[str | None] = mapped_column(String(400), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

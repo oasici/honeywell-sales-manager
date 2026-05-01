@@ -63,6 +63,12 @@ class Opportunity(Base):
     customer = relationship("Customer", lazy="selectin")
     owner = relationship("User", lazy="selectin")
     events = relationship("OpportunityEvent", back_populates="opportunity", lazy="noload")
+    # Explicit declaration so we can pair with `back_populates` on
+    # OpportunitySignal (audit DB-4) — the previous `backref` worked
+    # at runtime but was invisible to type-checkers and IDE jump-to.
+    signals = relationship(
+        "OpportunitySignal", back_populates="opportunity", lazy="noload",
+    )
     quotes = relationship(
         "Quote",
         back_populates="opportunity",
@@ -109,7 +115,7 @@ class OpportunitySignal(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    opportunity = relationship("Opportunity", backref="signals")
+    opportunity = relationship("Opportunity", back_populates="signals")
 
 
 class Task(Base):

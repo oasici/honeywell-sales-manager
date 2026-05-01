@@ -910,6 +910,9 @@ def _customer_to_dict(customer: Customer) -> dict:
     """
     return {
         "id": customer.id,
+        # Round-trip tenant_id so the frontend can verify isolation
+        # and analytics layers can group correctly (audit CU-3).
+        "tenant_id": customer.tenant_id,
         "name": customer.name,
         "company": customer.company,
         "email": customer.email,

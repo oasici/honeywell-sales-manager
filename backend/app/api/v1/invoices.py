@@ -122,15 +122,24 @@ async def _generate_invoice_number(db: AsyncSession) -> str:
 
 @router.get("/")
 async def list_invoices(
-    skip: int = 0,
-    limit: int = 20,
+    page: int = 1,
+    page_size: int = 20,
     status: Optional[str] = None,
     customer_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_invoicing),
 ):
-    """List invoices with optional status/customer filters and pagination."""
+    """List invoices with optional status/customer filters and pagination.
+
+    Returns the canonical envelope ``{items, total, page, page_size, pages}``
+    so the frontend list component doesn't need to special-case
+    ``skip/limit`` (audit A-4).
+    """
+    if page < 1:
+        page = 1
+    if page_size < 1 or page_size > 200:
+        page_size = 20
     query = select(Invoice).order_by(Invoice.created_at.desc())
     if status:
         query = query.where(Invoice.status == status)
@@ -142,14 +151,18 @@ async def list_invoices(
     )
     total = count_result.scalar_one()
 
-    result = await db.execute(query.offset(skip).limit(limit))
+    offset = (page - 1) * page_size
+    result = await db.execute(query.offset(offset).limit(page_size))
     invoices = result.scalars().all()
+
+    import math
 
     return {
         "items": [_invoice_to_dict(inv) for inv in invoices],
         "total": total,
-        "skip": skip,
-        "limit": limit,
+        "page": page,
+        "page_size": page_size,
+        "pages": math.ceil(total / page_size) if total > 0 else 0,
     }
 
 
@@ -182,11 +195,9 @@ async def create_invoice(
     db.add(invoice)
     await db.commit()
     await db.refresh(invoice)
-    return {
-        "message": "Fatura olusturuldu",
-        "id": invoice.id,
-        "invoice_number": invoice.invoice_number,
-    }
+    # Return the full dict so the frontend can render the new invoice
+    # immediately without a follow-up GET (audit A-8).
+    return _invoice_to_dict(invoice)
 
 
 @router.get("/{invoice_id}")
@@ -283,6 +294,10 @@ async def update_invoice_status(
                 {
                     "invoice_id": invoice.id,
                     "customer_id": invoice.customer_id,
+                    # Downstream revenue-recognition needs the originating
+                    # quote/contract to update ARR (audit A-9).
+                    "quote_id": invoice.quote_id,
+                    "contract_id": invoice.contract_id,
                     "amount": float(invoice.grand_total or 0.0),
                     "currency": invoice.currency,
                 },

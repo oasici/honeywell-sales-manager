@@ -79,3 +79,14 @@ class TaskPriority(str, Enum):
     NORMAL = "normal"
     HIGH = "high"
     URGENT = "urgent"
+
+
+class InvoiceStatus(str, Enum):
+    """Invoice lifecycle. Mirrors the inline string set previously
+    used in invoices.py (audit A-7) so transitions can be type-checked."""
+
+    DRAFT = "draft"
+    SENT = "sent"
+    PAID = "paid"
+    OVERDUE = "overdue"
+    VOIDED = "voided"

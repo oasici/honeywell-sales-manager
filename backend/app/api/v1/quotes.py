@@ -694,6 +694,9 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
         "opportunity_id": quote.opportunity_id,
         "created_by": quote.created_by,
         "approved_by": quote.approved_by,
+        # tenant_id round-tripped so the frontend can verify isolation
+        # and multi-tenant analytics can group correctly (audit Q-2).
+        "tenant_id": quote.tenant_id,
         "status": quote.status,
         "language": quote.language,
         "currency": quote.currency,

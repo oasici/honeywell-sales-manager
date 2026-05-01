@@ -82,10 +82,21 @@ async def list_contracts(
     customer_id: int | None = Query(None),
     status: str | None = Query(None),
     search: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List contracts with optional filters."""
+    """List contracts with optional filters.
+
+    Audit A-6: previously returned ``{"contracts": [...]}`` with no
+    pagination at all. Standardized to the canonical envelope so the
+    frontend list component doesn't need a contracts-specific shape,
+    and bounded by page_size to prevent unbounded list responses.
+    """
+    from sqlalchemy import func as _func
+    import math as _math
+
     query = select(Contract).order_by(Contract.created_at.desc())
     if customer_id:
         query = query.where(Contract.customer_id == customer_id)
@@ -93,9 +104,23 @@ async def list_contracts(
         query = query.where(Contract.status == status)
     if search:
         query = query.where(Contract.title.ilike(f"%{search}%"))
-    result = await db.execute(query)
+
+    count_result = await db.execute(
+        select(_func.count()).select_from(query.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(query.offset(offset).limit(page_size))
     contracts = result.scalars().all()
-    return {"contracts": [_serialize_contract(c) for c in contracts]}
+
+    return {
+        "items": [_serialize_contract(c) for c in contracts],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+    }
 
 
 @router.post("/contracts/", status_code=201)
