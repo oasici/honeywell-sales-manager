@@ -1109,7 +1109,7 @@ export default function OpportunityDetailPage() {
                 // (audit F-6). Backend ships them as opaque objects so
                 // we narrow defensively.
                 const drivers = Array.isArray((it as { drivers?: unknown }).drivers)
-                  ? ((it as { drivers: unknown[] }).drivers
+                  ? (it as { drivers: unknown[] }).drivers
                       .map((d) =>
                         typeof d === 'string'
                           ? d
@@ -1117,7 +1117,7 @@ export default function OpportunityDetailPage() {
                             ? String((d as { label: unknown }).label)
                             : null,
                       )
-                      .filter((s): s is string => Boolean(s)))
+                      .filter((s): s is string => Boolean(s))
                   : [];
                 return (
                   <div

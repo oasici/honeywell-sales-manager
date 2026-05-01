@@ -32,6 +32,11 @@ interface Lead {
   status: string;
   lead_score: number;
   created_at: string;
+  // Audit F-16 — backend always returns these for converted leads;
+  // surfaced on the row so reps can pivot to the linked customer.
+  converted_at?: string | null;
+  converted_customer_id?: number | null;
+  converted_opportunity_id?: number | null;
 }
 
 const STATUS_COLORS: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
@@ -215,8 +220,19 @@ export default function LeadListPage() {
               {row.first_name} {row.last_name}
             </p>
             <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
-              {row.company || '—'}
+              {/* Title is fetched per-row but never rendered before
+                  audit F-16. Falls back to company so the line is
+                  never empty. */}
+              {row.title || row.company || '—'}
             </p>
+            {/* Converted-lead back-link — when the lead has been
+                converted, surface a link to the resulting customer
+                so reps can pivot without bouncing back to leads. */}
+            {row.converted_at && row.converted_customer_id != null && (
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                ✓ Müşteri #{row.converted_customer_id}
+              </span>
+            )}
           </div>
         </div>
       ),
@@ -225,7 +241,18 @@ export default function LeadListPage() {
       key: 'email',
       header: t('leads.col_email'),
       render: (row: Lead) => (
-        <span className="text-[13px] text-slate-700 dark:text-slate-200">{row.email}</span>
+        <div className="flex flex-col">
+          <span className="text-[13px] text-slate-700 dark:text-slate-200">{row.email}</span>
+          {row.phone && (
+            <a
+              href={`tel:${row.phone}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-[11px] text-slate-500 hover:underline"
+            >
+              {row.phone}
+            </a>
+          )}
+        </div>
       ),
     },
     {

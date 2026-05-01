@@ -304,7 +304,20 @@ export default function CampaignListPage() {
                       className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
                     >
                       <td className="px-4 py-3 text-[13px] font-semibold text-slate-900 dark:text-white">
-                        {campaign.name}
+                        {/* Description as a tooltip — backend returns
+                            it but the table never surfaced it before
+                            audit F-19. */}
+                        <span title={campaign.description ?? undefined}>{campaign.name}</span>
+                        {campaign.expected_revenue != null && campaign.expected_revenue > 0 && (
+                          <p className="text-[10px] font-normal text-slate-400">
+                            beklenen{' '}
+                            {campaign.expected_revenue.toLocaleString('tr-TR', {
+                              style: 'currency',
+                              currency: 'TRY',
+                              maximumFractionDigits: 0,
+                            })}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant="default" size="sm">

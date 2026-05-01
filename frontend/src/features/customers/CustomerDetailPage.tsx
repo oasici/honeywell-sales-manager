@@ -825,10 +825,23 @@ export default function CustomerDetailPage() {
                         onClick={() => navigate(`/opportunities/${o.id}`)}
                         className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-2 py-1.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
                       >
-                        <span className="font-medium text-slate-900 dark:text-white">
-                          {o.title}
-                        </span>
-                        <span className="text-xs text-slate-500 ml-2">{o.stage}</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-slate-900 dark:text-white truncate">
+                            {o.title}
+                          </span>
+                          {o.amount != null && (
+                            <span className="shrink-0 text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-300">
+                              {formatCurrency(o.amount, o.currency || 'TRY')}
+                            </span>
+                          )}
+                        </div>
+                        {/* Stage + owner + last-update — fetched per row
+                            but dropped before audit F-17. */}
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <span>{o.stage}</span>
+                          {o.owner_id != null && <span>· sahip #{o.owner_id}</span>}
+                          {o.updated_at && <span>· {formatDate(o.updated_at)}</span>}
+                        </div>
                       </button>
                     ))
                   )}

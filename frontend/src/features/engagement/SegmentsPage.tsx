@@ -356,6 +356,30 @@ export default function SegmentsPage() {
                   {segment.description && (
                     <p className="text-sm text-slate-600 line-clamp-2">{segment.description}</p>
                   )}
+                  {/* Rules chip strip — backend returns segment.rules
+                      but the card never displayed any criteria pre
+                      audit F-20, so users had to re-create the segment
+                      to see what it filtered on. */}
+                  {Array.isArray(segment.rules) && segment.rules.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {(segment.rules as Array<Record<string, unknown>>)
+                        .slice(0, 3)
+                        .map((r, i) => (
+                          <span
+                            key={i}
+                            className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700"
+                          >
+                            {String(r.field ?? r.label ?? 'kural')}{' '}
+                            {String(r.op ?? r.operator ?? '')} {String(r.value ?? '')}
+                          </span>
+                        ))}
+                      {segment.rules.length > 3 && (
+                        <span className="text-[10px] text-slate-500">
+                          +{segment.rules.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <Badge variant="info" size="sm">
                       {t('segments.customer_count').replace(

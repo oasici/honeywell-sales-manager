@@ -1,8 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  Area, ComposedChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Area,
+  ComposedChart,
 } from 'recharts';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -22,7 +28,6 @@ import type {
   CoachingOverview,
 } from '../../lib/types';
 
-
 const RISK_LABELS: Record<string, string> = {
   healthy: 'Saglikli',
   needs_improvement: 'Gelistirilmeli',
@@ -41,8 +46,7 @@ const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS;
 function ScoreRing({ score }: { score: number }) {
   const pct = Math.min(score, 100);
   const offset = SCORE_RING_CIRCUMFERENCE - (pct / 100) * SCORE_RING_CIRCUMFERENCE;
-  const color =
-    score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
+  const color = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
 
   return (
     <div className="relative h-32 w-32">
@@ -69,9 +73,7 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-3xl font-bold text-slate-900 dark:text-white">
-          {score}
-        </span>
+        <span className="text-3xl font-bold text-slate-900 dark:text-white">{score}</span>
       </div>
     </div>
   );
@@ -125,12 +127,7 @@ function TrendChart({ snapshots }: { snapshots: CoachingSnapshot[] }) {
               <stop offset="95%" stopColor={lineColor} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Area
-            type="monotone"
-            dataKey="score"
-            stroke="none"
-            fill="url(#scoreFill)"
-          />
+          <Area type="monotone" dataKey="score" stroke="none" fill="url(#scoreFill)" />
           <Line
             type="monotone"
             dataKey="score"
@@ -174,8 +171,8 @@ function RepDnaCard({ userId }: { userId: number }) {
     return (
       <Card title="Satış DNA'sı">
         <p className="text-[12px] text-slate-500">
-          Henüz yeterli anlaşma geçmişi yok — V5 nightly job daha fazla veri biriktiğinde
-          DNA profili üretecek.
+          Henüz yeterli anlaşma geçmişi yok — V5 nightly job daha fazla veri biriktiğinde DNA
+          profili üretecek.
         </p>
       </Card>
     );
@@ -242,28 +239,26 @@ export default function CoachingRepPage() {
   const navigate = useNavigate();
   const userId = Number(id);
 
-  const {
-    data: rep,
-    isLoading: isRepLoading,
-  } = useQuery<CoachingRepScore>({
+  const { data: rep, isLoading: isRepLoading } = useQuery<CoachingRepScore>({
     queryKey: ['coaching', 'rep', userId],
     queryFn: () => coachingApi.getRepReport(userId),
     enabled: !!userId,
   });
 
-  const {
-    data: trendsData,
-    isLoading: isTrendsLoading,
-  } = useQuery<{ user_id: number; snapshots: CoachingSnapshot[]; total: number }>({
+  const { data: trendsData, isLoading: isTrendsLoading } = useQuery<{
+    user_id: number;
+    snapshots: CoachingSnapshot[];
+    total: number;
+  }>({
     queryKey: ['coaching', 'rep', userId, 'trends'],
     queryFn: () => coachingApi.getRepTrends(userId),
     enabled: !!userId,
   });
 
-  const {
-    data: benchmarksData,
-    isLoading: isBenchmarksLoading,
-  } = useQuery<{ benchmarks: CoachingBenchmark[]; total: number }>({
+  const { data: benchmarksData, isLoading: isBenchmarksLoading } = useQuery<{
+    benchmarks: CoachingBenchmark[];
+    total: number;
+  }>({
     queryKey: ['coaching', 'benchmarks'],
     queryFn: () => coachingApi.getBenchmarks(),
   });
@@ -276,11 +271,7 @@ export default function CoachingRepPage() {
   if (isRepLoading) return <Skeleton variant="card" count={3} />;
 
   if (!rep) {
-    return (
-      <div className="p-8 text-center text-slate-500">
-        Temsilci bulunamadi
-      </div>
-    );
+    return <div className="p-8 text-center text-slate-500">Temsilci bulunamadi</div>;
   }
 
   const snapshots = trendsData?.snapshots ?? [];
@@ -289,10 +280,7 @@ export default function CoachingRepPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={rep.user_name}
-        description="Temsilci performans detayi ve koçluk raporu"
-      >
+      <PageHeader title={rep.user_name} description="Temsilci performans detayi ve koçluk raporu">
         <Button variant="secondary" onClick={() => navigate('/coaching')}>
           Geri
         </Button>
@@ -303,10 +291,7 @@ export default function CoachingRepPage() {
         <Card title="Performans Skoru">
           <div className="flex flex-col items-center gap-3 py-4">
             <ScoreRing score={rep.score} />
-            <Badge
-              variant={RISK_BADGE_VARIANT[rep.risk_level] || 'default'}
-              size="md"
-            >
+            <Badge variant={RISK_BADGE_VARIANT[rep.risk_level] || 'default'} size="md">
               {RISK_LABELS[rep.risk_level] || rep.risk_level}
             </Badge>
           </div>
@@ -320,20 +305,14 @@ export default function CoachingRepPage() {
               <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-6">
                   <div className="text-center">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Takim Ort
-                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Takim Ort</p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {overview.summary.avg_score}
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Bu Temsilci
-                    </p>
-                    <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {rep.score}
-                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Bu Temsilci</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">{rep.score}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -352,65 +331,63 @@ export default function CoachingRepPage() {
                       </span>
                     </>
                   ) : (
-                    <span className="text-sm font-semibold text-slate-500">
-                      Esit
-                    </span>
+                    <span className="text-sm font-semibold text-slate-500">Esit</span>
                   )}
                 </div>
               </div>
             </Card>
           )}
 
-        {/* Indicators Table */}
-        <Card title="Gostergeler">
-          {rep.indicators.length === 0 ? (
-            <EmptyState title="Gösterge verisi bulunmuyor" />
-          ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {rep.indicators.map((indicator) => {
-                // raw_value/description ship from the coaching API but
-                // were dropped before audit F-9. The rep saw "score 47"
-                // with no explanation; now they see what's measured and
-                // what the underlying number is.
-                const ind = indicator as typeof indicator & {
-                  raw_value?: string | number | null;
-                  description?: string | null;
-                };
-                return (
-                  <div key={indicator.name} className="px-4 py-3">
-                    <div className="flex items-center gap-4">
-                      <div className="min-w-[140px]">
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">
-                          {indicator.label}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Agirlik: {formatPercent(indicator.weight)}
-                        </p>
+          {/* Indicators Table */}
+          <Card title="Gostergeler">
+            {rep.indicators.length === 0 ? (
+              <EmptyState title="Gösterge verisi bulunmuyor" />
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {rep.indicators.map((indicator) => {
+                  // raw_value/description ship from the coaching API but
+                  // were dropped before audit F-9. The rep saw "score 47"
+                  // with no explanation; now they see what's measured and
+                  // what the underlying number is.
+                  const ind = indicator as typeof indicator & {
+                    raw_value?: string | number | null;
+                    description?: string | null;
+                  };
+                  return (
+                    <div key={indicator.name} className="px-4 py-3">
+                      <div className="flex items-center gap-4">
+                        <div className="min-w-[140px]">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            {indicator.label}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Agirlik: {formatPercent(indicator.weight)}
+                          </p>
+                        </div>
+                        <div className="flex-1">
+                          <ProgressBar value={indicator.score} />
+                        </div>
+                        <span className="min-w-[40px] text-right text-sm font-semibold text-slate-900 dark:text-white">
+                          {indicator.score}
+                        </span>
                       </div>
-                      <div className="flex-1">
-                        <ProgressBar value={indicator.score} />
-                      </div>
-                      <span className="min-w-[40px] text-right text-sm font-semibold text-slate-900 dark:text-white">
-                        {indicator.score}
-                      </span>
+                      {(ind.description || ind.raw_value != null) && (
+                        <p className="mt-1 pl-1 text-xs text-slate-500 dark:text-slate-400">
+                          {ind.description}
+                          {ind.description && ind.raw_value != null ? ' · ' : ''}
+                          {ind.raw_value != null && (
+                            <span className="font-medium text-slate-700 dark:text-slate-300">
+                              {String(ind.raw_value)}
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </div>
-                    {(ind.description || ind.raw_value != null) && (
-                      <p className="mt-1 pl-1 text-xs text-slate-500 dark:text-slate-400">
-                        {ind.description}
-                        {ind.description && ind.raw_value != null ? ' · ' : ''}
-                        {ind.raw_value != null && (
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {String(ind.raw_value)}
-                          </span>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
         </div>
       </div>
 
@@ -427,10 +404,7 @@ export default function CoachingRepPage() {
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {rep.recommendations.map((rec, idx) => (
-              <li
-                key={idx}
-                className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300"
-              >
+              <li key={idx} className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                 {rec}
               </li>
             ))}
@@ -466,8 +440,7 @@ export default function CoachingRepPage() {
                       {currentBenchmark.user_name} (Bu Temsilci)
                     </p>
                     <p className="text-xs text-blue-700 dark:text-blue-300">
-                      Skor: {currentBenchmark.score} | Sıralama:{' '}
-                      {currentBenchmark.rank} | Yuzdelik:{' '}
+                      Skor: {currentBenchmark.score} | Sıralama: {currentBenchmark.rank} | Yuzdelik:{' '}
                       {formatPercent(currentBenchmark.percentile)}
                     </p>
                   </div>
@@ -491,14 +464,10 @@ export default function CoachingRepPage() {
                       <span className="w-8 text-center text-sm text-slate-500 dark:text-slate-400">
                         {bm.rank}
                       </span>
-                      <span className="text-sm text-slate-900 dark:text-white">
-                        {bm.user_name}
-                      </span>
+                      <span className="text-sm text-slate-900 dark:text-white">{bm.user_name}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-sm text-slate-700 dark:text-slate-300">
-                        {bm.score}
-                      </span>
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{bm.score}</span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
                         {formatPercent(bm.percentile)}
                       </span>

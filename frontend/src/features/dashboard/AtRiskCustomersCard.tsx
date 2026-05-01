@@ -79,9 +79,7 @@ export function AtRiskCustomersCard() {
             const hasRecs = recs.length > 0;
             return (
               <li key={c.customer_id}>
-                <div
-                  className="group flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                >
+                <div className="group flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60">
                   <button
                     type="button"
                     onClick={() => navigate(`/customers/${c.customer_id}`)}

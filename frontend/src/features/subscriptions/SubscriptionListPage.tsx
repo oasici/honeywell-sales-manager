@@ -193,10 +193,7 @@ export default function SubscriptionListPage() {
           </h3>
           <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {mrrData.top_customers.slice(0, 5).map((tc) => (
-              <li
-                key={tc.customer_id}
-                className="flex items-center justify-between py-2 text-sm"
-              >
+              <li key={tc.customer_id} className="flex items-center justify-between py-2 text-sm">
                 <button
                   type="button"
                   onClick={() => navigate(`/customers/${tc.customer_id}`)}

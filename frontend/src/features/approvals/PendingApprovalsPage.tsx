@@ -142,12 +142,47 @@ export default function PendingApprovalsPage() {
       ),
     },
     {
+      key: 'requested_by',
+      header: t('approvals.col_requested_by'),
+      render: (row: ApprovalRequest) => (
+        <span className="text-[12px] text-slate-700 dark:text-slate-300">
+          #{row.requested_by}
+        </span>
+      ),
+    },
+    {
+      key: 'assigned_to',
+      header: t('approvals.col_assigned_to'),
+      render: (row: ApprovalRequest) => (
+        <span className="text-[12px] text-slate-700 dark:text-slate-300">
+          {row.assigned_to != null ? `#${row.assigned_to}` : '—'}
+        </span>
+      ),
+    },
+    {
       key: 'created_at',
       header: t('approvals.col_requested'),
       render: (row: ApprovalRequest) => (
-        <span className="whitespace-nowrap text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
-          {row.created_at ? formatDateTime(row.created_at) : '—'}
-        </span>
+        <div className="flex flex-col gap-0.5 whitespace-nowrap">
+          <span className="text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+            {row.created_at ? formatDateTime(row.created_at) : '—'}
+          </span>
+          {/* Decision audit (audit F-14) — if the row has been
+              decided, show who closed it and when. */}
+          {row.decided_at && row.decided_by != null && (
+            <span className="text-[10px] text-slate-400">
+              #{row.decided_by} · {formatDateTime(row.decided_at)}
+            </span>
+          )}
+          {row.comments && (
+            <span
+              title={row.comments}
+              className="max-w-[180px] truncate text-[10px] italic text-slate-400"
+            >
+              {row.comments}
+            </span>
+          )}
+        </div>
       ),
     },
     {

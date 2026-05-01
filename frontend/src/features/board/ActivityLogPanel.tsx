@@ -80,9 +80,7 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
         {isLoading ? (
           <Skeleton variant="card" count={2} />
         ) : activities.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">
-            Henüz aktivite kaydedilmemis
-          </p>
+          <p className="py-8 text-center text-sm text-slate-400">Henüz aktivite kaydedilmemis</p>
         ) : (
           <div className="space-y-5">
             {Object.entries(grouped).map(([date, items]) => (
@@ -97,7 +95,9 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
                       className="flex items-start gap-3 rounded-lg border border-slate-100 px-3 py-2.5 dark:border-slate-800"
                     >
                       <div className="mt-0.5 shrink-0">
-                        {TYPE_ICON[item.activity_type] || <FileText className="h-4 w-4 text-slate-400" />}
+                        {TYPE_ICON[item.activity_type] || (
+                          <FileText className="h-4 w-4 text-slate-400" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -110,10 +110,7 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
                             </Badge>
                           )}
                           {item.outcome && (
-                            <Badge
-                              variant={OUTCOME_VARIANT[item.outcome] || 'default'}
-                              size="sm"
-                            >
+                            <Badge variant={OUTCOME_VARIANT[item.outcome] || 'default'} size="sm">
                               {OUTCOME_LABELS[item.outcome] || item.outcome}
                             </Badge>
                           )}

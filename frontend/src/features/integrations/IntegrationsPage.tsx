@@ -292,7 +292,14 @@ export default function IntegrationsPage() {
     ? { label: 'Kontrol ediliyor...', ok: null as null }
     : calendarHealth
       ? {
-          label: calendarHealth.ok ? 'OK' : calendarHealth.status || 'unknown',
+          // When `ok === false`, surface the precise error from the
+          // backend (audit F-22) so the user gets actionable detail
+          // instead of the generic "unknown" fallback.
+          label: calendarHealth.ok
+            ? 'OK'
+            : calendarHealth.error ||
+              calendarHealth.status ||
+              'unknown',
           ok: calendarHealth.ok,
         }
       : null;

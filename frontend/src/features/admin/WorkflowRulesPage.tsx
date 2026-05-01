@@ -292,6 +292,73 @@ export default function WorkflowRulesPage() {
                 )}
               </dl>
 
+              {/* Conditions + actions chip strip — audit F-13. The
+                  rule's actual logic was previously hidden behind the
+                  "Görsel Editor" button; admins couldn't tell at a
+                  glance what each rule actually does. Best-effort
+                  parse with defensive narrowing. */}
+              {(rule.conditions_json || rule.actions_json) && (
+                <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-[11px] dark:border-slate-800">
+                  {(() => {
+                    let conds: unknown = null;
+                    try {
+                      conds = rule.conditions_json
+                        ? JSON.parse(rule.conditions_json)
+                        : null;
+                    } catch {
+                      conds = null;
+                    }
+                    if (!conds || !Array.isArray(conds) || conds.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-overline text-slate-400">Koşul</span>
+                        {(conds as Array<Record<string, unknown>>).slice(0, 4).map((c, i) => (
+                          <span
+                            key={i}
+                            className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          >
+                            {String(c.field ?? c.label ?? 'kural')} {String(c.op ?? c.operator ?? '')}{' '}
+                            {String(c.value ?? '')}
+                          </span>
+                        ))}
+                        {(conds as unknown[]).length > 4 && (
+                          <span className="text-slate-400">
+                            +{(conds as unknown[]).length - 4}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    let acts: unknown = null;
+                    try {
+                      acts = rule.actions_json ? JSON.parse(rule.actions_json) : null;
+                    } catch {
+                      acts = null;
+                    }
+                    if (!acts || !Array.isArray(acts) || acts.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-overline text-slate-400">Eylem</span>
+                        {(acts as Array<Record<string, unknown>>).slice(0, 4).map((a, i) => (
+                          <span
+                            key={i}
+                            className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                          >
+                            {String(a.action ?? a.type ?? a.label ?? 'eylem')}
+                          </span>
+                        ))}
+                        {(acts as unknown[]).length > 4 && (
+                          <span className="text-slate-400">
+                            +{(acts as unknown[]).length - 4}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               <div className="mt-4 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3 dark:border-slate-800">
                 <Button
                   size="sm"

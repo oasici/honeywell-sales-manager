@@ -236,27 +236,31 @@ export default function LeadDetailPage() {
                 {t('lead_detail.score_breakdown')}
               </p>
               <ul className="space-y-1">
-                {(lead.score_breakdown as Array<{
-                  factor: string;
-                  points: number;
-                  reason?: string;
-                }>).slice(0, 8).map((b, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300"
-                  >
-                    <span className="truncate">{b.reason ?? b.factor}</span>
-                    <span
-                      className={[
-                        'shrink-0 tabular-nums font-semibold',
-                        b.points >= 0 ? 'text-emerald-600' : 'text-red-600',
-                      ].join(' ')}
+                {(
+                  lead.score_breakdown as Array<{
+                    factor: string;
+                    points: number;
+                    reason?: string;
+                  }>
+                )
+                  .slice(0, 8)
+                  .map((b, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300"
                     >
-                      {b.points >= 0 ? '+' : ''}
-                      {b.points}
-                    </span>
-                  </li>
-                ))}
+                      <span className="truncate">{b.reason ?? b.factor}</span>
+                      <span
+                        className={[
+                          'shrink-0 tabular-nums font-semibold',
+                          b.points >= 0 ? 'text-emerald-600' : 'text-red-600',
+                        ].join(' ')}
+                      >
+                        {b.points >= 0 ? '+' : ''}
+                        {b.points}
+                      </span>
+                    </li>
+                  ))}
               </ul>
             </div>
           )}

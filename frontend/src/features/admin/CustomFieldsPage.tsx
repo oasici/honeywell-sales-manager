@@ -112,7 +112,44 @@ export default function CustomFieldsPage() {
       sortable: true,
       render: (row: CustomFieldDefinition) => {
         const label = FIELD_TYPE_OPTIONS.find((o) => o.value === row.field_type)?.label ?? row.field_type;
-        return <Badge variant="info" size="sm">{label}</Badge>;
+        // For select-type fields, surface the configured choices as
+        // chips — pre audit F-21 the admin couldn't see them without
+        // re-creating the field.
+        let options: string[] = [];
+        if (row.field_type === 'select' && row.options_json) {
+          try {
+            const parsed = JSON.parse(row.options_json) as unknown;
+            if (Array.isArray(parsed)) {
+              options = parsed
+                .map((o) =>
+                  typeof o === 'string'
+                    ? o
+                    : typeof o === 'object' && o !== null && 'label' in o
+                      ? String((o as { label: unknown }).label)
+                      : null,
+                )
+                .filter((s): s is string => Boolean(s));
+            }
+          } catch {
+            options = [];
+          }
+        }
+        return (
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge variant="info" size="sm">{label}</Badge>
+            {options.slice(0, 4).map((opt, i) => (
+              <span
+                key={i}
+                className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              >
+                {opt}
+              </span>
+            ))}
+            {options.length > 4 && (
+              <span className="text-[10px] text-slate-500">+{options.length - 4}</span>
+            )}
+          </div>
+        );
       },
     },
     {

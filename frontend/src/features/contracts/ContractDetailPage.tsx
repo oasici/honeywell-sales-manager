@@ -201,8 +201,33 @@ export default function ContractDetailPage() {
                 </p>
               </div>
             )}
+            {/* Created-by attribution — fetched but never rendered
+                pre-audit F-18. */}
+            {contract.created_by != null && (
+              <div>
+                <p className="text-xs text-slate-500">{t('contracts.field_created_by')}</p>
+                <p className="text-sm font-medium text-slate-900">#{contract.created_by}</p>
+              </div>
+            )}
           </div>
         </Card>
+
+        {/* Contract terms — usually the entire substantive content
+            of the contract. Backend serializes terms_json to a string
+            blob; pretty-print it best-effort with a JSON fallback. */}
+        {contract.terms_json && (
+          <Card title={t('contracts.card_terms')}>
+            <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              {(() => {
+                try {
+                  return JSON.stringify(JSON.parse(contract.terms_json), null, 2);
+                } catch {
+                  return contract.terms_json;
+                }
+              })()}
+            </pre>
+          </Card>
+        )}
 
         {/* Amendment Timeline */}
         <Card title={t('contracts.amendments_title')}>

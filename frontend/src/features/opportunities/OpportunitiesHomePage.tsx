@@ -280,6 +280,36 @@ export default function OpportunitiesHomePage() {
                         {(o as unknown as { customer_name?: string }).customer_name}
                       </span>
                     ) : null}
+                    {/* Close date — fetched but never rendered before
+                        audit F-15. Critical "this deal closes Friday"
+                        signal. */}
+                    {o.close_date && (
+                      <span className="text-slate-500">
+                        ⏱ {new Date(o.close_date).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })}
+                      </span>
+                    )}
+                    {/* Rotting indicator — shows in red when the deal
+                        has been stale for more than a week. */}
+                    {typeof (o as unknown as { rotting_days?: number }).rotting_days === 'number' &&
+                      ((o as unknown as { rotting_days: number }).rotting_days) > 7 && (
+                        <span className="font-medium text-rose-600 dark:text-rose-400">
+                          🥀 {(o as unknown as { rotting_days: number }).rotting_days}g durgun
+                        </span>
+                      )}
+                    {/* Revenue-leak diff: when an open deal has a
+                        previous_amount that differs from the current
+                        amount, surface the slip. */}
+                    {(o as unknown as { previous_amount?: number | null }).previous_amount != null &&
+                      Number((o as unknown as { previous_amount: number }).previous_amount) !==
+                        Number(o.amount || 0) && (
+                        <span className="text-amber-600 dark:text-amber-400">
+                          {formatCurrency(
+                            Number((o as unknown as { previous_amount: number }).previous_amount),
+                            o.currency || 'TRY',
+                          )}{' '}
+                          → {formatCurrency(Number(o.amount || 0), o.currency || 'TRY')}
+                        </span>
+                      )}
                     {/* Closed-lost reason badge — surfaces the manual
                         loss reason when the opportunity is closed_lost
                         so reps can see "neden kaybedildi" at a glance. */}
