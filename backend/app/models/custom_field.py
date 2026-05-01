@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -61,9 +62,10 @@ class CustomFieldValue(Base):
     entity_id: Mapped[int] = mapped_column(Integer, nullable=False)
     value_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     value_number: Mapped[float | None] = mapped_column(Float, nullable=True)
-    value_date: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    # Calendar date — the timezone-aware DateTime variant caused
+    # off-by-one display in non-UTC zones (audit DB-5, migration
+    # 20260502_value_date_to_date).
+    value_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

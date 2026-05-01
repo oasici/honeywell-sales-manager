@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone  # noqa: F401 — datetime/timezone kept for legacy callers
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -113,8 +113,14 @@ class CustomFieldService:
         if field.field_type == "number":
             value_number = float(value) if value is not None else None
         elif field.field_type == "date":
+            # Column type was tightened to Date in audit DB-5; accept
+            # both bare ISO dates ("2026-05-01") and full ISO datetime
+            # strings, taking only the date component in either case.
             if isinstance(value, str) and value:
-                value_date = datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+                try:
+                    value_date = date.fromisoformat(value[:10])
+                except ValueError:
+                    value_date = None
             else:
                 value_date = None
         else:
