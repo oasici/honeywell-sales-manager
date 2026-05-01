@@ -59,56 +59,46 @@ def _ensure_collection(name: str, vector_size: int = VECTOR_SIZE) -> None:
 def _get_embedding_model():
     """Lazy-load and cache the embedding model (singleton).
 
-    On Render the RAG deps install in the background after the
-    container starts (see ``scripts/start.sh``), so this function
-    can be called *before* sentence-transformers is importable. We
-    distinguish three states to make the failure mode legible:
+    Switched from sentence-transformers + torch to fastembed (ONNX +
+    int8 quantization) on 2026-05-03 to fit Render Free tier's 512 MB
+    RAM ceiling. The package is now baked into the Dockerfile at
+    build time, so the previous 3-state runtime-install dance is
+    gone — if the import fails, that's a genuine misconfiguration.
 
-      * ``$HOME/.rag_deps_installed`` exists → install is done; if
-        the import still fails it's a real misconfiguration.
-      * Marker file missing AND ``INSTALL_RAG_DEPS=1`` → install
-        likely still in progress, surface as RAGNotReady so the API
-        layer can return 503 + a Retry-After hint instead of 500.
-      * ``INSTALL_RAG_DEPS`` unset → operator hasn't enabled RAG;
-        the legacy "not available" RuntimeError stays.
+    Vector dimensions stay at 384 so existing Qdrant collections do
+    not need to be re-indexed.
     """
     global _embedding_model
     if _embedding_model is not None:
         return _embedding_model
 
     try:
-        from sentence_transformers import SentenceTransformer
+        from fastembed import TextEmbedding
     except ImportError:
-        import os
-        from pathlib import Path
+        # fastembed should always be present in the prod image; if
+        # the import fails on a dev box without RAG deps installed
+        # we keep the polite error so the rest of the app stays up.
+        logger.warning("fastembed not installed — RAG unavailable")
+        raise RuntimeError("fastembed required for RAG")
 
-        marker_path = Path(os.path.expanduser("~/.rag_deps_installed"))
-        install_requested = os.environ.get("INSTALL_RAG_DEPS") == "1"
-
-        if install_requested and not marker_path.exists():
-            logger.info(
-                "RAG deps install still in progress — sentence-transformers not yet importable"
-            )
-            raise RuntimeError(
-                "RAG dependencies are still installing in the background; "
-                "retry in a few minutes."
-            )
-
-        # Either the operator hasn't requested RAG (clean degraded
-        # state) or the install completed but the import still fails
-        # (genuine misconfiguration).
-        logger.warning("sentence-transformers not installed — RAG unavailable")
-        raise RuntimeError("sentence-transformers required for RAG")
-
-    _embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-    logger.info("Embedding model loaded and cached")
+    _embedding_model = TextEmbedding(
+        model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    )
+    logger.info("Embedding model loaded and cached (fastembed, int8 quantized)")
     return _embedding_model
 
 
 def _get_embedding(text: str) -> list[float]:
-    """Get embedding vector for text (uses cached model)."""
+    """Get embedding vector for text (uses cached model).
+
+    fastembed's ``embed`` returns a generator of numpy arrays; the
+    caller wraps in ``list(...)[0]`` to materialise the first vector
+    and ``.tolist()`` to convert to plain Python floats so it can be
+    JSON-serialised by Qdrant.
+    """
     model = _get_embedding_model()
-    return model.encode(text[:2000]).tolist()
+    vectors = list(model.embed([text[:2000]]))
+    return vectors[0].tolist()
 
 
 # ── Deals ──

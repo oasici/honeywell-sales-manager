@@ -1,25 +1,31 @@
-# Optional RAG dependencies — install only when FEATURE_RAG=true.
+# Optional RAG dependencies — baked into the Docker image at build
+# time so the embedding model is always available when FEATURE_RAG
+# is on, with no runtime install race condition (round-3 audit
+# follow-up: switched from torch + sentence-transformers to fastembed
+# on 2026-05-03 to fit Render Free tier's 512 MB RAM ceiling).
 #
-# These are the heaviest packages in the stack (~500 MB compressed,
-# ~1.2 GB on disk after install) so they live in their own file
-# instead of polluting the base image. Two consumers pull them in:
+# Memory profile per gunicorn worker:
+#   - onnxruntime: ~50 MB
+#   - paraphrase-multilingual-MiniLM-L12-v2 (int8 quantized): ~120 MB
+#   - python + fastapi + sqlalchemy + diğer deps: ~150 MB
+#   ─────────────────────────────────────────────────
+#   Total: ~320 MB per worker
 #
-#   1. Render web service (when FEATURE_RAG=true on the dashboard).
-#      Configured in render.yaml's build command — see the comment
-#      block there.
+# WEB_CONCURRENCY=1 is required (set in render.yaml). With the
+# default 4 workers we'd be at ~1.3 GB and overflow the Free tier.
+# A single uvicorn worker is fine for the current 4 K parts + 8
+# deals scale; revisit when traffic warrants more concurrency.
 #
-#   2. Ad-hoc backfill workflows (V12 transformer encoding, RAG
-#      reindex). Configured in the GH Actions workflows directly,
-#      installed only on the runner.
-#
-# Pin exact versions so a torch CUDA-wheel upgrade doesn't silently
-# bloat the container by another 200 MB.
-#
-# Use:
-#   pip install -r requirements-rag.txt --index-url https://download.pytorch.org/whl/cpu
-# The PyTorch CPU index is critical — the default PyPI ships GPU
-# wheels which are 4× larger and useless on Render's CPU-only nodes.
+# Vector dimensions stay at 384 (same as the prior
+# sentence-transformers install) so existing Qdrant collections do
+# not need to be re-indexed.
 
-torch==2.4.1
-transformers==4.45.2
-sentence-transformers==3.1.1
+# Pinned to 0.5.1 because 0.6.0+ changed the default pooling from
+# CLS-token to mean for paraphrase-multilingual-MiniLM-L12-v2,
+# which would put new embeddings in a different semantic space
+# from anything embedded with the prior sentence-transformers
+# library. Collections are empty today so it's not breaking, but
+# pinning lets us pre-embed against either library interchangeably
+# without surprises.
+fastembed==0.5.1
+

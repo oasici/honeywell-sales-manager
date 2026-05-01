@@ -61,23 +61,16 @@ services:
         # backend's vector_store falls back gracefully if the deps
         # are missing, but Qdrant queries will fail.
         value: "false"
-      # When set to "1" at runtime, start.sh backgrounds
-      # `pip install -r requirements-rag.txt` (torch +
-      # sentence-transformers from the CPU wheel index) so the
-      # _embedding_model loader can import the package. Adds ~500 MB
-      # to the image and ~1 GB resident RAM — Render Standard plan
-      # or higher is required.
-      #
-      # Toggled to "1" 2026-05-03 to fix System Health
-      # "Gömme Modeli: not_loaded". The first deploy after this
-      # change runs the install in the background; gunicorn binds
-      # the port immediately so Render's startup probe passes. After
-      # the install completes (~5 min, watch /tmp/rag-install.log) a
-      # service Restart is required so gunicorn picks up the new
-      # sentence-transformers import and the lifespan preload sets
-      # _embedding_model. Note: dashboard env-var overrides win over
-      # this file, so verify in the Render UI that the value is "1".
-      - key: INSTALL_RAG_DEPS
+      # WEB_CONCURRENCY pins gunicorn to a single uvicorn worker.
+      # The embedding model (fastembed + paraphrase-multilingual
+      # MiniLM int8 quantized) lives in each worker's process
+      # memory; at ~320 MB resident per worker, only one fits in
+      # Render Free tier's 512 MB ceiling. Bump on Standard plan
+      # if traffic warrants. (Round-3 follow-up: replaced the
+      # torch + sentence-transformers stack with fastembed and
+      # baked it into the Dockerfile so INSTALL_RAG_DEPS is no
+      # longer needed — embedding model is always available.)
+      - key: WEB_CONCURRENCY
         value: "1"
       # SECURITY: ENCRYPTION_KEY decrypts KVKK PII columns (per-row
       # encryption). If Render regenerates this on a service rebuild

@@ -16,6 +16,13 @@ WORKDIR /app
 
 COPY requirements.txt requirements-rag.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+# Bake the RAG dependency (fastembed, ~5 MB wheel + ~120 MB
+# quantized model on first use) at build time. Switched from a
+# runtime install to build-time install on 2026-05-03 because the
+# previous start.sh background install raced against Render's
+# startup probe and left _embedding_model stuck at not_loaded
+# (round-3 audit follow-up).
+RUN pip install --no-cache-dir -r requirements-rag.txt
 
 COPY . .
 
