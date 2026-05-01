@@ -710,12 +710,13 @@ async def bulk_action_opportunities(
     # Validate that all IDs exist AND belong to the caller's tenant.
     # Without this guard, a sales rep can mutate any tenant's
     # opportunities by guessing IDs (audit TEN-1, 2026-05-01).
-    # `scoped_for_user` is the same helper used by the list endpoint
-    # so cross-tenant rows present as 404, never as 403.
+    # The v1.6.1 hotfix used the wrong (positional) signature here
+    # which raised TypeError at runtime — corrected with explicit
+    # column kwarg in v1.7.2.
     result = await db.execute(
-        scoped_for_user(select(Opportunity), Opportunity, current_user).where(
-            Opportunity.id.in_(ids),
-        )
+        scoped_for_user(
+            select(Opportunity), current_user, column=Opportunity.tenant_id,
+        ).where(Opportunity.id.in_(ids))
     )
     opps = result.scalars().all()
     found_ids = {o.id for o in opps}

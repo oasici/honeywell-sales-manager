@@ -271,6 +271,16 @@ async def approve_quote(
     db: AsyncSession = Depends(get_db),
 ):
     """Approve a quote and generate PDF (sales_manager only)."""
+    # Tenant guard (audit TEN-6). The QuoteService helper does a
+    # generic ID lookup with no tenant scoping, so a manager from
+    # tenant A could otherwise approve any tenant B quote.
+    quote_pre = (
+        await db.execute(select(Quote).where(Quote.id == quote_id))
+    ).scalar_one_or_none()
+    if quote_pre is None:
+        raise NotFoundException("Teklif bulunamadi")
+    assert_same_tenant(quote_pre, current_user, exception_cls=NotFoundException)
+
     service = QuoteService(db)
     quote = await service.approve_quote(
         quote_id=quote_id,
@@ -323,6 +333,10 @@ async def send_quote(
     quote = result.scalar_one_or_none()
     if not quote:
         raise NotFoundException("Teklif bulunamadi")
+    # Tenant guard (audit TEN-7). The role/ownership check below
+    # accepts SALES_MANAGER as a bypass, so without this a manager in
+    # tenant A could send any tenant B quote.
+    assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
 
     # Ownership check
     if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:

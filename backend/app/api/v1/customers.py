@@ -721,9 +721,14 @@ async def bulk_action_customers(
     if not action:
         raise BadRequestException("Islem tipi belirtilmelidir")
 
-    # Validate that all IDs exist
+    # Validate that all IDs exist AND belong to the caller's tenant.
+    # Without this guard a sales rep could mutate or export any
+    # tenant's customers by guessing IDs (audit TEN-4, 2026-05-01).
+    # Mirrors the round-2 TEN-1 fix on opportunities.bulk-action.
     result = await db.execute(
-        select(Customer).where(Customer.id.in_(ids))
+        scoped_for_user(
+            select(Customer), current_user, column=Customer.tenant_id,
+        ).where(Customer.id.in_(ids))
     )
     customers = result.scalars().all()
     found_ids = {c.id for c in customers}

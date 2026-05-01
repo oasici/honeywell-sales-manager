@@ -12,6 +12,7 @@ from difflib import SequenceMatcher
 from sqlalchemy import select, update, delete, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import NotFoundException
 from app.models.activity_log import ActivityLog
 from app.models.customer import Customer
 from app.models.email_request import EmailRequest
@@ -19,6 +20,8 @@ from app.models.lead import Lead
 from app.models.opportunity import Opportunity
 from app.models.quote import Quote
 from app.models.team import AccountTeam
+from app.models.user import User
+from app.services.tenant_context import assert_same_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -173,8 +176,15 @@ class RecordDuplicateService:
         winner_id: int,
         loser_id: int,
         user_id: int,
+        current_user: User | None = None,
     ) -> dict:
-        """Merge loser into winner. Reassign all related records, then delete loser."""
+        """Merge loser into winner. Reassign all related records, then delete loser.
+
+        ``current_user`` is required to enforce multi-tenant isolation
+        (audit TEN-8). Optional only because legacy callers haven't
+        been updated yet — when None, no tenant check runs and a
+        warning is logged so the gap surfaces.
+        """
         if entity_type != "customer":
             return {"error": "Sadece musteri birlestirme desteklenmektedir"}
 
@@ -190,6 +200,21 @@ class RecordDuplicateService:
 
         if not winner or not loser:
             return {"error": "Kayit bulunamadi"}
+
+        # Cross-tenant guard (audit TEN-8). Both records must belong
+        # to the caller's tenant — otherwise a manager could merge a
+        # foreign tenant's customer into one of their own.
+        if current_user is not None:
+            assert_same_tenant(
+                winner, current_user, exception_cls=NotFoundException,
+            )
+            assert_same_tenant(
+                loser, current_user, exception_cls=NotFoundException,
+            )
+        else:
+            logger.warning(
+                "merge_records called without current_user — tenant check skipped"
+            )
 
         reassigned = {}
 

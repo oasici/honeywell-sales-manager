@@ -398,9 +398,13 @@ async def bulk_action_leads(
     if not action:
         raise BadRequestException("Islem tipi belirtilmelidir")
 
-    # Validate that all IDs exist
+    # Validate that all IDs exist AND belong to the caller's tenant.
+    # Without this guard, a sales rep can mutate or export any
+    # tenant's leads by guessing IDs (audit TEN-5, 2026-05-01).
     result = await db.execute(
-        select(Lead).where(Lead.id.in_(ids))
+        scoped_for_user(
+            select(Lead), current_user, column=Lead.tenant_id,
+        ).where(Lead.id.in_(ids))
     )
     leads = result.scalars().all()
     found_ids = {l.id for l in leads}

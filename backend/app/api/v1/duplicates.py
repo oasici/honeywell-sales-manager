@@ -94,6 +94,10 @@ async def merge_records(
         winner_id=payload.winner_id,
         loser_id=payload.loser_id,
         user_id=current_user.id,
+        # Pass current_user so the service can run assert_same_tenant
+        # on both records (audit TEN-8). Without this guard a manager
+        # could merge a foreign tenant's customer into their own.
+        current_user=current_user,
     )
     if "error" in result:
         raise BadRequestException(result["error"])
