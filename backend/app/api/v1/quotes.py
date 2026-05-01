@@ -619,11 +619,15 @@ async def compare_quotes(
     quote_a = result_a.scalar_one_or_none()
     if not quote_a:
         raise NotFoundException(f"Teklif {quote_id} bulunamadi")
+    # Tenant guard (audit TEN-3): the role+ownership check below would
+    # otherwise let a manager from tenant A compare quotes from tenant B.
+    assert_same_tenant(quote_a, current_user, exception_cls=NotFoundException)
 
     result_b = await db.execute(select(Quote).where(Quote.id == other_id))
     quote_b = result_b.scalar_one_or_none()
     if not quote_b:
         raise NotFoundException(f"Teklif {other_id} bulunamadi")
+    assert_same_tenant(quote_b, current_user, exception_cls=NotFoundException)
 
     # Authorization check
     for q in (quote_a, quote_b):

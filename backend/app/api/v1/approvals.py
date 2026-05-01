@@ -13,8 +13,38 @@ from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import NotFoundException
 from app.models.approval import ApprovalRequest, ApprovalRule
 from app.models.enums import UserRole
+from app.models.opportunity import Opportunity
+from app.models.quote import Quote
 from app.models.user import User
 from app.services.approval_service import ApprovalService
+from app.services.tenant_context import assert_same_tenant
+
+
+# Map of supported entity_type values to their owning model. Used to
+# validate cross-tenant access on /approvals/history (audit TEN-2).
+# ApprovalRequest itself has no tenant_id column — we have to reach
+# through to the parent entity.
+_APPROVAL_ENTITY_MODELS = {
+    "quote": Quote,
+    "opportunity": Opportunity,
+}
+
+
+async def _assert_entity_in_tenant(
+    db: AsyncSession, entity_type: str, entity_id: int, user: User,
+) -> None:
+    """Raise NotFoundException unless the entity exists and the caller's tenant owns it."""
+    model = _APPROVAL_ENTITY_MODELS.get(entity_type)
+    if model is None:
+        # Unknown entity_type cannot be tenant-checked — treat as not-found
+        # so a malicious caller can't probe which types exist.
+        raise NotFoundException("Not found")
+    record = (
+        await db.execute(select(model).where(model.id == entity_id))
+    ).scalar_one_or_none()
+    if record is None:
+        raise NotFoundException("Not found")
+    assert_same_tenant(record, user, exception_cls=NotFoundException)
 
 router = APIRouter(prefix="/approvals", tags=["Approvals"])
 
@@ -193,6 +223,9 @@ async def approval_history(
     _flag=Depends(_require_approval_routing),
 ):
     """Get approval history for a specific entity."""
+    # Tenant guard (audit TEN-2). Without this an authenticated user
+    # could enumerate any entity's approval chain by guessing IDs.
+    await _assert_entity_in_tenant(db, entity_type, entity_id, current_user)
     service = ApprovalService(db)
     history = await service.get_approval_history(entity_type, entity_id)
     return {"items": [_request_to_dict(r) for r in history]}
