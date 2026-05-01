@@ -61,12 +61,24 @@ services:
         # backend's vector_store falls back gracefully if the deps
         # are missing, but Qdrant queries will fail.
         value: "false"
-      # When set to "1" at build time the Dockerfile's RAG step
-      # installs torch + sentence-transformers from the CPU wheel
-      # index. Adds ~500 MB to the image, ~1 GB resident RAM —
-      # requires Render Standard plan or higher.
+      # When set to "1" at runtime, start.sh backgrounds
+      # `pip install -r requirements-rag.txt` (torch +
+      # sentence-transformers from the CPU wheel index) so the
+      # _embedding_model loader can import the package. Adds ~500 MB
+      # to the image and ~1 GB resident RAM — Render Standard plan
+      # or higher is required.
+      #
+      # Toggled to "1" 2026-05-03 to fix System Health
+      # "Gömme Modeli: not_loaded". The first deploy after this
+      # change runs the install in the background; gunicorn binds
+      # the port immediately so Render's startup probe passes. After
+      # the install completes (~5 min, watch /tmp/rag-install.log) a
+      # service Restart is required so gunicorn picks up the new
+      # sentence-transformers import and the lifespan preload sets
+      # _embedding_model. Note: dashboard env-var overrides win over
+      # this file, so verify in the Render UI that the value is "1".
       - key: INSTALL_RAG_DEPS
-        value: "0"
+        value: "1"
       # SECURITY: ENCRYPTION_KEY decrypts KVKK PII columns (per-row
       # encryption). If Render regenerates this on a service rebuild
       # all encrypted data becomes UNREADABLE — an irreversible data
