@@ -372,11 +372,7 @@ export default function LeadListPage() {
             <Button variant="secondary" onClick={() => setShowCreate(false)} type="button">
               {t('common.cancel')}
             </Button>
-            <Button
-              type="submit"
-              form="lead-create-form"
-              loading={createMutation.isPending}
-            >
+            <Button type="submit" form="lead-create-form" loading={createMutation.isPending}>
               {t('common.create')}
             </Button>
           </>

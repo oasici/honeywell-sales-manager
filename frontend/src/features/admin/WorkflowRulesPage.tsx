@@ -302,9 +302,7 @@ export default function WorkflowRulesPage() {
                   {(() => {
                     let conds: unknown = null;
                     try {
-                      conds = rule.conditions_json
-                        ? JSON.parse(rule.conditions_json)
-                        : null;
+                      conds = rule.conditions_json ? JSON.parse(rule.conditions_json) : null;
                     } catch {
                       conds = null;
                     }
@@ -317,14 +315,12 @@ export default function WorkflowRulesPage() {
                             key={i}
                             className="rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                           >
-                            {String(c.field ?? c.label ?? 'kural')} {String(c.op ?? c.operator ?? '')}{' '}
-                            {String(c.value ?? '')}
+                            {String(c.field ?? c.label ?? 'kural')}{' '}
+                            {String(c.op ?? c.operator ?? '')} {String(c.value ?? '')}
                           </span>
                         ))}
                         {(conds as unknown[]).length > 4 && (
-                          <span className="text-slate-400">
-                            +{(conds as unknown[]).length - 4}
-                          </span>
+                          <span className="text-slate-400">+{(conds as unknown[]).length - 4}</span>
                         )}
                       </div>
                     );
@@ -349,9 +345,7 @@ export default function WorkflowRulesPage() {
                           </span>
                         ))}
                         {(acts as unknown[]).length > 4 && (
-                          <span className="text-slate-400">
-                            +{(acts as unknown[]).length - 4}
-                          </span>
+                          <span className="text-slate-400">+{(acts as unknown[]).length - 4}</span>
                         )}
                       </div>
                     );

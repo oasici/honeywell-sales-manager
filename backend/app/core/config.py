@@ -142,6 +142,13 @@ class Settings(BaseSettings):
 
     # ── AI / LLM ──
     ANTHROPIC_API_KEY: str = ""
+    # Used by app/services/vector_store.py for the OpenAI HTTP
+    # embedding API (text-embedding-3-small with dimensions=384).
+    # Switched to remote embeddings on 2026-05-02 because in-process
+    # ML stacks (torch, then fastembed) overflowed Render Free tier's
+    # 512 MB ceiling. Empty string disables RAG cleanly — see
+    # vector_store._get_embedding_model.
+    OPENAI_API_KEY: str = ""
     AI_MODEL_NAME: str = "claude-sonnet-4-20250514"
     AI_MAX_TOKENS: int = 1024
     AI_TEMPERATURE: float = 1.0

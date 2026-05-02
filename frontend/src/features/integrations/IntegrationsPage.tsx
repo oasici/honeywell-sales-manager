@@ -78,7 +78,12 @@ interface IntegrationCardProps {
   /** Connected account / provider readout. */
   account?: string | null;
   /** Primary CTA — typically "Bağlan" or "Senkronize Et" or "Bağlantıyı Yenile". */
-  primaryAction: { label: string; onClick: () => void; loading?: boolean; variant?: 'primary' | 'secondary' };
+  primaryAction: {
+    label: string;
+    onClick: () => void;
+    loading?: boolean;
+    variant?: 'primary' | 'secondary';
+  };
   /** Optional secondary action (e.g. health re-check). */
   secondaryAction?: { label: string; onClick: () => void; loading?: boolean; icon?: ReactNode };
 }
@@ -141,7 +146,9 @@ function IntegrationCard({
               </dd>
             </div>
             <div>
-              <dt className="text-overline text-slate-400 dark:text-slate-500">Son Senkronizasyon</dt>
+              <dt className="text-overline text-slate-400 dark:text-slate-500">
+                Son Senkronizasyon
+              </dt>
               <dd className="mt-1 truncate text-[13px] tabular-nums text-slate-800 dark:text-slate-200">
                 {lastSync || '—'}
               </dd>
@@ -176,7 +183,10 @@ function IntegrationCard({
               user understands why "Bağlantıyı Yenile" is the right next step. */}
           {isWarning && (
             <div className="mx-5 mb-4 flex items-start gap-2.5 rounded-xl border border-amber-100 bg-amber-50/60 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
-              <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <AlertTriangle
+                size={14}
+                className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+              />
               <p className="text-[12px] leading-5 text-amber-900 dark:text-amber-200">
                 Token süresi doldu. Senkronizasyonu sürdürmek için bağlantıyı yenileyin.
               </p>
@@ -259,10 +269,7 @@ export default function IntegrationsPage() {
   const calendarHealth = calendarHealthQuery.data;
   const esign = esignQuery.data;
 
-  const calendarStatus = computeStatus(
-    calendar?.connected ?? false,
-    calendar?.token_present,
-  );
+  const calendarStatus = computeStatus(calendar?.connected ?? false, calendar?.token_present);
   const esignStatus = computeStatus(esign?.connected ?? false, undefined);
 
   const calendarPrimary = (() => {
@@ -297,9 +304,7 @@ export default function IntegrationsPage() {
           // instead of the generic "unknown" fallback.
           label: calendarHealth.ok
             ? 'OK'
-            : calendarHealth.error ||
-              calendarHealth.status ||
-              'unknown',
+            : calendarHealth.error || calendarHealth.status || 'unknown',
           ok: calendarHealth.ok,
         }
       : null;

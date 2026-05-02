@@ -111,7 +111,8 @@ export default function CustomFieldsPage() {
       header: 'Tip',
       sortable: true,
       render: (row: CustomFieldDefinition) => {
-        const label = FIELD_TYPE_OPTIONS.find((o) => o.value === row.field_type)?.label ?? row.field_type;
+        const label =
+          FIELD_TYPE_OPTIONS.find((o) => o.value === row.field_type)?.label ?? row.field_type;
         // For select-type fields, surface the configured choices as
         // chips — pre audit F-21 the admin couldn't see them without
         // re-creating the field.
@@ -136,7 +137,9 @@ export default function CustomFieldsPage() {
         }
         return (
           <div className="flex flex-wrap items-center gap-1">
-            <Badge variant="info" size="sm">{label}</Badge>
+            <Badge variant="info" size="sm">
+              {label}
+            </Badge>
             {options.slice(0, 4).map((opt, i) => (
               <span
                 key={i}
@@ -199,10 +202,7 @@ export default function CustomFieldsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Özel Alanlar"
-        description="Varlık tipine göre özel alan tanımlamaları"
-      >
+      <PageHeader title="Özel Alanlar" description="Varlık tipine göre özel alan tanımlamaları">
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus size={14} />
           Yeni Alan

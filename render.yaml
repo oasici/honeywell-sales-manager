@@ -42,6 +42,14 @@ services:
         value: "https://honeywell-frontend.onrender.com"
       - key: ANTHROPIC_API_KEY
         sync: false
+      # OpenAI key powers RAG embeddings via the HTTP API (~$0.02
+      # per 1M tokens). Round-3 follow-up swapped in-process
+      # embedding (fastembed) for a remote call so the container
+      # stays under Render Free tier's 512 MB ceiling. When this
+      # value is empty, FEATURE_RAG endpoints surface a polite
+      # 503 — the rest of the app stays up.
+      - key: OPENAI_API_KEY
+        sync: false
       # ── Qdrant (external; FEATURE_RAG=true required) ──
       # Render does not host Qdrant directly. Set these to your
       # Qdrant Cloud cluster's URL + API key in the Render dashboard

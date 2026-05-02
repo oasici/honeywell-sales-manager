@@ -145,9 +145,7 @@ export default function PendingApprovalsPage() {
       key: 'requested_by',
       header: t('approvals.col_requested_by'),
       render: (row: ApprovalRequest) => (
-        <span className="text-[12px] text-slate-700 dark:text-slate-300">
-          #{row.requested_by}
-        </span>
+        <span className="text-[12px] text-slate-700 dark:text-slate-300">#{row.requested_by}</span>
       ),
     },
     {

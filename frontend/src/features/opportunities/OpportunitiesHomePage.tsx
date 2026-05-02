@@ -285,13 +285,17 @@ export default function OpportunitiesHomePage() {
                         signal. */}
                     {o.close_date && (
                       <span className="text-slate-500">
-                        ⏱ {new Date(o.close_date).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' })}
+                        ⏱{' '}
+                        {new Date(o.close_date).toLocaleDateString('tr-TR', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
                       </span>
                     )}
                     {/* Rotting indicator — shows in red when the deal
                         has been stale for more than a week. */}
                     {typeof (o as unknown as { rotting_days?: number }).rotting_days === 'number' &&
-                      ((o as unknown as { rotting_days: number }).rotting_days) > 7 && (
+                      (o as unknown as { rotting_days: number }).rotting_days > 7 && (
                         <span className="font-medium text-rose-600 dark:text-rose-400">
                           🥀 {(o as unknown as { rotting_days: number }).rotting_days}g durgun
                         </span>
@@ -299,7 +303,8 @@ export default function OpportunitiesHomePage() {
                     {/* Revenue-leak diff: when an open deal has a
                         previous_amount that differs from the current
                         amount, surface the slip. */}
-                    {(o as unknown as { previous_amount?: number | null }).previous_amount != null &&
+                    {(o as unknown as { previous_amount?: number | null }).previous_amount !=
+                      null &&
                       Number((o as unknown as { previous_amount: number }).previous_amount) !==
                         Number(o.amount || 0) && (
                         <span className="text-amber-600 dark:text-amber-400">

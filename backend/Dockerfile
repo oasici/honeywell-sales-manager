@@ -14,15 +14,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY requirements.txt requirements-rag.txt ./
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-# Bake the RAG dependency (fastembed, ~5 MB wheel + ~120 MB
-# quantized model on first use) at build time. Switched from a
-# runtime install to build-time install on 2026-05-03 because the
-# previous start.sh background install raced against Render's
-# startup probe and left _embedding_model stuck at not_loaded
-# (round-3 audit follow-up).
-RUN pip install --no-cache-dir -r requirements-rag.txt
+# RAG embedding now uses OpenAI's HTTP API (vector_store.py POSTs to
+# /v1/embeddings with httpx, which is already in requirements.txt).
+# No ML packages needed in the image — round-3 follow-up after
+# fastembed OOM'd on Render Free tier's 512 MB ceiling.
 
 COPY . .
 

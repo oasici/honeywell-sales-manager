@@ -6,6 +6,7 @@ import hashlib
 import logging
 from typing import Any
 
+import httpx
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.exceptions import UnexpectedResponse
 
@@ -14,11 +15,25 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Vector dimensions kept at 384 so existing Qdrant collections do
+# not need to be re-indexed across the recent model swap. OpenAI's
+# text-embedding-3-small natively produces 1536-dim vectors but the
+# `dimensions` parameter (text-embedding-3-* only) lets us truncate
+# to 384 on the API side, preserving the rest of the schema.
 VECTOR_SIZE = 384
+
+# Round-3 follow-up (2026-05-02): in-process embedding (sentence-
+# transformers, then fastembed) overflowed Render Free tier's 512 MB
+# RAM ceiling. Switched to OpenAI's HTTP embedding API so the
+# container has zero ML memory footprint. The "model" is now a
+# sentinel string flagging that the remote service is reachable.
+OPENAI_EMBED_URL = "https://api.openai.com/v1/embeddings"
+OPENAI_EMBED_MODEL = "text-embedding-3-small"
+OPENAI_EMBED_TIMEOUT = 10.0
 
 # Lazy singletons
 _client: QdrantClient | None = None
-_embedding_model = None  # Module-level singleton
+_embedding_model = None  # Sentinel: "remote embeddings ready"
 
 
 def _get_client() -> QdrantClient:
@@ -57,48 +72,70 @@ def _ensure_collection(name: str, vector_size: int = VECTOR_SIZE) -> None:
 
 
 def _get_embedding_model():
-    """Lazy-load and cache the embedding model (singleton).
+    """Confirm the remote embedding service is reachable.
 
-    Switched from sentence-transformers + torch to fastembed (ONNX +
-    int8 quantization) on 2026-05-03 to fit Render Free tier's 512 MB
-    RAM ceiling. The package is now baked into the Dockerfile at
-    build time, so the previous 3-state runtime-install dance is
-    gone — if the import fails, that's a genuine misconfiguration.
+    Round-3 follow-up: dropped in-process model (fastembed) because
+    even the quantized 320 MB profile overflowed Render Free tier's
+    512 MB ceiling. We now POST to OpenAI's `/v1/embeddings` with
+    `dimensions=384` (text-embedding-3-* only) so the rest of the
+    schema (Qdrant VECTOR_SIZE, payload mapping, etc.) is unchanged.
 
-    Vector dimensions stay at 384 so existing Qdrant collections do
-    not need to be re-indexed.
+    The function preserves its old name so callers + the System
+    Health page continue to work; the singleton is a sentinel
+    string that flags "remote embeddings configured" so the
+    `_embedding_model is not None` check in the health endpoint
+    flips to ``loaded`` once we've confirmed the API key is present.
     """
     global _embedding_model
     if _embedding_model is not None:
         return _embedding_model
 
-    try:
-        from fastembed import TextEmbedding
-    except ImportError:
-        # fastembed should always be present in the prod image; if
-        # the import fails on a dev box without RAG deps installed
-        # we keep the polite error so the rest of the app stays up.
-        logger.warning("fastembed not installed — RAG unavailable")
-        raise RuntimeError("fastembed required for RAG")
+    api_key = getattr(settings, "OPENAI_API_KEY", None) or _env("OPENAI_API_KEY")
+    if not api_key:
+        logger.warning("OPENAI_API_KEY missing — RAG unavailable")
+        raise RuntimeError("OPENAI_API_KEY required for remote embeddings")
 
-    _embedding_model = TextEmbedding(
-        model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-    )
-    logger.info("Embedding model loaded and cached (fastembed, int8 quantized)")
+    _embedding_model = "openai:text-embedding-3-small"
+    logger.info("Embedding model ready (remote, %s)", OPENAI_EMBED_MODEL)
     return _embedding_model
 
 
-def _get_embedding(text: str) -> list[float]:
-    """Get embedding vector for text (uses cached model).
+def _env(name: str) -> str | None:
+    """Read an env var without importing os at module top-level."""
+    import os
 
-    fastembed's ``embed`` returns a generator of numpy arrays; the
-    caller wraps in ``list(...)[0]`` to materialise the first vector
-    and ``.tolist()`` to convert to plain Python floats so it can be
-    JSON-serialised by Qdrant.
+    return os.environ.get(name)
+
+
+def _get_embedding(text: str) -> list[float]:
+    """POST to OpenAI's /v1/embeddings and return the 384-dim vector.
+
+    Synchronous httpx call — these are infrequent (only on writes
+    that touch the vector store) and the rest of the request is
+    already inside an async handler so a brief blocking call is
+    acceptable. If we ever batch-embed thousands of rows we'll move
+    to an async client + concurrency-bound queue.
     """
-    model = _get_embedding_model()
-    vectors = list(model.embed([text[:2000]]))
-    return vectors[0].tolist()
+    _get_embedding_model()  # ensures the API key is present (raises otherwise)
+
+    api_key = getattr(settings, "OPENAI_API_KEY", None) or _env("OPENAI_API_KEY")
+    payload = {
+        "model": OPENAI_EMBED_MODEL,
+        "input": text[:2000],
+        # text-embedding-3-* supports the `dimensions` parameter which
+        # truncates the native 1536-dim vector to whatever we ask for.
+        # Keep at 384 so existing Qdrant collections stay valid.
+        "dimensions": VECTOR_SIZE,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    with httpx.Client(timeout=OPENAI_EMBED_TIMEOUT) as client:
+        response = client.post(OPENAI_EMBED_URL, json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+    return data["data"][0]["embedding"]
 
 
 # ── Deals ──

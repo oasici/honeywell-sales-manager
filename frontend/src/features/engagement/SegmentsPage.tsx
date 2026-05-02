@@ -159,9 +159,7 @@ export default function SegmentsPage() {
         const fieldDef = FIELD_OPTIONS.find((f) => f.value === r.field);
         const valueType = fieldDef?.valueType ?? 'text';
         const coerced =
-          valueType === 'number' && typeof r.value === 'string'
-            ? Number(r.value)
-            : r.value;
+          valueType === 'number' && typeof r.value === 'string' ? Number(r.value) : r.value;
         return { ...r, value: coerced };
       });
     }
@@ -362,17 +360,15 @@ export default function SegmentsPage() {
                       to see what it filtered on. */}
                   {Array.isArray(segment.rules) && segment.rules.length > 0 && (
                     <div className="flex flex-wrap gap-1">
-                      {(segment.rules as Array<Record<string, unknown>>)
-                        .slice(0, 3)
-                        .map((r, i) => (
-                          <span
-                            key={i}
-                            className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700"
-                          >
-                            {String(r.field ?? r.label ?? 'kural')}{' '}
-                            {String(r.op ?? r.operator ?? '')} {String(r.value ?? '')}
-                          </span>
-                        ))}
+                      {(segment.rules as Array<Record<string, unknown>>).slice(0, 3).map((r, i) => (
+                        <span
+                          key={i}
+                          className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700"
+                        >
+                          {String(r.field ?? r.label ?? 'kural')} {String(r.op ?? r.operator ?? '')}{' '}
+                          {String(r.value ?? '')}
+                        </span>
+                      ))}
                       {segment.rules.length > 3 && (
                         <span className="text-[10px] text-slate-500">
                           +{segment.rules.length - 3}
