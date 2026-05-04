@@ -12,9 +12,16 @@ from app.core.database import Base
 
 class RevenueSchedule(Base):
     __tablename__ = "revenue_schedules"
-    __table_args__ = (Index("ix_rs_contract", "contract_id"),)
+    __table_args__ = (
+        Index("ix_rs_contract", "contract_id"),
+        # Round-4 R4-TEN-8 — tenant boundary on revenue schedules.
+        # Backfilled via contract → customer by alembic
+        # 20260504_add_tenant_id_to_billing.
+        Index("ix_rs_tenant", "tenant_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     contract_id: Mapped[int] = mapped_column(Integer, ForeignKey("contracts.id"), nullable=False)
     recognition_type: Mapped[str] = mapped_column(String(20), nullable=False, default="straight_line")
     # immediate | straight_line | milestone | usage
@@ -40,9 +47,14 @@ class RevenueSchedule(Base):
 
 class RevenueScheduleEntry(Base):
     __tablename__ = "revenue_schedule_entries"
-    __table_args__ = (Index("ix_rse_schedule", "schedule_id"),)
+    __table_args__ = (
+        Index("ix_rse_schedule", "schedule_id"),
+        # Same tenant boundary as parent schedule (R4-TEN-8).
+        Index("ix_rse_tenant", "tenant_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("revenue_schedules.id"), nullable=False)
     period: Mapped[str] = mapped_column(String(7), nullable=False)  # "2026-04" (YYYY-MM)
     amount: Mapped[float] = mapped_column(Float, nullable=False)

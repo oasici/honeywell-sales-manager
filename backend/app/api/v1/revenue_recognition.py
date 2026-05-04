@@ -16,6 +16,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.contract import Contract
 from app.models.revenue_recognition import RevenueSchedule, RevenueScheduleEntry
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 # Routes use mixed-path convention (/revenue-schedules/ and /revenue-recognition/dashboard)
 # rather than a shared router prefix, which is intentional for semantic clarity.
@@ -48,6 +49,8 @@ class ScheduleCreate(BaseModel):
 def _serialize_schedule(s: RevenueSchedule) -> dict:
     return {
         "id": s.id,
+        # Round-4 R4-DTO-6 — round-trip tenant_id (R4-TEN-8).
+        "tenant_id": getattr(s, "tenant_id", None),
         "contract_id": s.contract_id,
         "recognition_type": s.recognition_type,
         "start_date": s.start_date.isoformat() if s.start_date else None,
@@ -64,6 +67,7 @@ def _serialize_schedule(s: RevenueSchedule) -> dict:
 def _serialize_entry(e: RevenueScheduleEntry) -> dict:
     return {
         "id": e.id,
+        "tenant_id": getattr(e, "tenant_id", None),
         "schedule_id": e.schedule_id,
         "period": e.period,
         "amount": e.amount,
@@ -100,7 +104,11 @@ async def list_schedules(
     db: AsyncSession = Depends(get_db),
 ):
     """List revenue schedules, optionally filtered by contract."""
-    query = select(RevenueSchedule).order_by(RevenueSchedule.id.desc())
+    query = scoped_for_user(
+        select(RevenueSchedule).order_by(RevenueSchedule.id.desc()),
+        current_user,
+        column=RevenueSchedule.tenant_id,
+    )
     if contract_id is not None:
         query = query.where(RevenueSchedule.contract_id == contract_id)
     result = await db.execute(query)
@@ -145,10 +153,15 @@ async def create_schedule(
     contract_result = await db.execute(
         select(Contract).where(Contract.id == body.contract_id)
     )
-    if contract_result.scalar_one_or_none() is None:
+    contract = contract_result.scalar_one_or_none()
+    if contract is None:
         raise NotFoundException("Contract not found")
+    # Round-4 R4-TEN-8 — block creating a schedule attached to a
+    # foreign tenant's contract.
+    assert_same_tenant(contract, current_user, exception_cls=NotFoundException)
 
     schedule = RevenueSchedule(
+        tenant_id=getattr(current_user, "tenant_id", None),
         contract_id=body.contract_id,
         recognition_type=body.recognition_type,
         start_date=body.start_date,
@@ -177,6 +190,7 @@ async def get_schedule(
     schedule = result.scalar_one_or_none()
     if schedule is None:
         raise NotFoundException("Revenue schedule not found")
+    assert_same_tenant(schedule, current_user, exception_cls=NotFoundException)
 
     entries_result = await db.execute(
         select(RevenueScheduleEntry)
@@ -204,6 +218,7 @@ async def generate_entries(
     schedule = result.scalar_one_or_none()
     if schedule is None:
         raise NotFoundException("Revenue schedule not found")
+    assert_same_tenant(schedule, current_user, exception_cls=NotFoundException)
 
     existing_result = await db.execute(
         select(RevenueScheduleEntry)
@@ -226,6 +241,7 @@ async def generate_entries(
     for idx, period in enumerate(periods):
         amount = per_month + (remainder if idx == len(periods) - 1 else 0.0)
         entry = RevenueScheduleEntry(
+            tenant_id=schedule.tenant_id,
             schedule_id=schedule_id,
             period=period,
             amount=amount,
@@ -258,6 +274,9 @@ async def recognize_entry(
     entry = entry_result.scalar_one_or_none()
     if entry is None:
         raise NotFoundException("Entry not found")
+    # Round-4 R4-TEN-8 — recognizing a foreign tenant's entry would
+    # corrupt their books (irreversible).
+    assert_same_tenant(entry, current_user, exception_cls=NotFoundException)
 
     if entry.status == "recognized":
         raise BadRequestException("Entry is already recognized")
@@ -268,6 +287,7 @@ async def recognize_entry(
     schedule = schedule_result.scalar_one_or_none()
     if schedule is None:
         raise NotFoundException("Revenue schedule not found")
+    assert_same_tenant(schedule, current_user, exception_cls=NotFoundException)
 
     entry.status = "recognized"
     entry.recognized_amount = entry.amount
@@ -290,20 +310,32 @@ async def recognition_dashboard(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Summary dashboard: scheduled, recognized, this-month pending, recognition rate."""
+    """Summary dashboard — tenant-scoped (R4-TEN-8)."""
     total_scheduled_result = await db.execute(
-        select(func.coalesce(func.sum(RevenueSchedule.total_amount), 0.0))
+        scoped_for_user(
+            select(func.coalesce(func.sum(RevenueSchedule.total_amount), 0.0)),
+            current_user,
+            column=RevenueSchedule.tenant_id,
+        )
     )
     total_scheduled: float = total_scheduled_result.scalar_one()
 
     total_recognized_result = await db.execute(
-        select(func.coalesce(func.sum(RevenueSchedule.recognized_amount), 0.0))
+        scoped_for_user(
+            select(func.coalesce(func.sum(RevenueSchedule.recognized_amount), 0.0)),
+            current_user,
+            column=RevenueSchedule.tenant_id,
+        )
     )
     total_recognized: float = total_recognized_result.scalar_one()
 
     current_period = datetime.now(timezone.utc).strftime("%Y-%m")
     this_month_result = await db.execute(
-        select(func.coalesce(func.sum(RevenueScheduleEntry.amount), 0.0)).where(
+        scoped_for_user(
+            select(func.coalesce(func.sum(RevenueScheduleEntry.amount), 0.0)),
+            current_user,
+            column=RevenueScheduleEntry.tenant_id,
+        ).where(
             RevenueScheduleEntry.period == current_period,
             RevenueScheduleEntry.status == "pending",
         )

@@ -15,6 +15,7 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.contract import Contract, ContractAmendment
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(tags=["Contracts"])
 
@@ -50,6 +51,8 @@ class AmendmentCreate(BaseModel):
 def _serialize_contract(c: Contract) -> dict:
     return {
         "id": c.id,
+        # Round-4 R4-DTO-6 — round-trip tenant_id (R4-TEN-6).
+        "tenant_id": getattr(c, "tenant_id", None),
         "customer_id": c.customer_id,
         "quote_id": c.quote_id,
         "title": c.title,
@@ -97,7 +100,11 @@ async def list_contracts(
     from sqlalchemy import func as _func
     import math as _math
 
-    query = select(Contract).order_by(Contract.created_at.desc())
+    query = scoped_for_user(
+        select(Contract).order_by(Contract.created_at.desc()),
+        current_user,
+        column=Contract.tenant_id,
+    )
     if customer_id:
         query = query.where(Contract.customer_id == customer_id)
     if status:
@@ -131,6 +138,7 @@ async def create_contract(
 ):
     """Create a new contract."""
     contract = Contract(
+        tenant_id=getattr(current_user, "tenant_id", None),
         customer_id=body.customer_id,
         quote_id=body.quote_id,
         title=body.title,
@@ -155,7 +163,9 @@ async def expiring_contracts(
     """Get contracts expiring within the next N days."""
     threshold = date.today() + timedelta(days=days)
     result = await db.execute(
-        select(Contract)
+        scoped_for_user(
+            select(Contract), current_user, column=Contract.tenant_id
+        )
         .where(
             Contract.status == "active",
             Contract.end_date.isnot(None),
@@ -178,6 +188,7 @@ async def get_contract(
     contract = await db.get(Contract, contract_id)
     if not contract:
         raise NotFoundException("Kontrat bulunamadi")
+    assert_same_tenant(contract, current_user, exception_cls=NotFoundException)
     return _serialize_contract(contract)
 
 
@@ -192,6 +203,7 @@ async def update_contract(
     contract = await db.get(Contract, contract_id)
     if not contract:
         raise NotFoundException("Kontrat bulunamadi")
+    assert_same_tenant(contract, current_user, exception_cls=NotFoundException)
 
     if body.title is not None:
         contract.title = body.title
@@ -224,6 +236,7 @@ async def amend_contract(
     contract = await db.get(Contract, contract_id)
     if not contract:
         raise NotFoundException("Kontrat bulunamadi")
+    assert_same_tenant(contract, current_user, exception_cls=NotFoundException)
 
     if body.amendment_type not in VALID_AMENDMENT_TYPES:
         raise BadRequestException(f"Gecersiz degisiklik tipi: {body.amendment_type}")
@@ -259,6 +272,7 @@ async def activate_contract(
     contract = await db.get(Contract, contract_id)
     if not contract:
         raise NotFoundException("Kontrat bulunamadi")
+    assert_same_tenant(contract, current_user, exception_cls=NotFoundException)
 
     if contract.status != "draft":
         raise BadRequestException("Sadece taslak kontratlar aktiflestirebilir")

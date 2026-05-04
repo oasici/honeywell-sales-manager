@@ -29,6 +29,8 @@ class SubscriptionCreate(BaseModel):
 def _serialize(sub) -> dict:
     return {
         "id": sub.id,
+        # Round-4 R4-DTO-5 — round-trip tenant_id (R4-TEN-7).
+        "tenant_id": getattr(sub, "tenant_id", None),
         "customer_id": sub.customer_id,
         "quote_id": sub.quote_id,
         "name": sub.name,
@@ -52,8 +54,11 @@ async def mrr_dashboard(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Round-4 R4-TEN-7 — dashboard now sums only the caller's tenant
+    # (was a global rollup that leaked competitive intelligence
+    # between tenants).
     service = SubscriptionService(db)
-    return await service.get_mrr_dashboard()
+    return await service.get_mrr_dashboard(current_user)
 
 
 @router.get("/renewals")
@@ -63,7 +68,7 @@ async def upcoming_renewals(
     db: AsyncSession = Depends(get_db),
 ):
     service = SubscriptionService(db)
-    subs = await service.get_upcoming_renewals(days)
+    subs = await service.get_upcoming_renewals(current_user, days=days)
     return {"items": [_serialize(s) for s in subs]}
 
 
@@ -75,7 +80,9 @@ async def list_subscriptions(
     db: AsyncSession = Depends(get_db),
 ):
     service = SubscriptionService(db)
-    subs = await service.list_subscriptions(customer_id=customer_id, status=status)
+    subs = await service.list_subscriptions(
+        current_user, customer_id=customer_id, status=status
+    )
     return {"items": [_serialize(s) for s in subs]}
 
 
@@ -86,7 +93,7 @@ async def create_subscription(
     db: AsyncSession = Depends(get_db),
 ):
     service = SubscriptionService(db)
-    sub = await service.create_subscription(body.model_dump(), current_user.id)
+    sub = await service.create_subscription(body.model_dump(), current_user)
     await db.commit()
     return _serialize(sub)
 
@@ -98,7 +105,7 @@ async def get_subscription(
     db: AsyncSession = Depends(get_db),
 ):
     service = SubscriptionService(db)
-    sub = await service.get_subscription(sub_id)
+    sub = await service.get_subscription(sub_id, current_user)
     if sub is None:
         raise NotFoundException("Abonelik bulunamadi")
     return _serialize(sub)
@@ -111,10 +118,10 @@ async def cancel_subscription(
     db: AsyncSession = Depends(get_db),
 ):
     service = SubscriptionService(db)
-    sub = await service.get_subscription(sub_id)
+    sub = await service.get_subscription(sub_id, current_user)
     if sub is None:
         raise NotFoundException("Abonelik bulunamadi")
-    await service.cancel_subscription(sub_id)
+    await service.cancel_subscription(sub_id, current_user)
     await db.commit()
     return {"status": "cancelled"}
 
@@ -126,7 +133,7 @@ async def renew_subscription(
     db: AsyncSession = Depends(get_db),
 ):
     service = SubscriptionService(db)
-    sub = await service.renew_subscription(sub_id)
+    sub = await service.renew_subscription(sub_id, current_user)
     if sub is None:
         raise NotFoundException("Abonelik bulunamadi")
     await db.commit()

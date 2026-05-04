@@ -15,9 +15,14 @@ class Invoice(Base):
     __table_args__ = (
         Index("ix_invoice_customer", "customer_id"),
         Index("ix_invoice_status", "status"),
+        # Round-4 R4-CLOSE-1 / R4-TEN-5 — tenant boundary on the
+        # billing surface. Backfilled from customers.tenant_id by
+        # alembic 20260504_add_tenant_id_to_billing.
+        Index("ix_invoice_tenant", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     invoice_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     quote_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("quotes.id"), nullable=True)
     contract_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("contracts.id"), nullable=True)

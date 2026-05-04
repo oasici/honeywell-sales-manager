@@ -15,11 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.exceptions import NotFoundException
 from app.models.enums import UserRole
 from app.models.invoice import Invoice
 from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +86,9 @@ def _compute_totals(subtotal: float, tax_rate: float) -> tuple[float, float]:
 def _invoice_to_dict(invoice: Invoice) -> dict:
     return {
         "id": invoice.id,
+        # Round-4 R4-DTO-5 — round-trip tenant_id now that the column
+        # exists (R4-CLOSE-1).
+        "tenant_id": getattr(invoice, "tenant_id", None),
         "invoice_number": invoice.invoice_number,
         "quote_id": invoice.quote_id,
         "contract_id": invoice.contract_id,
@@ -106,13 +111,22 @@ def _invoice_to_dict(invoice: Invoice) -> dict:
     }
 
 
-async def _generate_invoice_number(db: AsyncSession) -> str:
+async def _generate_invoice_number(
+    db: AsyncSession, current_user: User
+) -> str:
+    """Per-tenant invoice numbering.
+
+    Round-4 R4-TEN-5: pre-tenant_id, the counter was global which
+    leaked tenant volume + risked unique-violation across tenants.
+    Now scoped: each tenant has its own ``INV-{year}-NNNN`` sequence.
+    """
     year = datetime.now(timezone.utc).year
-    result = await db.execute(
-        select(func.count(Invoice.id)).where(
-            Invoice.invoice_number.like(f"INV-{year}-%")
-        )
-    )
+    count_query = scoped_for_user(
+        select(func.count(Invoice.id)),
+        current_user,
+        column=Invoice.tenant_id,
+    ).where(Invoice.invoice_number.like(f"INV-{year}-%"))
+    result = await db.execute(count_query)
     count = result.scalar_one()
     return f"INV-{year}-{count + 1:04d}"
 
@@ -140,7 +154,12 @@ async def list_invoices(
         page = 1
     if page_size < 1 or page_size > 200:
         page_size = 20
-    query = select(Invoice).order_by(Invoice.created_at.desc())
+    # Round-4 R4-TEN-5 — every Invoice query now scopes by tenant.
+    query = scoped_for_user(
+        select(Invoice).order_by(Invoice.created_at.desc()),
+        current_user,
+        column=Invoice.tenant_id,
+    )
     if status:
         query = query.where(Invoice.status == status)
     if customer_id:
@@ -174,11 +193,14 @@ async def create_invoice(
     _flag=Depends(_require_invoicing),
 ):
     """Create a new invoice."""
-    invoice_number = await _generate_invoice_number(db)
+    invoice_number = await _generate_invoice_number(db, current_user)
     tax_amount, grand_total = _compute_totals(body.subtotal, body.tax_rate)
 
     invoice = Invoice(
         invoice_number=invoice_number,
+        # Round-4 R4-TEN-5 — stamp the creator's tenant on every new
+        # invoice so subsequent reads scope correctly.
+        tenant_id=getattr(current_user, "tenant_id", None),
         customer_id=body.customer_id,
         quote_id=body.quote_id,
         contract_id=body.contract_id,
@@ -212,6 +234,8 @@ async def get_invoice(
     invoice = result.scalar_one_or_none()
     if not invoice:
         raise HTTPException(status_code=404, detail="Fatura bulunamadi")
+    # Round-4 R4-TEN-5 — cross-tenant access maps to 404.
+    assert_same_tenant(invoice, current_user, exception_cls=NotFoundException)
     return _invoice_to_dict(invoice)
 
 
@@ -228,6 +252,7 @@ async def update_invoice(
     invoice = result.scalar_one_or_none()
     if not invoice:
         raise HTTPException(status_code=404, detail="Fatura bulunamadi")
+    assert_same_tenant(invoice, current_user, exception_cls=NotFoundException)
     if invoice.status != "draft":
         raise HTTPException(status_code=400, detail="Yalnizca taslak faturalar guncellenebilir")
 
@@ -259,6 +284,9 @@ async def update_invoice_status(
     invoice = result.scalar_one_or_none()
     if not invoice:
         raise HTTPException(status_code=404, detail="Fatura bulunamadi")
+    # Round-4 R4-TEN-5 — flipping a foreign tenant's invoice to "paid"
+    # would otherwise trigger the invoice.paid event with their data.
+    assert_same_tenant(invoice, current_user, exception_cls=NotFoundException)
 
     allowed = VALID_TRANSITIONS.get(invoice.status, [])
     if body.status not in allowed:
@@ -320,6 +348,9 @@ async def create_invoice_from_quote(
     quote = quote_result.scalar_one_or_none()
     if not quote:
         raise HTTPException(status_code=404, detail="Teklif bulunamadi")
+    # Round-4 R4-TEN-5 — block converting a foreign tenant's quote
+    # into a tenant-A invoice (item exfiltration vector).
+    assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
 
     if quote.status not in ("accepted", "approved", "sent"):
         raise HTTPException(
@@ -346,10 +377,11 @@ async def create_invoice_from_quote(
     tax_rate = quote.tax_rate
     tax_amount, grand_total = _compute_totals(subtotal, tax_rate)
 
-    invoice_number = await _generate_invoice_number(db)
+    invoice_number = await _generate_invoice_number(db, current_user)
 
     invoice = Invoice(
         invoice_number=invoice_number,
+        tenant_id=getattr(current_user, "tenant_id", None),
         quote_id=quote_id,
         customer_id=quote.customer_id,
         currency=quote.currency,

@@ -14,6 +14,9 @@ class Contract(Base):
     __tablename__ = "contracts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 R4-TEN-6 — tenant boundary on contracts. Backfilled
+    # from customers.tenant_id by alembic 20260504_add_tenant_id_to_billing.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     customer_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=False, index=True,
     )
