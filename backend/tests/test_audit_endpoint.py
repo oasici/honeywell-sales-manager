@@ -280,32 +280,38 @@ async def test_data_export_bundles_user_owned_records(
     client: AsyncClient, manager_headers: dict, db: AsyncSession
 ):
     """The export must surface the user's audit events, owned opps, and
-    customers they created. KVKK Article 15 demands completeness."""
-    target = User(
-        email="subject@test.com",
-        full_name="Data Subject",
-        hashed_password=hash_password("x"),
-        role="sales_rep",
-        is_active=True,
-    )
-    db.add(target)
-    await db.commit()
-    await db.refresh(target)
+    customers they created. KVKK Article 15 demands completeness.
 
-    # Some records tied to this user
-    db.add(
-        AuditLog(
-            user_id=target.id,
-            action="login",
-            entity_type="user",
-            entity_id=target.id,
+    Round-4 v1.9.14 — uses a fresh AsyncSession for the seed writes so
+    the commits don't collide with the connection state left by the
+    ``manager_headers`` fixture chain (asyncpg doesn't allow two
+    in-flight ops on the same connection).
+    """
+    from .conftest import TestSession  # type: ignore
+
+    async with TestSession() as seed:
+        target = User(
+            email="subject@test.com",
+            full_name="Data Subject",
+            hashed_password=hash_password("x"),
+            role="sales_rep",
+            is_active=True,
         )
-    )
-    cust = Customer(name="Made By Subject", email="madeby@test.com", created_by=target.id)
-    db.add(cust)
-    opp = Opportunity(title="Subject's Opp", owner_id=target.id, status="active")
-    db.add(opp)
-    await db.commit()
+        seed.add(target)
+        await seed.commit()
+        await seed.refresh(target)
+
+        seed.add(
+            AuditLog(
+                user_id=target.id,
+                action="login",
+                entity_type="user",
+                entity_id=target.id,
+            )
+        )
+        seed.add(Customer(name="Made By Subject", email="madeby@test.com", created_by=target.id))
+        seed.add(Opportunity(title="Subject's Opp", owner_id=target.id, status="active"))
+        await seed.commit()
 
     r = await client.get(
         f"/api/v1/audit/data-export/{target.id}", headers=manager_headers
@@ -331,34 +337,39 @@ async def test_data_export_writes_audit_row(
 ):
     """The disclosure itself is auditable — KVKK officer must be able to
     see who pulled what and when."""
-    target = User(
-        email="audited-export@test.com",
-        full_name="Subject 2",
-        hashed_password=hash_password("x"),
-        role="sales_rep",
-        is_active=True,
-    )
-    db.add(target)
-    await db.commit()
-    await db.refresh(target)
+    from .conftest import TestSession  # type: ignore
+
+    async with TestSession() as seed:
+        target = User(
+            email="audited-export@test.com",
+            full_name="Subject 2",
+            hashed_password=hash_password("x"),
+            role="sales_rep",
+            is_active=True,
+        )
+        seed.add(target)
+        await seed.commit()
+        await seed.refresh(target)
 
     r = await client.get(
         f"/api/v1/audit/data-export/{target.id}", headers=manager_headers
     )
     assert r.status_code == 200
 
-    # Check audit log was written
+    # Check audit log was written. Use a fresh session so the read
+    # doesn't reuse the loop-bound seed session above.
     from sqlalchemy import select
 
-    audit_rows = (
-        await db.execute(
-            select(AuditLog).where(
-                AuditLog.action == "kvkk_data_export",
-                AuditLog.entity_id == target.id,
+    async with TestSession() as readback:
+        audit_rows = (
+            await readback.execute(
+                select(AuditLog).where(
+                    AuditLog.action == "kvkk_data_export",
+                    AuditLog.entity_id == target.id,
+                )
             )
-        )
-    ).scalars().all()
-    assert len(audit_rows) == 1
-    payload = json.loads(audit_rows[0].changes)
-    assert "exported_at" in payload
-    assert "counts" in payload
+        ).scalars().all()
+        assert len(audit_rows) == 1
+        payload = json.loads(audit_rows[0].changes)
+        assert "exported_at" in payload
+        assert "counts" in payload

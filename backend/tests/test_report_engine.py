@@ -127,6 +127,7 @@ async def test_execute_inline_customer(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="customer",
         columns=["id", "name", "company"],
     )
@@ -145,6 +146,7 @@ async def test_execute_inline_quote(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="quote",
         columns=["id", "quote_number", "status", "grand_total"],
     )
@@ -163,6 +165,7 @@ async def test_execute_inline_opportunity(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="opportunity",
         columns=["id", "title", "stage", "amount"],
     )
@@ -172,6 +175,7 @@ async def test_execute_inline_opportunity(db: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_execute_inline_email(db: AsyncSession):
+    user = await _create_user(db)
     email = EmailRequest(
         message_id="rpt-test-001",
         from_address="test@example.com",
@@ -185,6 +189,7 @@ async def test_execute_inline_email(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="email",
         columns=["id", "from_address", "subject", "status"],
     )
@@ -203,6 +208,7 @@ async def test_filter_eq(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="quote",
         columns=["id", "status"],
         filters=[{"field": "status", "operator": "eq", "value": "draft"}],
@@ -219,6 +225,7 @@ async def test_filter_neq(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="quote",
         columns=["id", "status"],
         filters=[{"field": "status", "operator": "neq", "value": "draft"}],
@@ -235,6 +242,7 @@ async def test_filter_gt(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="quote",
         columns=["id", "grand_total"],
         filters=[{"field": "grand_total", "operator": "gt", "value": 3000}],
@@ -251,6 +259,7 @@ async def test_filter_contains(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="customer",
         columns=["id", "company"],
         filters=[{"field": "company", "operator": "contains", "value": "Sanayi"}],
@@ -267,6 +276,7 @@ async def test_filter_lte(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="quote",
         columns=["id", "valid_days"],
         filters=[{"field": "valid_days", "operator": "lte", "value": 20}],
@@ -281,10 +291,12 @@ async def test_filter_lte(db: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_invalid_column_rejected(db: AsyncSession):
+    user = await _create_user(db)
     engine = ReportEngine(db)
 
     with pytest.raises(BadRequestException):
         await engine.execute_inline(
+            current_user=user,
             entity_type="customer",
             columns=["id", "hashed_password"],
         )
@@ -292,10 +304,12 @@ async def test_invalid_column_rejected(db: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_invalid_column_in_filter_rejected(db: AsyncSession):
+    user = await _create_user(db)
     engine = ReportEngine(db)
 
     with pytest.raises(BadRequestException):
         await engine.execute_inline(
+            current_user=user,
             entity_type="customer",
             columns=["id", "name"],
             filters=[{"field": "hashed_password", "operator": "eq", "value": "secret"}],
@@ -304,10 +318,12 @@ async def test_invalid_column_in_filter_rejected(db: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_invalid_entity_type_rejected(db: AsyncSession):
+    user = await _create_user(db)
     engine = ReportEngine(db)
 
     with pytest.raises(BadRequestException):
         await engine.execute_inline(
+            current_user=user,
             entity_type="user",
             columns=["id", "email"],
         )
@@ -335,6 +351,7 @@ async def test_group_by_returns_chart_data(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="quote",
         columns=["id"],
         group_by="status",
@@ -356,6 +373,7 @@ async def test_sort_by_column(db: AsyncSession):
 
     engine = ReportEngine(db)
     result = await engine.execute_inline(
+        current_user=user,
         entity_type="quote",
         columns=["id", "grand_total"],
         sort_by="grand_total",
@@ -376,7 +394,7 @@ async def test_execute_saved_template(db: AsyncSession):
     template = await _create_template(db, user.id)
 
     engine = ReportEngine(db)
-    result = await engine.execute_report(template.id)
+    result = await engine.execute_report(template.id, current_user=user)
 
     assert result["total"] == 3
     assert result["columns"] == ["id", "name", "company"]
@@ -384,10 +402,11 @@ async def test_execute_saved_template(db: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_execute_nonexistent_template(db: AsyncSession):
+    user = await _create_user(db)
     engine = ReportEngine(db)
 
     with pytest.raises(NotFoundException):
-        await engine.execute_report(99999)
+        await engine.execute_report(99999, current_user=user)
 
 
 # ── CSV Export ──
@@ -400,7 +419,7 @@ async def test_csv_export(db: AsyncSession):
     template = await _create_template(db, user.id)
 
     engine = ReportEngine(db)
-    csv_content = await engine.export_csv(template.id)
+    csv_content = await engine.export_csv(template.id, current_user=user)
 
     lines = csv_content.strip().split("\n")
     assert len(lines) == 4  # header + 3 data rows
@@ -422,7 +441,7 @@ async def test_csv_export_with_filters(db: AsyncSession):
     )
 
     engine = ReportEngine(db)
-    csv_content = await engine.export_csv(template.id)
+    csv_content = await engine.export_csv(template.id, current_user=user)
 
     lines = csv_content.strip().split("\n")
     assert len(lines) == 2  # header + 1 matching row
@@ -434,10 +453,12 @@ async def test_csv_export_with_filters(db: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_invalid_filter_operator_rejected(db: AsyncSession):
+    user = await _create_user(db)
     engine = ReportEngine(db)
 
     with pytest.raises(BadRequestException):
         await engine.execute_inline(
+            current_user=user,
             entity_type="customer",
             columns=["id", "name"],
             filters=[{"field": "name", "operator": "regex", "value": ".*"}],
@@ -449,10 +470,12 @@ async def test_invalid_filter_operator_rejected(db: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_filter_missing_field_rejected(db: AsyncSession):
+    user = await _create_user(db)
     engine = ReportEngine(db)
 
     with pytest.raises(BadRequestException):
         await engine.execute_inline(
+            current_user=user,
             entity_type="customer",
             columns=["id", "name"],
             filters=[{"operator": "eq", "value": "test"}],

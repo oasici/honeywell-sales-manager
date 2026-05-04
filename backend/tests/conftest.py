@@ -35,6 +35,16 @@ for _flag in (
     "FEATURE_SESSION_MANAGEMENT",
 ):
     os.environ[_flag] = "false"
+# Round-4 R4-FLAG-3 gated /compliance/* behind FEATURE_BREACH_WORKFLOW
+# and /invoices/* behind FEATURE_INVOICING. The compliance + invoice
+# tests need the modules turned on so the routes don't 404.
+for _flag in (
+    "FEATURE_BREACH_WORKFLOW",
+    "FEATURE_INVOICING",
+    "FEATURE_REV_REC",
+    "FEATURE_INVOICE_PAID_EVENT",
+):
+    os.environ[_flag] = "true"
 
 from app.core.database import Base, get_db
 from app.core.security import hash_password
@@ -64,6 +74,35 @@ TestSession = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=F
 async def _dispose_engine_after_tests():
     yield
     await engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limit_buckets():
+    """Clear all in-memory rate-limit buckets between tests.
+
+    Round-4 v1.9.10 added several module-level sliding-window buckets
+    (login, login-username, AI, upload, bulk-action, KVKK export). The
+    state accumulates across tests in a single pytest session, so the
+    Nth test in a class would otherwise hit 429 once N exceeds the
+    per-window count. Clearing the buckets is cheap and makes test
+    runs deterministic.
+    """
+    from app.core import rate_limit as _rl
+
+    for name in (
+        "_login_attempts",
+        "_login_username_attempts",
+        "_ai_attempts",
+        "_upload_attempts",
+        "_tenant_ai_attempts",
+        "_tenant_upload_attempts",
+        "_bulk_attempts",
+        "_kvkk_export_attempts",
+    ):
+        bucket = getattr(_rl, name, None)
+        if bucket is not None:
+            bucket.clear()
+    yield
 
 
 @pytest_asyncio.fixture(autouse=True)

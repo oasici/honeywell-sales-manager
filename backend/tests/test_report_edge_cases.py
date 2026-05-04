@@ -17,10 +17,9 @@ from app.services.report_engine import (
 )
 
 
-@pytest_asyncio.fixture
-async def report_user(db: AsyncSession) -> User:
+async def _create_user(db: AsyncSession) -> User:
     user = User(
-        email="report_user@test.com",
+        email=f"report_edge_{id(db)}@test.com",
         full_name="Report User",
         hashed_password=hash_password("pass123"),
         role="sales_manager",
@@ -32,13 +31,17 @@ async def report_user(db: AsyncSession) -> User:
     return user
 
 
+
+
 class TestEmptyResult:
     """Queries with impossible filters should return empty rows, not errors."""
 
     @pytest.mark.asyncio
     async def test_empty_result_returns_no_rows(self, db: AsyncSession):
+        user = await _create_user(db)
         engine = ReportEngine(db)
         result = await engine.execute_inline(
+            current_user=user,
             entity_type="customer",
             columns=["id", "name"],
             filters=[{"field": "name", "operator": "eq", "value": "NONEXISTENT_CUSTOMER_XYZ"}],
@@ -54,10 +57,12 @@ class TestMaxLimitEnforcement:
 
     @pytest.mark.asyncio
     async def test_limit_capped_at_max(self, db: AsyncSession):
+        user = await _create_user(db)
         engine = ReportEngine(db)
 
         # This should not raise; limit should be silently capped
         result = await engine.execute_inline(
+            current_user=user,
             entity_type="customer",
             columns=["id", "name"],
             limit=10000,
@@ -77,20 +82,24 @@ class TestInvalidColumnRejection:
 
     @pytest.mark.asyncio
     async def test_rejects_hashed_password_column(self, db: AsyncSession):
+        user = await _create_user(db)
         engine = ReportEngine(db)
 
         with pytest.raises(BadRequestException, match="gecersiz sutunlar"):
             await engine.execute_inline(
+                current_user=user,
                 entity_type="customer",
                 columns=["id", "hashed_password"],
             )
 
     @pytest.mark.asyncio
     async def test_rejects_arbitrary_column(self, db: AsyncSession):
+        user = await _create_user(db)
         engine = ReportEngine(db)
 
         with pytest.raises(BadRequestException, match="gecersiz sutunlar"):
             await engine.execute_inline(
+                current_user=user,
                 entity_type="quote",
                 columns=["id", "secret_field"],
             )
@@ -101,10 +110,12 @@ class TestInvalidEntityType:
 
     @pytest.mark.asyncio
     async def test_rejects_invalid_entity_type(self, db: AsyncSession):
+        user = await _create_user(db)
         engine = ReportEngine(db)
 
         with pytest.raises(BadRequestException, match="Gecersiz varlik tipi"):
             await engine.execute_inline(
+                current_user=user,
                 entity_type="invalid",
                 columns=["id"],
             )
@@ -115,12 +126,14 @@ class TestReDoSProtection:
 
     @pytest.mark.asyncio
     async def test_long_filter_value_does_not_cause_error(self, db: AsyncSession):
+        user = await _create_user(db)
         engine = ReportEngine(db)
         long_value = "A" * 300
 
         # The contains operator truncates to 200 chars internally.
         # This should not raise or hang.
         result = await engine.execute_inline(
+            current_user=user,
             entity_type="customer",
             columns=["id", "name"],
             filters=[{"field": "name", "operator": "contains", "value": long_value}],
@@ -134,14 +147,15 @@ class TestCrossEntityJoin:
 
     @pytest.mark.asyncio
     async def test_quote_with_customer_name_join(
-        self, db: AsyncSession, report_user: User,
+        self, db: AsyncSession,
     ):
+        user = await _create_user(db)
         customer = Customer(
             name="Join Test Customer",
             company="JoinCo",
             email="join@test.com",
             phone="555-0000",
-            created_by=report_user.id,
+            created_by=user.id,
         )
         db.add(customer)
         await db.flush()
@@ -149,7 +163,7 @@ class TestCrossEntityJoin:
         quote = Quote(
             quote_number="JOIN-001",
             customer_id=customer.id,
-            created_by=report_user.id,
+            created_by=user.id,
             status="draft",
             currency="TRY",
         )
@@ -158,6 +172,7 @@ class TestCrossEntityJoin:
 
         engine = ReportEngine(db)
         result = await engine.execute_inline(
+            current_user=user,
             entity_type="quote",
             columns=["id", "quote_number", "customer.name"],
         )
@@ -176,10 +191,12 @@ class TestInvalidJoinColumn:
 
     @pytest.mark.asyncio
     async def test_rejects_invalid_join_column(self, db: AsyncSession):
+        user = await _create_user(db)
         engine = ReportEngine(db)
 
         with pytest.raises(BadRequestException, match="gecersiz sutun"):
             await engine.execute_inline(
+                current_user=user,
                 entity_type="quote",
                 columns=["id", "customer.hashed_password"],
             )
@@ -200,10 +217,12 @@ class TestInvalidFilterOperator:
 
     @pytest.mark.asyncio
     async def test_rejects_invalid_operator(self, db: AsyncSession):
+        user = await _create_user(db)
         engine = ReportEngine(db)
 
         with pytest.raises(BadRequestException, match="Gecersiz filtre operatoru"):
             await engine.execute_inline(
+                current_user=user,
                 entity_type="customer",
                 columns=["id", "name"],
                 filters=[{"field": "name", "operator": "regex", "value": ".*"}],

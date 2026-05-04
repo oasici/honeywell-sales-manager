@@ -281,22 +281,31 @@ async def test_retention_report(
     db: AsyncSession,
 ):
     """Retention report: lists overdue customers."""
-    # Create customer with expired retention
-    expired_customer = Customer(
-        name="Expired User",
-        email="expired@example.com",
-        data_retention_until=datetime.now(timezone.utc) - timedelta(days=1),
-    )
-    db.add(expired_customer)
+    # Use a fresh AsyncSession for the seed writes so the commit
+    # doesn't collide with the connection state left by the
+    # ``auth_headers`` fixture chain (which has already done its own
+    # commit on the shared ``db`` session). Round-4 v1.9.14 — earlier
+    # the FEATURE_BREACH_WORKFLOW gate masked this with a 404; once
+    # the gate flipped to true the underlying async-session reuse
+    # bug surfaced.
+    from .conftest import TestSession  # type: ignore
 
-    # Create customer with future retention (should NOT appear)
-    active_customer = Customer(
-        name="Active User",
-        email="active@example.com",
-        data_retention_until=datetime.now(timezone.utc) + timedelta(days=365),
-    )
-    db.add(active_customer)
-    await db.commit()
+    async with TestSession() as seed_session:
+        seed_session.add(
+            Customer(
+                name="Expired User",
+                email="expired@example.com",
+                data_retention_until=datetime.now(timezone.utc) - timedelta(days=1),
+            )
+        )
+        seed_session.add(
+            Customer(
+                name="Active User",
+                email="active@example.com",
+                data_retention_until=datetime.now(timezone.utc) + timedelta(days=365),
+            )
+        )
+        await seed_session.commit()
 
     response = await client.get(
         "/api/v1/compliance/retention-report",
