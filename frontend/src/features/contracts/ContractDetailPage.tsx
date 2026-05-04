@@ -120,7 +120,7 @@ export default function ContractDetailPage() {
           <Button
             onClick={() => activateMutation.mutate()}
             loading={activateMutation.isPending}
-            className="!bg-green-600 !text-white hover:!bg-green-700"
+            className="bg-green-600! text-white! hover:bg-green-700!"
           >
             {t('contracts.activate')}
           </Button>

@@ -379,7 +379,7 @@ export default function QuoteEditorPage() {
             variant="secondary"
             loading={approveMutation.isPending}
             onClick={() => approveMutation.mutate()}
-            className="!bg-green-600 !text-white hover:!bg-green-700"
+            className="bg-green-600! text-white! hover:bg-green-700!"
           >
             {t('quotes.editor_approve_label')}
           </Button>
@@ -389,7 +389,7 @@ export default function QuoteEditorPage() {
             variant="secondary"
             loading={sendMutation.isPending}
             onClick={() => sendMutation.mutate()}
-            className="!bg-blue-600 !text-white hover:!bg-blue-700"
+            className="bg-blue-600! text-white! hover:bg-blue-700!"
           >
             {t('quotes.editor_send_label')}
           </Button>
@@ -544,7 +544,7 @@ export default function QuoteEditorPage() {
                       setPartSelectedIndex(-1);
                     }
                   }}
-                  className="!w-56"
+                  className="w-56!"
                 />
                 {showPartDropdown && partResults?.items && partResults.items.length > 0 && (
                   <div className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
