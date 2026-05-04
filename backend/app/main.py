@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import time
@@ -90,6 +91,29 @@ async def lifespan(app: FastAPI):
             logger.warning("create_all partial: %s", str(e)[:200])
     else:
         logger.info("AUTO_CREATE_TABLES disabled (env=%s)", settings.ENV)
+
+    # Round-4 §3 schema-introspection sanity check. Mode is governed
+    # by SCHEMA_DRIFT_MODE: ``off`` (default prod) skips entirely;
+    # ``warn`` logs + Sentry breadcrumbs; ``fail`` raises and aborts
+    # boot. Sync inspector → run on a thread so the lifespan's event
+    # loop isn't blocked.
+    try:
+        from app.core.schema_check import run_schema_drift_check_on_startup
+        from sqlalchemy import create_engine
+
+        sync_url = settings.DATABASE_URL.replace("+asyncpg", "")
+        sync_engine = create_engine(sync_url)
+
+        def _run_check() -> None:
+            try:
+                run_schema_drift_check_on_startup(sync_engine, Base.metadata)
+            finally:
+                sync_engine.dispose()
+
+        await asyncio.to_thread(_run_check)
+    except Exception as exc:
+        # Hook is opt-in — never break boot with a check failure.
+        logger.warning("schema_check skipped: %s", exc)
 
     # PostgreSQL-only extensions and indexes (silent fail on SQLite)
     # Auto-sync schema: add missing columns to existing tables

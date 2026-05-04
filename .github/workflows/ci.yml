@@ -56,6 +56,20 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://honeywell:honeywell@127.0.0.1:5432/honeywell_sales
         run: bash scripts/db-schema-audit.sh
+      - name: Schema-introspection drift check (R4 §3)
+        # Bootstrap a clean DB from migrations only (no metadata.create_all)
+        # then run schema_check in fail mode. Forces every PR adding a
+        # new column to also add a migration. Catches the recurring
+        # R4-DB-* class of drift before merge instead of after deploy.
+        env:
+          DATABASE_URL: postgresql+asyncpg://honeywell:honeywell@127.0.0.1:5432/honeywell_sales
+          SCHEMA_DRIFT_MODE: fail
+        working-directory: backend
+        run: |
+          PGPASSWORD=honeywell psql -h 127.0.0.1 -U honeywell -d honeywell_sales \
+            -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          python -m alembic upgrade head
+          python -m app.core.schema_check
 
   backend-test:
     runs-on: ubuntu-latest
