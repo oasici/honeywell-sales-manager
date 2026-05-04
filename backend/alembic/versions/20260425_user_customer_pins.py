@@ -7,6 +7,7 @@ Create Date: 2026-04-25
 """
 
 from alembic import op
+from app.core.migration_helpers import create_table_if_absent
 import sqlalchemy as sa
 
 
@@ -17,7 +18,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
+    create_table_if_absent(
         "user_customer_pins",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("user_id", sa.Integer(), nullable=False),
@@ -27,7 +28,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["customer_id"], ["customers.id"], ondelete="CASCADE"),
         sa.UniqueConstraint("user_id", "customer_id", name="uq_user_customer_pins_user_customer"),
     )
-    op.create_index("ix_user_customer_pins_user_id", "user_customer_pins", ["user_id"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_user_customer_pins_user_id ON user_customer_pins (user_id)")
 
 
 def downgrade() -> None:

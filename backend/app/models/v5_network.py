@@ -14,6 +14,9 @@ class NetworkPattern(Base):
     __tablename__ = "network_patterns"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 v1.9.14 — column was added by migration but the
+    # model file never declared it; schema_check caught the drift.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     segment_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     pattern_type: Mapped[str] = mapped_column(String(40), nullable=False)
     pattern_json: Mapped[str] = mapped_column(Text, default="{}")
@@ -31,6 +34,9 @@ class NetworkAnomaly(Base):
     __tablename__ = "network_anomalies"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 v1.9.14 — column was added by migration but the
+    # model file never declared it; schema_check caught the drift.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     segment_key: Mapped[str] = mapped_column(String(80), nullable=False)
     metric_name: Mapped[str] = mapped_column(String(60), nullable=False)
     expected_value: Mapped[float] = mapped_column(Float, nullable=False)

@@ -18,6 +18,9 @@ class NetworkSegment(Base):
     __tablename__ = "network_segments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 v1.9.14 — column was added by migration but the
+    # model file never declared it; schema_check caught the drift.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     segment_key: Mapped[str] = mapped_column(String(80), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     definition_json: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -29,6 +32,9 @@ class NetworkSegment(Base):
 class SegmentBenchmarksDaily(Base):
     __tablename__ = "segment_benchmarks_daily"
 
+    # Round-4 v1.9.14 — column was added by migration but the model
+    # file never declared it; schema_check caught the drift.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     segment_key: Mapped[str] = mapped_column(String(80), primary_key=True)
     snapshot_date: Mapped[date] = mapped_column(Date, primary_key=True)
 

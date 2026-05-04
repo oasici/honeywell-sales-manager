@@ -62,17 +62,13 @@ jobs:
         # new column to also add a migration. Catches the recurring
         # R4-DB-* class of drift before merge instead of after deploy.
         #
-        # NOTE — currently advisory (continue-on-error). The legacy
-        # migration chain (e.g. 20260413_add_customer_parent_id) issues
-        # ``op.add_column("customers", ...)`` assuming the table was
-        # already created by ``Base.metadata.create_all()`` at first
-        # boot. A pure "alembic upgrade head from empty schema" run
-        # therefore aborts on the first ALTER. The proper fix is a
-        # bootstrap migration that creates the legacy tables before
-        # the early ALTERs run — that's a dedicated migration-
-        # consolidation sprint. Until then, we report drift but don't
-        # block merges so the rest of the CI gate stays useful.
-        continue-on-error: true
+        # v1.9.14 made this gate load-bearing again. The migration-
+        # consolidation sprint added a bootstrap migration
+        # (``20260101_bootstrap_legacy``) that creates every legacy
+        # table the model declares, then patched all subsequent
+        # ALTER/INDEX/CONSTRAINT calls to be IF NOT EXISTS-safe. Now
+        # ``alembic upgrade head`` runs cleanly from an empty schema
+        # and schema_check exits 0.
         env:
           DATABASE_URL: postgresql+asyncpg://honeywell:honeywell@127.0.0.1:5432/honeywell_sales
           SCHEMA_DRIFT_MODE: fail

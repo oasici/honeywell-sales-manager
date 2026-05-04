@@ -93,12 +93,28 @@ def _normalise_type(type_repr: str) -> str:
     ``VARCHAR(20)``. We canonicalise both sides to a small enum of
     PG types so the diff doesn't go off on cosmetic differences.
     """
+    import re
+
     s = str(type_repr).upper().strip()
+    # Strip parameter blocks that don't affect schema equivalence.
+    # PG inspector returns ``DOUBLE_PRECISION(PRECISION=53)`` and
+    # ``JSON(ASTEXT_TYPE=TEXT())``; the model just declares ``Float()``
+    # / ``JSON()`` — the precision/serialisation metadata is implicit
+    # on the model side and explicit on the DB side. Strip these so
+    # the comparison can still detect genuine type drift (FLOAT vs
+    # INTEGER) without spurious noise.
+    s = re.sub(r"\(\s*PRECISION\s*=\s*\d+\s*\)", "", s)
+    # JSON columns: PG inspector returns ``JSON(ASTEXT_TYPE=TEXT())``
+    # with a nested paren. Match the OUTER ``(...)`` block when it
+    # starts with ``ASTEXT_TYPE=`` so we strip the whole metadata
+    # blob rather than leaving an unbalanced trailing ``)``.
+    s = re.sub(r"\(\s*ASTEXT_TYPE\s*=.*?\)\s*\)", "", s)
     # Common synonyms.
     replacements = (
         ("VARCHAR", "STRING"),
         ("CHARACTER VARYING", "STRING"),
-        ("DOUBLE PRECISION", "FLOAT"),
+        ("DOUBLE_PRECISION", "FLOAT"),  # underscore form (inspector repr)
+        ("DOUBLE PRECISION", "FLOAT"),  # space form (compiled DDL)
         ("REAL", "FLOAT"),
         ("BIGSERIAL", "BIGINT"),
         ("SERIAL", "INTEGER"),
@@ -107,7 +123,10 @@ def _normalise_type(type_repr: str) -> str:
         ("JSONB", "JSON"),
         ("TIMESTAMP WITH TIME ZONE", "TIMESTAMPTZ"),
         ("TIMESTAMP WITHOUT TIME ZONE", "TIMESTAMP"),
+        ("TIMESTAMP(TIMEZONE=TRUE)", "TIMESTAMPTZ"),
+        ("TIMESTAMP(TIMEZONE=FALSE)", "TIMESTAMP"),
         ("DATETIME(TIMEZONE=TRUE)", "TIMESTAMPTZ"),
+        ("DATETIME(TIMEZONE=FALSE)", "TIMESTAMP"),
     )
     for old, new in replacements:
         s = s.replace(old, new)
@@ -202,8 +221,11 @@ def check_schema(
             db_col = db_by_name.get(name)
             if db_col is None:
                 continue
+            # Use repr() on both sides — str(DateTime(timezone=True)) is
+            # lossy ('TIMESTAMP'), so the bootstrap-vs-model comparison
+            # would otherwise spuriously flag every TIMESTAMPTZ column.
             mt = _normalise_type(repr(model_col.type))
-            dt = _normalise_type(str(db_col["type"]))
+            dt = _normalise_type(repr(db_col["type"]))
             # Allow String → STRING with parameter mismatch only when one side
             # has no length (model declares Text vs DB declares STRING etc).
             if mt != dt and not (mt.startswith("STRING") and dt.startswith("STRING")):
@@ -281,23 +303,35 @@ def run_schema_drift_check_on_startup(engine: Engine, base_metadata) -> None:
 
 
 def _cli() -> int:
-    """``python -m app.core.schema_check`` — exits 0 clean / 1 drift."""
+    """``python -m app.core.schema_check`` — exits 0 clean / 1 drift.
+
+    Uses an async engine + ``run_sync`` so the project's only PG
+    driver (asyncpg) is enough — no extra psycopg dep just for the
+    CLI / CI guard.
+    """
     import asyncio
-    from sqlalchemy import create_engine
+
+    from sqlalchemy.ext.asyncio import create_async_engine
 
     from app.core.config import settings
     from app.core.database import Base
 
-    # Use a sync engine for the CLI — the inspector API is sync-only.
-    db_url = settings.SQLALCHEMY_DATABASE_URL_SYNC if hasattr(
-        settings, "SQLALCHEMY_DATABASE_URL_SYNC"
-    ) else settings.DATABASE_URL.replace("+asyncpg", "")
-
     # Importing models triggers metadata registration as a side effect.
     from app import models  # noqa: F401
 
-    engine = create_engine(db_url)
-    report = check_schema(engine, Base.metadata)
+    db_url = settings.DATABASE_URL or ""
+    if db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    engine = create_async_engine(db_url)
+
+    async def _run() -> "SchemaDriftReport":
+        async with engine.begin() as conn:
+            return await conn.run_sync(
+                lambda sync_conn: check_schema(sync_conn, Base.metadata)
+            )
+
+    report = asyncio.run(_run())
     if report.is_clean:
         print("schema_check: clean")
         return 0

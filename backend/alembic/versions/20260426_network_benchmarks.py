@@ -6,6 +6,7 @@ Create Date: 2026-04-26
 """
 
 from alembic import op
+from app.core.migration_helpers import create_table_if_absent
 import sqlalchemy as sa
 
 
@@ -16,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
+    create_table_if_absent(
         "network_segments",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("segment_key", sa.String(length=80), nullable=False),
@@ -24,9 +25,9 @@ def upgrade() -> None:
         sa.Column("definition_json", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index("ix_network_segments_segment_key", "network_segments", ["segment_key"], unique=True)
+    op.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_network_segments_segment_key ON network_segments (segment_key)")
 
-    op.create_table(
+    create_table_if_absent(
         "segment_benchmarks_daily",
         sa.Column("segment_key", sa.String(length=80), nullable=False),
         sa.Column("snapshot_date", sa.Date(), nullable=False),
@@ -39,7 +40,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("segment_key", "snapshot_date"),
     )
-    op.create_index("ix_sbd_snapshot_date", "segment_benchmarks_daily", ["snapshot_date"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_sbd_snapshot_date ON segment_benchmarks_daily (snapshot_date)")
 
 
 def downgrade() -> None:

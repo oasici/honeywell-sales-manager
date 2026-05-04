@@ -6,6 +6,7 @@ Create Date: 2026-04-25
 """
 
 from alembic import op
+from app.core.migration_helpers import create_table_if_absent
 import sqlalchemy as sa
 
 
@@ -17,7 +18,7 @@ depends_on = None
 
 def upgrade() -> None:
     # ── opportunity_features_daily ──────────────────────
-    op.create_table(
+    create_table_if_absent(
         "opportunity_features_daily",
         sa.Column("opportunity_id", sa.Integer(), nullable=False),
         sa.Column("snapshot_date", sa.Date(), nullable=False),
@@ -40,12 +41,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["opportunity_id"], ["opportunities.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("opportunity_id", "snapshot_date"),
     )
-    op.create_index(
-        "ix_ofd_snapshot_date", "opportunity_features_daily", ["snapshot_date"]
-    )
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ofd_snapshot_date ON opportunity_features_daily (snapshot_date)")
 
     # ── account_features_daily (account_id == customers.id) ──
-    op.create_table(
+    create_table_if_absent(
         "account_features_daily",
         sa.Column("account_id", sa.Integer(), nullable=False),
         sa.Column("snapshot_date", sa.Date(), nullable=False),
@@ -57,10 +56,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["account_id"], ["customers.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("account_id", "snapshot_date"),
     )
-    op.create_index("ix_afd_snapshot_date", "account_features_daily", ["snapshot_date"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_afd_snapshot_date ON account_features_daily (snapshot_date)")
 
     # ── rep_features_daily ──────────────────────────────
-    op.create_table(
+    create_table_if_absent(
         "rep_features_daily",
         sa.Column("rep_id", sa.Integer(), nullable=False),
         sa.Column("snapshot_date", sa.Date(), nullable=False),
@@ -71,7 +70,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["rep_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("rep_id", "snapshot_date"),
     )
-    op.create_index("ix_rfd_snapshot_date", "rep_features_daily", ["snapshot_date"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_rfd_snapshot_date ON rep_features_daily (snapshot_date)")
 
 
 def downgrade() -> None:

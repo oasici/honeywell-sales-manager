@@ -3,10 +3,13 @@
 Revision ID: 20260425_v4_momentum_fields
 Revises: 20260425_activity_logs_source_ref
 Create Date: 2026-04-25
+
+Round-4 v1.9.14 — converted from ``op.batch_alter_table(...)`` to
+raw SQL with IF NOT EXISTS guards so the migration is a no-op on
+the bootstrapped schema.
 """
 
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = "20260425_v4_momentum_fields"
@@ -16,13 +19,22 @@ depends_on = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("opportunity_features_daily") as batch:
-        batch.add_column(sa.Column("momentum_band", sa.String(length=20), nullable=True))
-        batch.add_column(sa.Column("momentum_drivers_json", sa.Text(), nullable=True))
+    op.execute(
+        "ALTER TABLE opportunity_features_daily "
+        "ADD COLUMN IF NOT EXISTS momentum_band VARCHAR(20)"
+    )
+    op.execute(
+        "ALTER TABLE opportunity_features_daily "
+        "ADD COLUMN IF NOT EXISTS momentum_drivers_json TEXT"
+    )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("opportunity_features_daily") as batch:
-        batch.drop_column("momentum_drivers_json")
-        batch.drop_column("momentum_band")
-
+    op.execute(
+        "ALTER TABLE opportunity_features_daily "
+        "DROP COLUMN IF EXISTS momentum_drivers_json"
+    )
+    op.execute(
+        "ALTER TABLE opportunity_features_daily "
+        "DROP COLUMN IF EXISTS momentum_band"
+    )

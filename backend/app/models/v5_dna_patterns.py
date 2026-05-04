@@ -16,6 +16,9 @@ class DnaPattern(Base):
     __tablename__ = "dna_patterns"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 v1.9.14 — column was added by migration but the
+    # model file never declared it; schema_check caught the drift.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     segment_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     pattern_name: Mapped[str] = mapped_column(String(200), nullable=False)
     pattern_type: Mapped[str] = mapped_column(String(40), nullable=False)
@@ -43,6 +46,9 @@ class DnaRecommendation(Base):
     __tablename__ = "dna_recommendations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 v1.9.14 — column was added by migration but the
+    # model file never declared it; schema_check caught the drift.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     segment_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     stage_scope: Mapped[str | None] = mapped_column(String(40), nullable=True)
     recommendation_json: Mapped[str] = mapped_column(Text, nullable=False)

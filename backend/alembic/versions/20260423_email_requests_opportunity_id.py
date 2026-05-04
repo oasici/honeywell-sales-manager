@@ -4,10 +4,12 @@ Revision ID: 20260423_email_opportunity
 Revises: 20260422_opportunity_foundation
 Create Date: 2026-04-23
 
+Round-4 v1.9.14 — converted from ``op.batch_alter_table(...)`` to
+raw SQL with IF NOT EXISTS / DO $$ guards so the migration is a
+no-op on the bootstrapped schema.
 """
 
 from alembic import op
-import sqlalchemy as sa
 
 
 revision = "20260423_email_opportunity"
@@ -17,20 +19,33 @@ depends_on = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("email_requests") as batch:
-        batch.add_column(sa.Column("opportunity_id", sa.Integer(), nullable=True))
-        batch.create_index("ix_email_requests_opportunity_id", ["opportunity_id"])
-        batch.create_foreign_key(
-            "fk_email_requests_opportunity_id",
-            "opportunities",
-            ["opportunity_id"],
-            ["id"],
-            ondelete="SET NULL",
-        )
+    op.execute(
+        "ALTER TABLE email_requests "
+        "ADD COLUMN IF NOT EXISTS opportunity_id INTEGER"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_email_requests_opportunity_id "
+        "ON email_requests (opportunity_id)"
+    )
+    op.execute(
+        """
+        DO $$ BEGIN
+            ALTER TABLE email_requests
+                ADD CONSTRAINT fk_email_requests_opportunity_id
+                FOREIGN KEY (opportunity_id) REFERENCES opportunities(id)
+                ON DELETE SET NULL;
+        EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
+        END $$;
+        """
+    )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("email_requests") as batch:
-        batch.drop_constraint("fk_email_requests_opportunity_id", type_="foreignkey")
-        batch.drop_index("ix_email_requests_opportunity_id")
-        batch.drop_column("opportunity_id")
+    op.execute(
+        "ALTER TABLE email_requests "
+        "DROP CONSTRAINT IF EXISTS fk_email_requests_opportunity_id"
+    )
+    op.execute("DROP INDEX IF EXISTS ix_email_requests_opportunity_id")
+    op.execute(
+        "ALTER TABLE email_requests DROP COLUMN IF EXISTS opportunity_id"
+    )

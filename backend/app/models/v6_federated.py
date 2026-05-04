@@ -14,6 +14,9 @@ class FederatedBenchmark(Base):
     __tablename__ = "federated_benchmarks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 v1.9.14 — column was added by migration but the
+    # model file never declared it; schema_check caught the drift.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     benchmark_key: Mapped[str] = mapped_column(String(120), nullable=False)
     snapshot_date: Mapped[date] = mapped_column(Date, nullable=False)
     metric_name: Mapped[str] = mapped_column(String(60), nullable=False)

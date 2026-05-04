@@ -38,21 +38,21 @@ def upgrade() -> None:
     # customers(parent_id), customers(territory_id)
     if "customers" in insp.get_table_names(schema="public"):
         if not has_index("customers", ["parent_id"]):
-            op.create_index("ix_customers_parent_id", "customers", ["parent_id"])
+            op.execute("CREATE INDEX IF NOT EXISTS ix_customers_parent_id ON customers (parent_id)")
         if not has_index("customers", ["territory_id"]):
-            op.create_index("ix_customers_territory_id", "customers", ["territory_id"])
+            op.execute("CREATE INDEX IF NOT EXISTS ix_customers_territory_id ON customers (territory_id)")
 
     # opportunities(pipeline_id), opportunities(territory_id)
     if "opportunities" in insp.get_table_names(schema="public"):
         if not has_index("opportunities", ["pipeline_id"]):
-            op.create_index("ix_opportunities_pipeline_id", "opportunities", ["pipeline_id"])
+            op.execute("CREATE INDEX IF NOT EXISTS ix_opportunities_pipeline_id ON opportunities (pipeline_id)")
         if not has_index("opportunities", ["territory_id"]):
-            op.create_index("ix_opportunities_territory_id", "opportunities", ["territory_id"])
+            op.execute("CREATE INDEX IF NOT EXISTS ix_opportunities_territory_id ON opportunities (territory_id)")
 
     # sequence_enrollments(lead_id)
     if "sequence_enrollments" in insp.get_table_names(schema="public"):
         if not has_index("sequence_enrollments", ["lead_id"]):
-            op.create_index("ix_sequence_enrollments_lead_id", "sequence_enrollments", ["lead_id"])
+            op.execute("CREATE INDEX IF NOT EXISTS ix_sequence_enrollments_lead_id ON sequence_enrollments (lead_id)")
 
 
 def downgrade() -> None:

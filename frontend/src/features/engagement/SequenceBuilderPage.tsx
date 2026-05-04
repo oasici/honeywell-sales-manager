@@ -50,33 +50,63 @@ interface TemplatePreset {
 const TEMPLATE_PRESETS: Record<string, TemplatePreset> = {
   'lead-welcome': {
     name: 'Yeni Lead Karşılama',
-    description:
-      '5 adımda yeni leadi tanıt, ihtiyacını öğren ve demo gününe yönlendir.',
+    description: '5 adımda yeni leadi tanıt, ihtiyacını öğren ve demo gününe yönlendir.',
     steps: [
-      { step: 1, action: 'email', delay_days: 0,
-        template: 'Merhaba {first_name}, aramıza hoş geldin!' },
-      { step: 2, action: 'task', delay_days: 1,
-        template: 'İlk arama: müşteri ihtiyaçlarını dinle ve uygunluğu doğrula.' },
-      { step: 3, action: 'email', delay_days: 3,
-        template: 'Vakit bulduğunda demo planlayalım — uygun saatlerini paylaşır mısın?' },
+      {
+        step: 1,
+        action: 'email',
+        delay_days: 0,
+        template: 'Merhaba {first_name}, aramıza hoş geldin!',
+      },
+      {
+        step: 2,
+        action: 'task',
+        delay_days: 1,
+        template: 'İlk arama: müşteri ihtiyaçlarını dinle ve uygunluğu doğrula.',
+      },
+      {
+        step: 3,
+        action: 'email',
+        delay_days: 3,
+        template: 'Vakit bulduğunda demo planlayalım — uygun saatlerini paylaşır mısın?',
+      },
       { step: 4, action: 'wait', delay_days: 2, template: '' },
-      { step: 5, action: 'email', delay_days: 0,
-        template: 'Hâlâ cevap alamadık — son bir hatırlatma yollamak istedik.' },
+      {
+        step: 5,
+        action: 'email',
+        delay_days: 0,
+        template: 'Hâlâ cevap alamadık — son bir hatırlatma yollamak istedik.',
+      },
     ],
   },
   'post-quote-followup': {
     name: 'Teklif Sonrası Takip',
-    description:
-      'Teklif gönderdikten sonra sırasıyla onay, soru-cevap ve müzakere takibi yap.',
+    description: 'Teklif gönderdikten sonra sırasıyla onay, soru-cevap ve müzakere takibi yap.',
     steps: [
-      { step: 1, action: 'email', delay_days: 0,
-        template: 'Teklifimizi inceleyebildin mi? Sorularını yanıtlamaktan memnuniyet duyarız.' },
-      { step: 2, action: 'task', delay_days: 2,
-        template: 'Telefon takibi: itirazları öğren, öncelik sırasını netleştir.' },
-      { step: 3, action: 'email', delay_days: 4,
-        template: 'Teklifte revize istediğin bir nokta var mı?' },
-      { step: 4, action: 'task', delay_days: 6,
-        template: 'Karar tarihini netleştir; gerekirse müzakere için yöneticiyi dahil et.' },
+      {
+        step: 1,
+        action: 'email',
+        delay_days: 0,
+        template: 'Teklifimizi inceleyebildin mi? Sorularını yanıtlamaktan memnuniyet duyarız.',
+      },
+      {
+        step: 2,
+        action: 'task',
+        delay_days: 2,
+        template: 'Telefon takibi: itirazları öğren, öncelik sırasını netleştir.',
+      },
+      {
+        step: 3,
+        action: 'email',
+        delay_days: 4,
+        template: 'Teklifte revize istediğin bir nokta var mı?',
+      },
+      {
+        step: 4,
+        action: 'task',
+        delay_days: 6,
+        template: 'Karar tarihini netleştir; gerekirse müzakere için yöneticiyi dahil et.',
+      },
     ],
   },
   'win-back': {
@@ -84,12 +114,24 @@ const TEMPLATE_PRESETS: Record<string, TemplatePreset> = {
     description:
       'Health skoru düşen hesaplara değer hatırlatma, başarı hikayesi ve özel teklifle ulaş.',
     steps: [
-      { step: 1, action: 'email', delay_days: 0,
-        template: 'Seninle uzun süredir konuşamadık — son durum nedir?' },
-      { step: 2, action: 'email', delay_days: 5,
-        template: 'Benzer bir müşteride elde ettiğimiz başarı hikayesini paylaşmak isteriz.' },
-      { step: 3, action: 'task', delay_days: 9,
-        template: 'Yenileme görüşmesi planla — özel kampanya teklifini hazırla.' },
+      {
+        step: 1,
+        action: 'email',
+        delay_days: 0,
+        template: 'Seninle uzun süredir konuşamadık — son durum nedir?',
+      },
+      {
+        step: 2,
+        action: 'email',
+        delay_days: 5,
+        template: 'Benzer bir müşteride elde ettiğimiz başarı hikayesini paylaşmak isteriz.',
+      },
+      {
+        step: 3,
+        action: 'task',
+        delay_days: 9,
+        template: 'Yenileme görüşmesi planla — özel kampanya teklifini hazırla.',
+      },
     ],
   },
 };
@@ -113,8 +155,7 @@ export default function SequenceBuilderPage() {
 
   // Pre-fill from template preset when ?template=slug present and no
   // existing sequence is being edited (V9 UAT #24).
-  const initialPreset =
-    !isEdit && templateSlug ? TEMPLATE_PRESETS[templateSlug] : undefined;
+  const initialPreset = !isEdit && templateSlug ? TEMPLATE_PRESETS[templateSlug] : undefined;
 
   const [name, setName] = useState(initialPreset?.name ?? '');
   const [description, setDescription] = useState(initialPreset?.description ?? '');
@@ -454,9 +495,7 @@ export default function SequenceBuilderPage() {
                     <span className="tabular-nums text-slate-500 dark:text-slate-400">
                       {preset.steps.length} adım
                     </span>
-                    <span className="font-medium text-honeywell-red">
-                      Bu şablondan oluştur →
-                    </span>
+                    <span className="font-medium text-honeywell-red">Bu şablondan oluştur →</span>
                   </div>
                 </button>
               ))}

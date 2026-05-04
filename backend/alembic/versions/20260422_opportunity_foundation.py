@@ -7,6 +7,7 @@ Create Date: 2026-04-22
 """
 
 from alembic import op
+from app.core.migration_helpers import create_table_if_absent
 import sqlalchemy as sa
 
 
@@ -18,7 +19,7 @@ depends_on = None
 
 def upgrade() -> None:
     # ── opportunities ─────────────────────────────────────
-    op.create_table(
+    create_table_if_absent(
         "opportunities",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("customer_id", sa.Integer(), nullable=True),
@@ -46,14 +47,14 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["pipeline_id"], ["pipelines.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["territory_id"], ["territories.id"], ondelete="SET NULL"),
     )
-    op.create_index("ix_opp_owner_stage", "opportunities", ["owner_id", "stage"])
-    op.create_index("ix_opp_customer", "opportunities", ["customer_id"])
-    op.create_index("ix_opp_close_date", "opportunities", ["close_date"])
-    op.create_index("ix_opportunities_pipeline_id", "opportunities", ["pipeline_id"])
-    op.create_index("ix_opportunities_territory_id", "opportunities", ["territory_id"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_opp_owner_stage ON opportunities (owner_id, stage)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_opp_customer ON opportunities (customer_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_opp_close_date ON opportunities (close_date)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_opportunities_pipeline_id ON opportunities (pipeline_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_opportunities_territory_id ON opportunities (territory_id)")
 
     # ── opportunity_events (timeline) ─────────────────────
-    op.create_table(
+    create_table_if_absent(
         "opportunity_events",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("opportunity_id", sa.Integer(), nullable=False),
@@ -64,10 +65,10 @@ def upgrade() -> None:
         sa.Column("occurred_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["opportunity_id"], ["opportunities.id"], ondelete="CASCADE"),
     )
-    op.create_index("ix_opportunity_events_opportunity_id", "opportunity_events", ["opportunity_id"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_opportunity_events_opportunity_id ON opportunity_events (opportunity_id)")
 
     # ── opportunity_signals ───────────────────────────────
-    op.create_table(
+    create_table_if_absent(
         "opportunity_signals",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("opportunity_id", sa.Integer(), nullable=False),
@@ -80,10 +81,10 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["opportunity_id"], ["opportunities.id"], ondelete="CASCADE"),
     )
-    op.create_index("ix_opportunity_signals_opportunity_id", "opportunity_signals", ["opportunity_id"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_opportunity_signals_opportunity_id ON opportunity_signals (opportunity_id)")
 
     # ── tasks ─────────────────────────────────────────────
-    op.create_table(
+    create_table_if_absent(
         "tasks",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("owner_id", sa.Integer(), nullable=False),
@@ -98,27 +99,38 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["owner_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["opportunity_id"], ["opportunities.id"], ondelete="SET NULL"),
     )
-    op.create_index("ix_tasks_owner_id", "tasks", ["owner_id"])
-    op.create_index("ix_tasks_opportunity_id", "tasks", ["opportunity_id"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_tasks_owner_id ON tasks (owner_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_tasks_opportunity_id ON tasks (opportunity_id)")
 
     # ── quotes.opportunity_id (nullable, backward compatible) ──
-    with op.batch_alter_table("quotes") as batch:
-        batch.add_column(sa.Column("opportunity_id", sa.Integer(), nullable=True))
-        batch.create_index("ix_quotes_opportunity_id", ["opportunity_id"])
-        batch.create_foreign_key(
-            "fk_quotes_opportunity_id",
-            "opportunities",
-            ["opportunity_id"],
-            ["id"],
-            ondelete="SET NULL",
-        )
+    # Round-4 v1.9.14 — converted from batch_alter_table to raw SQL
+    # so it's a no-op on the bootstrapped schema.
+    op.execute(
+        "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS opportunity_id INTEGER"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_quotes_opportunity_id "
+        "ON quotes (opportunity_id)"
+    )
+    op.execute(
+        """
+        DO $$ BEGIN
+            ALTER TABLE quotes
+                ADD CONSTRAINT fk_quotes_opportunity_id
+                FOREIGN KEY (opportunity_id) REFERENCES opportunities(id)
+                ON DELETE SET NULL;
+        EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
+        END $$;
+        """
+    )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("quotes") as batch:
-        batch.drop_constraint("fk_quotes_opportunity_id", type_="foreignkey")
-        batch.drop_index("ix_quotes_opportunity_id")
-        batch.drop_column("opportunity_id")
+    op.execute(
+        "ALTER TABLE quotes DROP CONSTRAINT IF EXISTS fk_quotes_opportunity_id"
+    )
+    op.execute("DROP INDEX IF EXISTS ix_quotes_opportunity_id")
+    op.execute("ALTER TABLE quotes DROP COLUMN IF EXISTS opportunity_id")
 
     op.drop_index("ix_tasks_opportunity_id", table_name="tasks")
     op.drop_index("ix_tasks_owner_id", table_name="tasks")

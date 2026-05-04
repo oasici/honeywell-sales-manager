@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
+from app.core.migration_helpers import create_table_if_absent
 
 revision = "20260426_model_drift_align"
 down_revision = "20260425_user_customer_pins"
@@ -29,7 +30,7 @@ def upgrade() -> None:
 
     # ── Yeni tablolar (V2 sequence telemetry + buyer map) ─────────────────
     if "domain_events" not in tables:
-        op.create_table(
+        create_table_if_absent(
             "domain_events",
             sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column("event_type", sa.String(100), nullable=False),
@@ -39,12 +40,12 @@ def upgrade() -> None:
             sa.Column("actor_id", sa.Integer(), nullable=True),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         )
-        op.create_index("ix_domain_events_event_type", "domain_events", ["event_type"])
-        op.create_index("ix_domain_events_created_at", "domain_events", ["created_at"])
+        op.execute("CREATE INDEX IF NOT EXISTS ix_domain_events_event_type ON domain_events (event_type)")
+        op.execute("CREATE INDEX IF NOT EXISTS ix_domain_events_created_at ON domain_events (created_at)")
         tables.add("domain_events")
 
     if "sequence_step_runs" not in tables:
-        op.create_table(
+        create_table_if_absent(
             "sequence_step_runs",
             sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column("enrollment_id", sa.Integer(), nullable=False),
@@ -61,12 +62,12 @@ def upgrade() -> None:
             sa.ForeignKeyConstraint(["sequence_id"], ["sequences.id"]),
             sa.UniqueConstraint("enrollment_id", "step_number", name="uq_step_run_enrollment_step"),
         )
-        op.create_index("ix_sequence_step_runs_enrollment_id", "sequence_step_runs", ["enrollment_id"])
-        op.create_index("ix_sequence_step_runs_sequence_id", "sequence_step_runs", ["sequence_id"])
+        op.execute("CREATE INDEX IF NOT EXISTS ix_sequence_step_runs_enrollment_id ON sequence_step_runs (enrollment_id)")
+        op.execute("CREATE INDEX IF NOT EXISTS ix_sequence_step_runs_sequence_id ON sequence_step_runs (sequence_id)")
         tables.add("sequence_step_runs")
 
     if "stakeholders" not in tables:
-        op.create_table(
+        create_table_if_absent(
             "stakeholders",
             sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column("opportunity_id", sa.Integer(), nullable=True),
@@ -87,8 +88,8 @@ def upgrade() -> None:
             sa.ForeignKeyConstraint(["customer_id"], ["customers.id"]),
             sa.ForeignKeyConstraint(["created_by"], ["users.id"]),
         )
-        op.create_index("ix_stakeholders_opportunity_id", "stakeholders", ["opportunity_id"])
-        op.create_index("ix_stakeholders_customer_id", "stakeholders", ["customer_id"])
+        op.execute("CREATE INDEX IF NOT EXISTS ix_stakeholders_opportunity_id ON stakeholders (opportunity_id)")
+        op.execute("CREATE INDEX IF NOT EXISTS ix_stakeholders_customer_id ON stakeholders (customer_id)")
         tables.add("stakeholders")
 
     # ── Kolonlar: ADD IF NOT EXISTS (PostgreSQL 9.1+) ─────────────────────
@@ -142,7 +143,7 @@ def upgrade() -> None:
           ALTER TABLE customers
             ADD CONSTRAINT fk_customers_territory_id
             FOREIGN KEY (territory_id) REFERENCES territories(id);
-        EXCEPTION WHEN duplicate_object THEN NULL;
+        EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
         END $$;
         """,
         """
@@ -150,7 +151,7 @@ def upgrade() -> None:
           ALTER TABLE customers
             ADD CONSTRAINT fk_customers_parent_id
             FOREIGN KEY (parent_id) REFERENCES customers(id);
-        EXCEPTION WHEN duplicate_object THEN NULL;
+        EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
         END $$;
         """,
         """
@@ -158,7 +159,7 @@ def upgrade() -> None:
           ALTER TABLE opportunities
             ADD CONSTRAINT fk_opportunities_pipeline_id
             FOREIGN KEY (pipeline_id) REFERENCES pipelines(id);
-        EXCEPTION WHEN duplicate_object THEN NULL;
+        EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
         END $$;
         """,
         """
@@ -166,7 +167,7 @@ def upgrade() -> None:
           ALTER TABLE opportunities
             ADD CONSTRAINT fk_opportunities_territory_id
             FOREIGN KEY (territory_id) REFERENCES territories(id);
-        EXCEPTION WHEN duplicate_object THEN NULL;
+        EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
         END $$;
         """,
         """
@@ -174,7 +175,7 @@ def upgrade() -> None:
           ALTER TABLE sequence_enrollments
             ADD CONSTRAINT fk_sequence_enrollments_lead_id
             FOREIGN KEY (lead_id) REFERENCES leads(id);
-        EXCEPTION WHEN duplicate_object THEN NULL;
+        EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
         END $$;
         """,
     ]
