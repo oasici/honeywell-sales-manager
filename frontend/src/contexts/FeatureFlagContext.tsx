@@ -87,3 +87,44 @@ export function useFeatureFlags(): FeatureFlagContextValue {
 export function useFeatureFlag(flag: string): boolean {
   return useFeatureFlags().isEnabled(flag);
 }
+
+/**
+ * Round-4 R4-FLAG-1 — gate component. Wrap a route element to refuse
+ * rendering when its backing feature flag is off.
+ *
+ * While the flag map is still loading we render `null` (a brief blank)
+ * instead of the fallback, because rendering "Forbidden" and then
+ * flipping to the page is worse UX than a 100ms blank flash. Once
+ * loaded, missing/false → fallback (default: a friendly 404 panel).
+ *
+ *   <Route path="/cockpit" element={
+ *     <FeatureFlagGate flag="FEATURE_REVENUE_COCKPIT"><CockpitPage/></FeatureFlagGate>
+ *   } />
+ */
+export function FeatureFlagGate({
+  flag,
+  children,
+  fallback,
+}: {
+  flag: string;
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
+  const { isEnabled, isLoaded } = useFeatureFlags();
+  if (!isLoaded) return null;
+  if (!isEnabled(flag)) {
+    return (
+      <>{fallback ?? (
+        <div className="mx-auto max-w-lg py-16 text-center">
+          <p className="text-lg font-semibold text-slate-700">
+            Bu özellik bu hesap için kapalı.
+          </p>
+          <p className="mt-2 text-sm text-slate-500">
+            Yöneticinizden etkinleştirmesini isteyin.
+          </p>
+        </div>
+      )}</>
+    );
+  }
+  return <>{children}</>;
+}

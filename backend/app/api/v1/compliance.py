@@ -5,12 +5,14 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import require_role
 from app.core.exceptions import BadRequestException, NotFoundException
@@ -28,7 +30,25 @@ from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/compliance", tags=["KVKK Compliance"])
+
+def _require_compliance() -> None:
+    """Round-4 R4-FLAG-3 — gate the entire KVKK module on a feature flag.
+
+    Pre-fix, a tenant on a plan that didn't include the KVKK module
+    could still call /compliance/data-export and exfiltrate full PII.
+    The closest existing flag is ``FEATURE_BREACH_WORKFLOW`` which
+    governs the breach-workflow surface; reusing it here ensures the
+    module turns on/off as a unit.
+    """
+    if not settings.FEATURE_BREACH_WORKFLOW:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+router = APIRouter(
+    prefix="/compliance",
+    tags=["KVKK Compliance"],
+    dependencies=[Depends(_require_compliance)],
+)
 
 DEFAULT_RETENTION_YEARS = 3
 VALID_CONSENT_METHODS = {"email", "form", "verbal", "import"}

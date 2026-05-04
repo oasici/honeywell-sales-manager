@@ -49,13 +49,40 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
     "FEATURE_AI_SUMMARIES",
     "FEATURE_AI_PIPELINE_SUGGESTIONS",
     "FEATURE_BUYER_MAP",
-    # Audit FLAG-2 — FEATURE_INSIGHTS / FEATURE_COCKPIT /
-    # FEATURE_COMPLIANCE / FEATURE_KVKK are intentionally *not* listed
-    # because the matching `Settings` fields don't exist. Adding them
-    # would silently always evaluate to False on the frontend (the
-    # loop below uses `hasattr(settings, name)`); the round-2 audit
-    # claimed they were present but a re-check showed they aren't.
-    # Re-add if/when the corresponding settings flag is declared.
+    # Round-4 R4-FLAG-1 — expose the 17 backend-gated features that
+    # the frontend was unable to gate before. With these listed, the
+    # SPA can render <FeatureFlagGate> properly instead of letting
+    # users navigate to routes that 404 silently.
+    "FEATURE_REVENUE_COCKPIT",
+    "FEATURE_LEAD_LIFECYCLE",
+    "FEATURE_APPROVAL_ROUTING",
+    "FEATURE_DASHBOARD_BUILDER",
+    "FEATURE_REPORT_BUILDER",
+    "FEATURE_CUSTOM_FIELDS",
+    "FEATURE_FIELD_PERMISSIONS",
+    "FEATURE_PRODUCT_RULES",
+    "FEATURE_WORKFLOW_RULES",
+    "FEATURE_TERRITORIES",
+    "FEATURE_LIVE_CHAT",
+    "FEATURE_MULTI_PIPELINE",
+    "FEATURE_INVOICING",
+    "FEATURE_REV_REC",
+    "FEATURE_CAMPAIGNS",
+    "FEATURE_BREACH_WORKFLOW",  # backs /compliance/* (R4-FLAG-3)
+    "FEATURE_DEAL_HEALTH",
+    "FEATURE_GUIDED_SELLING",
+    "FEATURE_AI_TRIAGE",
+    "FEATURE_AI_DEAL_RISK",
+    "FEATURE_AI_COMPETITIVE_INTEL",
+    "FEATURE_AI_PREDICTIONS",
+    "FEATURE_TEAM_ACCESS",
+    "FEATURE_SESSION_MANAGEMENT",
+    "FEATURE_WEBHOOKS",
+    "FEATURE_PUBLIC_API",
+    "FEATURE_ESIGN",
+    "FEATURE_SEQUENCES_V2",
+    "FEATURE_BEHAVIORAL_SCORING",
+    "FEATURE_PWA",
 }
 
 

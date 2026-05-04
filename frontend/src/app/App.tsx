@@ -6,6 +6,7 @@ import { Layout } from '../components/layout/Layout';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { usePreferencesStore } from '../stores/preferencesStore';
+import { FeatureFlagGate } from '../contexts/FeatureFlagContext';
 
 const DashboardPage = lazy(() => import('../features/dashboard/DashboardPage'));
 const EmailListPage = lazy(() => import('../features/emails/EmailListPage'));
@@ -200,11 +201,13 @@ export default function App() {
         <Route
           path="cockpit"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <CockpitPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REVENUE_COCKPIT">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <CockpitPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
@@ -240,11 +243,13 @@ export default function App() {
         <Route
           path="parts-intel"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <PartsIntelligenceDashboardPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_V10_PARTS_INTEL">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <PartsIntelligenceDashboardPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
@@ -370,11 +375,13 @@ export default function App() {
         <Route
           path="kvkk-export"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <DataExportPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_BREACH_WORKFLOW">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <DataExportPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -426,31 +433,37 @@ export default function App() {
         <Route
           path="reports/builder"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ReportBuilderPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REPORT_BUILDER">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ReportBuilderPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="reports/saved"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <SavedReportsPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REPORT_BUILDER">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <SavedReportsPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="reports/view/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ReportViewPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REPORT_BUILDER">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ReportViewPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -552,21 +565,25 @@ export default function App() {
         <Route
           path="dashboards"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <DashboardListPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_DASHBOARD_BUILDER">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <DashboardListPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="dashboards/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <DashboardEditorPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_DASHBOARD_BUILDER">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <DashboardEditorPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -706,35 +723,42 @@ export default function App() {
           }
         />
 
-        {/* Compliance (KVKK) */}
+        {/* Compliance (KVKK) — gated by FEATURE_BREACH_WORKFLOW. Backend
+            also rejects with 404 when the flag is off (round-4 R4-FLAG-3). */}
         <Route
           path="compliance"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ComplianceDashboardPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_BREACH_WORKFLOW">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ComplianceDashboardPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="compliance/retention"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <RetentionPoliciesPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_BREACH_WORKFLOW">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <RetentionPoliciesPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="compliance/breaches"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <BreachWorkflowPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_BREACH_WORKFLOW">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <BreachWorkflowPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -918,21 +942,25 @@ export default function App() {
         <Route
           path="campaigns"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <CampaignListPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_CAMPAIGNS">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <CampaignListPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="campaigns/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <CampaignDetailPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_CAMPAIGNS">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <CampaignDetailPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -940,21 +968,25 @@ export default function App() {
         <Route
           path="invoices"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <InvoiceListPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_INVOICING">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <InvoiceListPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="invoices/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <InvoiceDetailPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_INVOICING">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <InvoiceDetailPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -998,11 +1030,13 @@ export default function App() {
         <Route
           path="revenue-recognition"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <RevenueRecognitionPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REV_REC">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <RevenueRecognitionPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
