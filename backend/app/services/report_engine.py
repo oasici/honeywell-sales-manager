@@ -17,6 +17,10 @@ from app.models.opportunity import Opportunity
 from app.models.quote import Quote
 from app.models.report import ReportTemplate
 from app.models.user import User
+from app.services.tenant_context import (
+    assert_same_tenant,
+    scoped_for_user,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -157,18 +161,27 @@ class ReportEngine:
     async def execute_report(
         self,
         template_id: int,
+        current_user,
         limit: int = DEFAULT_LIMIT,
         offset: int = 0,
     ) -> dict:
         """Execute report from saved template.
 
-        Returns {columns, rows, total, chart_data}.
+        Round-4 R4-TEN-14 — ``current_user`` is now mandatory. The
+        template lookup is tenant-scoped, and ``execute_inline``
+        injects a ``WHERE model.tenant_id = current_user.tenant_id``
+        predicate on every entity_type the engine knows about.
         """
         stmt = select(ReportTemplate).where(ReportTemplate.id == template_id)
         result = await self.db.execute(stmt)
         template = result.scalar_one_or_none()
         if template is None:
             raise NotFoundException("Rapor sablonu bulunamadi")
+        # Cross-tenant template loads map to 404 so a manager can't
+        # execute a foreign-tenant template at all.
+        assert_same_tenant(
+            template, current_user, exception_cls=NotFoundException
+        )
 
         columns = json.loads(template.columns_json)
         filters = json.loads(template.filters_json) if template.filters_json else None
@@ -176,6 +189,7 @@ class ReportEngine:
         return await self.execute_inline(
             entity_type=template.entity_type,
             columns=columns,
+            current_user=current_user,
             filters=filters,
             group_by=template.group_by,
             sort_by=template.sort_by,
@@ -188,6 +202,7 @@ class ReportEngine:
         self,
         entity_type: str,
         columns: list[str],
+        current_user,
         filters: list[dict] | None = None,
         group_by: str | None = None,
         sort_by: str | None = None,
@@ -197,7 +212,12 @@ class ReportEngine:
     ) -> dict:
         """Execute report from inline parameters (preview mode).
 
-        Returns {columns, rows, total, chart_data}.
+        Round-4 R4-TEN-14 — ``current_user`` is now mandatory. Every
+        entity in ``ENTITY_MODEL_MAP`` carries ``tenant_id`` after the
+        Phase-3/4 migrations; we inject the predicate unconditionally
+        so a manager from tenant A executing a template that lists
+        Customer/Quote/Opportunity/Email rows only sees their own
+        tenant's data.
         """
         if entity_type not in ENTITY_MODEL_MAP:
             raise BadRequestException(
@@ -206,6 +226,12 @@ class ReportEngine:
             )
 
         model, allowed = ENTITY_MODEL_MAP[entity_type]
+        # Refuse to execute if the model lacks tenant_id — better to
+        # 400 than to silently leak.
+        if not hasattr(model, "tenant_id"):
+            raise BadRequestException(
+                f"'{entity_type}' raporlari guvenli sekilde uretilemez (tenant_id yok)"
+            )
 
         # Separate plain columns from dotted (join) columns
         plain_columns: list[str] = []
@@ -262,6 +288,10 @@ class ReportEngine:
             stmt = select(*agg_cols).group_by(group_col)
         else:
             stmt = select(*select_cols)
+
+        # Tenant boundary (R4-TEN-14). Injected before joins/filters
+        # so neither user input nor the join graph can shadow it.
+        stmt = scoped_for_user(stmt, current_user, column=model.tenant_id)
 
         # Apply joins
         for join_entity in joined_models:
@@ -349,9 +379,9 @@ class ReportEngine:
             "chart_data": chart_data,
         }
 
-    async def export_csv(self, template_id: int) -> str:
-        """Export report as CSV string."""
-        data = await self.execute_report(template_id)
+    async def export_csv(self, template_id: int, current_user) -> str:
+        """Export report as CSV string (tenant-scoped, R4-TEN-14)."""
+        data = await self.execute_report(template_id, current_user)
 
         output = io.StringIO()
         writer = csv.writer(output)

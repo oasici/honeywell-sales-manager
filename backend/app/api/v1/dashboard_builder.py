@@ -190,7 +190,9 @@ async def execute_dashboard(
         report_id = widget.get("report_id")
         if report_id:
             try:
-                result = await engine.execute_report(report_id, limit=100, offset=0)
+                result = await engine.execute_report(
+                    report_id, current_user, limit=100, offset=0
+                )
                 widget_data["data"] = result
             except Exception as exc:
                 widget_data["error"] = f"Rapor calistirilamadi: {exc}"

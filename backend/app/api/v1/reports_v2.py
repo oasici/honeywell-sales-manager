@@ -248,10 +248,18 @@ async def list_templates(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List report templates: user's own + public + system."""
+    """List report templates: user's own + public + system (tenant-scoped)."""
     _check_feature_flag()
+    from app.services.tenant_context import scoped_for_user
 
-    stmt = select(ReportTemplate).where(
+    # Round-4 R4-TEN-14 — restrict the public/owner list to the
+    # caller's tenant. System templates (tenant_id IS NULL) remain
+    # visible to everyone since they're shipped with the product.
+    stmt = scoped_for_user(
+        select(ReportTemplate),
+        current_user,
+        column=ReportTemplate.tenant_id,
+    ).where(
         or_(
             ReportTemplate.created_by == current_user.id,
             ReportTemplate.is_public.is_(True),
@@ -280,6 +288,7 @@ async def create_template(
         _validate_filters_json(body.filters_json)
 
     template = ReportTemplate(
+        tenant_id=getattr(current_user, "tenant_id", None),
         name=body.name,
         description=body.description,
         entity_type=body.entity_type,
@@ -364,7 +373,9 @@ async def execute_template(
 
     offset = (page - 1) * page_size
     engine = ReportEngine(db)
-    result = await engine.execute_report(template_id, limit=page_size, offset=offset)
+    result = await engine.execute_report(
+        template_id, current_user, limit=page_size, offset=offset
+    )
     result["page"] = page
     result["page_size"] = page_size
     return {"data": result}
@@ -384,6 +395,7 @@ async def preview_report(
     result = await engine.execute_inline(
         entity_type=body.entity_type,
         columns=body.columns,
+        current_user=current_user,
         filters=body.filters,
         group_by=body.group_by,
         sort_by=body.sort_by,
@@ -407,7 +419,7 @@ async def export_template(
     _check_feature_flag()
 
     engine = ReportEngine(db)
-    csv_content = await engine.export_csv(template_id)
+    csv_content = await engine.export_csv(template_id, current_user)
 
     return PlainTextResponse(
         content=csv_content,
@@ -431,7 +443,7 @@ async def export_template_excel(
         raise HTTPException(status_code=501, detail="openpyxl yuklu degil")
 
     engine = ReportEngine(db)
-    result = await engine.execute_report(template_id, limit=5000, offset=0)
+    result = await engine.execute_report(template_id, current_user, limit=5000, offset=0)
 
     report_result = await db.execute(select(ReportTemplate).where(ReportTemplate.id == template_id))
     report = report_result.scalar_one_or_none()
@@ -527,13 +539,22 @@ async def schedule_report(
 async def _get_user_template(
     db: AsyncSession, template_id: int, current_user: User
 ) -> ReportTemplate:
-    """Get a template, verifying ownership or manager role."""
+    """Get a template, verifying tenant + ownership or manager role.
+
+    Round-4 R4-TEN-14 — manager bypass would otherwise let a tenant-A
+    manager update or execute a tenant-B template. Tenant guard runs
+    first so cross-tenant probes return 404, indistinguishable from
+    "doesn't exist".
+    """
+    from app.services.tenant_context import assert_same_tenant
+
     result = await db.execute(
         select(ReportTemplate).where(ReportTemplate.id == template_id)
     )
     template = result.scalar_one_or_none()
     if template is None:
         raise NotFoundException("Rapor sablonu bulunamadi")
+    assert_same_tenant(template, current_user, exception_cls=NotFoundException)
 
     is_owner = template.created_by == current_user.id
     is_manager = current_user.role == "sales_manager"

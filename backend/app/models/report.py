@@ -13,6 +13,9 @@ class ReportTemplate(Base):
     __tablename__ = "report_templates"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 R4-TEN-14 — tenant_id added; backfilled by alembic
+    # 20260504_phase5_report_engine_tenant via created_by → users.tenant_id.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     entity_type: Mapped[str] = mapped_column(
