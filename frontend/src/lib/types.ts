@@ -186,7 +186,10 @@ export interface EmailRequest {
   error_message: string | null;
   category: string | null;
   category_confidence: number | null;
-  price_sensitivity: string | null;
+  // Round-4 R4-FMT-1 — DB column is `bool | None`; backend returns
+  // raw bool. The previous `string | null` was an outright type lie
+  // (`email.price_sensitivity === 'high'` always evaluated false).
+  price_sensitivity: boolean | null;
   review_status: string | null;
   assigned_to: number | null;
   reviewed_by: number | null;
@@ -213,17 +216,23 @@ export interface SparePart {
   honeywell_code: string;
   model_number?: string | null;
   info?: string | null;
-  name_en: string;
-  name_tr: string;
-  description_en: string;
-  description_tr: string;
-  category: string;
-  subcategory: string;
+  // Round-4 R4-NAME-1 — DB allows NULL on these text fields. Marking
+  // non-null caused JSX like `name_tr.toUpperCase()` to crash on
+  // imports without a Turkish name.
+  name_en: string | null;
+  name_tr: string | null;
+  description_en: string | null;
+  description_tr: string | null;
+  category: string | null;
+  subcategory: string | null;
   transfer_price?: number | null;
   supplier_price?: number | null;
   price_currency?: string | null;
+  // Round-4 R4-CLOSE-2a/b — backend returns these but TS used to
+  // drop them, so the AI matcher couldn't surface keyword hits.
+  keywords_json?: string | null;
+  aliases_json?: string | null;
   is_active: boolean;
-  has_price: boolean;
   created_at: string;
 }
 
@@ -286,7 +295,12 @@ export interface Quote {
   grand_total: number;
   valid_days: number;
   notes: string;
-  pdf_path: string | null;
+  /**
+   * Round-4 R4-TS-2: dropped from `_quote_to_dict` after the audit
+   * TS-2 cleanup; consumers should read `has_pdf` instead. Marked
+   * optional so the type doesn't lie about always-present.
+   */
+  pdf_path?: string | null;
   /** Convenience boolean from the serializer (audit TS-2); avoids round-tripping the path. */
   has_pdf?: boolean;
   /** Linked opportunity — needed by the back-link button on quote detail. */
@@ -471,6 +485,13 @@ export interface Opportunity {
   previous_stage?: string | null;
   previous_close_date?: string | null;
   previous_amount?: number | null;
+  // Round-4 R4-TS-4 — lead-source attribution. Returned by the backend
+  // since DB-6 (v1.8.0) but missing from the TS interface so consumers
+  // had to cast.
+  source?: string | null;
+  // Round-4 R4-DTO-1 — round-tripped tenant_id so the UI can verify
+  // isolation without re-querying.
+  tenant_id?: number | null;
   rotting_days: number;
   last_activity_at?: string | null;
   open_tasks_count?: number;
@@ -629,6 +650,10 @@ export interface ApprovalRule {
   approver_user_id: number | null;
   priority: number;
   is_active: boolean;
+  // Round-4 R4-TS-3 — backend returns these; UI couldn't surface SLA
+  // escalation timing without a cast.
+  escalation_hours?: number | null;
+  escalation_action?: string | null;
   created_at: string | null;
 }
 
@@ -1061,17 +1086,26 @@ export interface Sequence {
   name: string;
   description: string | null;
   steps: Record<string, unknown>[];
-  auto_enroll_rules: Record<string, unknown> | null;
+  // Round-4 R4-TS-5 — list endpoint omits this; detail endpoint
+  // returns it; downstream parses it as a list. Made optional and
+  // accept either shape.
+  auto_enroll_rules?: Record<string, unknown> | unknown[] | null;
   created_at: string;
 }
 
 export interface SequenceEnrollment {
   id: number;
   sequence_id: number;
+  // Round-4 R4-TS-6 — backend returns these on the detail endpoint;
+  // UI couldn't surface "next action in N days" without a cast.
+  sequence_name?: string | null;
+  next_action_at?: string | null;
   opportunity_id: number | null;
   customer_id: number | null;
   lead_id: number | null;
-  is_paused: boolean;
+  // Round-4 R4-SHAPE-1 — DB nullable; rendering this as binary gave
+  // the wrong status when null.
+  is_paused: boolean | null;
   status: string;
   current_step: number;
   exit_reason: string | null;
@@ -1858,6 +1892,8 @@ export interface Pipeline {
   description?: string;
   created_by: number;
   created_at: string;
+  // Round-4 R4-TS-7 — backend returns updated_at; TS used to drop it.
+  updated_at?: string | null;
 }
 
 // ── Territories ──
@@ -1870,6 +1906,8 @@ export interface Territory {
   rules_json?: string;
   created_by: number;
   created_at: string;
+  // Round-4 R4-TS-8 — backend returns updated_at; TS used to drop it.
+  updated_at?: string | null;
   children?: Territory[];
 }
 
@@ -1880,6 +1918,37 @@ export interface TerritoryAssignment {
   role: string;
   created_at: string;
   user?: { id: number; full_name: string; email: string };
+}
+
+// ── Lead ─────────────────────────────────────────────
+// Round-4 R4-TS-10 — promoted from feature-local interface in
+// LeadListPage.tsx. The local copy was missing notes / owner_id /
+// owner_name / updated_at / tenant_id, so consumers either dropped
+// those fields or had to cast.
+export interface Lead {
+  id: number;
+  // Round-4 R4-DTO-2 — round-tripped tenant_id.
+  tenant_id?: number | null;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  company: string | null;
+  title: string | null;
+  source: string;
+  status: string;
+  lead_score: number;
+  owner_id: number | null;
+  owner_name: string | null;
+  notes: string | null;
+  converted_customer_id: number | null;
+  converted_opportunity_id: number | null;
+  converted_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+  // Detail-only — populated by the rescore endpoint.
+  score_breakdown?: Array<{ name: string; label: string; points: number }>;
 }
 
 // ── Pricing ──────────────────────────────────────────

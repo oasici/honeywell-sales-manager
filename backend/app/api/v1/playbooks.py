@@ -163,15 +163,19 @@ async def playbook_analytics(
 
         per_playbook.append({
             "playbook_id": playbook_id,
-            "playbook_name": playbooks.get(playbook_id, "Bilinmiyor"),
-            "total_executions": total,
+            # Round-4 R4-TS-1 — TS expects `name` / `executions`;
+            # the prior `playbook_name` / `total_executions` keys
+            # caused PlaybookAnalyticsPage to render `undefined` in
+            # every table cell.
+            "name": playbooks.get(playbook_id, "Bilinmiyor"),
+            "executions": total,
             "completed": completed,
             "cancelled": cancelled,
             "completion_rate": completion_rate,
         })
 
     # Sort by total executions descending (most triggered first)
-    per_playbook.sort(key=lambda x: x["total_executions"], reverse=True)
+    per_playbook.sort(key=lambda x: x["executions"], reverse=True)
 
     # Average completion time (days)
     avg_time_result = await db.execute(
@@ -242,7 +246,13 @@ async def playbook_analytics(
         "win_rate_with_playbook": win_rate_with_playbook,
         "win_rate_without_playbook": win_rate_without_playbook,
         "per_playbook": per_playbook,
-        "most_triggered": per_playbook[0]["playbook_name"] if per_playbook else None,
+        # Round-4 R4-TS-1 — TS interface declares this as an array of
+        # {playbook_id, name, count}; previously emitted a string,
+        # which crashed PlaybookAnalyticsPage on .length / .map.
+        "most_triggered": [
+            {"playbook_id": p["playbook_id"], "name": p["name"], "count": p["executions"]}
+            for p in per_playbook[:5]
+        ],
     }
 
 

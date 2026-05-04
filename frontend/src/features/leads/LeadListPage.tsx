@@ -19,25 +19,9 @@ import { formatDate } from '../../lib/formatters';
 import { UserPlus, Search } from 'lucide-react';
 import { useT } from '../../hooks/useT';
 import { LEAD_STATUS_VALUES, translateLeadStatus } from '../../lib/labelTranslations';
-
-interface Lead {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  title?: string;
-  source: string;
-  status: string;
-  lead_score: number;
-  created_at: string;
-  // Audit F-16 — backend always returns these for converted leads;
-  // surfaced on the row so reps can pivot to the linked customer.
-  converted_at?: string | null;
-  converted_customer_id?: number | null;
-  converted_opportunity_id?: number | null;
-}
+// Round-4 R4-TS-10 — use the canonical Lead type from lib/types.ts
+// instead of the local copy that drifted away from the API shape.
+import type { Lead } from '../../lib/types';
 
 const STATUS_COLORS: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
   new: 'default',
