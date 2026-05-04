@@ -791,4 +791,6 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
             for item in (quote.items or [])
         ]
 
-    return data
+    # Field-level masking (R4-PERM-1).
+    from app.services.field_permission_service import apply_request_perms
+    return apply_request_perms(data, "quote")

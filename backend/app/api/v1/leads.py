@@ -563,7 +563,9 @@ async def rescore_lead(
 # ── Helper ──
 
 def _lead_to_dict(lead: Lead) -> dict:
-    return {
+    from app.services.field_permission_service import apply_request_perms
+
+    data = {
         "id": lead.id,
         # tenant_id round-trips per the round-4 standardisation
         # (R4-DTO-2). Lead model already declares it.
@@ -587,3 +589,4 @@ def _lead_to_dict(lead: Lead) -> dict:
         "created_at": lead.created_at.isoformat() if lead.created_at else None,
         "updated_at": lead.updated_at.isoformat() if lead.updated_at else None,
     }
+    return apply_request_perms(data, "lead")

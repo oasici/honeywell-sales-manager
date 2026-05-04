@@ -71,6 +71,19 @@ async def get_current_user(
     except ImportError:
         pass
 
+    # Round-4 R4-PERM-1 — pre-load field-permission masking ruleset for
+    # this user's role into a request-scoped ContextVar so the sync
+    # ``_*_to_dict`` serializers can apply masking without taking new
+    # arguments. Best-effort: a DB hiccup leaves the CV empty (no
+    # masking) rather than failing the request.
+    try:
+        from app.services.field_permission_service import (
+            prefetch_field_perms_dependency,
+        )
+        await prefetch_field_perms_dependency(db, user.role)
+    except Exception:
+        pass
+
     return user
 
 

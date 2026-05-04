@@ -173,7 +173,9 @@ def _opp_to_dict(
     else:
         data["quotes"] = []
 
-    return data
+    # Field-level masking (R4-PERM-1).
+    from app.services.field_permission_service import apply_request_perms
+    return apply_request_perms(data, "opportunity")
 
 
 # ══════════════════════════════════════════

@@ -35,7 +35,74 @@ TOKEN_EXPIRY_BUFFER_SECONDS = 300
 # ── OAuth2 Flow Functions ──
 
 
-def get_google_auth_url(client_id: str, redirect_uri: str, scopes: list[str]) -> str:
+# ── R4-AUTH-2 — signed OAuth state ──
+#
+# State must be unguessable AND tied to the originating user so a
+# phished/replayed authorization code cannot be redeemed by anyone
+# else. We HMAC the (provider, user_id, nonce, timestamp) tuple with
+# the JWT secret; the callback re-derives the HMAC, checks freshness
+# (10 min), and surfaces the signed user_id back to the caller for
+# tenant scoping when persisting tokens.
+
+_STATE_TTL_SECONDS = 600
+
+
+def make_calendar_oauth_state(provider: str, user_id: int) -> str:
+    """Mint a signed OAuth state for ``provider`` tied to ``user_id``."""
+    import base64
+    import hashlib
+    import hmac
+    import secrets
+    import time as _time
+
+    from app.core.config import settings as cfg
+
+    nonce = secrets.token_urlsafe(16)
+    ts = int(_time.time())
+    payload = f"{provider}|{user_id}|{nonce}|{ts}"
+    secret = (cfg.JWT_SECRET_KEY or "").encode() or b"unset"
+    sig = hmac.new(secret, payload.encode(), hashlib.sha256).digest()
+    sig_b64 = base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+    return f"{payload}|{sig_b64}"
+
+
+def verify_calendar_oauth_state(state: str) -> dict | None:
+    """Return ``{provider, user_id}`` when ``state`` is valid + fresh."""
+    import base64
+    import hashlib
+    import hmac
+    import time as _time
+
+    from app.core.config import settings as cfg
+
+    if not state or state.count("|") != 4:
+        return None
+    provider, user_id_s, nonce, ts_s, sig_b64 = state.split("|")
+    try:
+        ts = int(ts_s)
+        user_id = int(user_id_s)
+    except ValueError:
+        return None
+    if _time.time() - ts > _STATE_TTL_SECONDS:
+        return None
+    secret = (cfg.JWT_SECRET_KEY or "").encode() or b"unset"
+    expected = hmac.new(
+        secret,
+        f"{provider}|{user_id}|{nonce}|{ts}".encode(),
+        hashlib.sha256,
+    ).digest()
+    expected_b64 = base64.urlsafe_b64encode(expected).rstrip(b"=").decode()
+    if not hmac.compare_digest(expected_b64, sig_b64):
+        return None
+    return {"provider": provider, "user_id": user_id}
+
+
+def get_google_auth_url(
+    client_id: str,
+    redirect_uri: str,
+    scopes: list[str],
+    state: str = "google",
+) -> str:
     """Generate Google OAuth2 authorization URL."""
     params = {
         "client_id": client_id,
@@ -44,7 +111,7 @@ def get_google_auth_url(client_id: str, redirect_uri: str, scopes: list[str]) ->
         "scope": " ".join(scopes),
         "access_type": "offline",
         "prompt": "consent",
-        "state": "google",
+        "state": state,
     }
     return f"{GOOGLE_AUTH_BASE_URL}?{urlencode(params)}"
 
@@ -107,6 +174,7 @@ def get_microsoft_auth_url(
     client_id: str,
     redirect_uri: str,
     scopes: list[str],
+    state: str = "microsoft",
 ) -> str:
     """Generate Microsoft OAuth2 authorization URL."""
     base = MICROSOFT_AUTH_URL_TEMPLATE.format(tenant_id=tenant_id)
@@ -116,7 +184,7 @@ def get_microsoft_auth_url(
         "response_type": "code",
         "scope": " ".join(scopes),
         "response_mode": "query",
-        "state": "microsoft",
+        "state": state,
     }
     return f"{base}?{urlencode(params)}"
 
@@ -185,32 +253,41 @@ TOKENS_SETTING_KEY = "calendar_oauth_tokens"
 
 
 async def _load_tokens(db: AsyncSession) -> dict | None:
-    """Load stored OAuth tokens from the Setting model."""
+    """Load stored OAuth tokens from the Setting model.
+
+    Round-4 R4-PII-1: tokens are now Fernet-encrypted at rest. The
+    decoder transparently handles legacy plaintext rows so the rollout
+    doesn't lock anyone out — the next ``_save_tokens`` overwrites
+    those rows with ciphertext.
+    """
+    from app.core.crypto import decrypt_json_or_legacy_plaintext
+
     result = await db.execute(
         select(Setting).where(Setting.key == TOKENS_SETTING_KEY)
     )
     setting = result.scalar_one_or_none()
     if not setting or not setting.value:
         return None
-    try:
-        return json.loads(setting.value)
-    except (json.JSONDecodeError, TypeError):
-        logger.warning("Failed to parse stored calendar tokens")
-        return None
+    decoded = decrypt_json_or_legacy_plaintext(setting.value)
+    if decoded is None:
+        logger.warning("Failed to read stored calendar tokens")
+    return decoded
 
 
 async def _save_tokens(db: AsyncSession, tokens: dict) -> None:
-    """Save OAuth tokens to the Setting model."""
+    """Save OAuth tokens to the Setting model (Fernet-encrypted, R4-PII-1)."""
+    from app.core.crypto import encrypt_json
+
     tokens_with_timestamp = {
         **tokens,
         "saved_at": int(time.time()),
     }
+    serialized = encrypt_json(tokens_with_timestamp)
+
     result = await db.execute(
         select(Setting).where(Setting.key == TOKENS_SETTING_KEY)
     )
     existing = result.scalar_one_or_none()
-    serialized = json.dumps(tokens_with_timestamp)
-
     if existing:
         existing.value = serialized
     else:

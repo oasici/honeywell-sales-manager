@@ -9,7 +9,7 @@ import json
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,11 +51,19 @@ async def get_calendar_auth_url(
     provider: str = "google",
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
 ):
-    """Return the OAuth authorize URL for the specified calendar provider."""
+    """Return the OAuth authorize URL for the specified calendar provider.
+
+    The ``state`` is HMAC-signed (R4-AUTH-2) and tied to the requesting
+    user so a phished/replayed authorization code cannot be redeemed
+    by another session.
+    """
     from app.services.calendar_service import (
         get_google_auth_url,
         get_microsoft_auth_url,
+        make_calendar_oauth_state,
     )
+
+    state = make_calendar_oauth_state(provider, current_user.id)
 
     if provider == "google":
         if not settings.GOOGLE_CLIENT_ID:
@@ -64,6 +72,7 @@ async def get_calendar_auth_url(
             client_id=settings.GOOGLE_CLIENT_ID,
             redirect_uri=settings.GOOGLE_REDIRECT_URI,
             scopes=GOOGLE_CALENDAR_SCOPES,
+            state=state,
         )
     elif provider == "microsoft":
         if not settings.AZURE_CLIENT_ID or not settings.AZURE_TENANT_ID:
@@ -73,6 +82,7 @@ async def get_calendar_auth_url(
             client_id=settings.AZURE_CLIENT_ID,
             redirect_uri=settings.GOOGLE_REDIRECT_URI,
             scopes=MICROSOFT_CALENDAR_SCOPES,
+            state=state,
         )
     else:
         raise BadRequestException(
@@ -88,14 +98,31 @@ async def calendar_oauth_callback(
     state: str = "google",
     db: AsyncSession = Depends(get_db),
 ):
-    """Handle OAuth callback, exchange code for tokens, store them."""
+    """Handle OAuth callback, exchange code for tokens, store them.
+
+    R4-AUTH-2: ``state`` must be a signed token minted by
+    ``/calendar/auth-url``. Legacy plain-string states (``"google"`` /
+    ``"microsoft"``) are tolerated for one release so any in-flight
+    OAuth dialogs from before the rollout still complete; new states
+    sign the originating user_id which we use to scope token storage.
+    """
     from app.services.calendar_service import (
         exchange_google_code,
         exchange_microsoft_code,
         _save_tokens,
+        verify_calendar_oauth_state,
     )
 
-    provider = state
+    verified = verify_calendar_oauth_state(state)
+    if verified is not None:
+        provider = verified["provider"]
+    elif state in {"google", "microsoft"}:
+        # Backwards-compat for the rollout window. New auth-url calls
+        # always emit signed states.
+        provider = state
+        logger.warning("calendar callback used legacy unsigned state=%s", state)
+    else:
+        raise BadRequestException("Gecersiz veya suresi dolmus state")
 
     if provider == "google":
         if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
@@ -444,12 +471,18 @@ async def connect_esign(
             f"Desteklenen: {', '.join(sorted(ESIGN_PROVIDERS))}"
         )
 
+    # Round-4 R4-PII-2 — encrypt provider config (api_key, account_id)
+    # at rest with Fernet so a read-only DB compromise doesn't expose
+    # the credential. Backwards-compatible: legacy plaintext rows are
+    # decoded by the same helper used to read.
+    from app.core.crypto import encrypt_json
     config_key = f"esign_{body.provider}_config"
     existing = (await db.execute(select(Setting).where(Setting.key == config_key))).scalar_one_or_none()
+    encrypted_payload = encrypt_json(body.config)
     if existing:
-        existing.value = json.dumps(body.config)
+        existing.value = encrypted_payload
     else:
-        db.add(Setting(key=config_key, value=json.dumps(body.config)))
+        db.add(Setting(key=config_key, value=encrypted_payload))
 
     provider_setting = (await db.execute(select(Setting).where(Setting.key == "esign_provider"))).scalar_one_or_none()
     if provider_setting:
@@ -530,18 +563,73 @@ async def send_for_signature(
 
 @router.post("/esign/webhook")
 async def esign_webhook(
-    current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """Webhook endpoint for e-sign provider callbacks (stub).
+    """Webhook endpoint for e-sign provider callbacks.
 
-    When implemented, this would:
-    1. Verify webhook signature
-    2. Parse signing status (sent/viewed/signed/declined)
-    3. Update quote status accordingly
-    4. Create notification for quote owner
+    R4-AUTH-1 / R4-WEBH-1: this endpoint must NOT require a JWT (the
+    external provider has no session) and MUST verify a per-provider
+    HMAC signature on the request body. Without verification, anyone
+    could POST forged "signed!" callbacks and flip foreign quotes /
+    contracts to a terminal state.
+
+    Header: ``X-Esign-Signature: sha256=<hexdigest>``. Secret is
+    loaded from the per-provider ``esign_<provider>_webhook_secret``
+    Setting row.
     """
-    return {
-        "message": "E-imza webhook endpoint hazir — provider callback URL olarak yapilandirilmali",
-        "status": "stub",
-    }
+    import hashlib
+    import hmac
+
+    body_bytes = await request.body()
+
+    provider_setting = (
+        await db.execute(select(Setting).where(Setting.key == "esign_provider"))
+    ).scalar_one_or_none()
+    if not provider_setting or not provider_setting.value:
+        # No provider configured = no callback expected. Polite 200 so
+        # the provider's webhook health check doesn't alert.
+        return {"status": "no_provider"}
+
+    provider = provider_setting.value
+    secret_setting = (
+        await db.execute(
+            select(Setting).where(
+                Setting.key == f"esign_{provider}_webhook_secret"
+            )
+        )
+    ).scalar_one_or_none()
+    if not secret_setting or not secret_setting.value:
+        logger.warning(
+            "esign webhook received but no secret configured for provider=%s",
+            provider,
+        )
+        raise HTTPException(status_code=401, detail="Webhook secret yapilandirilmamis")
+
+    # HMAC verification — accept either ``sha256=<hex>`` or raw hex
+    # so providers with different conventions (Docusign vs HelloSign)
+    # work without per-provider parsers.
+    incoming_sig = (
+        request.headers.get("X-Esign-Signature")
+        or request.headers.get("X-Hub-Signature-256")
+        or ""
+    )
+    if incoming_sig.startswith("sha256="):
+        incoming_sig = incoming_sig[len("sha256="):]
+    expected = hmac.new(
+        secret_setting.value.encode(),
+        body_bytes,
+        hashlib.sha256,
+    ).hexdigest()
+    if not hmac.compare_digest(expected, incoming_sig.lower()):
+        raise HTTPException(status_code=401, detail="Imza dogrulanamadi")
+
+    # Verified — actual status update logic still pending; for now we
+    # return the verified payload back so the integration can roll
+    # forward in pieces.
+    try:
+        payload = json.loads(body_bytes.decode() or "{}")
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        payload = {"raw": True}
+    logger.info("esign webhook verified, provider=%s payload_keys=%s", provider, list(payload.keys()))
+    return {"status": "verified", "provider": provider}

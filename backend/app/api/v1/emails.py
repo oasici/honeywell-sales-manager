@@ -801,4 +801,6 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
         data["parsed_data"] = (
             json.loads(email.parsed_data) if email.parsed_data else None
         )
-    return data
+    # Field-level masking (R4-PERM-1).
+    from app.services.field_permission_service import apply_request_perms
+    return apply_request_perms(data, "email")

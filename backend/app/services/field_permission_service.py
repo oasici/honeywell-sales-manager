@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from contextvars import ContextVar
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +12,20 @@ from app.models.field_permission import FieldPermission
 logger = logging.getLogger(__name__)
 
 VALID_ACCESS_LEVELS = {"read", "write", "hidden", "masked"}
-VALID_ENTITY_TYPES = {"customer", "quote", "opportunity", "email", "lead"}
+# Round-4 R4-PERM-3 widened to include the entities that hold PII the
+# admin UI must be able to mask (signer email on contract, billing
+# address on invoice, etc).
+VALID_ENTITY_TYPES = {
+    "customer",
+    "quote",
+    "opportunity",
+    "email",
+    "lead",
+    "contract",
+    "invoice",
+    "subscription",
+    "campaign",
+}
 VALID_ROLES = {"sales_rep", "sales_manager", "operations"}
 
 CACHE_TTL_SECONDS = 300  # 5 minutes
@@ -213,3 +227,111 @@ class FieldPermissionService:
                 await redis.delete(f"field_perm:{role}:{entity_type}")
         except Exception:
             pass
+
+
+# ─────────────────────── request-scoped helpers ──────────────────────
+#
+# Round-4 R4-PERM-1 fix: ``apply_to_response`` was previously dead code
+# (zero call sites outside the admin CRUD). The helpers below let the
+# serializer functions (``_opp_to_dict`` / ``_customer_to_dict`` /
+# ``_lead_to_dict`` / ``_quote_to_dict``) apply masking with a single
+# synchronous call, after the route handler pre-loads permissions for
+# the current user's role.
+#
+# Pre-loading is intentional: the field_permission table is keyed on
+# (role, entity_type, field_name), so for one role we can load the
+# entire ruleset in a single async query and reuse it for every row in
+# a list response without re-hitting Redis/DB.
+
+
+async def load_field_perms_for_role(
+    db: AsyncSession,
+    role: str,
+    entity_types: tuple[str, ...] = tuple(VALID_ENTITY_TYPES),
+) -> dict[str, dict[str, str]]:
+    """Pre-fetch all field-permission rules for a role.
+
+    Returns ``{entity_type: {field_name: access_level}}``. Empty dicts
+    for entities with no configured rules (so callers can do
+    ``perms.get(entity_type, {})`` without branching).
+
+    Single-query: filters by role + entity_types, then groups in
+    Python. Cheaper than N round-trips when a route response embeds
+    multiple entity types.
+    """
+    if not role or role not in VALID_ROLES:
+        return {entity_type: {} for entity_type in entity_types}
+    result = await db.execute(
+        select(FieldPermission).where(
+            FieldPermission.role == role,
+            FieldPermission.entity_type.in_(entity_types),
+        )
+    )
+    grouped: dict[str, dict[str, str]] = {entity_type: {} for entity_type in entity_types}
+    for row in result.scalars().all():
+        grouped.setdefault(row.entity_type, {})[row.field_name] = row.access_level
+    return grouped
+
+
+def apply_perms_sync(
+    data: dict,
+    permissions: dict[str, str] | None,
+) -> dict:
+    """Apply hidden / masked rules to a dict using pre-loaded permissions.
+
+    No-ops when ``permissions`` is empty so unconfigured entities are
+    untouched. Pure function — safe to call from sync serializers.
+    """
+    if not permissions or not data:
+        return data
+    filtered: dict = {}
+    for key, value in data.items():
+        access = permissions.get(key)
+        if access == "hidden":
+            continue
+        if access == "masked" and value is not None:
+            filtered[key] = FieldPermissionService.mask_value(str(value), key)
+        else:
+            filtered[key] = value
+    return filtered
+
+
+# ContextVar set per request by ``prefetch_field_perms_dependency`` so
+# sync serializers can apply masking without taking new arguments.
+# Falls back to an empty dict outside a request scope (tests, jobs).
+_FIELD_PERMS_CV: ContextVar[dict[str, dict[str, str]]] = ContextVar(
+    "field_perms_cv", default={}
+)
+
+
+def get_request_field_perms(entity_type: str) -> dict[str, str]:
+    """Return the masking ruleset for ``entity_type`` in the current request."""
+    return _FIELD_PERMS_CV.get().get(entity_type, {})
+
+
+def apply_request_perms(data: dict, entity_type: str) -> dict:
+    """Apply request-scoped masking to a serializer's output dict."""
+    return apply_perms_sync(data, get_request_field_perms(entity_type))
+
+
+async def prefetch_field_perms_dependency(
+    db: AsyncSession,
+    role: str | None,
+) -> None:
+    """Pre-load all field permissions for ``role`` into the request CV.
+
+    Called from a FastAPI dependency at the route layer. Best-effort —
+    a DB hiccup leaves the CV empty (no masking) rather than failing
+    the request, since the rules are KVKK *masking* not auth: the
+    fail-closed alternative would block reads instead of just exposing
+    an unmasked value.
+    """
+    if not role:
+        _FIELD_PERMS_CV.set({})
+        return
+    try:
+        perms = await load_field_perms_for_role(db, role)
+    except Exception:
+        logger.exception("field_permission preload failed; serving unmasked")
+        perms = {}
+    _FIELD_PERMS_CV.set(perms)

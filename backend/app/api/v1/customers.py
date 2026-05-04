@@ -926,8 +926,14 @@ def _customer_to_dict(customer: Customer) -> dict:
     They are PII-grade and surface only via the dedicated KVKK
     admin endpoint so that audit logging and access controls can be
     applied at that boundary.
+
+    Field-level masking (R4-PERM-1) is applied via
+    ``apply_request_perms`` using the request-scoped permission CV
+    populated by ``get_current_user``.
     """
-    return {
+    from app.services.field_permission_service import apply_request_perms
+
+    data = {
         "id": customer.id,
         # Round-trip tenant_id so the frontend can verify isolation
         # and analytics layers can group correctly (audit CU-3).
@@ -954,3 +960,4 @@ def _customer_to_dict(customer: Customer) -> dict:
         "parent_id": getattr(customer, "parent_id", None),
         "territory_id": getattr(customer, "territory_id", None),
     }
+    return apply_request_perms(data, "customer")
