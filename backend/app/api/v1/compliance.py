@@ -24,6 +24,7 @@ from app.models.opportunity import Opportunity
 from app.models.quote import Quote
 from app.models.retention_policy import RetentionPolicy
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,10 @@ async def record_consent(
     customer = result.scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    # Cross-tenant access maps to 404 — KVKK endpoints must not leak
+    # cross-tenant existence and must not allow destructive ops on
+    # foreign-tenant customers.
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     now = datetime.now(timezone.utc)
     customer.kvkk_consent = body.consent
@@ -139,6 +144,10 @@ async def get_consent(
     customer = result.scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    # Cross-tenant access maps to 404 — KVKK endpoints must not leak
+    # cross-tenant existence and must not allow destructive ops on
+    # foreign-tenant customers.
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     return {
         "customer_id": customer.id,
@@ -173,6 +182,10 @@ async def export_customer_data(
     customer = result.scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    # Cross-tenant access maps to 404 — KVKK endpoints must not leak
+    # cross-tenant existence and must not allow destructive ops on
+    # foreign-tenant customers.
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     # Customer fields
     customer_data = {
@@ -295,6 +308,10 @@ async def anonymize_customer_data(
     customer = result.scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    # Cross-tenant access maps to 404 — KVKK endpoints must not leak
+    # cross-tenant existence and must not allow destructive ops on
+    # foreign-tenant customers.
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     if customer.deletion_requested_at is not None:
         raise BadRequestException("Bu musteri zaten anonimlestirilmis")
@@ -348,7 +365,9 @@ async def retention_report(
     now = datetime.now(timezone.utc)
 
     result = await db.execute(
-        select(Customer).where(
+        scoped_for_user(
+            select(Customer), current_user, column=Customer.tenant_id
+        ).where(
             Customer.data_retention_until < now,
             Customer.deletion_requested_at.is_(None),
         )
@@ -383,12 +402,14 @@ async def customer_audit_trail(
     db: AsyncSession = Depends(get_db),
 ):
     """Return all audit log entries related to a customer."""
-    # Verify customer exists
+    # Verify customer exists in this tenant.
     cust_result = await db.execute(
         select(Customer).where(Customer.id == customer_id)
     )
-    if not cust_result.scalar_one_or_none():
+    customer = cust_result.scalar_one_or_none()
+    if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     result = await db.execute(
         select(AuditLog)

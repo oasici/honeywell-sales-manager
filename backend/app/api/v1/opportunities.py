@@ -117,6 +117,9 @@ def _opp_to_dict(
 
     data = {
         "id": opp.id,
+        # tenant_id round-trips so the frontend can verify isolation and
+        # analytics layers can group without a re-query (round-4 R4-DTO-1).
+        "tenant_id": getattr(opp, "tenant_id", None),
         "title": opp.title,
         "stage": opp.stage,
         "amount": opp.amount,

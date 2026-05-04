@@ -29,6 +29,7 @@ from app.models.email_request import EmailRequest
 from app.models.enums import UserRole
 from app.models.opportunity import Opportunity
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
 
@@ -183,21 +184,38 @@ async def export_user_data(
     ).scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="Kullanici bulunamadi")
+    # Cross-tenant target maps to 404 (KVKK Article 15 must not leak
+    # cross-tenant existence).
+    assert_same_tenant(
+        user, current_user, exception_cls=lambda msg: HTTPException(status_code=404, detail=msg)
+    )
 
+    # All related-entity loads are tenant-scoped so a stale cross-tenant
+    # FK (e.g., a user moved between tenants) cannot leak data either.
     audit_events = (
         await db.execute(
-            select(AuditLog)
+            scoped_for_user(
+                select(AuditLog), current_user, column=AuditLog.tenant_id
+            )
             .where(AuditLog.user_id == target_user_id)
             .order_by(AuditLog.created_at.desc())
         )
     ).scalars().all()
 
     created_customers = (
-        await db.execute(select(Customer).where(Customer.created_by == target_user_id))
+        await db.execute(
+            scoped_for_user(
+                select(Customer), current_user, column=Customer.tenant_id
+            ).where(Customer.created_by == target_user_id)
+        )
     ).scalars().all()
 
     owned_opportunities = (
-        await db.execute(select(Opportunity).where(Opportunity.owner_id == target_user_id))
+        await db.execute(
+            scoped_for_user(
+                select(Opportunity), current_user, column=Opportunity.tenant_id
+            ).where(Opportunity.owner_id == target_user_id)
+        )
     ).scalars().all()
 
     # Email requests aren't directly owned by a user, but if the user's

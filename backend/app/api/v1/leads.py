@@ -565,6 +565,9 @@ async def rescore_lead(
 def _lead_to_dict(lead: Lead) -> dict:
     return {
         "id": lead.id,
+        # tenant_id round-trips per the round-4 standardisation
+        # (R4-DTO-2). Lead model already declares it.
+        "tenant_id": getattr(lead, "tenant_id", None),
         "first_name": lead.first_name,
         "last_name": lead.last_name,
         "full_name": f"{lead.first_name} {lead.last_name}",

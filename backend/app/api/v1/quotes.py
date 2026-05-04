@@ -242,10 +242,14 @@ async def update_quote(
     db: AsyncSession = Depends(get_db),
 ):
     """Update quote header and items."""
-    # Ownership check
+    # Tenant guard (audit R4-TEN-1). Round-3 hardened approve/send;
+    # update was missed and managers from tenant A could otherwise
+    # overwrite any tenant B quote since the role check short-circuits
+    # the ownership branch for SALES_MANAGER.
     existing = (await db.execute(select(Quote).where(Quote.id == quote_id))).scalar_one_or_none()
     if not existing:
         raise NotFoundException("Teklif bulunamadi")
+    assert_same_tenant(existing, current_user, exception_cls=NotFoundException)
     if current_user.role != UserRole.SALES_MANAGER.value and existing.created_by != current_user.id:
         raise ForbiddenException("Bu teklifi guncelleme yetkiniz yok")
 
@@ -451,6 +455,10 @@ async def download_quote_pdf(
     quote = result.scalar_one_or_none()
     if not quote:
         raise NotFoundException("Teklif bulunamadi")
+    # Tenant guard (audit R4-TEN-1) — manager-bypass on the
+    # ownership branch would otherwise leak tenant B's PDF to a
+    # tenant A manager.
+    assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
 
     # Authorization: only creator or manager can download
     if quote.created_by != current_user.id and current_user.role != UserRole.SALES_MANAGER.value:
@@ -508,6 +516,8 @@ async def convert_quote_currency(
     quote = result.scalar_one_or_none()
     if not quote:
         raise NotFoundException("Teklif bulunamadi")
+    # Tenant guard (audit R4-TEN-1).
+    assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
 
     if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
         raise ForbiddenException("Bu teklifi guncelleme yetkiniz yok")
@@ -560,11 +570,16 @@ async def get_quote_versions(
     quote = result.scalar_one_or_none()
     if not quote:
         raise NotFoundException("Teklif bulunamadi")
+    # Tenant guard on the entry point AND on every walk step — a
+    # malicious parent_quote_id pointing across tenants would otherwise
+    # leak the chain.
+    assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
 
     if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
         raise ForbiddenException("Bu teklife erisim yetkiniz yok")
 
-    # Walk up to root
+    # Walk up to root — every load is tenant-scoped so a cross-tenant
+    # FK chain stops at the boundary instead of leaking siblings.
     root_id = quote.id
     current = quote
     visited = {current.id}
@@ -573,7 +588,9 @@ async def get_quote_versions(
             break
         visited.add(current.parent_quote_id)
         parent_result = await db.execute(
-            select(Quote).where(Quote.id == current.parent_quote_id)
+            scoped_for_user(
+                select(Quote), current_user, column=Quote.tenant_id
+            ).where(Quote.id == current.parent_quote_id)
         )
         parent = parent_result.scalar_one_or_none()
         if not parent:
@@ -581,7 +598,7 @@ async def get_quote_versions(
         root_id = parent.id
         current = parent
 
-    # Get all quotes in chain starting from root
+    # Get all quotes in chain starting from root (tenant-scoped).
     all_quotes = []
     queue = [root_id]
     seen = set()
@@ -590,13 +607,19 @@ async def get_quote_versions(
         if qid in seen:
             continue
         seen.add(qid)
-        q_result = await db.execute(select(Quote).where(Quote.id == qid))
+        q_result = await db.execute(
+            scoped_for_user(
+                select(Quote), current_user, column=Quote.tenant_id
+            ).where(Quote.id == qid)
+        )
         q = q_result.scalar_one_or_none()
         if q:
             all_quotes.append(q)
-            # Find children
+            # Find children (also tenant-scoped).
             children_result = await db.execute(
-                select(Quote.id).where(Quote.parent_quote_id == qid)
+                scoped_for_user(
+                    select(Quote.id), current_user, column=Quote.tenant_id
+                ).where(Quote.parent_quote_id == qid)
             )
             for (child_id,) in children_result.all():
                 queue.append(child_id)

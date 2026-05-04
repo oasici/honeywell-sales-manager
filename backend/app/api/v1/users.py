@@ -16,6 +16,7 @@ from app.core.rate_limit import enforce_upload_rate_limit
 from app.core.security import hash_password, validate_password_strength
 from app.models.enums import UserRole
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -38,13 +39,15 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
 ):
     """List all users with pagination (sales_manager only)."""
-    count_query = select(func.count(User.id))
+    count_query = scoped_for_user(
+        select(func.count(User.id)), current_user, column=User.tenant_id
+    )
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
     offset = (page - 1) * page_size
     main_query = (
-        select(User)
+        scoped_for_user(select(User), current_user, column=User.tenant_id)
         .order_by(User.created_at.desc())
         .offset(offset)
         .limit(page_size)
@@ -72,14 +75,20 @@ async def toggle_user_active(
     user = result.scalar_one_or_none()
     if not user:
         raise NotFoundException("Kullanici bulunamadi")
+    # Cross-tenant access maps to 404 to avoid ID enumeration leaks.
+    assert_same_tenant(user, current_user, exception_cls=NotFoundException)
 
     if user.id == current_user.id:
         raise BadRequestException("Kendi hesabinizi deaktif edemezsiniz")
 
-    # Prevent deactivating the last active manager
+    # Prevent deactivating the last active manager (within this tenant).
     if user.is_active and user.role == UserRole.SALES_MANAGER.value:
         manager_count = await db.execute(
-            select(func.count(User.id)).where(
+            scoped_for_user(
+                select(func.count(User.id)),
+                current_user,
+                column=User.tenant_id,
+            ).where(
                 User.role == UserRole.SALES_MANAGER.value,
                 User.is_active.is_(True),
                 User.id != user_id,
@@ -112,14 +121,19 @@ async def change_user_role(
     user = result.scalar_one_or_none()
     if not user:
         raise NotFoundException("Kullanici bulunamadi")
+    assert_same_tenant(user, current_user, exception_cls=NotFoundException)
 
     if user.id == current_user.id:
         raise BadRequestException("Kendi rolunuzu degistiremezsiniz")
 
-    # Prevent demoting the last manager
+    # Prevent demoting the last manager (within this tenant).
     if user.role == UserRole.SALES_MANAGER.value and data.role != UserRole.SALES_MANAGER.value:
         manager_count = await db.execute(
-            select(func.count(User.id)).where(
+            scoped_for_user(
+                select(func.count(User.id)),
+                current_user,
+                column=User.tenant_id,
+            ).where(
                 User.role == UserRole.SALES_MANAGER.value,
                 User.is_active.is_(True),
                 User.id != user_id,
@@ -151,6 +165,7 @@ async def reset_user_password(
     user = result.scalar_one_or_none()
     if not user:
         raise NotFoundException("Kullanici bulunamadi")
+    assert_same_tenant(user, current_user, exception_cls=NotFoundException)
 
     user.hashed_password = hash_password(data.new_password)
     user.password_change_required = False
@@ -230,8 +245,14 @@ async def bulk_import_users(
             })
             continue
 
-        # Check for duplicate
-        existing = await db.execute(select(User.id).where(User.email == email))
+        # Check for duplicate (within tenant; emails are scoped per-tenant).
+        existing = await db.execute(
+            scoped_for_user(
+                select(User.id),
+                current_user,
+                column=User.tenant_id,
+            ).where(User.email == email)
+        )
         if existing.scalar_one_or_none() is not None:
             skipped += 1
             continue
@@ -242,6 +263,7 @@ async def bulk_import_users(
             role=role,
             hashed_password=hash_password(password),
             is_active=True,
+            tenant_id=getattr(current_user, "tenant_id", None),
         )
         db.add(user)
         imported += 1
