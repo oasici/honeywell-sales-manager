@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { onInvoiceStatusChanged } from '../../lib/cacheInvalidation';
 import { Send, CheckCircle, Clock, Ban, PenLine } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -70,8 +71,13 @@ export default function InvoiceDetailPage() {
     mutationFn: (status: string) => invoicesApi.updateStatus(invoiceId, status),
     onSuccess: () => {
       toast.success(t('invoices.toast_status_updated'));
-      queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      // R4-CACHE-106 — paid → contract.actual_revenue + rev-rec
+      // schedules + cockpit need refresh, not just invoice list.
+      onInvoiceStatusChanged(
+        queryClient,
+        invoiceId,
+        invoice?.contract_id ?? null,
+      );
     },
     onError: () => toast.error(t('invoices.toast_status_failed')),
   });

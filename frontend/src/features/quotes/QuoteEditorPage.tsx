@@ -9,6 +9,7 @@ import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { quotesApi, customersApi, partsApi, documentsApi } from '../../lib/api';
+import { onQuoteStatusChanged } from '../../lib/cacheInvalidation';
 import BundleSelectorModal from './BundleSelectorModal';
 import GuidedSellingWizard from './GuidedSellingWizard';
 import QuoteComparisonModal from './QuoteComparisonModal';
@@ -127,7 +128,9 @@ export default function QuoteEditorPage() {
     mutationFn: () => quotesApi.approveQuote(quoteId!),
     onSuccess: () => {
       toast.success(t('quotes.editor_toast_approved'));
-      queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
+      // R4-CACHE-102 — list + notifications + linked opportunity
+      // timeline all need to refresh, not just the detail.
+      onQuoteStatusChanged(queryClient, quoteId!, quote?.opportunity_id ?? null);
     },
     onError: () => toast.error(t('quotes.editor_toast_approve_failed')),
   });
@@ -136,7 +139,7 @@ export default function QuoteEditorPage() {
     mutationFn: () => quotesApi.sendQuote(quoteId!),
     onSuccess: () => {
       toast.success(t('quotes.editor_toast_sent'));
-      queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
+      onQuoteStatusChanged(queryClient, quoteId!, quote?.opportunity_id ?? null);
     },
     onError: () => toast.error(t('quotes.editor_toast_send_failed')),
   });

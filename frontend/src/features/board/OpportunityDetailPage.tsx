@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { onOpportunityChanged } from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { Calendar } from 'lucide-react';
 import {
@@ -420,8 +421,10 @@ export default function OpportunityDetailPage() {
     onSuccess: () => {
       toast.success(t('opp_detail.pipeline_stage_applied'));
       setPipelineSuggestion(null);
-      queryClient.invalidateQueries({ queryKey: ['opportunity-intelligence', oppId] });
-      queryClient.invalidateQueries({ queryKey: ['opportunity-timeline', oppId] });
+      // R4-CACHE-101 — full opportunity-changed sweep so the kanban
+      // card, AI cards, decision-gaps, and cockpit rollups all stay
+      // in sync with the new stage.
+      onOpportunityChanged(queryClient, oppId);
     },
     onError: () => toast.error(t('settings.operation_failed')),
   });
@@ -436,7 +439,12 @@ export default function OpportunityDetailPage() {
     mutationFn: (payload: Record<string, unknown>) => forecastApi.createAdjustment(payload),
     onSuccess: () => {
       toast.success(t('opp_detail.toast_forecast_saved'));
+      // R4-CACHE-110 — adjustments roll up into cockpit / dashboard /
+      // forecast widgets, not just this one card.
       queryClient.invalidateQueries({ queryKey: ['forecast-adjustments', oppId] });
+      queryClient.invalidateQueries({ queryKey: ['cockpit'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['forecast-wow'] });
       setAdjForm({ new_amount: '', new_category: 'pipeline', reason: '' });
     },
   });

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { activitiesApi } from '../../lib/api';
+import { onActivityLogged } from '../../lib/cacheInvalidation';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { useT } from '../../hooks/useT';
@@ -58,10 +59,9 @@ export default function QuickActivityModal({
     mutationFn: (payload: Record<string, unknown>) => activitiesApi.log(payload),
     onSuccess: () => {
       toast.success(t('activity.toast_saved'));
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
-      if (opportunityId) {
-        queryClient.invalidateQueries({ queryKey: ['opportunity-timeline', opportunityId] });
-      }
+      // R4-CACHE-112 — activity propagates to customer.last_activity_at,
+      // opportunity rotting counters, and revenue_signal stream.
+      onActivityLogged(queryClient, opportunityId ?? null, customerId ?? null);
       handleClose();
     },
     onError: () => {

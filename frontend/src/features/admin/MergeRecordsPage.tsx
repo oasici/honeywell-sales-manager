@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { onRecordsMerged } from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -158,6 +159,7 @@ export default function MergeRecordsPage() {
     loserId: string;
   }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery<{ data: MergePreviewData }>({
@@ -180,6 +182,11 @@ export default function MergeRecordsPage() {
       }),
     onSuccess: () => {
       toast.success('Kayıtlar başarıyla birleştirildi');
+      // R4-CACHE-105 — full sweep. The loser id is referenced from
+      // many caches (lists, detail pages, activity timelines) and a
+      // merge is rare enough that a global invalidate is cheaper than
+      // enumerating every key.
+      onRecordsMerged(queryClient);
       navigate(`/customers/${winnerId}`);
     },
     onError: () => {

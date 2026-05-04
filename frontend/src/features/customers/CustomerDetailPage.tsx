@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { onCustomerChanged } from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -255,7 +256,9 @@ export default function CustomerDetailPage() {
     onSuccess: () => {
       toast.success(t('customer_detail.toast_updated'));
       setEditing(false);
-      queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
+      // R4-CACHE-107 — list, search, account-360, intelligence cards
+      // all carry the customer name/profile. Full sweep.
+      onCustomerChanged(queryClient, customerId);
     },
     onError: () => toast.error(t('customer_detail.toast_update_failed')),
   });
@@ -264,7 +267,9 @@ export default function CustomerDetailPage() {
     mutationFn: () => customersApi.enrich(customerId),
     onSuccess: () => {
       toast.success(t('customer_detail.toast_enriched'));
-      queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
+      // R4-CACHE-108 — Account 360 / Intelligence cards on the same
+      // page show stale "no data" otherwise.
+      onCustomerChanged(queryClient, customerId);
     },
     onError: () => toast.error(t('customer_detail.toast_enrich_failed')),
   });

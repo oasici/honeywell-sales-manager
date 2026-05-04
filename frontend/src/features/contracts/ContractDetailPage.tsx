@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { onContractChanged } from '../../lib/cacheInvalidation';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -51,7 +52,8 @@ export default function ContractDetailPage() {
     mutationFn: () => contractsApi.activate(contractId),
     onSuccess: () => {
       toast.success(t('contracts.toast_activated'));
-      queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
+      // R4-CACHE-5 — list page also needs to refresh, not just detail.
+      onContractChanged(queryClient, contractId);
     },
     onError: () => toast.error(t('contracts.toast_activate_failed')),
   });
@@ -60,7 +62,7 @@ export default function ContractDetailPage() {
     mutationFn: (payload: Record<string, unknown>) => contractsApi.amend(contractId, payload),
     onSuccess: () => {
       toast.success(t('contracts.toast_amend_added'));
-      queryClient.invalidateQueries({ queryKey: ['contract', contractId] });
+      onContractChanged(queryClient, contractId);
       setIsAmendOpen(false);
       setAmendType('modification');
       setAmendChanges('');

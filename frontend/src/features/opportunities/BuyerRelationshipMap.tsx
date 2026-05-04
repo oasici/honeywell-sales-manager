@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { stakeholdersApi } from '../../lib/api';
+import { onStakeholderChanged } from '../../lib/cacheInvalidation';
 import type { Stakeholder, StakeholderAlert } from '../../lib/types';
 import { AlertTriangle, CheckCircle, Info, Plus, ShieldAlert, Trash2, User, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -60,8 +61,9 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
   const deleteMutation = useMutation({
     mutationFn: (id: number) => stakeholdersApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stakeholders', opportunityId] });
-      queryClient.invalidateQueries({ queryKey: ['stakeholder-alerts', opportunityId] });
+      // R4-CACHE-111 — stakeholder count is a feature input to deal-
+      // risk / decision-gap / benchmark cards.
+      onStakeholderChanged(queryClient, opportunityId);
       toast.success('Paydas silindi');
     },
   });

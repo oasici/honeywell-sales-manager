@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { onLeadConverted, onLeadScoreChanged } from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -150,7 +151,9 @@ export default function LeadDetailPage() {
     mutationFn: (payload: Record<string, unknown>) => leadsApi.update(leadId, payload),
     onSuccess: () => {
       toast.success(t('leads.toast_updated'));
+      // R4-CACHE-2: list page also needs to refresh after edit.
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 
@@ -159,7 +162,9 @@ export default function LeadDetailPage() {
     onSuccess: (data: { customer_id?: number; opportunity_id?: number }) => {
       toast.success(t('leads.toast_converted'));
       setShowConvert(false);
-      queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      // R4-CACHE-103 — converting creates a Customer + Opportunity and
+      // marks the Lead converted. Every related list needs refresh.
+      onLeadConverted(queryClient, leadId);
       if (data.customer_id) {
         navigate(`/customers/${data.customer_id}`);
       }
@@ -175,7 +180,8 @@ export default function LeadDetailPage() {
     mutationFn: () => leadsApi.rescore(leadId),
     onSuccess: () => {
       toast.success(t('leads.toast_rescored'));
-      queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      // R4-CACHE-104 — score column on list shows stale value otherwise.
+      onLeadScoreChanged(queryClient, leadId);
     },
   });
 
