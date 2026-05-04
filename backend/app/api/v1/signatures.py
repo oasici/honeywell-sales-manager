@@ -13,11 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.exceptions import NotFoundException
 from app.models.contract import Contract
 from app.models.invoice import Invoice
 from app.models.quote import Quote
 from app.models.signature import SignatureRequest
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/signatures", tags=["E-Signatures"])
 
@@ -51,6 +53,7 @@ class SignatureSubmit(BaseModel):
 def _sig_to_dict(sig: SignatureRequest) -> dict:
     return {
         "id": sig.id,
+        "tenant_id": getattr(sig, "tenant_id", None),
         "document_type": sig.document_type,
         "document_id": sig.document_id,
         "signer_email": sig.signer_email,
@@ -78,14 +81,31 @@ async def _get_sig_or_404(token: str, db: AsyncSession) -> SignatureRequest:
 
 
 async def _load_document_summary(
-    document_type: str, document_id: int, db: AsyncSession
+    document_type: str,
+    document_id: int,
+    db: AsyncSession,
+    *,
+    current_user: User | None = None,
+    sig: SignatureRequest | None = None,
 ) -> dict:
-    """Return a minimal summary of the referenced document."""
+    """Return a minimal summary of the referenced document.
+
+    Round-4 R4-TEN-9: when ``current_user`` is provided (authenticated
+    callers) we enforce same-tenant access on the loaded doc. When
+    ``sig`` is provided (public sign callback path) we additionally
+    require the SignatureRequest's tenant_id to match the doc's
+    tenant_id, preventing a leaked signing token from referencing a
+    foreign-tenant document.
+    """
     if document_type == "quote":
         result = await db.execute(select(Quote).where(Quote.id == document_id))
         doc = result.scalar_one_or_none()
         if not doc:
             return {"document_type": "quote", "document_id": document_id, "found": False}
+        if current_user is not None:
+            assert_same_tenant(doc, current_user, exception_cls=NotFoundException)
+        if sig is not None:
+            _assert_sig_doc_tenant_match(sig, doc)
         return {
             "document_type": "quote",
             "document_id": document_id,
@@ -99,6 +119,10 @@ async def _load_document_summary(
         doc = result.scalar_one_or_none()
         if not doc:
             return {"document_type": "contract", "document_id": document_id, "found": False}
+        if current_user is not None:
+            assert_same_tenant(doc, current_user, exception_cls=NotFoundException)
+        if sig is not None:
+            _assert_sig_doc_tenant_match(sig, doc)
         return {
             "document_type": "contract",
             "document_id": document_id,
@@ -113,6 +137,10 @@ async def _load_document_summary(
         doc = result.scalar_one_or_none()
         if not doc:
             return {"document_type": "invoice", "document_id": document_id, "found": False}
+        if current_user is not None:
+            assert_same_tenant(doc, current_user, exception_cls=NotFoundException)
+        if sig is not None:
+            _assert_sig_doc_tenant_match(sig, doc)
         return {
             "document_type": "invoice",
             "document_id": document_id,
@@ -127,22 +155,58 @@ async def _load_document_summary(
     raise HTTPException(status_code=400, detail="Unknown document type")
 
 
+def _assert_sig_doc_tenant_match(sig: SignatureRequest, doc) -> None:
+    """Round-4 R4-TEN-9: public sign callback guard.
+
+    Both the SignatureRequest and the underlying document must belong
+    to the same tenant. If either side has tenant_id == None we treat
+    it as same-tenant (single-tenant deployment) — same tolerant
+    semantics as ``is_cross_tenant``. A mismatch maps to 404 so a
+    leaked token can't disclose the existence of a foreign-tenant doc.
+    """
+    sig_tenant = getattr(sig, "tenant_id", None)
+    doc_tenant = getattr(doc, "tenant_id", None)
+    if sig_tenant is None or doc_tenant is None:
+        return
+    if sig_tenant != doc_tenant:
+        raise NotFoundException("Not found")
+
+
 async def _apply_document_status_update(
-    document_type: str, document_id: int, db: AsyncSession
+    document_type: str,
+    document_id: int,
+    db: AsyncSession,
+    *,
+    current_user: User | None = None,
+    sig: SignatureRequest | None = None,
 ) -> None:
-    """Update the referenced document's status after a successful signature."""
+    """Update the referenced document's status after a successful signature.
+
+    Round-4 R4-TEN-9: same tenant guard as ``_load_document_summary``.
+    A signed callback must not be able to mutate a foreign-tenant doc
+    even if the signer used the right token (either the token leaked
+    or two tenants happened to mint colliding document ids).
+    """
     now = datetime.now(timezone.utc)
 
     if document_type == "quote":
         result = await db.execute(select(Quote).where(Quote.id == document_id))
         doc = result.scalar_one_or_none()
         if doc:
+            if current_user is not None:
+                assert_same_tenant(doc, current_user, exception_cls=NotFoundException)
+            if sig is not None:
+                _assert_sig_doc_tenant_match(sig, doc)
             doc.status = "accepted"
 
     elif document_type == "contract":
         result = await db.execute(select(Contract).where(Contract.id == document_id))
         doc = result.scalar_one_or_none()
         if doc:
+            if current_user is not None:
+                assert_same_tenant(doc, current_user, exception_cls=NotFoundException)
+            if sig is not None:
+                _assert_sig_doc_tenant_match(sig, doc)
             doc.status = "active"
             doc.signed_at = now
 
@@ -150,6 +214,10 @@ async def _apply_document_status_update(
         result = await db.execute(select(Invoice).where(Invoice.id == document_id))
         doc = result.scalar_one_or_none()
         if doc:
+            if current_user is not None:
+                assert_same_tenant(doc, current_user, exception_cls=NotFoundException)
+            if sig is not None:
+                _assert_sig_doc_tenant_match(sig, doc)
             doc.status = "paid"
 
 
@@ -170,12 +238,24 @@ async def create_signature_request(
             detail=f"Gecersiz belge tipi. Kabul edilenler: {', '.join(VALID_DOCUMENT_TYPES)}",
         )
 
+    # Round-4 R4-TEN-9: load + tenant-check the referenced doc before
+    # we even create a SignatureRequest pointing at it. Otherwise a
+    # caller could create a pending sig referencing any document id.
+    model_map = {"quote": Quote, "contract": Contract, "invoice": Invoice}
+    model = model_map[body.document_type]
+    doc_result = await db.execute(select(model).where(model.id == body.document_id))
+    target_doc = doc_result.scalar_one_or_none()
+    if target_doc is None:
+        raise NotFoundException("Not found")
+    assert_same_tenant(target_doc, current_user, exception_cls=NotFoundException)
+
     sig = SignatureRequest(
         document_type=body.document_type,
         document_id=body.document_id,
         signer_email=body.signer_email,
         signer_name=body.signer_name,
         created_by=current_user.id,
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(sig)
     await db.commit()
@@ -200,11 +280,17 @@ async def list_signature_requests(
     """List signature requests created by the current user."""
     from sqlalchemy import func
 
-    query = (
+    base_stmt = (
         select(SignatureRequest)
         .where(SignatureRequest.created_by == current_user.id)
-        .order_by(SignatureRequest.created_at.desc())
     )
+    # Round-4 R4-TEN-9: defence-in-depth — even within the user's own
+    # rows, narrow to their tenant in case a row was created before
+    # tenant_id existed.
+    base_stmt = scoped_for_user(
+        base_stmt, current_user, column=SignatureRequest.tenant_id
+    )
+    query = base_stmt.order_by(SignatureRequest.created_at.desc())
 
     count_result = await db.execute(
         select(func.count()).select_from(query.subquery())
@@ -236,6 +322,7 @@ async def get_signature_request(
     sig = result.scalar_one_or_none()
     if not sig:
         raise HTTPException(status_code=404, detail="Imza talebi bulunamadi")
+    assert_same_tenant(sig, current_user, exception_cls=NotFoundException)
     return _sig_to_dict(sig)
 
 
@@ -253,6 +340,7 @@ async def cancel_signature_request(
     sig = result.scalar_one_or_none()
     if not sig:
         raise HTTPException(status_code=404, detail="Imza talebi bulunamadi")
+    assert_same_tenant(sig, current_user, exception_cls=NotFoundException)
     if sig.status != "pending":
         raise HTTPException(
             status_code=400,
@@ -294,7 +382,9 @@ async def get_signing_page(
         sig.status = "viewed"
         await db.commit()
 
-    document_summary = await _load_document_summary(sig.document_type, sig.document_id, db)
+    document_summary = await _load_document_summary(
+        sig.document_type, sig.document_id, db, sig=sig,
+    )
 
     return {
         "id": sig.id,
@@ -342,7 +432,9 @@ async def submit_signature(
     if body.signer_name:
         sig.signer_name = body.signer_name
 
-    await _apply_document_status_update(sig.document_type, sig.document_id, db)
+    await _apply_document_status_update(
+        sig.document_type, sig.document_id, db, sig=sig,
+    )
     await db.commit()
 
     return {

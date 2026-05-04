@@ -36,7 +36,24 @@ from app.services.dedupe_service import upsert_opportunity_signal, upsert_task
 from app.models.quote import Quote
 from app.models.user import User
 from app.services.audit_service import log_action
+from app.services.tenant_context import assert_same_tenant, is_cross_tenant
 from app.api.v1.opportunities import _last_activity_max_by_opportunity_ids, _opportunity_staleness_days
+
+
+def _assert_or_404(record, current_user, *, message: str) -> None:
+    """R4-TEN-24 — guard rail for AI helpers that load records by id.
+
+    The AI endpoints below feed loaded entities (Customer, Opportunity,
+    EmailRequest) directly into Claude prompts. A missing tenant check
+    here would let a manager from tenant A trigger AI generation
+    against tenant B's data and exfiltrate the response. We collapse
+    cross-tenant probes to the same 404 the "doesn't exist" branch
+    raises so this surface can't be used for tenant enumeration either.
+    """
+    try:
+        assert_same_tenant(record, current_user, exception_cls=NotFoundException)
+    except NotFoundException:
+        raise NotFoundException(message)
 
 logger = logging.getLogger(__name__)
 
@@ -488,6 +505,7 @@ async def meeting_prep(
     ).scalar_one_or_none()
     if not cust:
         raise NotFoundException("Musteri bulunamadi")
+    _assert_or_404(cust, current_user, message="Musteri bulunamadi")
 
     from app.services.account_aggregate_service import AccountAggregateService
     from app.services.summary_service import redact_pii
@@ -545,6 +563,7 @@ async def suggest_pipeline_update(
     opp = (await db.execute(select(Opportunity).where(Opportunity.id == body.opportunity_id))).scalar_one_or_none()
     if not opp:
         raise NotFoundException("Firsat bulunamadi")
+    _assert_or_404(opp, current_user, message="Firsat bulunamadi")
 
     last_activity_map = await _last_activity_max_by_opportunity_ids(db, [opp.id])
     last_activity_at = last_activity_map.get(opp.id)
@@ -664,7 +683,11 @@ async def extract_signals(
 
     if body.email_id:
         email = (await db.execute(select(EmailRequest).where(EmailRequest.id == body.email_id))).scalar_one_or_none()
-        if email:
+        # R4-TEN-24: drop the email row when it belongs to a different
+        # tenant. We swallow the cross-tenant attempt instead of raising
+        # so this endpoint behaves the same as the existing "email not
+        # found" path (which also returns the empty-signals response).
+        if email and not is_cross_tenant(email, current_user):
             texts.append(f"{email.subject or ''} {email.body_text or ''}")
             if not opp_id and email.opportunity_id:
                 opp_id = email.opportunity_id
@@ -672,7 +695,10 @@ async def extract_signals(
     if opp_id and not texts:
         # Get recent emails linked to this opportunity's customer
         opp = (await db.execute(select(Opportunity).where(Opportunity.id == opp_id))).scalar_one_or_none()
-        if opp and opp.customer_id:
+        # R4-TEN-24: drop the opp when cross-tenant; skip the customer
+        # email enumeration entirely so we don't fan out to foreign-
+        # tenant rows via the customer_id back-reference.
+        if opp and not is_cross_tenant(opp, current_user) and opp.customer_id:
             emails = (await db.execute(
                 select(EmailRequest).where(EmailRequest.customer_id == opp.customer_id)
                 .order_by(EmailRequest.created_at.desc()).limit(10)
@@ -1139,6 +1165,13 @@ async def draft_email_reply(
         email = email_result.scalar_one_or_none()
         if not email:
             raise HTTPException(status_code=404, detail="Email not found")
+        # R4-TEN-24: hard-block cross-tenant draft generation. Same 404
+        # response as "email not found" so the API can't be used to
+        # enumerate which email IDs exist in foreign tenants.
+        try:
+            assert_same_tenant(email, current_user, exception_cls=NotFoundException)
+        except NotFoundException:
+            raise HTTPException(status_code=404, detail="Email not found")
         context_parts.append(f"Original email subject: {email.subject}")
         context_parts.append(f"From: {email.from_address}")
         context_parts.append(f"Body:\n{(email.body_text or '')[:2000]}")
@@ -1148,7 +1181,13 @@ async def draft_email_reply(
                 select(Customer).where(Customer.id == email.customer_id)
             )
             customer = cust_result.scalar_one_or_none()
-            if customer:
+            # R4-TEN-24: even when the email passed the tenant check, the
+            # cross-loaded customer_id is just an integer on the email row
+            # and could in theory point at a foreign-tenant Customer (data
+            # corruption, manual edit, etc). Assert against the requesting
+            # user, not the email, so the AI prompt can never include
+            # cross-tenant customer data.
+            if customer and not is_cross_tenant(customer, current_user):
                 context_parts.append(f"Customer: {customer.name} ({customer.company})")
 
     if body.template_context:

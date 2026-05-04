@@ -37,6 +37,7 @@ from app.models.user import User
 from app.models.v5_network import NetworkAnomaly
 from app.models.v5_objection import Objection
 from app.models.v5_similarity import RepDnaProfile
+from app.core.exceptions import NotFoundException
 from app.services import (
     benchmark_gap_service,
     deal_similarity_service,
@@ -44,6 +45,7 @@ from app.services import (
     objection_intelligence_service,
     timing_engine_service,
 )
+from app.services.tenant_context import assert_same_tenant
 
 
 router = APIRouter(prefix="/v5", tags=["V5 Intelligence"])
@@ -54,10 +56,24 @@ def _require_v5():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-async def _load_opportunity(db: AsyncSession, opp_id: int) -> Opportunity:
+async def _load_opportunity(
+    db: AsyncSession, opp_id: int, current_user: User | None = None
+) -> Opportunity:
+    """Load Opportunity by id, raising 404 when missing OR cross-tenant.
+
+    R4-TEN-21: every read path that loads an Opportunity by user-supplied
+    id must assert tenant equality before returning the row. We map both
+    "doesn't exist" and "exists in another tenant" to the same 404 so we
+    don't leak which IDs exist in foreign tenants.
+    """
     opp = await db.get(Opportunity, opp_id)
     if opp is None:
         raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
+    if current_user is not None:
+        try:
+            assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+        except NotFoundException:
+            raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
     return opp
 
 
@@ -89,7 +105,7 @@ async def get_benchmark_gap(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v5),
 ):
-    opp = await _load_opportunity(db, opportunity_id)
+    opp = await _load_opportunity(db, opportunity_id, current_user)
     _opp_rbac_guard(current_user, opp)
     return await benchmark_gap_service.score_opportunity(db, opportunity_id)
 
@@ -104,7 +120,7 @@ async def list_timing_windows(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v5),
 ):
-    opp = await _load_opportunity(db, opportunity_id)
+    opp = await _load_opportunity(db, opportunity_id, current_user)
     _opp_rbac_guard(current_user, opp)
     rows = await timing_engine_service.list_active_windows(
         db, opportunity_id=opportunity_id
@@ -135,7 +151,7 @@ async def mark_timing_window_done(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v5),
 ):
-    opp = await _load_opportunity(db, opportunity_id)
+    opp = await _load_opportunity(db, opportunity_id, current_user)
     _opp_rbac_guard(current_user, opp)
     win = await timing_engine_service.mark_window_done(db, window_id=window_id)
     if win is None:
@@ -166,7 +182,7 @@ async def list_objections(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v5),
 ):
-    opp = await _load_opportunity(db, opportunity_id)
+    opp = await _load_opportunity(db, opportunity_id, current_user)
     _opp_rbac_guard(current_user, opp)
 
     stmt = select(Objection).where(Objection.opportunity_id == opportunity_id)
@@ -200,7 +216,7 @@ async def detect_objections(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v5),
 ):
-    opp = await _load_opportunity(db, opportunity_id)
+    opp = await _load_opportunity(db, opportunity_id, current_user)
     _opp_rbac_guard(current_user, opp)
     # V7: hybrid path — keyword first, LLM augments when text is long
     # or keyword found nothing. Falls back transparently when the V7
@@ -244,7 +260,10 @@ async def record_resolution(
     obj = await db.get(Objection, objection_id)
     if obj is None:
         raise HTTPException(status_code=404, detail="Objection bulunamadı")
-    opp = await _load_opportunity(db, obj.opportunity_id)
+    # R4-TEN-21: Objection has no tenant_id of its own; chain through the
+    # parent Opportunity so cross-tenant probes by objection id surface
+    # as 404 indistinguishable from "doesn't exist".
+    opp = await _load_opportunity(db, obj.opportunity_id, current_user)
     _opp_rbac_guard(current_user, opp)
 
     action = await objection_intelligence_service.record_resolution_action(
@@ -274,7 +293,7 @@ async def list_similar(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v5),
 ):
-    opp = await _load_opportunity(db, opportunity_id)
+    opp = await _load_opportunity(db, opportunity_id, current_user)
     _opp_rbac_guard(current_user, opp)
     items = await deal_similarity_service.list_similar(
         db, opportunity_id=opportunity_id, limit=limit
@@ -362,6 +381,19 @@ async def get_rep_dna(
         and int(current_user.id) != rep_id
     ):
         raise HTTPException(status_code=403, detail="Yetkisiz")
+
+    # R4-TEN-21: rep_dna_profiles has no tenant_id; chain through the
+    # parent User row. Cross-tenant probes (manager from tenant A asking
+    # for tenant B's rep DNA) get the same response shape as "no profile
+    # generated yet" so we never leak which user ids exist elsewhere.
+    rep_user = await db.get(User, rep_id)
+    if rep_user is None:
+        return {"rep_id": rep_id, "profile": None}
+    try:
+        assert_same_tenant(rep_user, current_user, exception_cls=NotFoundException)
+    except NotFoundException:
+        return {"rep_id": rep_id, "profile": None}
+
     profile = await db.get(RepDnaProfile, rep_id)
     if profile is None:
         return {"rep_id": rep_id, "profile": None}

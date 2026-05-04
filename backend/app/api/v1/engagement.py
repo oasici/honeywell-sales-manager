@@ -28,6 +28,7 @@ from app.models.enums import UserRole
 from app.models.opportunity import Opportunity, OpportunitySignal
 from app.models.quote import Quote
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Engagement"])
@@ -331,12 +332,18 @@ async def list_sequences(
     (audit A-11). The legacy ``sequences`` key is retained for one
     release of back-compat.
     """
-    seqs = (
-        await db.execute(select(Sequence).where(Sequence.is_active.is_(True)))
-    ).scalars().all()
+    # Round-4 R4-TEN-13 — scope sequences to caller tenant.
+    seq_stmt = scoped_for_user(
+        select(Sequence).where(Sequence.is_active.is_(True)),
+        current_user,
+        column=Sequence.tenant_id,
+    )
+    seqs = (await db.execute(seq_stmt)).scalars().all()
     items = [
         {
             "id": s.id,
+            # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-13).
+            "tenant_id": getattr(s, "tenant_id", None),
             "name": s.name,
             "description": s.description,
             "steps": json.loads(s.steps_json) if s.steps_json else [],
@@ -367,11 +374,13 @@ async def create_sequence(
         name=body.name, description=body.description,
         steps_json=json.dumps(body.steps, ensure_ascii=False),
         created_by=current_user.id,
+        # Round-4 R4-TEN-13 — stamp tenant on create.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(seq)
     await db.flush()
     await db.refresh(seq)
-    return {"id": seq.id, "name": seq.name}
+    return {"id": seq.id, "name": seq.name, "tenant_id": getattr(seq, "tenant_id", None)}
 
 
 class EnrollRequest(BaseModel):
@@ -390,6 +399,8 @@ async def enroll_in_sequence(
     seq = (await db.execute(select(Sequence).where(Sequence.id == body.sequence_id))).scalar_one_or_none()
     if not seq:
         raise NotFoundException("Sira bulunamadi")
+    # Round-4 R4-TEN-13 — block cross-tenant enroll on the sequence.
+    assert_same_tenant(seq, current_user, exception_cls=NotFoundException)
 
     enrollment = SequenceEnrollment(
         sequence_id=body.sequence_id,
@@ -397,6 +408,8 @@ async def enroll_in_sequence(
         customer_id=body.customer_id,
         enrolled_by=current_user.id,
         next_action_at=datetime.now(timezone.utc),
+        # Round-4 R4-TEN-13 — stamp tenant on enrollment.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(enrollment)
     await db.flush()
@@ -414,12 +427,16 @@ async def list_enrollments(
     query = select(SequenceEnrollment)
     if sequence_id is not None:
         query = query.where(SequenceEnrollment.sequence_id == sequence_id)
+    # Round-4 R4-TEN-13 — scope enrollments to caller tenant.
+    query = scoped_for_user(query, current_user, column=SequenceEnrollment.tenant_id)
     result = await db.execute(query.order_by(SequenceEnrollment.created_at.desc()).limit(200))
     enrollments = result.scalars().all()
     return {
         "enrollments": [
             {
                 "id": e.id,
+                # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-13).
+                "tenant_id": getattr(e, "tenant_id", None),
                 "sequence_id": e.sequence_id,
                 "opportunity_id": e.opportunity_id,
                 "customer_id": e.customer_id,
@@ -446,6 +463,8 @@ async def pause_enrollment(
     )).scalar_one_or_none()
     if not enrollment:
         raise NotFoundException("Kayit bulunamadi")
+    # Round-4 R4-TEN-13 — block cross-tenant pause.
+    assert_same_tenant(enrollment, current_user, exception_cls=NotFoundException)
     enrollment.is_paused = True
     enrollment.status = "paused"
     await db.flush()
@@ -464,6 +483,8 @@ async def resume_enrollment(
     )).scalar_one_or_none()
     if not enrollment:
         raise NotFoundException("Kayit bulunamadi")
+    # Round-4 R4-TEN-13 — block cross-tenant resume.
+    assert_same_tenant(enrollment, current_user, exception_cls=NotFoundException)
     enrollment.is_paused = False
     enrollment.status = "active"
     await db.flush()
@@ -786,8 +807,12 @@ async def get_sequence(
     seq = (await db.execute(select(Sequence).where(Sequence.id == sequence_id))).scalar_one_or_none()
     if not seq:
         raise NotFoundException("Sekans bulunamadi")
+    # Round-4 R4-TEN-13 — block cross-tenant read.
+    assert_same_tenant(seq, current_user, exception_cls=NotFoundException)
     return {
         "id": seq.id,
+        # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-13).
+        "tenant_id": getattr(seq, "tenant_id", None),
         "name": seq.name,
         "description": seq.description,
         "steps": json.loads(seq.steps_json) if seq.steps_json else [],
@@ -807,6 +832,8 @@ async def update_sequence(
     seq = (await db.execute(select(Sequence).where(Sequence.id == sequence_id))).scalar_one_or_none()
     if not seq:
         raise NotFoundException("Sekans bulunamadi")
+    # Round-4 R4-TEN-13 — block cross-tenant update.
+    assert_same_tenant(seq, current_user, exception_cls=NotFoundException)
 
     if body.name is not None:
         seq.name = body.name
@@ -821,6 +848,8 @@ async def update_sequence(
     await db.refresh(seq)
     return {
         "id": seq.id,
+        # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-13).
+        "tenant_id": getattr(seq, "tenant_id", None),
         "name": seq.name,
         "description": seq.description,
         "steps": json.loads(seq.steps_json) if seq.steps_json else [],
@@ -844,6 +873,8 @@ async def auto_enroll_sequence(
     seq = (await db.execute(select(Sequence).where(Sequence.id == sequence_id))).scalar_one_or_none()
     if not seq:
         raise NotFoundException("Sekans bulunamadi")
+    # Round-4 R4-TEN-13 — block cross-tenant auto-enroll trigger.
+    assert_same_tenant(seq, current_user, exception_cls=NotFoundException)
 
     rules = json.loads(seq.auto_enroll_rules_json) if seq.auto_enroll_rules_json else []
     if not rules:
@@ -859,8 +890,13 @@ async def auto_enroll_sequence(
     )
     already_enrolled_ids = {row[0] for row in already_enrolled_result.all()}
 
-    # Apply simple rule matching against Lead fields (exclude converted/closed leads)
-    lead_query = select(Lead).where(Lead.status.notin_(["converted", "lost", "cancelled"]))
+    # Apply simple rule matching against Lead fields (exclude converted/closed leads).
+    # Round-4 R4-TEN-13 — restrict candidate leads to caller tenant.
+    lead_query = scoped_for_user(
+        select(Lead).where(Lead.status.notin_(["converted", "lost", "cancelled"])),
+        current_user,
+        column=Lead.tenant_id,
+    )
     leads_result = await db.execute(lead_query.limit(500))
     leads = leads_result.scalars().all()
 
@@ -874,6 +910,8 @@ async def auto_enroll_sequence(
                 lead_id=lead.id,
                 enrolled_by=current_user.id,
                 next_action_at=datetime.now(timezone.utc),
+                # Round-4 R4-TEN-13 — stamp tenant on auto-enrolled rows.
+                tenant_id=getattr(current_user, "tenant_id", None),
             )
             db.add(enrollment)
             enrolled_count += 1
@@ -928,10 +966,19 @@ async def list_segments(
     db: AsyncSession = Depends(get_db),
 ):
     """List all customer segments."""
-    segs = (await db.execute(select(Segment).order_by(Segment.name))).scalars().all()
+    # Round-4 R4-TEN-13 — scope segments to caller tenant.
+    seg_stmt = scoped_for_user(
+        select(Segment).order_by(Segment.name),
+        current_user,
+        column=Segment.tenant_id,
+    )
+    segs = (await db.execute(seg_stmt)).scalars().all()
     return {
         "segments": [
-            {"id": s.id, "name": s.name, "description": s.description,
+            {"id": s.id,
+             # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-13).
+             "tenant_id": getattr(s, "tenant_id", None),
+             "name": s.name, "description": s.description,
              "rules": json.loads(s.rules_json) if s.rules_json else [],
              "customer_count": s.customer_count,
              "created_at": s.created_at.isoformat() if s.created_at else None}
@@ -955,11 +1002,19 @@ async def create_segment(
         rules_json=json.dumps(body.rules, ensure_ascii=False),
         customer_count=count,
         created_by=current_user.id,
+        # Round-4 R4-TEN-13 — stamp tenant on segment create.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(seg)
     await db.flush()
     await db.refresh(seg)
-    return {"id": seg.id, "name": seg.name, "customer_count": count}
+    return {
+        "id": seg.id,
+        # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-13).
+        "tenant_id": getattr(seg, "tenant_id", None),
+        "name": seg.name,
+        "customer_count": count,
+    }
 
 
 @router.get("/segments/{segment_id}/customers")
@@ -972,6 +1027,8 @@ async def get_segment_customers(
     seg = (await db.execute(select(Segment).where(Segment.id == segment_id))).scalar_one_or_none()
     if not seg:
         raise NotFoundException("Segment bulunamadi")
+    # Round-4 R4-TEN-13 — block cross-tenant segment read.
+    assert_same_tenant(seg, current_user, exception_cls=NotFoundException)
 
     rules = json.loads(seg.rules_json) if seg.rules_json else []
     customers = await _filter_customers_by_rules(db, rules)

@@ -17,7 +17,7 @@ from app.models.opportunity import Opportunity
 from app.models.quote import Quote
 from app.models.user import User
 from app.services.approval_service import ApprovalService
-from app.services.tenant_context import assert_same_tenant
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 
 # Map of supported entity_type values to their owning model. Used to
@@ -94,9 +94,10 @@ async def list_rules(
     _flag=Depends(_require_approval_routing),
 ):
     """List all approval rules."""
-    result = await db.execute(
-        select(ApprovalRule).order_by(ApprovalRule.priority.desc())
+    stmt = scoped_for_user(
+        select(ApprovalRule), current_user, column=ApprovalRule.tenant_id,
     )
+    result = await db.execute(stmt.order_by(ApprovalRule.priority.desc()))
     rules = result.scalars().all()
     return {"items": [_rule_to_dict(r) for r in rules]}
 
@@ -119,6 +120,7 @@ async def create_rule(
         approver_user_id=data.approver_user_id,
         priority=data.priority,
         is_active=data.is_active,
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(rule)
     await db.flush()
@@ -141,6 +143,7 @@ async def update_rule(
     rule = result.scalar_one_or_none()
     if not rule:
         raise NotFoundException("Onay kurali bulunamadi")
+    assert_same_tenant(rule, current_user, exception_cls=NotFoundException)
 
     updates = data.model_dump(exclude_unset=True)
     for field, value in updates.items():
@@ -165,6 +168,7 @@ async def delete_rule(
     rule = result.scalar_one_or_none()
     if not rule:
         raise NotFoundException("Onay kurali bulunamadi")
+    assert_same_tenant(rule, current_user, exception_cls=NotFoundException)
 
     await db.delete(rule)
     await db.flush()
@@ -264,6 +268,7 @@ async def delegate_approval(
     rule = result.scalar_one_or_none()
     if not rule:
         raise NotFoundException("Kural bulunamadi")
+    assert_same_tenant(rule, current_user, exception_cls=NotFoundException)
 
     rule.delegate_to = data.delegate_to
     if data.delegate_until:
@@ -278,6 +283,7 @@ async def delegate_approval(
 def _rule_to_dict(rule: ApprovalRule) -> dict:
     return {
         "id": rule.id,
+        "tenant_id": getattr(rule, "tenant_id", None),
         "name": rule.name,
         "entity_type": rule.entity_type,
         "condition_type": rule.condition_type,

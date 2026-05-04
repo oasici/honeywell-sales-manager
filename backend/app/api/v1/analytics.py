@@ -1195,8 +1195,10 @@ async def get_record_quality(
     db: AsyncSession = Depends(get_db),
 ):
     """Single record quality score."""
+    from app.core.exceptions import NotFoundException
     from app.models.opportunity import Opportunity as OppModel
     from app.services.data_quality_service import DataQualityService
+    from app.services.tenant_context import assert_same_tenant
 
     service = DataQualityService(db)
 
@@ -1207,12 +1209,26 @@ async def get_record_quality(
         if not record:
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Musteri bulunamadi")
+        # R4-TEN-22: drill-down loads by id must be tenant-scoped. Cross-
+        # tenant attempts collapse to the same 404 so the API can't be
+        # used for ID enumeration across tenants.
+        try:
+            assert_same_tenant(record, current_user, exception_cls=NotFoundException)
+        except NotFoundException:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Musteri bulunamadi")
         result = await service.score_customer(record)
     elif entity_type == "opportunity":
         record = (await db.execute(
             select(OppModel).where(OppModel.id == entity_id)
         )).scalar_one_or_none()
         if not record:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Firsat bulunamadi")
+        # R4-TEN-22: same cross-tenant guard for the opportunity branch.
+        try:
+            assert_same_tenant(record, current_user, exception_cls=NotFoundException)
+        except NotFoundException:
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Firsat bulunamadi")
         result = await service.score_opportunity(record)

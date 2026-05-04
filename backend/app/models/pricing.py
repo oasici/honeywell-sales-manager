@@ -36,9 +36,14 @@ class CustomerPricing(Base):
     __table_args__ = (
         UniqueConstraint("customer_id", "spare_part_id", name="uq_customer_part_pricing"),
         Index("ix_cp_customer", "customer_id"),
+        # Round-4 R4-TEN-15 — tenant boundary on negotiated customer prices.
+        # TODO: backfill via customer_pricing → customers.tenant_id in alembic
+        # 20260504_add_tenant_id_to_pricing_bundles.
+        Index("ix_cp_tenant", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     customer_id: Mapped[int] = mapped_column(Integer, ForeignKey("customers.id"), nullable=False)
     spare_part_id: Mapped[int] = mapped_column(Integer, ForeignKey("spare_parts.id"), nullable=False)
     contracted_price: Mapped[float] = mapped_column(Float, nullable=False)

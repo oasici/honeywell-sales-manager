@@ -14,9 +14,13 @@ class Territory(Base):
     __tablename__ = "territories"
     __table_args__ = (
         Index("ix_territory_parent", "parent_id"),
+        # Round-4 R4-TEN-16 — tenant boundary on territories.
+        # TODO: backfill in alembic 20260504_add_tenant_id_to_territories_teams.
+        Index("ix_territory_tenant", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     parent_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("territories.id"), nullable=True

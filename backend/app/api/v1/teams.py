@@ -17,6 +17,7 @@ from app.models.enums import UserRole
 from app.models.team import SharingRule
 from app.models.user import User
 from app.services.access_service import AccessService
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(tags=["Teams"])
 
@@ -80,7 +81,7 @@ async def list_team_members(
     """List team members for a customer account."""
     _check_feature_flag()
 
-    await _verify_customer_exists(db, customer_id)
+    await _verify_customer_exists(db, customer_id, current_user)
 
     service = AccessService(db)
     members = await service.get_team_members(customer_id)
@@ -110,7 +111,7 @@ async def add_team_member(
     """Add a member to a customer's account team."""
     _check_feature_flag()
 
-    await _verify_customer_exists(db, customer_id)
+    await _verify_customer_exists(db, customer_id, current_user)
 
     # Only managers or existing team owners can add members
     if current_user.role != UserRole.SALES_MANAGER.value:
@@ -129,6 +130,8 @@ async def add_team_member(
     target_user = result.scalar_one_or_none()
     if target_user is None:
         raise NotFoundException("Kullanici bulunamadi")
+    # Round-4 R4-TEN-16 — block adding a foreign-tenant user to the team.
+    assert_same_tenant(target_user, current_user, exception_cls=NotFoundException)
 
     service = AccessService(db)
     member = await service.add_team_member(
@@ -162,6 +165,9 @@ async def remove_team_member(
     if current_user.role != UserRole.SALES_MANAGER.value:
         raise ForbiddenException("Sadece yoneticiler takim uyelerini kaldirabilir")
 
+    # Round-4 R4-TEN-16 — block removing members from a foreign-tenant team.
+    await _verify_customer_exists(db, customer_id, current_user)
+
     service = AccessService(db)
     await service.remove_team_member(customer_id=customer_id, user_id=user_id)
 
@@ -177,7 +183,13 @@ async def list_sharing_rules(
     """List all sharing rules (manager only)."""
     _check_feature_flag()
 
-    result = await db.execute(select(SharingRule))
+    # Round-4 R4-TEN-16 — sharing rules are tenant-scoped.
+    query = scoped_for_user(
+        select(SharingRule),
+        current_user,
+        column=SharingRule.tenant_id,
+    )
+    result = await db.execute(query)
     rules = result.scalars().all()
 
     return {
@@ -211,7 +223,18 @@ async def create_sharing_rule(
             "share_with_role veya share_with_user_id alanlarindan en az biri gereklidir"
         )
 
+    if body.share_with_user_id is not None:
+        target_user_result = await db.execute(
+            select(User).where(User.id == body.share_with_user_id)
+        )
+        target_user = target_user_result.scalar_one_or_none()
+        if target_user is None:
+            raise NotFoundException("Kullanici bulunamadi")
+        # Don't share with users from other tenants.
+        assert_same_tenant(target_user, current_user, exception_cls=NotFoundException)
+
     rule = SharingRule(
+        tenant_id=getattr(current_user, "tenant_id", None),
         name=body.name,
         entity_type=body.entity_type,
         criteria_json=body.criteria_json,
@@ -239,6 +262,8 @@ async def delete_sharing_rule(
     rule = result.scalar_one_or_none()
     if rule is None:
         raise NotFoundException("Paylasim kurali bulunamadi")
+    # Round-4 R4-TEN-16 — block deleting a foreign tenant's rule.
+    assert_same_tenant(rule, current_user, exception_cls=NotFoundException)
 
     await db.delete(rule)
 
@@ -246,8 +271,17 @@ async def delete_sharing_rule(
 # ── Helpers ──
 
 
-async def _verify_customer_exists(db: AsyncSession, customer_id: int) -> None:
-    """Raise 404 if customer does not exist."""
-    result = await db.execute(select(Customer.id).where(Customer.id == customer_id))
-    if result.scalar_one_or_none() is None:
+async def _verify_customer_exists(
+    db: AsyncSession, customer_id: int, current_user: User
+) -> Customer:
+    """Raise 404 if customer does not exist or belongs to another tenant.
+
+    Round-4 R4-TEN-16 — the previous implementation only checked ``id``,
+    which let any caller manipulate a foreign tenant's account team.
+    """
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    customer = result.scalar_one_or_none()
+    if customer is None:
         raise NotFoundException("Musteri bulunamadi")
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
+    return customer

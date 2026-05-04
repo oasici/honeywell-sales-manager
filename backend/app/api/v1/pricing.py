@@ -11,10 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.exceptions import NotFoundException
+from app.models.customer import Customer
 from app.models.price_entry import PriceEntry
 from app.models.pricing import CustomerPricing, PriceTier
 from app.models.spare_part import SparePart
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/pricing", tags=["Pricing (Advanced)"])
 
@@ -65,6 +68,8 @@ def _serialize_tier(t: PriceTier) -> dict:
 def _serialize_customer_pricing(cp: CustomerPricing) -> dict:
     return {
         "id": cp.id,
+        # Round-4 R4-DTO-6 — round-trip tenant_id (R4-TEN-15).
+        "tenant_id": getattr(cp, "tenant_id", None),
         "customer_id": cp.customer_id,
         "spare_part_id": cp.spare_part_id,
         "contracted_price": cp.contracted_price,
@@ -146,6 +151,24 @@ async def delete_tier(
 # CUSTOMER CONTRACTED PRICING
 # ══════════════════════════════════════════
 
+async def _load_customer_for_tenant(
+    db: AsyncSession, customer_id: int, current_user: User
+) -> Customer:
+    """Load a Customer and refuse cross-tenant access.
+
+    Round-4 R4-TEN-15 — the customer-pricing endpoints previously
+    matched ``CustomerPricing.customer_id == customer_id`` without ever
+    confirming the customer belonged to the requesting tenant.
+    """
+    customer = (
+        await db.execute(select(Customer).where(Customer.id == customer_id))
+    ).scalar_one_or_none()
+    if customer is None:
+        raise NotFoundException("Customer not found")
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
+    return customer
+
+
 @router.get("/customer/{customer_id}")
 async def list_customer_pricing(
     customer_id: int,
@@ -153,13 +176,15 @@ async def list_customer_pricing(
     db: AsyncSession = Depends(get_db),
 ):
     """List all contracted prices for a customer."""
-    rows = (
-        await db.execute(
-            select(CustomerPricing)
-            .where(CustomerPricing.customer_id == customer_id)
-            .order_by(CustomerPricing.created_at.desc())
-        )
-    ).scalars().all()
+    await _load_customer_for_tenant(db, customer_id, current_user)
+    query = scoped_for_user(
+        select(CustomerPricing)
+        .where(CustomerPricing.customer_id == customer_id)
+        .order_by(CustomerPricing.created_at.desc()),
+        current_user,
+        column=CustomerPricing.tenant_id,
+    )
+    rows = (await db.execute(query)).scalars().all()
     return {
         "customer_id": customer_id,
         "pricing": [_serialize_customer_pricing(cp) for cp in rows],
@@ -174,7 +199,9 @@ async def create_customer_pricing(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a contracted price for a customer / spare part pair."""
+    await _load_customer_for_tenant(db, customer_id, current_user)
     cp = CustomerPricing(
+        tenant_id=getattr(current_user, "tenant_id", None),
         customer_id=customer_id,
         spare_part_id=body.spare_part_id,
         contracted_price=body.contracted_price,
@@ -200,6 +227,7 @@ async def update_customer_pricing(
     db: AsyncSession = Depends(get_db),
 ):
     """Update a contracted price record."""
+    await _load_customer_for_tenant(db, customer_id, current_user)
     cp = (
         await db.execute(
             select(CustomerPricing).where(
@@ -210,6 +238,7 @@ async def update_customer_pricing(
     ).scalar_one_or_none()
     if not cp:
         raise HTTPException(status_code=404, detail="Customer pricing record not found")
+    assert_same_tenant(cp, current_user, exception_cls=NotFoundException)
 
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(cp, field, value)
@@ -227,6 +256,7 @@ async def delete_customer_pricing(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a contracted price record."""
+    await _load_customer_for_tenant(db, customer_id, current_user)
     cp = (
         await db.execute(
             select(CustomerPricing).where(
@@ -237,6 +267,7 @@ async def delete_customer_pricing(
     ).scalar_one_or_none()
     if not cp:
         raise HTTPException(status_code=404, detail="Customer pricing record not found")
+    assert_same_tenant(cp, current_user, exception_cls=NotFoundException)
     await db.delete(cp)
     await db.commit()
 
@@ -294,12 +325,16 @@ async def lookup_price(
     """
     now = datetime.now(timezone.utc)
 
-    # 1. Customer contracted price
+    # 1. Customer contracted price — round-4 R4-TEN-15: scope by tenant.
     cp = (
         await db.execute(
-            select(CustomerPricing).where(
-                CustomerPricing.customer_id == customer_id,
-                CustomerPricing.spare_part_id == spare_part_id,
+            scoped_for_user(
+                select(CustomerPricing).where(
+                    CustomerPricing.customer_id == customer_id,
+                    CustomerPricing.spare_part_id == spare_part_id,
+                ),
+                current_user,
+                column=CustomerPricing.tenant_id,
             )
         )
     ).scalar_one_or_none()

@@ -16,6 +16,7 @@ from app.models.enums import UserRole
 from app.core.exceptions import NotFoundException
 from app.models.user import User
 from app.models.webhook import WebhookDelivery, WebhookSubscription
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.services.webhook_service import WebhookService, validate_webhook_url
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
@@ -50,11 +51,16 @@ def _subscription_to_dict(sub: WebhookSubscription) -> dict:
     except (json.JSONDecodeError, TypeError):
         event_types = []
 
+    # Round-4 R4-TEN-10 — never echo the HMAC secret back to the API.
+    # Even managers within the tenant should not be able to retrieve
+    # the secret value through GET; only an "is it set?" indicator.
     return {
         "id": sub.id,
+        "tenant_id": getattr(sub, "tenant_id", None),
         "name": sub.name,
         "url": sub.url,
         "event_types": event_types,
+        "secret_present": bool(sub.secret),
         "is_active": sub.is_active,
         "created_by": sub.created_by,
         "last_triggered_at": sub.last_triggered_at.isoformat() if sub.last_triggered_at else None,
@@ -66,6 +72,7 @@ def _subscription_to_dict(sub: WebhookSubscription) -> dict:
 def _delivery_to_dict(delivery: WebhookDelivery) -> dict:
     return {
         "id": delivery.id,
+        "tenant_id": getattr(delivery, "tenant_id", None),
         "subscription_id": delivery.subscription_id,
         "event_type": delivery.event_type,
         "status_code": delivery.status_code,
@@ -83,9 +90,12 @@ async def list_webhooks(
     """Tum webhook aboneliklerini listele."""
     _check_feature_flag()
 
-    result = await db.execute(
-        select(WebhookSubscription).order_by(WebhookSubscription.created_at.desc())
+    stmt = scoped_for_user(
+        select(WebhookSubscription),
+        current_user,
+        column=WebhookSubscription.tenant_id,
     )
+    result = await db.execute(stmt.order_by(WebhookSubscription.created_at.desc()))
     subscriptions = result.scalars().all()
 
     return {
@@ -115,6 +125,7 @@ async def create_webhook(
         secret=body.secret,
         is_active=True,
         created_by=current_user.id,
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(subscription)
     await db.flush()
@@ -138,6 +149,7 @@ async def get_webhook(
     subscription = result.scalar_one_or_none()
     if subscription is None:
         raise NotFoundException(f"Webhook bulunamadi: {webhook_id}")
+    assert_same_tenant(subscription, current_user, exception_cls=NotFoundException)
 
     return _subscription_to_dict(subscription)
 
@@ -158,6 +170,7 @@ async def update_webhook(
     subscription = result.scalar_one_or_none()
     if subscription is None:
         raise NotFoundException(f"Webhook bulunamadi: {webhook_id}")
+    assert_same_tenant(subscription, current_user, exception_cls=NotFoundException)
 
     if body.name is not None:
         subscription.name = body.name
@@ -197,6 +210,7 @@ async def delete_webhook(
     subscription = result.scalar_one_or_none()
     if subscription is None:
         raise NotFoundException(f"Webhook bulunamadi: {webhook_id}")
+    assert_same_tenant(subscription, current_user, exception_cls=NotFoundException)
 
     await db.delete(subscription)
 
@@ -211,12 +225,14 @@ async def get_webhook_deliveries(
     """Webhook teslimat gecmisi."""
     _check_feature_flag()
 
-    # Verify subscription exists
+    # Verify subscription exists *and* belongs to caller's tenant.
     sub_result = await db.execute(
-        select(WebhookSubscription.id).where(WebhookSubscription.id == webhook_id)
+        select(WebhookSubscription).where(WebhookSubscription.id == webhook_id)
     )
-    if sub_result.scalar_one_or_none() is None:
+    subscription = sub_result.scalar_one_or_none()
+    if subscription is None:
         raise NotFoundException(f"Webhook bulunamadi: {webhook_id}")
+    assert_same_tenant(subscription, current_user, exception_cls=NotFoundException)
 
     result = await db.execute(
         select(WebhookDelivery)
@@ -248,6 +264,7 @@ async def retry_webhook_delivery(
     delivery = result.scalar_one_or_none()
     if delivery is None:
         raise NotFoundException(f"Teslimat bulunamadi: {delivery_id}")
+    assert_same_tenant(delivery, current_user, exception_cls=NotFoundException)
 
     max_retries = 5
     if delivery.retry_count >= max_retries:
@@ -265,6 +282,7 @@ async def retry_webhook_delivery(
         subscription = sub_result.scalar_one_or_none()
         if not subscription:
             raise NotFoundException("Webhook aboneligi bulunamadi")
+        assert_same_tenant(subscription, current_user, exception_cls=NotFoundException)
 
         from datetime import datetime, timezone
 
@@ -320,6 +338,15 @@ async def test_webhook(
 ):
     """Test etkinligi gonder."""
     _check_feature_flag()
+
+    # Tenant guard before invoking the test fan-out service.
+    sub_result = await db.execute(
+        select(WebhookSubscription).where(WebhookSubscription.id == webhook_id)
+    )
+    subscription = sub_result.scalar_one_or_none()
+    if subscription is None:
+        raise NotFoundException(f"Webhook bulunamadi: {webhook_id}")
+    assert_same_tenant(subscription, current_user, exception_cls=NotFoundException)
 
     service = WebhookService(async_session)
     result = await service.deliver_test(db, webhook_id)

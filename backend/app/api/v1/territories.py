@@ -19,6 +19,7 @@ from app.models.enums import UserRole
 from app.models.opportunity import Opportunity
 from app.models.territory import Territory, TerritoryAssignment
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/territories", tags=["Territories"])
 
@@ -61,6 +62,8 @@ class AssignmentCreate(BaseModel):
 def _serialize_territory(t: Territory) -> dict:
     return {
         "id": t.id,
+        # Round-4 R4-DTO-6 — round-trip tenant_id (R4-TEN-16).
+        "tenant_id": getattr(t, "tenant_id", None),
         "name": t.name,
         "parent_id": t.parent_id,
         "description": t.description,
@@ -147,7 +150,12 @@ async def list_territories(
     db: AsyncSession = Depends(get_db),
 ):
     """Flat list of all territories."""
-    result = await db.execute(select(Territory).order_by(Territory.name))
+    query = scoped_for_user(
+        select(Territory).order_by(Territory.name),
+        current_user,
+        column=Territory.tenant_id,
+    )
+    result = await db.execute(query)
     territories = result.scalars().all()
     return {"territories": [_serialize_territory(t) for t in territories]}
 
@@ -159,7 +167,12 @@ async def territory_tree(
     db: AsyncSession = Depends(get_db),
 ):
     """Nested tree of all territories."""
-    result = await db.execute(select(Territory).order_by(Territory.name))
+    query = scoped_for_user(
+        select(Territory).order_by(Territory.name),
+        current_user,
+        column=Territory.tenant_id,
+    )
+    result = await db.execute(query)
     territories = result.scalars().all()
     return {"tree": _build_tree(list(territories))}
 
@@ -176,10 +189,14 @@ async def create_territory(
         parent_result = await db.execute(
             select(Territory).where(Territory.id == body.parent_id)
         )
-        if parent_result.scalar_one_or_none() is None:
+        parent = parent_result.scalar_one_or_none()
+        if parent is None:
             raise NotFoundException("Parent territory not found")
+        # Round-4 R4-TEN-16 — block parenting under a foreign tenant.
+        assert_same_tenant(parent, current_user, exception_cls=NotFoundException)
 
     territory = Territory(
+        tenant_id=getattr(current_user, "tenant_id", None),
         name=body.name,
         parent_id=body.parent_id,
         description=body.description,
@@ -205,6 +222,8 @@ async def get_territory(
     territory = result.scalar_one_or_none()
     if territory is None:
         raise NotFoundException("Territory not found")
+    # Round-4 R4-TEN-16 — refuse cross-tenant detail reads.
+    assert_same_tenant(territory, current_user, exception_cls=NotFoundException)
     # Load assignments with user info
     assign_result = await db.execute(
         select(TerritoryAssignment, User.full_name, User.email)
@@ -234,29 +253,38 @@ async def get_territory_metrics(
 ):
     """Lightweight territory KPIs for management screens."""
     terr = (
-        await db.execute(select(Territory.id).where(Territory.id == territory_id))
+        await db.execute(select(Territory).where(Territory.id == territory_id))
     ).scalar_one_or_none()
     if terr is None:
         raise NotFoundException("Territory not found")
+    # Round-4 R4-TEN-16 — block cross-tenant metric snooping.
+    assert_same_tenant(terr, current_user, exception_cls=NotFoundException)
 
-    cust_count = (
-        await db.execute(
-            select(func.count(Customer.id)).where(Customer.territory_id == territory_id)
-        )
-    ).scalar() or 0
-    opp_count = (
-        await db.execute(
-            select(func.count(Opportunity.id)).where(Opportunity.territory_id == territory_id)
-        )
-    ).scalar() or 0
-    pipeline_total = (
-        await db.execute(
-            select(func.coalesce(func.sum(Opportunity.amount), 0)).where(
-                Opportunity.territory_id == territory_id,
-                Opportunity.status == "active",
-            )
-        )
-    ).scalar() or 0
+    # Round-4 R4-TEN-16 — aggregate joins must filter by the parent
+    # entity's tenant_id, otherwise totals span every tenant.
+    cust_count_query = scoped_for_user(
+        select(func.count(Customer.id)).where(Customer.territory_id == territory_id),
+        current_user,
+        column=Customer.tenant_id,
+    )
+    cust_count = (await db.execute(cust_count_query)).scalar() or 0
+
+    opp_count_query = scoped_for_user(
+        select(func.count(Opportunity.id)).where(Opportunity.territory_id == territory_id),
+        current_user,
+        column=Opportunity.tenant_id,
+    )
+    opp_count = (await db.execute(opp_count_query)).scalar() or 0
+
+    pipeline_query = scoped_for_user(
+        select(func.coalesce(func.sum(Opportunity.amount), 0)).where(
+            Opportunity.territory_id == territory_id,
+            Opportunity.status == "active",
+        ),
+        current_user,
+        column=Opportunity.tenant_id,
+    )
+    pipeline_total = (await db.execute(pipeline_query)).scalar() or 0
 
     return {
         "territory_id": territory_id,
@@ -278,23 +306,28 @@ async def list_territory_opportunities(
 ):
     """List opportunities belonging to a territory (for drill-down)."""
     terr = (
-        await db.execute(select(Territory.id).where(Territory.id == territory_id))
+        await db.execute(select(Territory).where(Territory.id == territory_id))
     ).scalar_one_or_none()
     if terr is None:
         raise NotFoundException("Territory not found")
+    # Round-4 R4-TEN-16 — refuse drill-down on a foreign territory.
+    assert_same_tenant(terr, current_user, exception_cls=NotFoundException)
 
-    q = (
+    q = scoped_for_user(
         select(Opportunity)
         .where(Opportunity.territory_id == territory_id)
         .order_by(Opportunity.updated_at.desc())
         .limit(limit)
-        .offset(offset)
+        .offset(offset),
+        current_user,
+        column=Opportunity.tenant_id,
     )
-    total = (
-        await db.execute(
-            select(func.count(Opportunity.id)).where(Opportunity.territory_id == territory_id)
-        )
-    ).scalar() or 0
+    total_query = scoped_for_user(
+        select(func.count(Opportunity.id)).where(Opportunity.territory_id == territory_id),
+        current_user,
+        column=Opportunity.tenant_id,
+    )
+    total = (await db.execute(total_query)).scalar() or 0
     rows = (await db.execute(q)).scalars().all()
     return {
         "items": [
@@ -328,6 +361,8 @@ async def update_territory(
     territory = result.scalar_one_or_none()
     if territory is None:
         raise NotFoundException("Territory not found")
+    # Round-4 R4-TEN-16 — block cross-tenant updates.
+    assert_same_tenant(territory, current_user, exception_cls=NotFoundException)
 
     if body.parent_id is not None:
         if body.parent_id == territory_id:
@@ -335,8 +370,10 @@ async def update_territory(
         parent_result = await db.execute(
             select(Territory).where(Territory.id == body.parent_id)
         )
-        if parent_result.scalar_one_or_none() is None:
+        parent = parent_result.scalar_one_or_none()
+        if parent is None:
             raise NotFoundException("Parent territory not found")
+        assert_same_tenant(parent, current_user, exception_cls=NotFoundException)
         territory.parent_id = body.parent_id
 
     if body.name is not None:
@@ -365,10 +402,15 @@ async def delete_territory(
     territory = result.scalar_one_or_none()
     if territory is None:
         raise NotFoundException("Territory not found")
+    # Round-4 R4-TEN-16 — block cross-tenant deletes.
+    assert_same_tenant(territory, current_user, exception_cls=NotFoundException)
 
-    children_result = await db.execute(
-        select(Territory.id).where(Territory.parent_id == territory_id).limit(1)
+    children_query = scoped_for_user(
+        select(Territory.id).where(Territory.parent_id == territory_id).limit(1),
+        current_user,
+        column=Territory.tenant_id,
     )
+    children_result = await db.execute(children_query)
     if children_result.scalar_one_or_none() is not None:
         raise BadRequestException("Cannot delete territory: it has child territories")
 
@@ -387,15 +429,21 @@ async def assign_user(
     territory_result = await db.execute(
         select(Territory).where(Territory.id == territory_id)
     )
-    if territory_result.scalar_one_or_none() is None:
+    territory = territory_result.scalar_one_or_none()
+    if territory is None:
         raise NotFoundException("Territory not found")
+    # Round-4 R4-TEN-16 — block assignments onto a foreign-tenant territory.
+    assert_same_tenant(territory, current_user, exception_cls=NotFoundException)
 
     if body.role not in VALID_ASSIGNMENT_ROLES:
         raise BadRequestException(f"Invalid role. Must be one of: {', '.join(VALID_ASSIGNMENT_ROLES)}")
 
     user_result = await db.execute(select(User).where(User.id == body.user_id))
-    if user_result.scalar_one_or_none() is None:
+    target_user = user_result.scalar_one_or_none()
+    if target_user is None:
         raise NotFoundException("User not found")
+    # Don't let a manager pull users from another tenant into their roster.
+    assert_same_tenant(target_user, current_user, exception_cls=NotFoundException)
 
     existing_result = await db.execute(
         select(TerritoryAssignment).where(
@@ -430,6 +478,15 @@ async def remove_assignment(
     db: AsyncSession = Depends(get_db),
 ):
     """Remove a user assignment from a territory. Manager-only."""
+    territory_result = await db.execute(
+        select(Territory).where(Territory.id == territory_id)
+    )
+    territory = territory_result.scalar_one_or_none()
+    if territory is None:
+        raise NotFoundException("Assignment not found")
+    # Round-4 R4-TEN-16 — block removing assignments from a foreign tenant.
+    assert_same_tenant(territory, current_user, exception_cls=NotFoundException)
+
     result = await db.execute(
         select(TerritoryAssignment).where(
             TerritoryAssignment.territory_id == territory_id,
@@ -450,14 +507,23 @@ async def auto_assign_territories(
     db: AsyncSession = Depends(get_db),
 ):
     """Run rules_json against customers with no territory_id and assign matches. Manager-only."""
-    territories_result = await db.execute(
-        select(Territory).where(Territory.rules_json.isnot(None))
+    # Round-4 R4-TEN-16 — auto-assign must only consider rules + rows for the
+    # caller's tenant, otherwise it would tag tenant-A customers with
+    # tenant-B territories.
+    territories_query = scoped_for_user(
+        select(Territory).where(Territory.rules_json.isnot(None)),
+        current_user,
+        column=Territory.tenant_id,
     )
+    territories_result = await db.execute(territories_query)
     territories = territories_result.scalars().all()
 
-    customers_result = await db.execute(
-        select(Customer).where(Customer.territory_id.is_(None))
+    customers_query = scoped_for_user(
+        select(Customer).where(Customer.territory_id.is_(None)),
+        current_user,
+        column=Customer.tenant_id,
     )
+    customers_result = await db.execute(customers_query)
     customers = customers_result.scalars().all()
 
     assigned_count = 0

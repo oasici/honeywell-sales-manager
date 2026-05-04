@@ -16,6 +16,7 @@ from app.models.enums import UserRole
 from app.models.forecast import ForecastAdjustment, PipelineSnapshot
 from app.models.user import User
 from app.services.forecast_service import ForecastService
+from app.services.tenant_context import scoped_for_user
 
 router = APIRouter(prefix="/forecast", tags=["Forecast"])
 
@@ -61,11 +62,13 @@ async def get_hybrid_forecast(
     if owner_id is not None:
         conditions.append(Opportunity.owner_id == owner_id)
 
-    opps = (
-        await db.execute(
-            select(Opportunity).where(and_(*conditions))
-        )
-    ).scalars().all()
+    # Round-4 R4-TEN-17 — scope hybrid forecast to the caller's tenant.
+    hybrid_query = scoped_for_user(
+        select(Opportunity).where(and_(*conditions)),
+        current_user,
+        column=Opportunity.tenant_id,
+    )
+    opps = (await db.execute(hybrid_query)).scalars().all()
 
     legacy_total = 0.0
     hybrid_total = 0.0
@@ -273,20 +276,25 @@ async def get_forecast_accuracy(
 
     period_label = quarter or f"{period_start.date()} - {period_end.date()}"
 
-    # Get closed_won opportunities in the period
-    won_opps_q = await db.execute(
+    # Round-4 R4-TEN-17 — accuracy must only see the caller's tenant pipeline.
+    won_query = scoped_for_user(
         select(Opportunity).where(
             and_(
                 Opportunity.stage == "closed_won",
                 Opportunity.updated_at >= period_start,
                 Opportunity.updated_at < period_end,
             )
-        )
+        ),
+        current_user,
+        column=Opportunity.tenant_id,
     )
+    won_opps_q = await db.execute(won_query)
     won_opps = won_opps_q.scalars().all()
     actual_won = sum(float(o.amount or 0) for o in won_opps)
 
-    # Get earliest snapshot detail for these opportunities in the period
+    # Get earliest snapshot detail for these opportunities in the period.
+    # ``won_opp_ids`` is now derived from a tenant-scoped query, so the
+    # IN-clause downstream cannot cross the tenant boundary either.
     won_opp_ids = [o.id for o in won_opps]
     commit_forecast = 0.0
     per_rep: dict[int, dict] = {}

@@ -356,10 +356,24 @@ async def board_review_decide(
     entry = await db.get(PipelineReviewQueueEntry, entry_id)
     if entry is None:
         raise HTTPException(status_code=404, detail="Queue entry bulunamadı")
+
+    # R4-TEN-20: cross-tenant guard — managers from tenant A must not be
+    # able to decide queue entries for tenant B's opportunities. We always
+    # load the parent Opportunity and assert same-tenant before either the
+    # SALES_REP owner check or the manager bypass path takes effect.
+    from app.core.exceptions import NotFoundException
+
+    opp = await db.get(Opportunity, entry.opportunity_id)
+    if opp is None:
+        raise HTTPException(status_code=404, detail="Queue entry bulunamadı")
+    try:
+        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+    except NotFoundException:
+        raise HTTPException(status_code=404, detail="Queue entry bulunamadı")
+
     # RBAC: rep can decide only on own opportunities
     if current_user.role == UserRole.SALES_REP.value:
-        opp = await db.get(Opportunity, entry.opportunity_id)
-        if opp is None or int(opp.owner_id) != int(current_user.id):
+        if opp.owner_id is None or int(opp.owner_id) != int(current_user.id):
             raise HTTPException(status_code=403, detail="Yetkisiz")
     updated = await pipeline_review_service.decide(
         db,

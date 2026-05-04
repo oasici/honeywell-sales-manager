@@ -16,9 +16,13 @@ class SignatureRequest(Base):
     __table_args__ = (
         Index("ix_sig_token", "token", unique=True),
         Index("ix_sig_document", "document_type", "document_id"),
+        Index("ix_sig_tenant", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 R4-TEN-9 — tenant_id added; backfilled by alembic
+    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     document_type: Mapped[str] = mapped_column(String(20), nullable=False)
     # quote | contract | invoice
     document_id: Mapped[int] = mapped_column(Integer, nullable=False)

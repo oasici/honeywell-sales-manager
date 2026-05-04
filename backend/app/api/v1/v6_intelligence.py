@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.exceptions import NotFoundException
 from app.models.enums import UserRole
 from app.models.opportunity import Opportunity
 from app.models.user import User
@@ -25,6 +26,27 @@ from app.services import (
     dna_playbook_promoter,
     replay_delta_service,
 )
+from app.services.tenant_context import assert_same_tenant
+
+
+async def _load_opportunity(
+    db: AsyncSession, opp_id: int, current_user: User
+) -> Opportunity:
+    """Load Opportunity by id with cross-tenant + missing checks.
+
+    R4-TEN-21: previously this endpoint did a bare ``db.get(Opportunity)``
+    which let a manager from tenant A enumerate replay-deltas on tenant
+    B's deals. We now collapse "doesn't exist" and "exists in another
+    tenant" into the same 404 response.
+    """
+    opp = await db.get(Opportunity, opp_id)
+    if opp is None:
+        raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
+    try:
+        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+    except NotFoundException:
+        raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
+    return opp
 
 
 router = APIRouter(prefix="/v6", tags=["V6 Intelligence Depth"])
@@ -65,9 +87,7 @@ async def list_replay_deltas(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v5),
 ):
-    opp = await db.get(Opportunity, opportunity_id)
-    if opp is None:
-        raise HTTPException(status_code=404, detail="Fırsat bulunamadı")
+    opp = await _load_opportunity(db, opportunity_id, current_user)
     _opp_rbac_guard(current_user, opp)
 
     if refresh:

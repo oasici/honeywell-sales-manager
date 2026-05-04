@@ -13,14 +13,44 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.exceptions import NotFoundException
 from app.models.comment import Comment
+from app.models.customer import Customer
+from app.models.lead import Lead
 from app.models.notification import Notification
+from app.models.opportunity import Opportunity
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 
 MENTION_PATTERN = re.compile(r"@(\w+)")
 ALLOWED_ENTITY_TYPES = {"opportunity", "customer", "lead"}
+# Round-4 R4-TEN-18 — parent-entity model lookup table for tenant resolution.
+_PARENT_MODEL_BY_TYPE = {
+    "opportunity": Opportunity,
+    "customer": Customer,
+    "lead": Lead,
+}
+
+
+async def _load_parent_for_tenant_check(
+    db: AsyncSession,
+    entity_type: str,
+    entity_id: int,
+):
+    """Load the parent CRM entity referenced by a comment.
+
+    Returns None when ``entity_type`` is not in the allow list. Callers
+    should treat ``None`` as "404 not found" so we never leak whether the
+    parent exists in another tenant.
+    """
+    model = _PARENT_MODEL_BY_TYPE.get(entity_type)
+    if model is None:
+        return None
+    return (
+        await db.execute(select(model).where(model.id == entity_id))
+    ).scalar_one_or_none()
 
 
 class CommentCreate(BaseModel):
@@ -34,6 +64,8 @@ def _serialize_comment(comment: Comment) -> dict:
     """Convert a Comment ORM instance to a JSON-friendly dict."""
     return {
         "id": comment.id,
+        # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-18).
+        "tenant_id": getattr(comment, "tenant_id", None),
         "entity_type": comment.entity_type,
         "entity_id": comment.entity_id,
         "user_id": comment.user_id,
@@ -56,10 +88,18 @@ def _serialize_comment(comment: Comment) -> dict:
 async def list_comments(
     entity_type: str = Query(...),
     entity_id: int = Query(...),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List top-level comments with nested replies for an entity."""
+    # Round-4 R4-TEN-18 — verify the parent CRM entity is in the caller's
+    # tenant before listing comments. Treat unknown entity types and
+    # cross-tenant access as 404 to avoid leaking existence.
+    parent = await _load_parent_for_tenant_check(db, entity_type, entity_id)
+    if parent is None:
+        raise NotFoundException("Not found")
+    assert_same_tenant(parent, current_user, exception_cls=NotFoundException)
+
     stmt = (
         select(Comment)
         .options(
@@ -73,6 +113,10 @@ async def list_comments(
         )
         .order_by(Comment.created_at.asc())
     )
+    # Round-4 R4-TEN-18 — also scope the comment query directly so legacy
+    # rows with tenant_id from a different tenant never leak even if the
+    # parent check is bypassed by future refactors.
+    stmt = scoped_for_user(stmt, current_user, column=Comment.tenant_id)
     result = await db.execute(stmt)
     comments = result.scalars().all()
     return {"comments": [_serialize_comment(c) for c in comments]}
@@ -91,14 +135,26 @@ async def create_comment(
             detail=f"entity_type must be one of {ALLOWED_ENTITY_TYPES}",
         )
 
-    # Parse @mentions from body text
+    # Round-4 R4-TEN-18 — verify the parent CRM entity is in the caller's
+    # tenant before inserting. Treat cross-tenant + unknown as 404.
+    parent = await _load_parent_for_tenant_check(db, body.entity_type, body.entity_id)
+    if parent is None:
+        raise NotFoundException("Not found")
+    assert_same_tenant(parent, current_user, exception_cls=NotFoundException)
+
+    # Parse @mentions from body text. Round-4 R4-TEN-18 — restrict the
+    # mention lookup to the caller's tenant so foreign-tenant managers
+    # cannot be silently @-tagged into our notifications.
     mentioned_usernames = MENTION_PATTERN.findall(body.body)
     mentioned_user_ids: list[int] = []
 
     for username in set(mentioned_usernames):
-        user_result = await db.execute(
-            select(User).where(User.full_name.ilike(f"%{username}%"))
+        mention_stmt = scoped_for_user(
+            select(User).where(User.full_name.ilike(f"%{username}%")),
+            current_user,
+            column=User.tenant_id,
         )
+        user_result = await db.execute(mention_stmt)
         mentioned_user = user_result.scalar_one_or_none()
         if mentioned_user and mentioned_user.id != current_user.id:
             mentioned_user_ids.append(mentioned_user.id)
@@ -110,6 +166,8 @@ async def create_comment(
         body=body.body,
         mentions_json=json.dumps(mentioned_user_ids) if mentioned_user_ids else None,
         parent_id=body.parent_id,
+        # Round-4 R4-TEN-18 — stamp tenant on create.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(comment)
     await db.flush()
@@ -143,6 +201,8 @@ async def delete_comment(
 
     if not comment:
         raise HTTPException(status_code=404, detail="Yorum bulunamadi")
+    # Round-4 R4-TEN-18 — block cross-tenant delete (404 to avoid leaking).
+    assert_same_tenant(comment, current_user, exception_cls=NotFoundException)
 
     if comment.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Sadece kendi yorumunuzu silebilirsiniz")

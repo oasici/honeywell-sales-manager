@@ -16,6 +16,7 @@ from app.models.enums import UserRole
 from app.models.product_bundle import ProductBundle
 from app.models.spare_part import SparePart
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(tags=["Bundles (CPQ)"])
 
@@ -34,14 +35,20 @@ async def list_bundles(
     db: AsyncSession = Depends(get_db),
 ):
     """List all active product bundles."""
-    result = await db.execute(
+    # Round-4 R4-TEN-15 — scope bundle catalog by tenant.
+    query = scoped_for_user(
         select(ProductBundle).where(ProductBundle.is_active.is_(True)).order_by(ProductBundle.name),
+        current_user,
+        column=ProductBundle.tenant_id,
     )
+    result = await db.execute(query)
     bundles = result.scalars().all()
     return {
         "bundles": [
             {
                 "id": b.id,
+                # Round-4 R4-DTO-6 — round-trip tenant_id (R4-TEN-15).
+                "tenant_id": getattr(b, "tenant_id", None),
                 "name": b.name,
                 "description": b.description,
                 "items": json.loads(b.items_json) if b.items_json else [],
@@ -62,6 +69,7 @@ async def create_bundle(
 ):
     """Create a product bundle (manager only)."""
     bundle = ProductBundle(
+        tenant_id=getattr(current_user, "tenant_id", None),
         name=body.name,
         description=body.description,
         items_json=json.dumps(body.items, ensure_ascii=False),
@@ -86,6 +94,8 @@ async def delete_bundle(
     )).scalar_one_or_none()
     if not bundle:
         raise NotFoundException("Paket bulunamadi")
+    # Round-4 R4-TEN-15 — block deactivating a foreign tenant's bundle.
+    assert_same_tenant(bundle, current_user, exception_cls=NotFoundException)
     bundle.is_active = False
     await db.flush()
     return {"message": "Paket silindi"}
@@ -103,6 +113,8 @@ async def expand_bundle_to_quote_items(
     )).scalar_one_or_none()
     if not bundle:
         raise NotFoundException("Paket bulunamadi")
+    # Round-4 R4-TEN-15 — block expanding a foreign tenant's bundle.
+    assert_same_tenant(bundle, current_user, exception_cls=NotFoundException)
 
     items = json.loads(bundle.items_json) if bundle.items_json else []
     quote_items = []

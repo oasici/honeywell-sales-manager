@@ -16,6 +16,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.chat import AutoResponseRule, ChatMessage, ChatSession
 from app.models.enums import UserRole
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/chat", tags=["Live Chat"])
 
@@ -66,6 +67,8 @@ class AutoRuleUpdate(BaseModel):
 def _serialize_session(s: ChatSession) -> dict:
     return {
         "id": s.id,
+        # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-19).
+        "tenant_id": getattr(s, "tenant_id", None),
         "visitor_id": s.visitor_id,
         "assigned_agent_id": s.assigned_agent_id,
         "status": s.status,
@@ -78,6 +81,8 @@ def _serialize_session(s: ChatSession) -> dict:
 def _serialize_message(m: ChatMessage) -> dict:
     return {
         "id": m.id,
+        # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-19).
+        "tenant_id": getattr(m, "tenant_id", None),
         "session_id": m.session_id,
         "sender_type": m.sender_type,
         "sender_id": m.sender_id,
@@ -91,6 +96,8 @@ def _serialize_message(m: ChatMessage) -> dict:
 def _serialize_rule(r: AutoResponseRule) -> dict:
     return {
         "id": r.id,
+        # Round-4 R4-DTO — round-trip tenant_id (R4-TEN-19).
+        "tenant_id": getattr(r, "tenant_id", None),
         "trigger_keyword": r.trigger_keyword,
         "response_text": r.response_text,
         "is_active": r.is_active,
@@ -131,6 +138,8 @@ async def list_sessions(
     query = select(ChatSession).order_by(ChatSession.created_at.desc())
     filter_status = status or "open"
     query = query.where(ChatSession.status == filter_status)
+    # Round-4 R4-TEN-19 — scope sessions to caller tenant.
+    query = scoped_for_user(query, current_user, column=ChatSession.tenant_id)
     result = await db.execute(query)
     sessions = result.scalars().all()
     return {"sessions": [_serialize_session(s) for s in sessions]}
@@ -150,11 +159,19 @@ async def assign_session(
     session = result.scalar_one_or_none()
     if session is None:
         raise NotFoundException("Chat session not found")
+    # Round-4 R4-TEN-19 — block cross-tenant assignment. Sessions started
+    # by a visitor before any agent claim have tenant_id=None, so the
+    # check is a no-op until the first claim stamps the tenant below.
+    assert_same_tenant(session, current_user, exception_cls=NotFoundException)
     if session.status == "closed":
         raise BadRequestException("Cannot assign a closed session")
 
     session.assigned_agent_id = current_user.id
     session.status = "assigned"
+    # Round-4 R4-TEN-19 — stamp tenant from the claiming agent so downstream
+    # listing / messaging endpoints can scope on it.
+    if getattr(session, "tenant_id", None) is None:
+        session.tenant_id = getattr(current_user, "tenant_id", None)
     await db.commit()
     await db.refresh(session)
     return _serialize_session(session)
@@ -174,6 +191,8 @@ async def close_session(
     session = result.scalar_one_or_none()
     if session is None:
         raise NotFoundException("Chat session not found")
+    # Round-4 R4-TEN-19 — block cross-tenant close.
+    assert_same_tenant(session, current_user, exception_cls=NotFoundException)
     if session.status == "closed":
         raise BadRequestException("Session is already closed")
 
@@ -194,17 +213,25 @@ async def get_messages(
     db: AsyncSession = Depends(get_db),
 ):
     """Retrieve message history for a session."""
+    # Round-4 R4-TEN-19 — load the full session row so we can tenant-check
+    # before exposing any messages.
     session_result = await db.execute(
-        select(ChatSession.id).where(ChatSession.id == session_id)
+        select(ChatSession).where(ChatSession.id == session_id)
     )
-    if session_result.scalar_one_or_none() is None:
+    session = session_result.scalar_one_or_none()
+    if session is None:
         raise NotFoundException("Chat session not found")
+    assert_same_tenant(session, current_user, exception_cls=NotFoundException)
 
-    messages_result = await db.execute(
+    msg_stmt = (
         select(ChatMessage)
         .where(ChatMessage.session_id == session_id)
         .order_by(ChatMessage.created_at)
     )
+    # Defense in depth: scope by message tenant too in case legacy rows
+    # exist with a different tenant_id than the session.
+    msg_stmt = scoped_for_user(msg_stmt, current_user, column=ChatMessage.tenant_id)
+    messages_result = await db.execute(msg_stmt)
     messages = messages_result.scalars().all()
     return {"messages": [_serialize_message(m) for m in messages]}
 
@@ -235,12 +262,16 @@ async def send_message(
     if session.status == "closed":
         raise BadRequestException("Cannot send message to a closed session")
 
+    # Round-4 R4-TEN-19 — chain message tenant from the parent session so
+    # downstream listing endpoints stay tenant-scoped.
+    session_tenant_id = getattr(session, "tenant_id", None)
     message = ChatMessage(
         session_id=session_id,
         sender_type=body.sender_type,
         sender_id=body.sender_id,
         content=body.content,
         message_type=body.message_type,
+        tenant_id=session_tenant_id,
     )
     db.add(message)
     await db.commit()
@@ -248,7 +279,9 @@ async def send_message(
 
     bot_message: ChatMessage | None = None
     if body.sender_type == "visitor":
-        bot_message = await _try_auto_response(session_id, body.content, db)
+        bot_message = await _try_auto_response(
+            session_id, body.content, db, tenant_id=session_tenant_id
+        )
 
     response: dict = {"message": _serialize_message(message)}
     if bot_message is not None:
@@ -257,14 +290,26 @@ async def send_message(
 
 
 async def _try_auto_response(
-    session_id: int, content: str, db: AsyncSession
+    session_id: int,
+    content: str,
+    db: AsyncSession,
+    *,
+    tenant_id: int | None = None,
 ) -> ChatMessage | None:
-    """Check active auto-response rules and fire the highest-priority match."""
-    rules_result = await db.execute(
+    """Check active auto-response rules and fire the highest-priority match.
+
+    Round-4 R4-TEN-19 — scope the rule lookup by ``tenant_id`` (chained
+    from the parent session). When the session has no tenant (single-tenant
+    deployments), behave as before and consider all active rules.
+    """
+    rules_stmt = (
         select(AutoResponseRule)
         .where(AutoResponseRule.is_active.is_(True))
         .order_by(AutoResponseRule.priority.desc())
     )
+    if tenant_id is not None:
+        rules_stmt = rules_stmt.where(AutoResponseRule.tenant_id == tenant_id)
+    rules_result = await db.execute(rules_stmt)
     rules = rules_result.scalars().all()
 
     content_lower = content.lower()
@@ -282,6 +327,8 @@ async def _try_auto_response(
         sender_type="bot",
         content=matched_rule.response_text,
         message_type="text",
+        # Round-4 R4-TEN-19 — propagate tenant from the session.
+        tenant_id=tenant_id,
     )
     db.add(bot_msg)
     await db.commit()
@@ -299,9 +346,13 @@ async def list_auto_rules(
     db: AsyncSession = Depends(get_db),
 ):
     """List all auto-response rules. Admin-only."""
-    result = await db.execute(
-        select(AutoResponseRule).order_by(AutoResponseRule.priority.desc())
+    # Round-4 R4-TEN-19 — scope rules to caller tenant.
+    rule_stmt = scoped_for_user(
+        select(AutoResponseRule).order_by(AutoResponseRule.priority.desc()),
+        current_user,
+        column=AutoResponseRule.tenant_id,
     )
+    result = await db.execute(rule_stmt)
     rules = result.scalars().all()
     return {"rules": [_serialize_rule(r) for r in rules]}
 
@@ -320,6 +371,8 @@ async def create_auto_rule(
         is_active=body.is_active,
         priority=body.priority,
         created_by=current_user.id,
+        # Round-4 R4-TEN-19 — stamp tenant on create.
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(rule)
     await db.commit()
@@ -342,6 +395,8 @@ async def update_auto_rule(
     rule = result.scalar_one_or_none()
     if rule is None:
         raise NotFoundException("Auto-response rule not found")
+    # Round-4 R4-TEN-19 — block cross-tenant rule update.
+    assert_same_tenant(rule, current_user, exception_cls=NotFoundException)
 
     for key, value in body.model_dump(exclude_none=True).items():
         setattr(rule, key, value)
@@ -365,5 +420,7 @@ async def delete_auto_rule(
     rule = result.scalar_one_or_none()
     if rule is None:
         raise NotFoundException("Auto-response rule not found")
+    # Round-4 R4-TEN-19 — block cross-tenant rule delete.
+    assert_same_tenant(rule, current_user, exception_cls=NotFoundException)
 
     await db.delete(rule)

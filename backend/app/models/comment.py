@@ -12,6 +12,9 @@ class Comment(Base):
     __tablename__ = "comments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 R4-TEN-18 — tenant boundary on comments. Backfilled by alembic
+    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     entity_type: Mapped[str] = mapped_column(
         String(30), nullable=False
     )  # opportunity, customer, lead

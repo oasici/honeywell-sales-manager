@@ -12,6 +12,14 @@ class EmailRequest(Base):
     __tablename__ = "email_requests"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # R4-TEN-23 — backfilled by alembic
+    # 20260504_add_tenant_id_to_email_requests (PHASE 4 follow-up).
+    # Nullable so single-tenant deployments and pre-migration rows keep
+    # working; cross-tenant guards use ``assert_same_tenant`` which is a
+    # no-op when either side is None.
+    tenant_id: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, index=True
+    )
     customer_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=True, index=True
     )

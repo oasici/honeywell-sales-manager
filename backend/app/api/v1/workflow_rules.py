@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.exceptions import NotFoundException
 from app.models.enums import UserRole
 from app.models.user import User
 from app.models.workflow_rule import WorkflowRule
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/workflow-rules", tags=["Workflow Rules"])
 
@@ -56,9 +58,10 @@ async def list_workflow_rules(
     _flag=Depends(_require_workflow_rules),
 ):
     """List all workflow rules (manager only)."""
-    result = await db.execute(
-        select(WorkflowRule).order_by(WorkflowRule.created_at.desc())
+    stmt = scoped_for_user(
+        select(WorkflowRule), current_user, column=WorkflowRule.tenant_id,
     )
+    result = await db.execute(stmt.order_by(WorkflowRule.created_at.desc()))
     rules = result.scalars().all()
     return {
         "items": [_rule_to_dict(r) for r in rules],
@@ -83,6 +86,7 @@ async def create_workflow_rule(
         flow_json=body.flow_json,
         is_active=body.is_active,
         created_by=current_user.id,
+        tenant_id=getattr(current_user, "tenant_id", None),
     )
     db.add(rule)
     await db.commit()
@@ -109,6 +113,7 @@ async def update_workflow_rule(
     rule = result.scalar_one_or_none()
     if not rule:
         raise HTTPException(status_code=404, detail="Is kurali bulunamadi")
+    assert_same_tenant(rule, current_user, exception_cls=NotFoundException)
 
     update_data = body.model_dump(exclude_none=True)
     if not update_data:
@@ -136,6 +141,7 @@ async def delete_workflow_rule(
     rule = result.scalar_one_or_none()
     if not rule:
         raise HTTPException(status_code=404, detail="Is kurali bulunamadi")
+    assert_same_tenant(rule, current_user, exception_cls=NotFoundException)
 
     await db.delete(rule)
     await db.commit()
@@ -148,6 +154,7 @@ async def delete_workflow_rule(
 def _rule_to_dict(rule: WorkflowRule) -> dict:
     return {
         "id": rule.id,
+        "tenant_id": getattr(rule, "tenant_id", None),
         "name": rule.name,
         "entity_type": rule.entity_type,
         "trigger_event": rule.trigger_event,

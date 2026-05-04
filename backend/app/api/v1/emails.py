@@ -19,6 +19,24 @@ from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
 from app.services.email_processing_service import EmailProcessingService
 from app.services.notification_service import create_notification
+from app.services.tenant_context import assert_same_tenant
+
+
+def _assert_email_same_tenant(email: EmailRequest, user: User) -> None:
+    """R4-TEN-23 — enforce tenant boundary on EmailRequest detail loads.
+
+    EmailRequest carries its own ``tenant_id`` after the round-4
+    migration. Pre-migration rows have ``tenant_id == None`` and pass
+    through ``assert_same_tenant`` unchanged, so we keep backwards
+    compatibility while still locking down newly stamped rows.
+
+    Cross-tenant probes surface as 404 (NotFoundException) so the API
+    never leaks which email IDs exist in foreign tenants.
+    """
+    try:
+        assert_same_tenant(email, user, exception_cls=NotFoundException)
+    except NotFoundException:
+        raise NotFoundException("E-posta bulunamadi")
 
 
 class EmailReviewRequest(BaseModel):
@@ -174,6 +192,7 @@ async def get_email(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException("E-posta bulunamadi")
+    _assert_email_same_tenant(email, current_user)
 
     # Ownership check: non-managers can only access emails assigned to them
     if current_user.role != UserRole.SALES_MANAGER.value and email.assigned_to != current_user.id:
@@ -196,6 +215,13 @@ async def create_manual_email(
         body_text=data.body_text,
         assigned_to=current_user.id,
     )
+    # R4-TEN-23: stamp tenant_id on the freshly-created row so later
+    # detail loads can enforce same-tenant scope. Single-tenant
+    # deployments leave current_user.tenant_id == None which keeps the
+    # column nullable as before.
+    if getattr(current_user, "tenant_id", None) is not None and email.tenant_id is None:
+        email.tenant_id = current_user.tenant_id
+        await db.flush()
 
     # Best-effort notification
     try:
@@ -307,6 +333,9 @@ async def poll_emails(
                 continue
 
             # Create with IMAP SEEN status as is_read
+            # R4-TEN-23: stamp tenant_id from the polling user so the row
+            # is scoped to a tenant from creation; downstream detail
+            # endpoints enforce ``assert_same_tenant``.
             email = EmailRequest(
                 message_id=item["message_id"],
                 from_address=item["from_addr"],
@@ -316,6 +345,7 @@ async def poll_emails(
                 is_read=item.get("is_read", False),
                 received_at=datetime.now(tz.utc),
                 assigned_to=current_user.id,
+                tenant_id=getattr(current_user, "tenant_id", None),
             )
             db.add(email)
             await db.flush()
@@ -364,6 +394,7 @@ async def get_email_thread(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException("E-posta bulunamadi")
+    _assert_email_same_tenant(email, current_user)
     _check_email_ownership(email, current_user)
 
     if not email.thread_id:
@@ -397,6 +428,7 @@ async def link_email_to_opportunity(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException("E-posta bulunamadi")
+    _assert_email_same_tenant(email, current_user)
     _check_email_ownership(email, current_user)
 
     if body.opportunity_id is None:
@@ -408,6 +440,13 @@ async def link_email_to_opportunity(
         await db.execute(select(Opportunity).where(Opportunity.id == body.opportunity_id))
     ).scalar_one_or_none()
     if not opp:
+        raise NotFoundException("Firsat bulunamadi")
+    # R4-TEN-23: prevent linking an email to a foreign-tenant opportunity.
+    # Cross-tenant lookups collapse to 404 indistinguishable from "doesn't
+    # exist" so this endpoint can't be used as an enumeration oracle.
+    try:
+        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+    except NotFoundException:
         raise NotFoundException("Firsat bulunamadi")
 
     if current_user.role == UserRole.SALES_REP.value and opp.owner_id != current_user.id:
@@ -437,6 +476,7 @@ async def mark_email_read(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException("E-posta bulunamadi")
+    _assert_email_same_tenant(email, current_user)
     _check_email_ownership(email, current_user)
     email.is_read = True
     await db.flush()
@@ -457,6 +497,7 @@ async def reparse_email(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException("E-posta bulunamadi")
+    _assert_email_same_tenant(email, current_user)
     _check_email_ownership(email, current_user)
 
     # Daily parse limit: 2/day (atomic lock to prevent race condition)
@@ -509,6 +550,7 @@ async def correct_parse(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException("E-posta bulunamadi")
+    _assert_email_same_tenant(email, current_user)
     _check_email_ownership(email, current_user)
 
     original_parse = email.parsed_data or "{}"
@@ -564,6 +606,7 @@ async def get_email_matches(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException("E-posta bulunamadi")
+    _assert_email_same_tenant(email, current_user)
     _check_email_ownership(email, current_user)
 
     parsed_data = None
@@ -597,6 +640,9 @@ async def review_email(
     email = result.scalar_one_or_none()
     if not email:
         raise NotFoundException("E-posta bulunamadi")
+    # R4-TEN-23: managers from tenant A must not be able to review/approve
+    # tenant B emails. Cross-tenant collapses to 404.
+    _assert_email_same_tenant(email, current_user)
 
     if email.review_status != ReviewStatus.PENDING_REVIEW.value:
         raise BadRequestException(

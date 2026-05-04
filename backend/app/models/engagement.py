@@ -65,6 +65,9 @@ class Sequence(Base):
     __tablename__ = "sequences"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 R4-TEN-13 — tenant boundary on sequences. Backfilled by alembic
+    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     steps_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
@@ -84,6 +87,9 @@ class SequenceEnrollment(Base):
     __tablename__ = "sequence_enrollments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 R4-TEN-13 — tenant boundary on sequence enrollments. Backfilled by alembic
+    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     sequence_id: Mapped[int] = mapped_column(Integer, ForeignKey("sequences.id"), nullable=False, index=True)
     opportunity_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=True, index=True
@@ -115,6 +121,9 @@ class Segment(Base):
     __tablename__ = "segments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-4 R4-TEN-13 — tenant boundary on segments. Backfilled by alembic
+    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     rules_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
