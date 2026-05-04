@@ -132,15 +132,19 @@ def upgrade() -> None:
         """
     )
 
-    # 2b) created_by → users.tenant_id. Catches everything keyed on a
-    # human author (the audit log records and admin-CRUD tables).
+    # 2b) <user FK> → users.tenant_id. The actual column varies by
+    # table — most use ``created_by`` but a few use the action-specific
+    # FK as the only available signal:
+    #   - approval_rules.approver_user_id   (no created_by column)
+    #   - sharing_rules.share_with_user_id  (no created_by column)
+    #   - product_bundles                   (no user FK at all → skip;
+    #     existing rows stay NULL and the next write stamps tenant)
     for table, fk_col in (
         ("workflow_rules", "created_by"),
-        ("approval_rules", "created_by"),
+        ("approval_rules", "approver_user_id"),
         ("sequences", "created_by"),
         ("segments", "created_by"),
-        ("product_bundles", "created_by"),
-        ("sharing_rules", "created_by"),
+        ("sharing_rules", "share_with_user_id"),
         ("webhook_subscriptions", "created_by"),
         ("signature_requests", "created_by"),
         ("territories", "created_by"),
@@ -157,6 +161,20 @@ def upgrade() -> None:
                AND u.tenant_id IS NOT NULL
             """
         )
+
+    # account_teams already backfilled via customers.tenant_id above
+    # (2a). chat_sessions can additionally derive from
+    # assigned_agent_id when one is set.
+    op.execute(
+        """
+        UPDATE chat_sessions
+           SET tenant_id = u.tenant_id
+          FROM users u
+         WHERE chat_sessions.assigned_agent_id = u.id
+           AND chat_sessions.tenant_id IS NULL
+           AND u.tenant_id IS NOT NULL
+        """
+    )
 
     # 2c) Chain through parent tables that are now backfilled.
     # webhook_deliveries → webhook_subscriptions

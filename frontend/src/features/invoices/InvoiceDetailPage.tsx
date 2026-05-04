@@ -73,11 +73,7 @@ export default function InvoiceDetailPage() {
       toast.success(t('invoices.toast_status_updated'));
       // R4-CACHE-106 — paid → contract.actual_revenue + rev-rec
       // schedules + cockpit need refresh, not just invoice list.
-      onInvoiceStatusChanged(
-        queryClient,
-        invoiceId,
-        invoice?.contract_id ?? null,
-      );
+      onInvoiceStatusChanged(queryClient, invoiceId, invoice?.contract_id ?? null);
     },
     onError: () => toast.error(t('invoices.toast_status_failed')),
   });

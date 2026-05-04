@@ -162,7 +162,15 @@ export default function SequenceBuilderPage() {
         }
         if (sequence.auto_enroll_rules) {
           setIsAutoEnroll(true);
-          setScoreThreshold((sequence.auto_enroll_rules.score_threshold as number) || 50);
+          // R4-TS-5 widened auto_enroll_rules to dict | array | null.
+          // The score_threshold legacy lives only on the dict shape;
+          // narrow before reading and fall back to the default.
+          const rules = sequence.auto_enroll_rules;
+          const threshold =
+            !Array.isArray(rules) && rules && typeof rules === 'object'
+              ? (rules as Record<string, unknown>).score_threshold
+              : null;
+          setScoreThreshold(typeof threshold === 'number' ? threshold : 50);
         }
       });
     }

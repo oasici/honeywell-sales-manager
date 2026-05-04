@@ -195,7 +195,9 @@ export default function QuoteEditorPage() {
       {
         spare_part_id: part.id,
         honeywell_code: part.honeywell_code,
-        description: part.name_tr || part.name_en,
+        // Round-4 R4-NAME-1 made name_tr/name_en nullable; coerce to ''
+        // so the EditableItem.description string contract holds.
+        description: part.name_tr ?? part.name_en ?? '',
         quantity: 1,
         unit_price: price,
         discount_pct: 0,
@@ -733,7 +735,9 @@ export default function QuoteEditorPage() {
                         className="py-2 border-b border-dashed border-slate-200 last:border-b-0"
                       >
                         <div className="mb-1">
-                          <span className="text-slate-900 font-semibold">{item.honeywell_code}</span>
+                          <span className="text-slate-900 font-semibold">
+                            {item.honeywell_code}
+                          </span>
                           <span className="text-slate-400 mx-1.5">-</span>
                           <span className="text-slate-600">{item.description}</span>
                         </div>

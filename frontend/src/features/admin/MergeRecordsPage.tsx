@@ -260,9 +260,7 @@ export default function MergeRecordsPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
           <h3 className="text-overline text-slate-500 dark:text-slate-400">İlişkili Kayıtlar</h3>
           {Object.keys(relatedCounts).length === 0 ? (
-            <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
-              {transferSummary}
-            </p>
+            <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">{transferSummary}</p>
           ) : (
             <>
               <div className="mt-3 flex flex-wrap gap-2">

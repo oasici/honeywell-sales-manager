@@ -114,16 +114,14 @@ export function FeatureFlagGate({
   if (!isLoaded) return null;
   if (!isEnabled(flag)) {
     return (
-      <>{fallback ?? (
-        <div className="mx-auto max-w-lg py-16 text-center">
-          <p className="text-lg font-semibold text-slate-700">
-            Bu özellik bu hesap için kapalı.
-          </p>
-          <p className="mt-2 text-sm text-slate-500">
-            Yöneticinizden etkinleştirmesini isteyin.
-          </p>
-        </div>
-      )}</>
+      <>
+        {fallback ?? (
+          <div className="mx-auto max-w-lg py-16 text-center">
+            <p className="text-lg font-semibold text-slate-700">Bu özellik bu hesap için kapalı.</p>
+            <p className="mt-2 text-sm text-slate-500">Yöneticinizden etkinleştirmesini isteyin.</p>
+          </div>
+        )}
+      </>
     );
   }
   return <>{children}</>;

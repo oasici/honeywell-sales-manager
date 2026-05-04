@@ -21,10 +21,7 @@ import type { QueryClient } from '@tanstack/react-query';
  * query, the kanban + list, every AI/intelligence card keyed on the
  * opportunity id, and the cockpit + dashboard rollups.
  */
-export function onOpportunityChanged(
-  qc: QueryClient,
-  opportunityId: number,
-): void {
+export function onOpportunityChanged(qc: QueryClient, opportunityId: number): void {
   qc.invalidateQueries({ queryKey: ['opportunity', opportunityId] });
   qc.invalidateQueries({ queryKey: ['opportunities'] });
   qc.invalidateQueries({ queryKey: ['board'] });
@@ -46,10 +43,7 @@ export function onOpportunityChanged(
  * pin state / hierarchy. Invalidates customer detail, list, search,
  * Account 360, intelligence cards, and the high-intent pin list.
  */
-export function onCustomerChanged(
-  qc: QueryClient,
-  customerId: number,
-): void {
+export function onCustomerChanged(qc: QueryClient, customerId: number): void {
   qc.invalidateQueries({ queryKey: ['customer', customerId] });
   qc.invalidateQueries({ queryKey: ['customers'] });
   qc.invalidateQueries({ queryKey: ['customer-opportunities', customerId] });
@@ -126,10 +120,7 @@ export function onInvoiceStatusChanged(
 }
 
 /** After contract.activate / amend. */
-export function onContractChanged(
-  qc: QueryClient,
-  contractId: number,
-): void {
+export function onContractChanged(qc: QueryClient, contractId: number): void {
   qc.invalidateQueries({ queryKey: ['contract', contractId] });
   qc.invalidateQueries({ queryKey: ['contracts'] });
 }
@@ -148,10 +139,7 @@ export function onRecordsMerged(qc: QueryClient): void {
  * count is a feature input to deal-risk / decision-gap / benchmark
  * cards, so we invalidate those too.
  */
-export function onStakeholderChanged(
-  qc: QueryClient,
-  opportunityId: number,
-): void {
+export function onStakeholderChanged(qc: QueryClient, opportunityId: number): void {
   qc.invalidateQueries({ queryKey: ['stakeholders', opportunityId] });
   qc.invalidateQueries({ queryKey: ['stakeholder-alerts', opportunityId] });
   qc.invalidateQueries({ queryKey: ['decision-gaps', opportunityId] });
