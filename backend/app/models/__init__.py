@@ -9,6 +9,7 @@ from app.models.price_entry import PriceEntry
 from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
 from app.models.audit_log import AuditLog
+from app.models.dead_letter_event import DeadLetterEvent
 from app.models.notification import Notification
 from app.models.setting import Setting
 from app.models.ai_training_data import AITrainingData

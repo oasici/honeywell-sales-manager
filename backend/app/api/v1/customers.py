@@ -433,6 +433,27 @@ async def create_customer(
     await db.flush()
     await db.refresh(customer)
 
+    # Round-4 R4-EVT-201 — webhook subscribers configured for
+    # ``customer.created`` were never firing because no producer
+    # existed. Emit on the canonical create path so external
+    # integrations (HubSpot sync, Slack notifier, etc.) can react.
+    try:
+        from app.core.event_bus import event_bus
+
+        await event_bus.publish(
+            "customer.created",
+            {
+                "customer_id": customer.id,
+                "name": customer.name,
+                "owner_id": customer.created_by,
+                "tenant_id": customer.tenant_id,
+            },
+        )
+    except Exception:
+        # Best-effort — never let a downstream subscriber failure
+        # break the user-visible create response.
+        pass
+
     return _customer_to_dict(customer)
 
 

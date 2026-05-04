@@ -81,6 +81,25 @@ class EventBus:
                     except Exception:
                         pass
 
+                    # Round-4 R4-EG-1 — persist to dead_letter_events so
+                    # operators can inspect + replay. Best-effort; if the
+                    # DB itself is what failed, we don't want the bus to
+                    # raise either. Lazy-imported because event_bus is
+                    # used by tests that don't spin up the DB.
+                    try:
+                        await _persist_dead_letter(
+                            event_type=event_type,
+                            handler_name=handler_name,
+                            payload=payload,
+                            exc=exc,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "dead-letter persist failed for %s/%s",
+                            event_type,
+                            handler_name,
+                        )
+
     def clear(self) -> None:
         """Remove all handlers. Useful for testing."""
         self._handlers.clear()
@@ -98,6 +117,44 @@ class EventBus:
     def handler_count(self) -> int:
         """Total number of registered handlers across all event types."""
         return sum(len(h) for h in self._handlers.values())
+
+
+async def _persist_dead_letter(
+    *,
+    event_type: str,
+    handler_name: str,
+    payload: dict,
+    exc: BaseException,
+) -> None:
+    """Insert a row into ``dead_letter_events`` for R4-EG-1.
+
+    Imported lazily inside the function so the event_bus module stays
+    importable in unit tests that don't initialise SQLAlchemy.
+    """
+    import json
+    import traceback
+
+    from app.core.database import async_session
+    from app.models.dead_letter_event import DeadLetterEvent
+
+    try:
+        payload_str = json.dumps(payload, default=str)
+    except (TypeError, ValueError):
+        payload_str = repr(payload)
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+
+    async with async_session() as session:
+        session.add(
+            DeadLetterEvent(
+                event_type=event_type,
+                handler_name=handler_name,
+                payload_json=payload_str,
+                error_message=str(exc)[:1000] or exc.__class__.__name__,
+                error_traceback=tb[:8000],
+                attempt_count=2,
+            )
+        )
+        await session.commit()
 
 
 # Singleton instance — import and use directly
