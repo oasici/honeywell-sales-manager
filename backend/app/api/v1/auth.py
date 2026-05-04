@@ -11,7 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
-from app.core.rate_limit import enforce_login_rate_limit
+from app.core.rate_limit import (
+    enforce_login_rate_limit,
+    enforce_login_username_rate_limit,
+)
 from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException, UnauthorizedException
 from app.core.security import (
@@ -109,6 +112,11 @@ async def login(
     - HttpOnly cookies (preferred for browser SPA; resistant to XSS token theft)
     Frontend should progressively switch to cookie-based auth.
     """
+    # Round-4 R4-RL-6 — per-username layer above the per-IP one.
+    # A botnet rotating IPs can defeat the per-IP cap; the per-username
+    # cap stops them at the same login target.
+    enforce_login_username_rate_limit(form_data.username)
+
     user = await auth_service.authenticate(db, form_data.username, form_data.password)
     if user is None:
         raise UnauthorizedException("Gecersiz e-posta veya sifre")

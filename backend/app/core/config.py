@@ -194,6 +194,17 @@ class Settings(BaseSettings):
     # current_user.tenant_id is None (legacy single-tenant deploys).
     RATE_LIMIT_TENANT_AI: str = "1000/minute"
     RATE_LIMIT_TENANT_UPLOAD: str = "200/minute"
+    # Round-4 R4-RL-2/3/4/5/6 — additional buckets for surfaces the
+    # audit found unprotected:
+    #   - bulk-action endpoints (DoS + audit-log flood post-AUD-2)
+    #   - RAG search (Anthropic budget burn — already governed by
+    #     RATE_LIMIT_AI; we re-use that bucket for /rag/answer)
+    #   - KVKK / audit data exports (PII exfiltration in minutes)
+    #   - per-username login layer (catches credential stuffing
+    #     across a botnet that defeats the per-IP layer)
+    RATE_LIMIT_BULK: str = "5/minute"
+    RATE_LIMIT_KVKK_EXPORT: str = "2/minute"
+    RATE_LIMIT_LOGIN_USERNAME: str = "5/minute"
 
     # ── Cross-tenant probe alerting (V13 security signal) ──
     # When a single user accumulates >= ``CROSS_TENANT_ALERT_THRESHOLD``

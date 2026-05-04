@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import require_role
 from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.rate_limit import enforce_kvkk_export_rate_limit
 from app.models.activity_log import ActivityLog
 from app.models.audit_log import AuditLog
 from app.models.breach_notification import BreachNotification
@@ -187,7 +188,13 @@ async def get_consent(
     }
 
 
-@router.post("/data-export/{customer_id}")
+@router.post(
+    "/data-export/{customer_id}",
+    # Round-4 R4-RL-4 — without this, a SALES_MANAGER (or compromised
+    # account) iterates customer_id={1..N} and exfiltrates the entire
+    # KVKK PII corpus in minutes.
+    dependencies=[Depends(enforce_kvkk_export_rate_limit)],
+)
 async def export_customer_data(
     customer_id: int,
     current_user: User = Depends(

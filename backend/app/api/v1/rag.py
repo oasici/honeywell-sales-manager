@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import enforce_ai_rate_limit
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services import rag_answer_service, rag_backfill_service
@@ -69,7 +70,12 @@ class CompetitorSearchPayload(BaseModel):
     limit: int = Field(5, ge=1, le=25)
 
 
-@router.post("/search/deals")
+@router.post(
+    "/search/deals",
+    # Round-4 R4-RL-3 — vector search + embedding gen is expensive;
+    # /answer also burns the Anthropic budget.
+    dependencies=[Depends(enforce_ai_rate_limit)],
+)
 async def search_deals(
     payload: DealSearchPayload,
     current_user: User = Depends(get_current_user),
@@ -81,7 +87,10 @@ async def search_deals(
     return {"query": payload.query, "items": rows, "total": len(rows)}
 
 
-@router.post("/search/interactions")
+@router.post(
+    "/search/interactions",
+    dependencies=[Depends(enforce_ai_rate_limit)],
+)
 async def search_interactions(
     payload: InteractionSearchPayload,
     current_user: User = Depends(get_current_user),
@@ -95,7 +104,10 @@ async def search_interactions(
     return {"query": payload.query, "items": rows, "total": len(rows)}
 
 
-@router.post("/search/competitors")
+@router.post(
+    "/search/competitors",
+    dependencies=[Depends(enforce_ai_rate_limit)],
+)
 async def search_competitors(
     payload: CompetitorSearchPayload,
     current_user: User = Depends(get_current_user),
@@ -118,7 +130,10 @@ class RagAnswerPayload(BaseModel):
     competitor: str | None = None
 
 
-@router.post("/answer")
+@router.post(
+    "/answer",
+    dependencies=[Depends(enforce_ai_rate_limit)],
+)
 async def rag_answer(
     payload: RagAnswerPayload,
     current_user: User = Depends(get_current_user),

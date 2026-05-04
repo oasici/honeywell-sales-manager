@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.rate_limit import enforce_bulk_rate_limit
 from app.models.customer import Customer
 from app.models.quote import Quote
 from app.models.user import User
@@ -705,7 +706,11 @@ async def get_customer_activity_timeline(
     }
 
 
-@router.post("/bulk-action")
+@router.post(
+    "/bulk-action",
+    # Round-4 R4-RL-2 — DoS + audit-log flood guard.
+    dependencies=[Depends(enforce_bulk_rate_limit)],
+)
 async def bulk_action_customers(
     body: dict,
     current_user: User = Depends(get_current_user),

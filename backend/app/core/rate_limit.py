@@ -25,6 +25,10 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[settings.RATE_LIM
 # Simple sliding-window counter. For multi-worker deploys, replace with Redis.
 
 _login_attempts: dict[str, deque] = defaultdict(deque)
+# Round-4 R4-RL-6 — per-username login bucket layered above the
+# per-IP one. A botnet rotating IPs can otherwise get N × per-IP
+# attempts at the same username.
+_login_username_attempts: dict[str, deque] = defaultdict(deque)
 _ai_attempts: dict[str, deque] = defaultdict(deque)
 _upload_attempts: dict[str, deque] = defaultdict(deque)
 # V12+: per-tenant buckets so a single tenant can't blow through the
@@ -32,6 +36,10 @@ _upload_attempts: dict[str, deque] = defaultdict(deque)
 # both must pass for a request to proceed.
 _tenant_ai_attempts: dict[str, deque] = defaultdict(deque)
 _tenant_upload_attempts: dict[str, deque] = defaultdict(deque)
+# Round-4 R4-RL-2 — bulk-action endpoints (DoS + audit-log flood).
+_bulk_attempts: dict[str, deque] = defaultdict(deque)
+# Round-4 R4-RL-4/5 — KVKK / audit data export endpoints.
+_kvkk_export_attempts: dict[str, deque] = defaultdict(deque)
 _lock = Lock()
 
 
@@ -89,6 +97,24 @@ async def enforce_login_rate_limit(request: Request) -> None:
         _login_attempts,
         _get_client_ip(request),
         settings.RATE_LIMIT_LOGIN,
+        "Cok fazla istek. Lutfen birkac dakika bekleyin.",
+    )
+
+
+def enforce_login_username_rate_limit(username: str) -> None:
+    """Round-4 R4-RL-6 — per-username login bucket.
+
+    Layered above ``enforce_login_rate_limit``: a botnet rotating IPs
+    can defeat the per-IP layer but still hits the per-username one.
+    Helper takes the username explicitly because the dependency layer
+    can't peek at the form body.
+    """
+    if not username:
+        return
+    _enforce_window(
+        _login_username_attempts,
+        f"username:{username.lower()}",
+        settings.RATE_LIMIT_LOGIN_USERNAME,
         "Cok fazla istek. Lutfen birkac dakika bekleyin.",
     )
 
@@ -184,3 +210,23 @@ enforce_tenant_upload_rate_limit = make_tenant_rate_limit(
     "Bu kiraci icin yukleme limiti asildi. Birkac dakika sonra tekrar deneyin.",
 )
 """Rate-limit file upload endpoints per tenant."""
+
+# Round-4 R4-RL-2 — bulk-action endpoints. A SALES_REP looping
+# {action: delete, ids: [1..10000]} would otherwise DoS the worker
+# AND flood the audit log (post-AUD-2 every iteration writes a row).
+enforce_bulk_rate_limit = make_user_rate_limit(
+    _bulk_attempts,
+    "RATE_LIMIT_BULK",
+    "Toplu islem limiti asildi. Birkac dakika sonra tekrar deneyin.",
+)
+"""Rate-limit bulk-action endpoints (per user)."""
+
+# Round-4 R4-RL-4/5 — KVKK / audit data export endpoints. Iterating
+# /compliance/data-export/{1..N} would otherwise let a SALES_MANAGER
+# exfiltrate the entire PII corpus in minutes.
+enforce_kvkk_export_rate_limit = make_user_rate_limit(
+    _kvkk_export_attempts,
+    "RATE_LIMIT_KVKK_EXPORT",
+    "Veri ihrac limiti asildi. Lutfen kisa bir sure bekleyin.",
+)
+"""Rate-limit KVKK / audit export endpoints (per user)."""

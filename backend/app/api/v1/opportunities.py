@@ -18,6 +18,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
+from app.core.rate_limit import enforce_bulk_rate_limit
 from app.models.enums import OpportunityStage, UserRole
 from app.models.opportunity import Opportunity, OpportunityEvent, OpportunitySignal, Task
 from app.models.quote import Quote
@@ -700,7 +701,11 @@ async def update_opportunity(
     return response
 
 
-@router.post("/opportunities/bulk-action")
+@router.post(
+    "/opportunities/bulk-action",
+    # Round-4 R4-RL-2 — DoS + audit-log flood guard.
+    dependencies=[Depends(enforce_bulk_rate_limit)],
+)
 async def bulk_action_opportunities(
     body: dict,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),

@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import require_role
+from app.core.rate_limit import enforce_kvkk_export_rate_limit
 from app.models.audit_log import AuditLog
 from app.models.customer import Customer
 from app.models.email_request import EmailRequest
@@ -98,7 +99,11 @@ async def list_audit_logs(
     }
 
 
-@router.get("/export/csv")
+@router.get(
+    "/export/csv",
+    # Round-4 R4-RL-5 — bulk PII export must be rate-limited.
+    dependencies=[Depends(enforce_kvkk_export_rate_limit)],
+)
 async def export_audit_logs_csv(
     user_id: int | None = Query(None),
     entity_type: str | None = Query(None),
@@ -165,7 +170,11 @@ async def export_audit_logs_csv(
     )
 
 
-@router.get("/data-export/{target_user_id}")
+@router.get(
+    "/data-export/{target_user_id}",
+    # Round-4 R4-RL-5 — KVKK Article 15 disclosure path.
+    dependencies=[Depends(enforce_kvkk_export_rate_limit)],
+)
 async def export_user_data(
     target_user_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
