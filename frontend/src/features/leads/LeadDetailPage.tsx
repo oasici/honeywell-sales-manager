@@ -242,13 +242,10 @@ export default function LeadDetailPage() {
                 {t('lead_detail.score_breakdown')}
               </p>
               <ul className="space-y-1">
-                {(
-                  lead.score_breakdown as Array<{
-                    factor: string;
-                    points: number;
-                    reason?: string;
-                  }>
-                )
+                {/* R5-TS-3 — Lead.score_breakdown TS shape now matches
+                    the wire shape {factor, points, reason}; the local
+                    cast is no longer needed. */}
+                {lead.score_breakdown
                   .slice(0, 8)
                   .map((b, i) => (
                     <li

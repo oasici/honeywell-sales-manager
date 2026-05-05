@@ -1,12 +1,20 @@
 // ── User ──────────────────────────────────────────────
 export interface User {
   id: number;
+  // R5-TS-4 / R5-API-2 — backend now round-trips tenant_id, manager_id,
+  // password_change_required, and updated_at on every user surface
+  // (users.py, audit.py, auth.py UserResponse). Optional so older
+  // serialised entries in localStorage stay readable.
+  tenant_id?: number | null;
+  manager_id?: number | null;
   email: string;
   full_name: string;
   role: string;
   is_active: boolean;
   email_setup_completed: boolean;
+  password_change_required?: boolean;
   created_at: string;
+  updated_at?: string | null;
 }
 
 // ── Customer ─────────────────────────────────────────
@@ -172,6 +180,10 @@ export interface ParsedData {
 
 export interface EmailRequest {
   id: number;
+  // R5-TS / R5-API-4 — round-trip tenant boundary + dedupe metadata.
+  tenant_id?: number | null;
+  is_duplicate?: boolean;
+  duplicate_of_id?: number | null;
   customer_id: number | null;
   opportunity_id?: number | null;
   message_id: string;
@@ -180,7 +192,8 @@ export interface EmailRequest {
   body_text: string;
   body_html: string;
   language: string;
-  received_at: string;
+  // R5-TS-16 — backend may emit null on rare seed paths.
+  received_at: string | null;
   status: string;
   parsed_data: ParsedData | null;
   error_message: string | null;
@@ -207,7 +220,8 @@ export interface EmailRequest {
   sentiment_score?: number | null;
   data_classification?: 'public' | 'internal' | 'confidential' | 'restricted' | null;
   last_parsed_at: string | null;
-  created_at: string;
+  // R5-TS-16 — backend defensive ``isoformat() if x else None``.
+  created_at: string | null;
 }
 
 // ── Spare Part ───────────────────────────────────────
@@ -228,12 +242,16 @@ export interface SparePart {
   transfer_price?: number | null;
   supplier_price?: number | null;
   price_currency?: string | null;
+  // R5-TS-7 / R5-API-7 — pricing engine guardrail; rendered + edited
+  // in the part editor, also surfaced on the quote-line tooltip.
+  min_margin_pct?: number | null;
   // Round-4 R4-CLOSE-2a/b — backend returns these but TS used to
   // drop them, so the AI matcher couldn't surface keyword hits.
   keywords_json?: string | null;
   aliases_json?: string | null;
   is_active: boolean;
-  created_at: string;
+  // R5-TS-10 — defensive ``isoformat() if x else None`` on the wire.
+  created_at: string | null;
 }
 
 // ── Price Entry ──────────────────────────────────────
@@ -313,6 +331,10 @@ export interface Quote {
   /** Win/loss tracking — populated when status moves to closed_won or closed_lost. */
   closed_at?: string | null;
   close_reason?: string | null;
+  // R5-TS-5 / R5-API-3 — V9 revision chain pointers. Populated by
+  // _quote_to_dict so the SPA can render the v1→v2→v3 lineage.
+  revision_no?: number | null;
+  superseded_by?: number | null;
   created_at: string;
   updated_at: string;
   customer?: Customer;
@@ -456,6 +478,10 @@ export interface TokenResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  // R5-TS-4 — surface forced password rotation flag at the top of
+  // the login response so the auth flow can route to /change-password
+  // without parsing the nested user object.
+  password_change_required?: boolean;
   user: User;
 }
 
@@ -641,6 +667,9 @@ export interface ActivityLogEntry {
 // ── Approval Routing ──
 export interface ApprovalRule {
   id: number;
+  // R5-TS-20 — backend already returns tenant_id; declare so the SPA
+  // can verify isolation when listing rules in cross-tenant admin UIs.
+  tenant_id?: number | null;
   name: string;
   entity_type: string;
   condition_type: string;
@@ -1704,6 +1733,9 @@ export interface MeetingBooking {
 // ── Subscription & Recurring Revenue ────────────────
 export interface Subscription {
   id: number;
+  // R5-TS-18 — backend rounds-trips tenant_id; declare so TS codegen
+  // tooling and the SPA's tenant guard can read it.
+  tenant_id?: number | null;
   customer_id: number;
   quote_id: number | null;
   name: string;
@@ -1794,8 +1826,9 @@ export interface Campaign {
   expected_revenue?: number;
   actual_revenue: number;
   created_by: number;
-  created_at: string;
-  updated_at: string;
+  // R5-TS-13 — defensive ``isoformat() if x else None``.
+  created_at: string | null;
+  updated_at: string | null;
   member_count?: number;
 }
 
@@ -1806,7 +1839,8 @@ export interface CampaignMember {
   customer_id?: number;
   status: string;
   responded_at?: string;
-  created_at: string;
+  // R5-TS-14 — defensive isoformat.
+  created_at: string | null;
   lead?: { id: number; first_name: string; last_name: string; email: string };
   customer?: { id: number; name: string; email: string; company: string };
 }
@@ -1824,6 +1858,9 @@ export interface CampaignROI {
 // ── Invoices ──
 export interface Invoice {
   id: number;
+  // R5-TS-17 — backend rounds-trips tenant_id (R4-CLOSE-1); the SPA
+  // can verify isolation client-side.
+  tenant_id?: number | null;
   invoice_number: string;
   quote_id?: number;
   contract_id?: number;
@@ -1871,6 +1908,9 @@ export interface ContractAmendment {
 
 export interface Contract {
   id: number;
+  // R5-TS-19 — round-trip tenant_id consistent with the round-4
+  // multi-tenant rollout.
+  tenant_id?: number | null;
   customer_id: number;
   quote_id: number | null;
   title: string;
@@ -1890,12 +1930,16 @@ export interface Contract {
 // ── Pipelines ──
 export interface Pipeline {
   id: number;
+  // R5-TS / R5-TEN-26 — pipelines are now tenant-scoped (round-5
+  // alembic 20260505_pipeline_tenant). Round-trip the column.
+  tenant_id?: number | null;
   name: string;
   stages_json?: string;
   is_default: boolean;
   description?: string;
   created_by: number;
-  created_at: string;
+  // R5-TS-11 — defensive isoformat on the wire.
+  created_at: string | null;
   // Round-4 R4-TS-7 — backend returns updated_at; TS used to drop it.
   updated_at?: string | null;
 }
@@ -1909,7 +1953,8 @@ export interface Territory {
   region?: string;
   rules_json?: string;
   created_by: number;
-  created_at: string;
+  // R5-TS-12 — defensive isoformat.
+  created_at: string | null;
   // Round-4 R4-TS-8 — backend returns updated_at; TS used to drop it.
   updated_at?: string | null;
   children?: Territory[];
@@ -1948,11 +1993,17 @@ export interface Lead {
   notes: string | null;
   converted_customer_id: number | null;
   converted_opportunity_id: number | null;
+  // R5-API-10 — surface who performed the conversion.
+  converted_by?: number | null;
   converted_at: string | null;
-  created_at: string;
+  // R5-TS-9 — defensive isoformat on backend side.
+  created_at: string | null;
   updated_at: string | null;
-  // Detail-only — populated by the rescore endpoint.
-  score_breakdown?: Array<{ name: string; label: string; points: number }>;
+  // R5-TS-3 — score_breakdown's wire shape is {factor, points, reason},
+  // not {name, label, points}. The previous declaration was a lie that
+  // forced LeadDetailPage to cast at the consumer; future consumers
+  // would silently read undefined on `b.name` / `b.label`.
+  score_breakdown?: Array<{ factor: string; points: number; reason?: string }>;
 }
 
 // ── Pricing ──────────────────────────────────────────
