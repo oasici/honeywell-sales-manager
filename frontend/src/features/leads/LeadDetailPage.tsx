@@ -289,10 +289,15 @@ export default function LeadDetailPage() {
               <ul className="space-y-1">
                 {/* R5-TS-3 — Lead.score_breakdown TS shape now matches
                     the wire shape {factor, points, reason}; the local
-                    cast is no longer needed. */}
+                    cast is no longer needed. Annotate the map params
+                    so strict-mode tsc -b is happy with the optional
+                    field narrowing. */}
                 {lead.score_breakdown
                   .slice(0, 8)
-                  .map((b, i) => (
+                  .map((
+                    b: { factor: string; points: number; reason?: string },
+                    i: number,
+                  ) => (
                     <li
                       key={i}
                       className="flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300"

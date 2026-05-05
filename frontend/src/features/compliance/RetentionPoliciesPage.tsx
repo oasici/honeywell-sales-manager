@@ -44,7 +44,12 @@ export default function RetentionPoliciesPage() {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [form, setForm] = useState(INITIAL_FORM);
 
-  const { data, isLoading } = useQuery<{ policies: RetentionPolicy[] }>({
+  // R5-API-8 — backend canonicalized to {items, total, ...}; legacy
+  // ``policies`` retained server-side as additive bridge.
+  const { data, isLoading } = useQuery<{
+    items?: RetentionPolicy[];
+    policies?: RetentionPolicy[];
+  }>({
     queryKey: ['compliance', 'retentionPolicies'],
     queryFn: () => complianceApi.listRetentionPolicies(),
   });
