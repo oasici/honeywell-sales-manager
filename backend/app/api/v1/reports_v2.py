@@ -8,7 +8,7 @@ import io
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, select
+from sqlalchemy import func as sa_func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -110,11 +110,18 @@ class InlineReportRequest(BaseModel):
 
 @router.get("/folders")
 async def list_folders(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=100, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List report folders: user's own + shared, scoped to caller's tenant."""
+    """List report folders: user's own + shared, scoped to caller's tenant.
+
+    Round-5 Phase 7 — canonical pagination envelope. ``data`` is kept
+    additively to bridge in-flight SPA builds.
+    """
     _check_feature_flag()
+    import math as _math
 
     # R5-TEN-28 — pre-R5 a folder marked is_shared=True was visible
     # from any tenant. Scope by tenant_id so shared just means
@@ -131,21 +138,36 @@ async def list_folders(
         current_user,
         column=ReportFolder.tenant_id,
     )
-    result = await db.execute(stmt)
+
+    count_result = await db.execute(
+        select(sa_func.count()).select_from(stmt.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(stmt.offset(offset).limit(page_size))
     folders = result.scalars().all()
 
+    items = [
+        {
+            "id": f.id,
+            "name": f.name,
+            "parent_id": f.parent_id,
+            "owner_id": f.owner_id,
+            "is_shared": f.is_shared,
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        }
+        for f in folders
+    ]
+
     return {
-        "data": [
-            {
-                "id": f.id,
-                "name": f.name,
-                "parent_id": f.parent_id,
-                "owner_id": f.owner_id,
-                "is_shared": f.is_shared,
-                "created_at": f.created_at.isoformat() if f.created_at else None,
-            }
-            for f in folders
-        ],
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy key for in-flight consumers.
+        "data": items,
     }
 
 
@@ -269,11 +291,19 @@ async def delete_folder(
 
 @router.get("/templates")
 async def list_templates(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=100, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List report templates: user's own + public + system (tenant-scoped)."""
+    """List report templates: user's own + public + system (tenant-scoped).
+
+    Round-5 Phase 7 — canonical pagination envelope. ``data`` is kept
+    additively to bridge in-flight SPA builds.
+    """
     _check_feature_flag()
+    import math as _math
+
     from app.services.tenant_context import scoped_for_user
 
     # Round-4 R4-TEN-14 — restrict the public/owner list to the
@@ -290,11 +320,26 @@ async def list_templates(
             ReportTemplate.is_system.is_(True),
         )
     )
-    result = await db.execute(stmt)
+
+    count_result = await db.execute(
+        select(sa_func.count()).select_from(stmt.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(stmt.offset(offset).limit(page_size))
     templates = result.scalars().all()
 
+    items = [ReportTemplateResponse.model_validate(t) for t in templates]
+
     return {
-        "data": [ReportTemplateResponse.model_validate(t) for t in templates]
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy key for in-flight consumers.
+        "data": items,
     }
 
 

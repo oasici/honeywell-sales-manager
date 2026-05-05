@@ -104,7 +104,9 @@ export default function RetentionPoliciesPage() {
     createMutation.mutate(form);
   }
 
-  const policies = data?.policies ?? [];
+  // Round-5 Phase 7 — backend canonicalized to ``items``; legacy
+  // ``policies`` retained server-side as additive bridge.
+  const policies = data?.items ?? data?.policies ?? [];
 
   const columns = [
     {

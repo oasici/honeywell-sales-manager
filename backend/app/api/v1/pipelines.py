@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select, update
+from sqlalchemy import func as sa_func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -69,19 +69,44 @@ def _serialize_pipeline(p: Pipeline) -> dict:
 
 @router.get("/")
 async def list_pipelines(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     _: None = Depends(_require_multi_pipeline),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List pipelines visible to the caller's tenant."""
+    """List pipelines visible to the caller's tenant.
+
+    Round-5 Phase 7 — canonical pagination envelope. ``pipelines`` is
+    preserved additively to bridge in-flight SPA builds.
+    """
+    import math as _math
+
     stmt = scoped_for_user(
         select(Pipeline).order_by(Pipeline.is_default.desc(), Pipeline.name),
         current_user,
         column=Pipeline.tenant_id,
     )
-    result = await db.execute(stmt)
+
+    count_result = await db.execute(
+        select(sa_func.count()).select_from(stmt.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(stmt.offset(offset).limit(page_size))
     pipelines = result.scalars().all()
-    return {"pipelines": [_serialize_pipeline(p) for p in pipelines]}
+    items = [_serialize_pipeline(p) for p in pipelines]
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy key for in-flight consumers.
+        "pipelines": items,
+    }
 
 
 @router.post("/", status_code=201)

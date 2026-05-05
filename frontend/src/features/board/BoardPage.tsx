@@ -227,7 +227,9 @@ export default function BoardPage() {
     queryKey: ['pipelines'],
     queryFn: async () => {
       const res = await pipelinesApi.list();
-      return res?.pipelines ?? res?.items ?? (Array.isArray(res) ? res : []);
+      // Round-5 Phase 7 — backend canonicalized to ``items``; legacy
+      // ``pipelines`` retained server-side as additive bridge.
+      return res?.items ?? res?.pipelines ?? (Array.isArray(res) ? res : []);
     },
   });
 

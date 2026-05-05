@@ -106,7 +106,9 @@ export default function BreachWorkflowPage() {
     updateStatusMutation.mutate({ id, status: newStatus });
   }
 
-  const breaches = data?.breaches ?? [];
+  // Round-5 Phase 7 — backend canonicalized to ``items``; legacy
+  // ``breaches`` retained server-side as additive bridge.
+  const breaches = data?.items ?? data?.breaches ?? [];
 
   const statusLabel = (status: string) =>
     STATUS_CHANGE_OPTIONS.find((o) => o.value === status)?.label ?? status;

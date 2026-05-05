@@ -173,12 +173,23 @@ async def create_contract(
 @router.get("/contracts/expiring")
 async def expiring_contracts(
     days: int = Query(30, ge=1, le=365),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get contracts expiring within the next N days."""
+    """Get contracts expiring within the next N days.
+
+    Round-5 Phase 7 — standardized to canonical pagination envelope
+    ``{items,total,page,page_size,pages}`` so the SPA list components
+    don't need a contracts-specific shape. ``count`` is preserved
+    additively for any in-flight consumers.
+    """
+    from sqlalchemy import func as _func
+    import math as _math
+
     threshold = date.today() + timedelta(days=days)
-    result = await db.execute(
+    base_query = (
         scoped_for_user(
             select(Contract), current_user, column=Contract.tenant_id
         )
@@ -188,10 +199,28 @@ async def expiring_contracts(
             Contract.end_date <= threshold,
             Contract.end_date >= date.today(),
         )
-        .order_by(Contract.end_date.asc()),
+        .order_by(Contract.end_date.asc())
     )
+
+    count_result = await db.execute(
+        select(_func.count()).select_from(base_query.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(base_query.offset(offset).limit(page_size))
     contracts = result.scalars().all()
-    return {"contracts": [_serialize_contract(c) for c in contracts], "count": len(contracts)}
+
+    return {
+        "items": [_serialize_contract(c) for c in contracts],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy keys to ease in-flight rollout.
+        "contracts": [_serialize_contract(c) for c in contracts],
+        "count": total,
+    }
 
 
 @router.get("/contracts/{contract_id}")

@@ -267,7 +267,9 @@ export default function RevenueRecognitionPage() {
     queryKey: ['revenue-schedules'],
     queryFn: async () => {
       const res = await revenueRecApi.listSchedules();
-      return res?.schedules ?? res?.items ?? (Array.isArray(res) ? res : []);
+      // Round-5 Phase 7 — backend canonicalized to ``items``; legacy
+      // ``schedules`` retained server-side as additive bridge.
+      return res?.items ?? res?.schedules ?? (Array.isArray(res) ? res : []);
     },
   });
 

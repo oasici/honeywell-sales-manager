@@ -359,8 +359,16 @@ export const partsApi = {
   },
 
   getCategories: async (): Promise<string[]> => {
-    const { data } = await api.get<string[]>('/parts/categories');
-    return data;
+    // Round-5 Phase 7 — backend now returns the canonical envelope
+    // ``{items, total}``. Tolerate the legacy bare-list shape for
+    // any in-flight responses mid-deploy.
+    const { data } = await api.get<{ items?: string[] } | string[]>(
+      '/parts/categories',
+    );
+    if (Array.isArray(data)) {
+      return data;
+    }
+    return data?.items ?? [];
   },
 
   getPart: async (id: number): Promise<SparePart> => {

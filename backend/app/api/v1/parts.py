@@ -74,7 +74,13 @@ async def list_categories(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List distinct part categories."""
+    """List distinct part categories.
+
+    Round-5 Phase 7 — wrapped in canonical envelope so SPA list
+    consumers don't need a parts-specific shape. Total count is the
+    distinct-category count (no real pagination needed since the
+    cardinality is bounded by the catalog's category vocabulary).
+    """
     result = await db.execute(
         select(SparePart.category)
         .where(SparePart.is_active.is_(True))
@@ -83,7 +89,7 @@ async def list_categories(
         .order_by(SparePart.category)
     )
     categories = [row[0] for row in result.all()]
-    return categories
+    return {"items": categories, "total": len(categories)}
 
 
 @router.get("/{part_id}")

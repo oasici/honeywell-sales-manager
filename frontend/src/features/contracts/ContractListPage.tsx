@@ -140,11 +140,12 @@ export default function ContractListPage() {
   }, [formTitle, formCustomerId, formStartDate, formEndDate, formValue, createMutation, t]);
 
   // Backend canonicalized to {items,total,page,page_size,pages} in
-  // audit A-6; keep `contracts` fallback for in-flight responses
-  // mid-deploy.
+  // audit A-6 + Round-5 Phase 7; keep legacy fallbacks for in-flight
+  // responses mid-deploy.
   const contracts: Contract[] = contractsData?.items || contractsData?.contracts || [];
-  const expiringContracts: Contract[] = expiringData?.contracts || [];
-  const expiringCount = expiringData?.count || 0;
+  const expiringContracts: Contract[] =
+    expiringData?.items || expiringData?.contracts || [];
+  const expiringCount = expiringData?.total ?? expiringData?.count ?? 0;
 
   const statusOptions = useMemo(
     () => [

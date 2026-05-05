@@ -80,26 +80,60 @@ async def mrr_dashboard(
 @router.get("/renewals")
 async def upcoming_renewals(
     days: int = Query(30, ge=1, le=365),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Round-5 Phase 7 — canonical pagination envelope.
+
+    Service still returns the full filtered list; we slice in Python
+    because the renewal window is bounded (max ~365 days, single
+    tenant) and the row count is naturally small. Adding cursor-level
+    pagination would require a service rewrite without measurable win.
+    """
+    import math as _math
+
     service = SubscriptionService(db)
     subs = await service.get_upcoming_renewals(current_user, days=days)
-    return {"items": [_serialize(s) for s in subs]}
+    total = len(subs)
+    offset = (page - 1) * page_size
+    page_items = subs[offset : offset + page_size]
+    return {
+        "items": [_serialize(s) for s in page_items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+    }
 
 
 @router.get("/")
 async def list_subscriptions(
     customer_id: int | None = Query(None),
     status: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Round-5 Phase 7 — canonical pagination envelope."""
+    import math as _math
+
     service = SubscriptionService(db)
     subs = await service.list_subscriptions(
         current_user, customer_id=customer_id, status=status
     )
-    return {"items": [_serialize(s) for s in subs]}
+    total = len(subs)
+    offset = (page - 1) * page_size
+    page_items = subs[offset : offset + page_size]
+    return {
+        "items": [_serialize(s) for s in page_items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+    }
 
 
 @router.post("/")
