@@ -1021,9 +1021,13 @@ export interface PlaybookTemplate {
 export interface PlaybookAnalytics {
   total_executions: number;
   total_completed: number;
-  avg_completion_days: number;
-  win_rate_with_playbook: number;
-  win_rate_without_playbook: number;
+  // R5-TS-1 / R5-TS-2 — backend returns null when no completions /
+  // when total_with or total_without is zero. The previous
+  // non-nullable types crashed the analytics page on first load
+  // for tenants without playbook history.
+  avg_completion_days: number | null;
+  win_rate_with_playbook: number | null;
+  win_rate_without_playbook: number | null;
   per_playbook: { playbook_id: number; name: string; executions: number; completed: number }[];
   most_triggered: { playbook_id: number; name: string; count: number }[];
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, TrendingDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronRight } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
@@ -9,7 +9,6 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { dealHealthApi } from '../../lib/api';
-import { formatCurrency } from '../../lib/formatters';
 
 interface AtRiskOpportunity {
   opportunity_id: number;
@@ -118,8 +117,12 @@ export default function AtRiskPage() {
         </div>
       </PageHeader>
 
-      {/* Summary */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Summary — R5-FAKE-1: removed fabricated "Risk Altındaki Gelir"
+          KPI (was opps.length × 100,000 TRY with no relation to any
+          opportunity amount). When the backend AtRiskResponse adds a
+          per-row amount field we can sum it; until then this card is
+          omitted to avoid showing fabricated TRY values to managers. */}
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>
           <div className="flex items-center gap-3 p-4">
             <div className="rounded-lg bg-red-100 p-2.5 dark:bg-red-900/30">
@@ -128,19 +131,6 @@ export default function AtRiskPage() {
             <div>
               <p className="text-2xl font-bold text-slate-900 dark:text-white">{opps.length}</p>
               <p className="text-xs text-slate-500">Riskli Fırsat</p>
-            </div>
-          </div>
-        </Card>
-        <Card>
-          <div className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-orange-100 p-2.5 dark:bg-orange-900/30">
-              <TrendingDown size={20} className="text-orange-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {formatCurrency(opps.length * 100000, 'TRY')}
-              </p>
-              <p className="text-xs text-slate-500">Risk Altindaki Gelir</p>
             </div>
           </div>
         </Card>

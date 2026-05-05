@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class SparePartCreate(BaseModel):
-    honeywell_code: str = Field(min_length=1, max_length=100)
+    honeywell_code: str = Field(min_length=1, max_length=500)
     name_en: str | None = Field(default=None, max_length=500)
     name_tr: str | None = Field(default=None, max_length=500)
     description_en: str | None = None
@@ -19,7 +19,9 @@ class SparePartCreate(BaseModel):
 
 class SparePartUpdate(BaseModel):
     """All fields optional — only provided fields are updated."""
-    honeywell_code: str | None = Field(default=None, min_length=1, max_length=100)
+    # R5-API-5 — DB column is String(500); the prior 100 cap rejected
+    # valid concatenated SKUs from the import pipeline.
+    honeywell_code: str | None = Field(default=None, min_length=1, max_length=500)
     model_number: str | None = Field(default=None, max_length=200)
     info: str | None = None
     name_en: str | None = Field(default=None, max_length=500)

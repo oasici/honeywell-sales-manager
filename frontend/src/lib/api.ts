@@ -107,6 +107,10 @@ const clearAuthAndRedirect = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
+  // R5-CACHE-1 — wipe TanStack cache on the 401 redirect path so the
+  // next user on this browser tab doesn't see prior PII for the
+  // 30s staleTime window. Lazy-import to avoid circular dep at boot.
+  void import('./queryClient').then((m) => m.queryClient.clear()).catch(() => {});
   // Guard against redirect loop: don't redirect if already on login
   if (!window.location.pathname.startsWith('/login')) {
     window.location.href = '/login';

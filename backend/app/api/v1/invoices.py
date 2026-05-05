@@ -84,6 +84,17 @@ def _compute_totals(subtotal: float, tax_rate: float) -> tuple[float, float]:
 
 
 def _invoice_to_dict(invoice: Invoice) -> dict:
+    # R5-API-1 — TS Invoice.customer was a phantom field (every
+    # invoice list/detail rendered "#${customer_id}" because the DTO
+    # never produced the customer object). Invoice.customer is a
+    # selectin relationship, so this is free.
+    customer_summary: dict | None = None
+    if getattr(invoice, "customer", None) is not None:
+        customer_summary = {
+            "id": invoice.customer.id,
+            "name": invoice.customer.name,
+            "company": invoice.customer.company,
+        }
     return {
         "id": invoice.id,
         # Round-4 R4-DTO-5 — round-trip tenant_id now that the column
@@ -93,6 +104,7 @@ def _invoice_to_dict(invoice: Invoice) -> dict:
         "quote_id": invoice.quote_id,
         "contract_id": invoice.contract_id,
         "customer_id": invoice.customer_id,
+        "customer": customer_summary,
         "created_by": invoice.created_by,
         "issue_date": invoice.issue_date.isoformat() if invoice.issue_date else None,
         "due_date": invoice.due_date.isoformat() if invoice.due_date else None,

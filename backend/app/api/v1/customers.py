@@ -425,6 +425,15 @@ async def create_customer(
         address=data.address,
         tax_id=data.tax_id,
         preferred_lang=data.preferred_lang,
+        # R5-FORM-3 — thread enrichment fields the SPA submits but
+        # which were silently dropped by the prior schema.
+        website=data.website,
+        linkedin_url=data.linkedin_url,
+        industry=data.industry,
+        employee_count=data.employee_count,
+        annual_revenue=data.annual_revenue,
+        parent_id=data.parent_id,
+        territory_id=data.territory_id,
         created_by=current_user.id,
         # V12 multi-tenant: inherit caller's tenant.
         tenant_id=getattr(current_user, "tenant_id", None),

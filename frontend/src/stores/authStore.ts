@@ -3,6 +3,7 @@ import type { AxiosError } from 'axios';
 
 import type { User } from '../lib/types';
 import { authApi } from '../lib/api';
+import { queryClient } from '../lib/queryClient';
 import { storage } from '../lib/storage';
 
 const COOKIE_AUTH_ONLY = import.meta.env.VITE_COOKIE_AUTH_ONLY === 'true';
@@ -131,6 +132,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     storage.remove('user');
+
+    // R5-CACHE-1 — wipe TanStack cache so the next user on this
+    // browser tab cannot see the previous user's PII for the
+    // 30s staleTime window.
+    queryClient.clear();
 
     set({
       token: null,
