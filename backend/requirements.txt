@@ -32,7 +32,7 @@ numpy>=2.4.4
 
 # Microsoft Graph API
 msal==1.36.0  # accepts cryptography 46.x for CVE chain
-httpx>=0.27.0
+httpx>=0.28.1
 
 # Fuzzy matching
 rapidfuzz==3.10.1
