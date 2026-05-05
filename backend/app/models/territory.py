@@ -15,7 +15,7 @@ class Territory(Base):
     __table_args__ = (
         Index("ix_territory_parent", "parent_id"),
         # Round-4 R4-TEN-16 — tenant boundary on territories.
-        # TODO: backfill in alembic 20260504_add_tenant_id_to_territories_teams.
+        # TODO: backfill in alembic 20260504_phase4_tenant.
         Index("ix_territory_tenant", "tenant_id"),
     )
 

@@ -16,7 +16,7 @@ class RevenueSchedule(Base):
         Index("ix_rs_contract", "contract_id"),
         # Round-4 R4-TEN-8 — tenant boundary on revenue schedules.
         # Backfilled via contract → customer by alembic
-        # 20260504_add_tenant_id_to_billing.
+        # 20260504_billing_tenant.
         Index("ix_rs_tenant", "tenant_id"),
     )
 
