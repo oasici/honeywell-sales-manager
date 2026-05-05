@@ -24,13 +24,17 @@ class DomainEvents:
     """Event type constants — single source of truth for event names."""
 
     # ── Sequence lifecycle ──
+    # R5-EVENT-5 — kept the constants that have actual producers
+    # (SEQUENCE_STEP_COMPLETED / COMPLETED / EXITED via sequence_engine,
+    # SEQUENCE_ENROLLED_AUTO via scoring_service). Removed
+    # SEQUENCE_ENROLLED / PAUSED / RESUMED — they had no publisher
+    # anywhere in backend/, so the constants amounted to dead-code
+    # promises. If the manual enroll/pause/resume paths need to emit
+    # later, re-add the constant alongside the publisher.
     SEQUENCE_STEP_COMPLETED = "sequence.step_completed"
     SEQUENCE_COMPLETED = "sequence.completed"
     SEQUENCE_EXITED = "sequence.exited"
-    SEQUENCE_ENROLLED = "sequence.enrolled"
     SEQUENCE_ENROLLED_AUTO = "sequence.enrolled_auto"
-    SEQUENCE_PAUSED = "sequence.paused"
-    SEQUENCE_RESUMED = "sequence.resumed"
 
     # ── Scoring ──
     LEAD_SCORE_CHANGED = "lead.score_changed"

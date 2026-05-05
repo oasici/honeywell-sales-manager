@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.security import decode_token_async
@@ -76,13 +77,19 @@ async def get_current_user(
     # ``_*_to_dict`` serializers can apply masking without taking new
     # arguments. Best-effort: a DB hiccup leaves the CV empty (no
     # masking) rather than failing the request.
-    try:
-        from app.services.field_permission_service import (
-            prefetch_field_perms_dependency,
-        )
-        await prefetch_field_perms_dependency(db, user.role)
-    except Exception:
-        pass
+    #
+    # Round-5 R5-PERM-2 — skip the DB roundtrip entirely when the
+    # feature is operationally off. Pre-R5 the prefetch ran on every
+    # authenticated request (~5ms cold) for tenants that hadn't even
+    # configured rules.
+    if settings.FEATURE_FIELD_PERMISSIONS:
+        try:
+            from app.services.field_permission_service import (
+                prefetch_field_perms_dependency,
+            )
+            await prefetch_field_perms_dependency(db, user.role)
+        except Exception:
+            pass
 
     return user
 
