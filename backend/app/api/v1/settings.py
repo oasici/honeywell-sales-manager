@@ -100,22 +100,54 @@ class EmailCredentials(BaseModel):
 
 # ── Settings CRUD ──
 
+# R5-PII-4 — keys whose values are secrets and must never round-trip
+# in cleartext through GET /settings/. Substring match so "esign_*_
+# webhook_secret", "*_api_key", "*_token" are all caught. Intentionally
+# broad: false-positive masks a non-secret value (annoyance), false
+# negative leaks a secret (incident).
+_SENSITIVE_SUBSTRINGS = (
+    "password",
+    "secret",
+    "_token",
+    "api_key",
+    "_key",
+    "private",
+)
+
+
+def _is_sensitive_key(key: str) -> bool:
+    k = key.lower()
+    return any(s in k for s in _SENSITIVE_SUBSTRINGS)
+
+
+def _mask_settings(settings_dict: dict[str, str | None]) -> dict[str, str | None]:
+    """Replace sensitive values with the canonical mask sentinel.
+
+    Preserves NULL → NULL so the SPA can tell "not configured" from
+    "configured but masked".
+    """
+    return {
+        k: ("********" if (_is_sensitive_key(k) and v is not None) else v)
+        for k, v in settings_dict.items()
+    }
+
+
 @router.get("/")
 async def get_settings(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get all settings as a key-value map (sales_manager only)."""
+    """Get all settings as a key-value map (sales_manager only).
+
+    R5-PII-4 — every key matching ``_SENSITIVE_SUBSTRINGS`` is masked
+    in the response. Pre-R5 this was only ``email_password``; the
+    esign provider webhook secret and any other DB-stored credential
+    leaked in cleartext.
+    """
     result = await db.execute(select(Setting).order_by(Setting.key))
     settings = result.scalars().all()
-
     settings_dict = {s.key: s.value for s in settings}
-
-    # Never expose password - show masked version
-    if "email_password" in settings_dict:
-        settings_dict["email_password"] = "********"
-
-    return {"settings": settings_dict}
+    return {"settings": _mask_settings(settings_dict)}
 
 
 @router.put("/")
@@ -124,7 +156,15 @@ async def update_settings(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update settings from a validated request body."""
+    """Update settings from a validated request body.
+
+    R5-PII-5 — values for keys matching ``_SENSITIVE_SUBSTRINGS`` are
+    encrypted at rest with Fernet. Read sites in this module use
+    ``decrypt_str_or_legacy_plaintext`` so values written before
+    encryption was wired (legacy plaintext) keep working.
+    """
+    from app.core.crypto import encrypt_str
+
     updated_keys = []
 
     for key, value in data.model_dump(exclude_none=True).items():
@@ -132,13 +172,23 @@ async def update_settings(
         result = await db.execute(select(Setting).where(Setting.key == key))
         setting = result.scalar_one_or_none()
 
-        if setting:
-            setting.value = str(value) if value is not None else None
+        # Skip the literal mask sentinel — the SPA echoes "********"
+        # back when the user didn't change a sensitive field; persisting
+        # that would brick the secret.
+        if value == "********":
+            continue
+
+        stored_value: str | None
+        if value is None:
+            stored_value = None
         else:
-            setting = Setting(
-                key=key,
-                value=str(value) if value is not None else None,
-            )
+            raw = str(value)
+            stored_value = encrypt_str(raw) if _is_sensitive_key(key) else raw
+
+        if setting:
+            setting.value = stored_value
+        else:
+            setting = Setting(key=key, value=stored_value)
             db.add(setting)
 
         updated_keys.append(key)
@@ -148,13 +198,11 @@ async def update_settings(
     all_result = await db.execute(select(Setting).order_by(Setting.key))
     all_settings = all_result.scalars().all()
     settings_dict = {s.key: s.value for s in all_settings}
-    if "email_password" in settings_dict:
-        settings_dict["email_password"] = "********"
 
     return {
         "message": f"Updated {len(updated_keys)} setting(s)",
         "updated_keys": updated_keys,
-        "settings": settings_dict,
+        "settings": _mask_settings(settings_dict),
     }
 
 

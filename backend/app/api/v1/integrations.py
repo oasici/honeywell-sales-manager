@@ -614,6 +614,15 @@ async def esign_webhook(
         )
         raise HTTPException(status_code=401, detail="Webhook secret yapilandirilmamis")
 
+    # R5-PII-5 — secret is now Fernet-encrypted at rest. The legacy
+    # helper transparently passes plaintext through for rows written
+    # before encryption was wired (the rollout window).
+    from app.core.crypto import decrypt_str_or_legacy_plaintext
+
+    decrypted_secret = decrypt_str_or_legacy_plaintext(secret_setting.value)
+    if not decrypted_secret:
+        raise HTTPException(status_code=401, detail="Webhook secret cozulemedi")
+
     # HMAC verification — accept either ``sha256=<hex>`` or raw hex
     # so providers with different conventions (Docusign vs HelloSign)
     # work without per-provider parsers.
@@ -625,7 +634,7 @@ async def esign_webhook(
     if incoming_sig.startswith("sha256="):
         incoming_sig = incoming_sig[len("sha256="):]
     expected = hmac.new(
-        secret_setting.value.encode(),
+        decrypted_secret.encode(),
         body_bytes,
         hashlib.sha256,
     ).hexdigest()

@@ -5,11 +5,12 @@ from __future__ import annotations
 import json
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import BadRequestException, NotFoundException
@@ -17,7 +18,16 @@ from app.models.contract import Contract, ContractAmendment
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
-router = APIRouter(tags=["Contracts"])
+
+def _require_contracts() -> None:
+    """Round-5 R5-FLAG-15 — gate the entire router behind FEATURE_CONTRACTS.
+    Pre-R5 the SPA could create / list / mutate contract rows even when
+    the feature was operationally off."""
+    if not settings.FEATURE_CONTRACTS:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+router = APIRouter(tags=["Contracts"], dependencies=[Depends(_require_contracts)])
 
 VALID_STATUSES = {"draft", "active", "amended", "expired", "terminated"}
 VALID_AMENDMENT_TYPES = {"extension", "modification", "termination"}
@@ -49,7 +59,7 @@ class AmendmentCreate(BaseModel):
 
 
 def _serialize_contract(c: Contract) -> dict:
-    return {
+    data = {
         "id": c.id,
         # Round-4 R4-DTO-6 — round-trip tenant_id (R4-TEN-6).
         "tenant_id": getattr(c, "tenant_id", None),
@@ -78,6 +88,12 @@ def _serialize_contract(c: Contract) -> dict:
             for a in (c.amendments or [])
         ],
     }
+    # R5-PERM-1 — admin-configured field-permission rules apply here
+    # (was previously dead code on contract because the helper was
+    # never called from this serializer).
+    from app.services.field_permission_service import apply_request_perms
+
+    return apply_request_perms(data, "contract")
 
 
 @router.get("/contracts/")

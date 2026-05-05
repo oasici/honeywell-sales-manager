@@ -1,16 +1,28 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
 from app.models.user import User
 from app.services.subscription_service import SubscriptionService
 
-router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
+
+def _require_subscriptions() -> None:
+    """Round-5 R5-FLAG-15 — gate behind FEATURE_SUBSCRIPTIONS."""
+    if not settings.FEATURE_SUBSCRIPTIONS:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+router = APIRouter(
+    prefix="/subscriptions",
+    tags=["Subscriptions"],
+    dependencies=[Depends(_require_subscriptions)],
+)
 
 
 class SubscriptionCreate(BaseModel):
@@ -27,7 +39,7 @@ class SubscriptionCreate(BaseModel):
 
 
 def _serialize(sub) -> dict:
-    return {
+    data = {
         "id": sub.id,
         # Round-4 R4-DTO-5 — round-trip tenant_id (R4-TEN-7).
         "tenant_id": getattr(sub, "tenant_id", None),
@@ -47,6 +59,10 @@ def _serialize(sub) -> dict:
         "created_at": sub.created_at.isoformat() if sub.created_at else None,
         "updated_at": sub.updated_at.isoformat() if sub.updated_at else None,
     }
+    # R5-PERM-1 — admin-configured field-permission rules apply here.
+    from app.services.field_permission_service import apply_request_perms
+
+    return apply_request_perms(data, "subscription")
 
 
 @router.get("/mrr-dashboard")

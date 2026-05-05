@@ -95,7 +95,7 @@ def _invoice_to_dict(invoice: Invoice) -> dict:
             "name": invoice.customer.name,
             "company": invoice.customer.company,
         }
-    return {
+    data = {
         "id": invoice.id,
         # Round-4 R4-DTO-5 — round-trip tenant_id now that the column
         # exists (R4-CLOSE-1).
@@ -121,6 +121,12 @@ def _invoice_to_dict(invoice: Invoice) -> dict:
         "created_at": invoice.created_at.isoformat() if invoice.created_at else None,
         "updated_at": invoice.updated_at.isoformat() if invoice.updated_at else None,
     }
+    # R5-PERM-1 — wire field-permission masking. Admin-configured rules
+    # like "hide invoice.value from sales_rep" were never enforced
+    # because this serializer skipped the helper.
+    from app.services.field_permission_service import apply_request_perms
+
+    return apply_request_perms(data, "invoice")
 
 
 async def _generate_invoice_number(

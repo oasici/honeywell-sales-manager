@@ -494,6 +494,20 @@ class Settings(BaseSettings):
     # Required by: campaign list/detail pages, ROI tracking
     FEATURE_CAMPAIGNS: bool = False
 
+    # --- Contracts ---
+    # Depends on: DATABASE_URL
+    # Required by: contract list/detail, amendments, signed-by tracking
+    # Round-5 R5-FLAG-15: pre-R5 the /contracts/* router and the SPA's
+    # /contracts route were always live. Default off so customers
+    # without the contracted feature can't end up with contract rows.
+    FEATURE_CONTRACTS: bool = False
+
+    # --- Subscriptions ---
+    # Depends on: DATABASE_URL
+    # Required by: subscription CRUD, MRR dashboard, renewals view
+    # Round-5 R5-FLAG-15: same shape as FEATURE_CONTRACTS.
+    FEATURE_SUBSCRIPTIONS: bool = False
+
     # --- Invoicing ---
     # Depends on: DATABASE_URL
     # Required by: invoice list/detail, PDF generation, billing workflow

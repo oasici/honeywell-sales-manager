@@ -43,6 +43,11 @@ for _flag in (
     "FEATURE_INVOICING",
     "FEATURE_REV_REC",
     "FEATURE_INVOICE_PAID_EVENT",
+    # Round-5 R5-FLAG-15 — contract / subscription routers ship gated
+    # off by default; enable for tests so existing fixtures + endpoints
+    # don't 404. Operator decision separately at deploy-time.
+    "FEATURE_CONTRACTS",
+    "FEATURE_SUBSCRIPTIONS",
 ):
     os.environ[_flag] = "true"
 
