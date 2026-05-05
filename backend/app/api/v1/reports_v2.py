@@ -113,15 +113,24 @@ async def list_folders(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List report folders: user's own + shared."""
+    """List report folders: user's own + shared, scoped to caller's tenant."""
     _check_feature_flag()
 
-    stmt = select(ReportFolder).where(
-        or_(
-            ReportFolder.owner_id == current_user.id,
-            ReportFolder.is_shared.is_(True),
-        )
-    ).order_by(ReportFolder.name)
+    # R5-TEN-28 — pre-R5 a folder marked is_shared=True was visible
+    # from any tenant. Scope by tenant_id so shared just means
+    # "shared within my tenant".
+    from app.services.tenant_context import scoped_for_user as _scoped_for_user
+
+    stmt = _scoped_for_user(
+        select(ReportFolder).where(
+            or_(
+                ReportFolder.owner_id == current_user.id,
+                ReportFolder.is_shared.is_(True),
+            )
+        ).order_by(ReportFolder.name),
+        current_user,
+        column=ReportFolder.tenant_id,
+    )
     result = await db.execute(stmt)
     folders = result.scalars().all()
 
@@ -149,14 +158,20 @@ async def create_folder(
     """Create a report folder."""
     _check_feature_flag()
 
+    from app.services.tenant_context import assert_same_tenant as _assert_same_tenant
+
     if body.parent_id:
         parent = (await db.execute(
             select(ReportFolder).where(ReportFolder.id == body.parent_id)
         )).scalar_one_or_none()
         if not parent:
             raise NotFoundException("Ust klasor bulunamadi")
+        # R5-TEN-28 — block hanging subfolders off another tenant's folder.
+        _assert_same_tenant(parent, current_user, exception_cls=NotFoundException)
 
     folder = ReportFolder(
+        # R5-TEN-28 — stamp tenant on the row so listing is bounded.
+        tenant_id=getattr(current_user, "tenant_id", None),
         name=body.name,
         parent_id=body.parent_id,
         owner_id=current_user.id,
@@ -187,12 +202,17 @@ async def update_folder(
     """Update a report folder."""
     _check_feature_flag()
 
+    from app.services.tenant_context import assert_same_tenant as _assert_same_tenant
+
     result = await db.execute(
         select(ReportFolder).where(ReportFolder.id == folder_id)
     )
     folder = result.scalar_one_or_none()
     if not folder:
         raise NotFoundException("Klasor bulunamadi")
+    # R5-TEN-28 — tenant boundary first; existence-leaking would
+    # otherwise reveal that some folder_id lives in another tenant.
+    _assert_same_tenant(folder, current_user, exception_cls=NotFoundException)
 
     is_owner = folder.owner_id == current_user.id
     is_manager = current_user.role == "sales_manager"
@@ -225,12 +245,16 @@ async def delete_folder(
     """Delete a report folder."""
     _check_feature_flag()
 
+    from app.services.tenant_context import assert_same_tenant as _assert_same_tenant
+
     result = await db.execute(
         select(ReportFolder).where(ReportFolder.id == folder_id)
     )
     folder = result.scalar_one_or_none()
     if not folder:
         raise NotFoundException("Klasor bulunamadi")
+    # R5-TEN-28 — tenant gate.
+    _assert_same_tenant(folder, current_user, exception_cls=NotFoundException)
 
     is_owner = folder.owner_id == current_user.id
     is_manager = current_user.role == "sales_manager"

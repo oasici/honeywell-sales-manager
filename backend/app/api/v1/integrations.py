@@ -22,6 +22,7 @@ from app.models.enums import UserRole
 from app.models.opportunity import Opportunity, OpportunityEvent
 from app.models.setting import Setting
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -272,6 +273,9 @@ async def link_calendar_event(
     opp = (await db.execute(select(Opportunity).where(Opportunity.id == body.opportunity_id))).scalar_one_or_none()
     if not opp:
         raise NotFoundException("Firsat bulunamadi")
+    # R5-TEN-25 — without this, manager in tenant A could inject a
+    # meeting event onto tenant B's deal timeline by guessing the id.
+    assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
 
     event = OpportunityEvent(
         opportunity_id=opp.id,
@@ -540,6 +544,10 @@ async def send_for_signature(
     quote = (await db.execute(select(Quote).where(Quote.id == body.quote_id))).scalar_one_or_none()
     if not quote:
         raise NotFoundException("Teklif bulunamadi")
+    # R5-TEN-25 — quotes are tenant-scoped via the Quote.tenant_id
+    # column added in round-4. Esign sends were previously usable to
+    # exfiltrate or modify cross-tenant quotes.
+    assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
 
     provider = (await db.execute(select(Setting).where(Setting.key == "esign_provider"))).scalar_one_or_none()
     if not provider or not provider.value:

@@ -13,8 +13,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.exceptions import NotFoundException
 from app.models.deal_room import DealRoom
+from app.models.opportunity import Opportunity
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant
+
+
+async def _assert_opp_in_tenant(
+    db: AsyncSession, current_user: User, opportunity_id: int
+) -> None:
+    """R5-TEN-26 — DealRoom carries opportunity_id but no tenant_id of
+    its own. Load the parent opportunity and assert tenant match.
+    Both 'doesn't exist' and 'cross-tenant' collapse to 404."""
+    opp = (
+        await db.execute(
+            select(Opportunity).where(Opportunity.id == opportunity_id)
+        )
+    ).scalar_one_or_none()
+    if opp is None:
+        raise NotFoundException("Firsat bulunamadi")
+    assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
 
 router = APIRouter(tags=["Deal Rooms"])
 
@@ -85,6 +104,8 @@ async def create_deal_room(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new deal room with auto-generated external token."""
+    # R5-TEN-26 — block cross-tenant deal-room hangs.
+    await _assert_opp_in_tenant(db, current_user, body.opportunity_id)
     token = secrets.token_hex(TOKEN_LENGTH)
     room = DealRoom(
         opportunity_id=body.opportunity_id,
@@ -109,6 +130,7 @@ async def get_deal_room(
     room = result.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Deal room bulunamadi")
+    await _assert_opp_in_tenant(db, _current_user, room.opportunity_id)
     return _serialize(room)
 
 
@@ -124,6 +146,7 @@ async def update_deal_room(
     room = result.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Deal room bulunamadi")
+    await _assert_opp_in_tenant(db, _current_user, room.opportunity_id)
 
     if body.shared_items_json is not None:
         room.shared_items_json = body.shared_items_json
@@ -147,6 +170,7 @@ async def deactivate_deal_room(
     room = result.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Deal room bulunamadi")
+    await _assert_opp_in_tenant(db, _current_user, room.opportunity_id)
 
     room.is_active = False
     await db.flush()

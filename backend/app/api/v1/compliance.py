@@ -602,6 +602,8 @@ async def create_breach_notification(
 ):
     """Create a breach notification record."""
     breach = BreachNotification(
+        # R5-TEN-28 — stamp tenant on the row so listing is bounded.
+        tenant_id=getattr(current_user, "tenant_id", None),
         breach_type=body.breach_type,
         description=body.description,
         affected_customers_json=body.affected_customers_json,
@@ -659,6 +661,8 @@ async def update_breach_notification(
     breach = result.scalar_one_or_none()
     if not breach:
         raise NotFoundException("Ihlal bildirimi bulunamadi")
+    # R5-TEN-28 — block compliance-officer-A from modifying tenant B's record.
+    assert_same_tenant(breach, current_user, exception_cls=NotFoundException)
 
     update_data = body.model_dump(exclude_unset=True)
     if "status" in update_data and update_data["status"] not in VALID_BREACH_STATUSES:
@@ -704,8 +708,12 @@ async def list_breach_notifications(
     ),
     db: AsyncSession = Depends(get_db),
 ):
-    """List breach notifications."""
-    query = select(BreachNotification).order_by(BreachNotification.created_at.desc())
+    """List breach notifications scoped to the caller's tenant."""
+    query = scoped_for_user(
+        select(BreachNotification).order_by(BreachNotification.created_at.desc()),
+        current_user,
+        column=BreachNotification.tenant_id,
+    )
     if status:
         if status not in VALID_BREACH_STATUSES:
             raise BadRequestException(f"Gecersiz durum filtresi: {status}")
