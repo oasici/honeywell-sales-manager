@@ -44,7 +44,15 @@ export function formatCurrency(
   }).format(amount ?? 0);
 }
 
-export function formatDate(date: string, locale: string = currentLocale()): string {
+// R5-TS-9..16 — many ``created_at`` / ``received_at`` fields became
+// nullable to match the backend's defensive ``isoformat() if x else
+// None``. formatDate / formatDateTime now accept null and return an
+// em-dash so consumers don't have to wrap every callsite in a guard.
+export function formatDate(
+  date: string | null | undefined,
+  locale: string = currentLocale(),
+): string {
+  if (!date) return '—';
   return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: '2-digit',
@@ -52,7 +60,11 @@ export function formatDate(date: string, locale: string = currentLocale()): stri
   }).format(new Date(date));
 }
 
-export function formatDateTime(date: string, locale: string = currentLocale()): string {
+export function formatDateTime(
+  date: string | null | undefined,
+  locale: string = currentLocale(),
+): string {
+  if (!date) return '—';
   return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: '2-digit',

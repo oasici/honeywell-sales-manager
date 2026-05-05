@@ -68,7 +68,13 @@ export default function BreachWorkflowPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
 
-  const { data, isLoading } = useQuery<{ breaches: BreachNotification[] }>({
+  // R5-API-8 — backend canonicalized to {items, total, ...}; legacy
+  // ``breaches`` retained server-side as additive bridge during the
+  // rollout window. Type widened to accept either shape.
+  const { data, isLoading } = useQuery<{
+    items?: BreachNotification[];
+    breaches?: BreachNotification[];
+  }>({
     queryKey: ['compliance', 'breaches', statusFilter],
     queryFn: () => complianceApi.listBreaches(statusFilter || undefined),
   });
@@ -107,8 +113,9 @@ export default function BreachWorkflowPage() {
   }
 
   // Round-5 Phase 7 — backend canonicalized to ``items``; legacy
-  // ``breaches`` retained server-side as additive bridge.
-  const breaches = data?.items ?? data?.breaches ?? [];
+  // ``breaches`` retained server-side as additive bridge. Explicit
+  // annotation so .map(breach) keeps its type after the union.
+  const breaches: BreachNotification[] = data?.items ?? data?.breaches ?? [];
 
   const statusLabel = (status: string) =>
     STATUS_CHANGE_OPTIONS.find((o) => o.value === status)?.label ?? status;
