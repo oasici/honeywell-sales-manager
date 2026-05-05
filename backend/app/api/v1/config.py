@@ -43,7 +43,11 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
     "FEATURE_V9_CRM_SYNC",
     "FEATURE_V9_CALENDAR_OAUTH",
     "FEATURE_V9_NL_SEARCH",
-    "FEATURE_TRANSFORMER_SEQ_EMBEDDING",
+    # R5-FLAG-18 — FEATURE_TRANSFORMER_SEQ_EMBEDDING is consumed only
+    # inside deal_similarity_service; there's no SPA action gated on
+    # it, so dropping from the public list reduces noise on the
+    # frontend's flag-fetch response. Service still reads it from
+    # settings directly.
     "FEATURE_V10_PARTS_INTEL",
     "FEATURE_TASKS",
     "FEATURE_AI_SUMMARIES",
@@ -66,6 +70,12 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
     "FEATURE_LIVE_CHAT",
     "FEATURE_MULTI_PIPELINE",
     "FEATURE_INVOICING",
+    # R5-FLAG-19 — FEATURE_INVOICE_PAID_EVENT drives the in-process
+    # event_bus.publish('invoice.paid') side effect; expose so the SPA
+    # can render an "auto-rollup enabled" hint near the mark-paid CTA.
+    "FEATURE_INVOICE_PAID_EVENT",
+    "FEATURE_CONTRACTS",  # Round-5 R5-FLAG-15
+    "FEATURE_SUBSCRIPTIONS",  # Round-5 R5-FLAG-15
     "FEATURE_REV_REC",
     "FEATURE_CAMPAIGNS",
     "FEATURE_BREACH_WORKFLOW",  # backs /compliance/* (R4-FLAG-3)

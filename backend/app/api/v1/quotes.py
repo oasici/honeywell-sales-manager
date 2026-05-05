@@ -105,17 +105,22 @@ async def create_quote(
 ):
     """Create a quote manually."""
     service = QuoteService(db)
-    quote = await service.create_quote(
-        customer_id=data.customer_id,
-        items=[item.model_dump() for item in data.items],
-        language=data.language,
-        currency=data.currency,
-        tax_rate=data.tax_rate,
-        notes=data.notes,
-        created_by=current_user.id,
+    create_kwargs = {
+        "customer_id": data.customer_id,
+        "items": [item.model_dump() for item in data.items],
+        "language": data.language,
+        "currency": data.currency,
+        "tax_rate": data.tax_rate,
+        "notes": data.notes,
+        "created_by": current_user.id,
         # V12 multi-tenant: inherit caller's tenant.
-        tenant_id=getattr(current_user, "tenant_id", None),
-    )
+        "tenant_id": getattr(current_user, "tenant_id", None),
+    }
+    # R5-FORM-5 — only forward valid_days when the caller actually
+    # supplied one; the service has its own 30-day default.
+    if data.valid_days is not None:
+        create_kwargs["valid_days"] = data.valid_days
+    quote = await service.create_quote(**create_kwargs)
 
     await log_activity(
         db, activity_type="quote_created", entity_type="quote", entity_id=quote.id,
@@ -747,6 +752,10 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
         "has_pdf": bool(quote.pdf_path),
         "version": quote.version,
         "parent_quote_id": quote.parent_quote_id,
+        # R5-API-3 — V9 quote revision tree was unusable from the SPA
+        # because revision_no / superseded_by never round-tripped.
+        "revision_no": getattr(quote, "revision_no", None),
+        "superseded_by": getattr(quote, "superseded_by", None),
         # Win/loss tracking — closed_at + close_reason were stored
         # but never returned, blocking quote-level analytics from
         # rendering the actual outcome timestamp / rationale.

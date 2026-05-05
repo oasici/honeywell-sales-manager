@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -99,11 +99,20 @@ def _months_between(start: datetime, end: datetime) -> list[str]:
 @router.get("/revenue-schedules/")
 async def list_schedules(
     contract_id: int | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
     _: None = Depends(_require_rev_rec),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List revenue schedules, optionally filtered by contract."""
+    """List revenue schedules, optionally filtered by contract.
+
+    Round-5 Phase 7 — canonical pagination envelope. Bounded at
+    ``page_size <= 100`` to keep the per-row entries-fan-out under
+    control (each schedule does an additional entries query).
+    """
+    import math as _math
+
     query = scoped_for_user(
         select(RevenueSchedule).order_by(RevenueSchedule.id.desc()),
         current_user,
@@ -111,7 +120,14 @@ async def list_schedules(
     )
     if contract_id is not None:
         query = query.where(RevenueSchedule.contract_id == contract_id)
-    result = await db.execute(query)
+
+    count_result = await db.execute(
+        select(func.count()).select_from(query.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(query.offset(offset).limit(page_size))
     schedules = result.scalars().all()
 
     # Include entries for each schedule
@@ -132,7 +148,13 @@ async def list_schedules(
         data["contract"] = {"title": contract.title} if contract and hasattr(contract, "title") else None
         serialized.append(data)
 
-    return {"schedules": serialized}
+    return {
+        "items": serialized,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+    }
 
 
 @router.post("/revenue-schedules/", status_code=201)

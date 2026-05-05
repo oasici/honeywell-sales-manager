@@ -411,21 +411,25 @@ export default function App() {
         <Route
           path="approvals"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <PendingApprovalsPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_APPROVAL_ROUTING">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <PendingApprovalsPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="approvals/rules"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ApprovalRulesPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_APPROVAL_ROUTING">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ApprovalRulesPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -675,31 +679,37 @@ export default function App() {
         <Route
           path="engagement/sequences"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <SequencesPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_SEQUENCES_V2">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <SequencesPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="engagement/sequences/builder"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <SequenceBuilderPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_SEQUENCES_V2">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <SequenceBuilderPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="engagement/sequences/:id/edit"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <SequenceBuilderPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_SEQUENCES_V2">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <SequenceBuilderPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
@@ -826,21 +836,25 @@ export default function App() {
         <Route
           path="subscriptions"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <SubscriptionListPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_SUBSCRIPTIONS">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <SubscriptionListPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="subscriptions/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <SubscriptionDetailPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_SUBSCRIPTIONS">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <SubscriptionDetailPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -848,11 +862,13 @@ export default function App() {
         <Route
           path="admin/custom-fields"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <CustomFieldsPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_CUSTOM_FIELDS">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <CustomFieldsPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
@@ -868,41 +884,49 @@ export default function App() {
         <Route
           path="admin/product-rules"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ProductRulesPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_PRODUCT_RULES">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ProductRulesPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="admin/workflow-rules"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <WorkflowRulesPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_WORKFLOW_RULES">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <WorkflowRulesPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="admin/workflow-rules/flow/new"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <FlowBuilderPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_WORKFLOW_RULES">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <FlowBuilderPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="admin/workflow-rules/flow/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <FlowBuilderPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_WORKFLOW_RULES">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <FlowBuilderPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
@@ -920,21 +944,25 @@ export default function App() {
         <Route
           path="contracts"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ContractListPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_CONTRACTS">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ContractListPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="contracts/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ContractDetailPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_CONTRACTS">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ContractDetailPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -994,11 +1022,13 @@ export default function App() {
         <Route
           path="settings/pipelines"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <PipelineSettingsPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_MULTI_PIPELINE">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <PipelineSettingsPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -1006,11 +1036,13 @@ export default function App() {
         <Route
           path="admin/territories"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <TerritoryPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_TERRITORIES">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <TerritoryPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -1044,11 +1076,13 @@ export default function App() {
         <Route
           path="admin/chat"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <AgentChatPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_LIVE_CHAT">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <AgentChatPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
       </Route>

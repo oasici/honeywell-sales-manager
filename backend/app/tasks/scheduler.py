@@ -450,10 +450,16 @@ async def send_scheduled_reports_task():
 
 
 async def check_data_retention_task():
-    """Daily: find customers where KVKK retention expired, notify managers."""
+    """Daily: find customers where KVKK retention expired, notify managers.
+
+    Round-5 R5-EVENT-1 — group overdue customers by tenant_id and
+    notify only managers within the same tenant. Pre-R5 a manager in
+    tenant A would see "N customers overdue" where N was the cross-
+    tenant aggregate count, leaking tenant B's operational metric.
+    """
     from datetime import datetime, timezone
 
-    from sqlalchemy import select
+    from sqlalchemy import func, select
 
     from app.core.database import async_session
     from app.models.customer import Customer
@@ -463,46 +469,65 @@ async def check_data_retention_task():
     try:
         async with async_session() as db:
             now = datetime.now(timezone.utc)
-            result = await db.execute(
-                select(Customer).where(
-                    Customer.data_retention_until < now,
-                    Customer.deletion_requested_at.is_(None),
+            tenant_rows = (
+                await db.execute(
+                    select(Customer.tenant_id, func.count(Customer.id))
+                    .where(
+                        Customer.data_retention_until < now,
+                        Customer.deletion_requested_at.is_(None),
+                    )
+                    .group_by(Customer.tenant_id)
                 )
-            )
-            overdue_customers = result.scalars().all()
+            ).all()
 
-            if not overdue_customers:
+            if not tenant_rows:
                 return
 
-            managers = (
-                await db.execute(
-                    select(User).where(
-                        User.role == "sales_manager",
-                        User.is_active.is_(True),
-                    )
-                )
-            ).scalars().all()
+            total_overdue = 0
+            total_notified = 0
 
-            for mgr in managers:
-                try:
-                    await create_notification(
-                        db,
-                        user_id=mgr.id,
-                        type="kvkk_retention",
-                        title="KVKK Veri Saklama Suresi Doldu",
-                        message=(
-                            f"{len(overdue_customers)} musterinin veri saklama "
-                            f"suresi dolmustur. Lutfen inceleyiniz."
-                        ),
-                    )
-                except Exception:
-                    pass
+            for tenant_id, count in tenant_rows:
+                if count == 0:
+                    continue
+                total_overdue += count
+
+                manager_query = select(User).where(
+                    User.role == "sales_manager",
+                    User.is_active.is_(True),
+                )
+                # Single-tenant rows (tenant_id IS NULL) notify only
+                # other NULL-tenant managers; multi-tenant rows scope
+                # the notify list to the tenant.
+                if tenant_id is None:
+                    manager_query = manager_query.where(User.tenant_id.is_(None))
+                else:
+                    manager_query = manager_query.where(User.tenant_id == tenant_id)
+
+                managers = (await db.execute(manager_query)).scalars().all()
+
+                for mgr in managers:
+                    try:
+                        await create_notification(
+                            db,
+                            user_id=mgr.id,
+                            type="kvkk_retention",
+                            title="KVKK Veri Saklama Suresi Doldu",
+                            message=(
+                                f"{count} musterinin veri saklama suresi dolmustur. "
+                                f"Lutfen inceleyiniz."
+                            ),
+                        )
+                        total_notified += 1
+                    except Exception:
+                        pass
 
             await db.commit()
             logger.info(
-                "KVKK retention check: %d overdue customer(s), notified %d manager(s)",
-                len(overdue_customers),
-                len(managers),
+                "KVKK retention check: %d overdue customer(s) across %d tenant(s), "
+                "notified %d manager(s)",
+                total_overdue,
+                len(tenant_rows),
+                total_notified,
             )
 
     except Exception as e:

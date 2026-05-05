@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 
 from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -13,7 +13,7 @@ class Subscription(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-7 — tenant boundary on subscriptions. Backfilled
-    # from customers.tenant_id by alembic 20260504_add_tenant_id_to_billing.
+    # from customers.tenant_id by alembic 20260504_billing_tenant.
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     customer_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=False, index=True,
@@ -42,3 +42,8 @@ class Subscription(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    # R5-RENDER-SUB-1 — surface the customer summary on the serializer
+    # (mirroring the R5-API-1 invoice fix). selectin keeps lists single
+    # round-trip and the SPA can replace the "#${customer_id}" placeholder.
+    customer = relationship("Customer", lazy="selectin")

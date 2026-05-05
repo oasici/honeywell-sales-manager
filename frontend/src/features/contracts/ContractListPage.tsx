@@ -140,11 +140,12 @@ export default function ContractListPage() {
   }, [formTitle, formCustomerId, formStartDate, formEndDate, formValue, createMutation, t]);
 
   // Backend canonicalized to {items,total,page,page_size,pages} in
-  // audit A-6; keep `contracts` fallback for in-flight responses
-  // mid-deploy.
+  // audit A-6 + Round-5 Phase 7; keep legacy fallbacks for in-flight
+  // responses mid-deploy.
   const contracts: Contract[] = contractsData?.items || contractsData?.contracts || [];
-  const expiringContracts: Contract[] = expiringData?.contracts || [];
-  const expiringCount = expiringData?.count || 0;
+  const expiringContracts: Contract[] =
+    expiringData?.items || expiringData?.contracts || [];
+  const expiringCount = expiringData?.total ?? expiringData?.count ?? 0;
 
   const statusOptions = useMemo(
     () => [
@@ -304,6 +305,12 @@ export default function ContractListPage() {
                       <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
                         {t('contracts.col_title')}
                       </th>
+                      {/* R5-RENDER-CONTRACT-1 — customer column was
+                          missing from the list before round-5; the
+                          backend now ships a customer object. */}
+                      <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
+                        {t('contracts.col_customer')}
+                      </th>
                       <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
                         {t('contracts.col_status')}
                       </th>
@@ -330,6 +337,22 @@ export default function ContractListPage() {
                       >
                         <td className="px-4 py-3 text-[13px] font-semibold text-slate-900 dark:text-white">
                           {contract.title}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-slate-700 dark:text-slate-300">
+                          {contract.customer ? (
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">
+                                {contract.customer.company || contract.customer.name}
+                              </p>
+                              {contract.customer.company && contract.customer.name && (
+                                <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                                  {contract.customer.name}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">#{contract.customer_id}</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant={STATUS_TONE[contract.status] ?? 'default'} size="sm" dot>

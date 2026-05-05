@@ -17,8 +17,8 @@ class WebhookSubscription(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-10 — tenant_id added; backfilled by alembic
-    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # 20260504_phase4_tenant (PHASE 4 follow-up).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)  # noqa: E501 — sole index; no dup
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     event_types: Mapped[str] = mapped_column(
@@ -59,8 +59,10 @@ class WebhookDelivery(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-10 — tenant_id added; backfilled by alembic
-    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # 20260504_phase4_tenant (PHASE 4 follow-up).
+    # R5-DB-3 — explicit ix_delivery_tenant in __table_args__; the
+    # implicit index from index=True duplicated it.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     subscription_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("webhook_subscriptions.id"), nullable=False
     )

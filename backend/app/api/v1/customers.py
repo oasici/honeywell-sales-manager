@@ -425,6 +425,15 @@ async def create_customer(
         address=data.address,
         tax_id=data.tax_id,
         preferred_lang=data.preferred_lang,
+        # R5-FORM-3 — thread enrichment fields the SPA submits but
+        # which were silently dropped by the prior schema.
+        website=data.website,
+        linkedin_url=data.linkedin_url,
+        industry=data.industry,
+        employee_count=data.employee_count,
+        annual_revenue=data.annual_revenue,
+        parent_id=data.parent_id,
+        territory_id=data.territory_id,
         created_by=current_user.id,
         # V12 multi-tenant: inherit caller's tenant.
         tenant_id=getattr(current_user, "tenant_id", None),
@@ -985,5 +994,16 @@ def _customer_to_dict(customer: Customer) -> dict:
         # exposing now so the API contract is consistent.
         "parent_id": getattr(customer, "parent_id", None),
         "territory_id": getattr(customer, "territory_id", None),
+        # R5-API metadata — surface compliance state so the SPA can
+        # render a "pending deletion" banner / data classification
+        # badge without re-querying. KVKK consent itself is still
+        # gated behind /compliance/* (handled in _customer_to_dict's
+        # docstring above).
+        "data_classification": getattr(customer, "data_classification", None),
+        "deletion_requested_at": (
+            customer.deletion_requested_at.isoformat()
+            if getattr(customer, "deletion_requested_at", None)
+            else None
+        ),
     }
     return apply_request_perms(data, "customer")

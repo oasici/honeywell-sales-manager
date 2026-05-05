@@ -5,11 +5,12 @@ from __future__ import annotations
 import json
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import BadRequestException, NotFoundException
@@ -17,7 +18,16 @@ from app.models.contract import Contract, ContractAmendment
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
-router = APIRouter(tags=["Contracts"])
+
+def _require_contracts() -> None:
+    """Round-5 R5-FLAG-15 — gate the entire router behind FEATURE_CONTRACTS.
+    Pre-R5 the SPA could create / list / mutate contract rows even when
+    the feature was operationally off."""
+    if not settings.FEATURE_CONTRACTS:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+router = APIRouter(tags=["Contracts"], dependencies=[Depends(_require_contracts)])
 
 VALID_STATUSES = {"draft", "active", "amended", "expired", "terminated"}
 VALID_AMENDMENT_TYPES = {"extension", "modification", "termination"}
@@ -49,11 +59,23 @@ class AmendmentCreate(BaseModel):
 
 
 def _serialize_contract(c: Contract) -> dict:
-    return {
+    # R5-RENDER-CONTRACT-1 — list/detail endpoints used to omit the
+    # customer object entirely, so the contract list rendered "—" or
+    # "#${customer_id}" in the customer column. Mirrors the R5-API-1
+    # invoice fix; selectin relationship makes this free.
+    customer_summary: dict | None = None
+    if getattr(c, "customer", None) is not None:
+        customer_summary = {
+            "id": c.customer.id,
+            "name": c.customer.name,
+            "company": c.customer.company,
+        }
+    data = {
         "id": c.id,
         # Round-4 R4-DTO-6 — round-trip tenant_id (R4-TEN-6).
         "tenant_id": getattr(c, "tenant_id", None),
         "customer_id": c.customer_id,
+        "customer": customer_summary,
         "quote_id": c.quote_id,
         "title": c.title,
         "status": c.status,
@@ -78,6 +100,12 @@ def _serialize_contract(c: Contract) -> dict:
             for a in (c.amendments or [])
         ],
     }
+    # R5-PERM-1 — admin-configured field-permission rules apply here
+    # (was previously dead code on contract because the helper was
+    # never called from this serializer).
+    from app.services.field_permission_service import apply_request_perms
+
+    return apply_request_perms(data, "contract")
 
 
 @router.get("/contracts/")
@@ -157,12 +185,23 @@ async def create_contract(
 @router.get("/contracts/expiring")
 async def expiring_contracts(
     days: int = Query(30, ge=1, le=365),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get contracts expiring within the next N days."""
+    """Get contracts expiring within the next N days.
+
+    Round-5 Phase 7 — standardized to canonical pagination envelope
+    ``{items,total,page,page_size,pages}`` so the SPA list components
+    don't need a contracts-specific shape. ``count`` is preserved
+    additively for any in-flight consumers.
+    """
+    from sqlalchemy import func as _func
+    import math as _math
+
     threshold = date.today() + timedelta(days=days)
-    result = await db.execute(
+    base_query = (
         scoped_for_user(
             select(Contract), current_user, column=Contract.tenant_id
         )
@@ -172,10 +211,28 @@ async def expiring_contracts(
             Contract.end_date <= threshold,
             Contract.end_date >= date.today(),
         )
-        .order_by(Contract.end_date.asc()),
+        .order_by(Contract.end_date.asc())
     )
+
+    count_result = await db.execute(
+        select(_func.count()).select_from(base_query.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(base_query.offset(offset).limit(page_size))
     contracts = result.scalars().all()
-    return {"contracts": [_serialize_contract(c) for c in contracts], "count": len(contracts)}
+
+    return {
+        "items": [_serialize_contract(c) for c in contracts],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy keys to ease in-flight rollout.
+        "contracts": [_serialize_contract(c) for c in contracts],
+        "count": total,
+    }
 
 
 @router.get("/contracts/{contract_id}")

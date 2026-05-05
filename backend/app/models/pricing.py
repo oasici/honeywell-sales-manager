@@ -38,7 +38,7 @@ class CustomerPricing(Base):
         Index("ix_cp_customer", "customer_id"),
         # Round-4 R4-TEN-15 — tenant boundary on negotiated customer prices.
         # TODO: backfill via customer_pricing → customers.tenant_id in alembic
-        # 20260504_add_tenant_id_to_pricing_bundles.
+        # 20260504_phase4_tenant.
         Index("ix_cp_tenant", "tenant_id"),
     )
 

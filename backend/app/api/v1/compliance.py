@@ -5,10 +5,10 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func as sa_func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
 
@@ -471,29 +471,51 @@ async def customer_audit_trail(
 
 @router.get("/retention-policies")
 async def list_retention_policies(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
     current_user: User = Depends(
         require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS)
     ),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all data retention policies."""
-    result = await db.execute(
-        select(RetentionPolicy).order_by(RetentionPolicy.entity_type)
+    """List all data retention policies.
+
+    Round-5 Phase 7 — canonical pagination envelope. ``policies`` is
+    preserved additively for in-flight consumers.
+    """
+    import math as _math
+
+    base_query = select(RetentionPolicy).order_by(RetentionPolicy.entity_type)
+
+    count_result = await db.execute(
+        select(sa_func.count()).select_from(base_query.subquery())
     )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(base_query.offset(offset).limit(page_size))
     policies = result.scalars().all()
 
+    items = [
+        {
+            "id": p.id,
+            "entity_type": p.entity_type,
+            "retention_days": p.retention_days,
+            "action": p.action,
+            "is_active": p.is_active,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        }
+        for p in policies
+    ]
+
     return {
-        "policies": [
-            {
-                "id": p.id,
-                "entity_type": p.entity_type,
-                "retention_days": p.retention_days,
-                "action": p.action,
-                "is_active": p.is_active,
-                "created_at": p.created_at.isoformat() if p.created_at else None,
-            }
-            for p in policies
-        ],
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy key for in-flight consumers.
+        "policies": items,
     }
 
 
@@ -602,6 +624,8 @@ async def create_breach_notification(
 ):
     """Create a breach notification record."""
     breach = BreachNotification(
+        # R5-TEN-28 — stamp tenant on the row so listing is bounded.
+        tenant_id=getattr(current_user, "tenant_id", None),
         breach_type=body.breach_type,
         description=body.description,
         affected_customers_json=body.affected_customers_json,
@@ -659,6 +683,8 @@ async def update_breach_notification(
     breach = result.scalar_one_or_none()
     if not breach:
         raise NotFoundException("Ihlal bildirimi bulunamadi")
+    # R5-TEN-28 — block compliance-officer-A from modifying tenant B's record.
+    assert_same_tenant(breach, current_user, exception_cls=NotFoundException)
 
     update_data = body.model_dump(exclude_unset=True)
     if "status" in update_data and update_data["status"] not in VALID_BREACH_STATUSES:
@@ -699,33 +725,59 @@ async def update_breach_notification(
 @router.get("/breaches")
 async def list_breach_notifications(
     status: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
     current_user: User = Depends(
         require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS)
     ),
     db: AsyncSession = Depends(get_db),
 ):
-    """List breach notifications."""
-    query = select(BreachNotification).order_by(BreachNotification.created_at.desc())
+    """List breach notifications scoped to the caller's tenant.
+
+    Round-5 Phase 7 — canonical pagination envelope. ``breaches`` is
+    preserved additively for in-flight consumers.
+    """
+    import math as _math
+
+    query = scoped_for_user(
+        select(BreachNotification).order_by(BreachNotification.created_at.desc()),
+        current_user,
+        column=BreachNotification.tenant_id,
+    )
     if status:
         if status not in VALID_BREACH_STATUSES:
             raise BadRequestException(f"Gecersiz durum filtresi: {status}")
         query = query.where(BreachNotification.status == status)
 
-    result = await db.execute(query)
+    count_result = await db.execute(
+        select(sa_func.count()).select_from(query.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(query.offset(offset).limit(page_size))
     breaches = result.scalars().all()
 
+    items = [
+        {
+            "id": b.id,
+            "breach_type": b.breach_type,
+            "description": b.description,
+            "severity": b.severity,
+            "status": b.status,
+            "notified_at": b.notified_at.isoformat() if b.notified_at else None,
+            "created_by": b.created_by,
+            "created_at": b.created_at.isoformat() if b.created_at else None,
+        }
+        for b in breaches
+    ]
+
     return {
-        "breaches": [
-            {
-                "id": b.id,
-                "breach_type": b.breach_type,
-                "description": b.description,
-                "severity": b.severity,
-                "status": b.status,
-                "notified_at": b.notified_at.isoformat() if b.notified_at else None,
-                "created_by": b.created_by,
-                "created_at": b.created_at.isoformat() if b.created_at else None,
-            }
-            for b in breaches
-        ],
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy key for in-flight consumers.
+        "breaches": items,
     }

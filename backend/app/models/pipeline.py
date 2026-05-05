@@ -1,10 +1,16 @@
-"""Pipeline model — configurable sales pipelines."""
+"""Pipeline model — configurable sales pipelines.
+
+Round-5 R5-TEN-26 added ``tenant_id`` (alembic ``20260505_pipeline_tenant``).
+Pipelines are configuration rows, but managers from one tenant must
+not see / edit / delete other tenants' pipelines. The column is
+backfilled from ``users.tenant_id`` of ``created_by``.
+"""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -12,8 +18,12 @@ from app.core.database import Base
 
 class Pipeline(Base):
     __tablename__ = "pipelines"
+    __table_args__ = (
+        Index("ix_pipeline_tenant", "tenant_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     stages_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # JSON array: [{"key": "prospecting", "label": "Prospecting", "order": 1, "probability": 10}]

@@ -25,10 +25,15 @@ function WinRateCard({
   bgClass,
 }: {
   label: string;
-  rate: number;
+  rate: number | null;
   bgClass: string;
 }) {
-  const percentage = `${(rate * 100).toFixed(1)}%`;
+  // R5-FAKE-2 / R5-TS-2 — backend returns rate as 0–100 percentage
+  // (round(won/total * 100, 1) at playbooks.py:219). The previous
+  // `rate * 100` re-multiplication rendered "77.0%" as "7700.0%".
+  // Backend can also return null when total_with/without is zero;
+  // type now reflects that.
+  const percentage = rate == null ? '—' : `${rate.toFixed(1)}%`;
   return (
     <div className={`flex-1 rounded-xl p-6 ${bgClass}`}>
       <p className="text-sm font-medium opacity-80">{label}</p>
@@ -63,7 +68,12 @@ export default function PlaybookAnalyticsPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <KpiCard label="Toplam Yürütme" value={data.total_executions} />
         <KpiCard label="Tamamlanan" value={data.total_completed} />
-        <KpiCard label="Ort. Tamamlanma (Gun)" value={data.avg_completion_days.toFixed(1)} />
+        {/* R5-TS-1 — backend returns null when no completions; the
+            previous `.toFixed(1)` on null crashed the page. */}
+        <KpiCard
+          label="Ort. Tamamlanma (Gun)"
+          value={data.avg_completion_days == null ? '—' : data.avg_completion_days.toFixed(1)}
+        />
       </div>
 
       {/* Win rate comparison */}

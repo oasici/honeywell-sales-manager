@@ -79,6 +79,25 @@ def encrypt_json(obj: Any) -> str:
     return encrypt_str(json.dumps(obj, default=str))
 
 
+def decrypt_str_or_legacy_plaintext(value: str) -> str | None:
+    """Decrypt a Fernet ciphertext-or-plain-string back to UTF-8.
+
+    Round-5 R5-PII-5 — paired with the encrypt-on-PUT path in
+    ``settings.update_settings``. Handles the rollout window where
+    rows already in DB are still plaintext; new writes are Fernet
+    ciphertext. Returns ``None`` when the input is empty.
+    """
+    if value is None or value == "":
+        return None
+    try:
+        return decrypt_str(value)
+    except InvalidToken:
+        # Legacy plaintext — pre-R5-PII-5 write site or a value that
+        # never went through encrypt_str (e.g., a setting populated via
+        # raw SQL). Return as-is.
+        return value
+
+
 def decrypt_json_or_legacy_plaintext(value: str) -> Any | None:
     """Decrypt a Fernet ciphertext-or-plain-JSON back to a Python object.
 

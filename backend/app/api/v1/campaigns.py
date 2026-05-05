@@ -65,7 +65,7 @@ class MemberStatusUpdate(BaseModel):
 
 
 def _campaign_to_dict(campaign: Campaign, member_count: int = 0) -> dict:
-    return {
+    data = {
         "id": campaign.id,
         "name": campaign.name,
         "type": campaign.type,
@@ -82,6 +82,10 @@ def _campaign_to_dict(campaign: Campaign, member_count: int = 0) -> dict:
         "created_at": campaign.created_at.isoformat() if campaign.created_at else None,
         "updated_at": campaign.updated_at.isoformat() if campaign.updated_at else None,
     }
+    # R5-PERM-1 — admin-configured field-permission rules apply here.
+    from app.services.field_permission_service import apply_request_perms
+
+    return apply_request_perms(data, "campaign")
 
 
 def _member_to_dict(member: CampaignMember) -> dict:

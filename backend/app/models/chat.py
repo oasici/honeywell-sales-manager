@@ -16,7 +16,7 @@ class ChatSession(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-19 — tenant boundary on live-chat sessions. Backfilled by alembic
-    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
+    # 20260504_phase4_tenant (PHASE 4 follow-up).
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     visitor_id: Mapped[str] = mapped_column(String(64), nullable=False)
     assigned_agent_id: Mapped[int | None] = mapped_column(
@@ -44,7 +44,7 @@ class ChatMessage(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-19 — tenant boundary on live-chat messages. Backfilled by alembic
-    # 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
+    # 20260504_phase4_tenant (PHASE 4 follow-up).
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     session_id: Mapped[int] = mapped_column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
     sender_type: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -66,7 +66,7 @@ class AutoResponseRule(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-19 — tenant boundary on live-chat auto-response rules.
-    # Backfilled by alembic 20260504_add_tenant_id_to_engagement_billing (PHASE 4 follow-up).
+    # Backfilled by alembic 20260504_phase4_tenant (PHASE 4 follow-up).
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     trigger_keyword: Mapped[str] = mapped_column(String(200), nullable=False)
     response_text: Mapped[str] = mapped_column(Text, nullable=False)

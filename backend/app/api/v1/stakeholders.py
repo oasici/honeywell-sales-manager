@@ -14,10 +14,45 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.exceptions import NotFoundException
+from app.models.customer import Customer
+from app.models.opportunity import Opportunity
 from app.models.sequence_v2 import Stakeholder
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant
 
 router = APIRouter(prefix="/stakeholders", tags=["Buyer Relationship Map"])
+
+
+async def _assert_parent_in_tenant(
+    db: AsyncSession,
+    current_user: User,
+    *,
+    opportunity_id: int | None = None,
+    customer_id: int | None = None,
+) -> None:
+    """R5-TEN-26 — Stakeholder has no tenant_id of its own; the boundary
+    is inherited from the opportunity / customer it points to. Load the
+    parent and assert_same_tenant; both 'doesn't exist' and 'lives in
+    another tenant' collapse to 404 so we don't leak existence."""
+    if opportunity_id is not None:
+        opp = (
+            await db.execute(
+                select(Opportunity).where(Opportunity.id == opportunity_id)
+            )
+        ).scalar_one_or_none()
+        if opp is None:
+            raise NotFoundException("Firsat bulunamadi")
+        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+    if customer_id is not None:
+        customer = (
+            await db.execute(
+                select(Customer).where(Customer.id == customer_id)
+            )
+        ).scalar_one_or_none()
+        if customer is None:
+            raise NotFoundException("Musteri bulunamadi")
+        assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
 VALID_SENIORITIES = {"executive", "senior", "mid_level", "junior"}
 VALID_DEPARTMENTS = {"tech", "finance", "legal", "operations", "sales", "marketing", "hr", "other"}
@@ -80,6 +115,7 @@ async def list_by_opportunity(
     db: AsyncSession = Depends(get_db),
 ):
     """List all stakeholders for an opportunity (buyer relationship map data)."""
+    await _assert_parent_in_tenant(db, current_user, opportunity_id=opportunity_id)
     rows = (
         await db.execute(
             select(Stakeholder)
@@ -98,6 +134,7 @@ async def list_by_customer(
     db: AsyncSession = Depends(get_db),
 ):
     """List all stakeholders for a customer account."""
+    await _assert_parent_in_tenant(db, current_user, customer_id=customer_id)
     rows = (
         await db.execute(
             select(Stakeholder)
@@ -118,6 +155,15 @@ async def create_stakeholder(
     """Add a stakeholder to an opportunity or customer."""
     if not body.opportunity_id and not body.customer_id:
         raise HTTPException(status_code=400, detail="opportunity_id or customer_id required")
+
+    # R5-TEN-26 — verify the caller has access to the parent record
+    # before we let them hang stakeholder rows off it.
+    await _assert_parent_in_tenant(
+        db,
+        current_user,
+        opportunity_id=body.opportunity_id,
+        customer_id=body.customer_id,
+    )
 
     if body.seniority and body.seniority not in VALID_SENIORITIES:
         raise HTTPException(status_code=400, detail="invalid seniority")
@@ -159,6 +205,12 @@ async def update_stakeholder(
     )).scalar_one_or_none()
     if not s:
         raise HTTPException(status_code=404, detail="Stakeholder not found")
+    await _assert_parent_in_tenant(
+        db,
+        current_user,
+        opportunity_id=s.opportunity_id,
+        customer_id=s.customer_id,
+    )
 
     data = body.model_dump(exclude_unset=True)
     if data.get("seniority") is not None and data["seniority"] not in VALID_SENIORITIES:
@@ -189,6 +241,12 @@ async def delete_stakeholder(
     )).scalar_one_or_none()
     if not s:
         raise HTTPException(status_code=404, detail="Stakeholder not found")
+    await _assert_parent_in_tenant(
+        db,
+        current_user,
+        opportunity_id=s.opportunity_id,
+        customer_id=s.customer_id,
+    )
     await db.delete(s)
     await db.commit()
 

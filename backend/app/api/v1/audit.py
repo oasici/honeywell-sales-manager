@@ -325,14 +325,28 @@ def _audit_log_to_dict(log: AuditLog) -> dict:
 
 
 def _user_to_dict(user: User) -> dict:
-    """Public-safe user fields for KVKK export. No password hash."""
+    """Public-safe user fields for KVKK export. No password hash.
+
+    R5-API-2 — also exposes tenant_id / manager_id so the export
+    bundle reflects the same shape as the live admin endpoints. The
+    audit trail must be a strict superset of what's visible elsewhere
+    to satisfy KVKK Article 15 (right of access) — anything the user
+    sees in the SPA must be in the export too.
+    """
     return {
         "id": user.id,
+        "tenant_id": getattr(user, "tenant_id", None),
+        "manager_id": getattr(user, "manager_id", None),
         "email": user.email,
         "full_name": getattr(user, "full_name", None),
         "role": getattr(user, "role", None),
         "is_active": getattr(user, "is_active", None),
+        "email_setup_completed": getattr(user, "email_setup_completed", False),
+        "password_change_required": getattr(user, "password_change_required", False),
         "created_at": user.created_at.isoformat() if getattr(user, "created_at", None) else None,
+        "updated_at": (
+            user.updated_at.isoformat() if getattr(user, "updated_at", None) else None
+        ),
     }
 
 

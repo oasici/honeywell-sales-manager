@@ -9,10 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.exceptions import NotFoundException
 from app.models.enums import UserRole
 from app.models.feature_store_daily import OpportunityFeaturesDaily
+from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.feature_store_builder import build_daily_feature_store
+from app.services.tenant_context import assert_same_tenant
 
 
 router = APIRouter(prefix="/v4", tags=["V4 Feature Store"])
@@ -48,6 +51,16 @@ async def get_latest_opportunity_features(
     _flag=Depends(_require_v4_feature_store),
 ):
     """Read latest feature snapshot for an opportunity (rep-scoped by existing RBAC at opp layer)."""
+    # R5-TEN-26 — feature snapshots inherit tenant from the parent opp;
+    # the "RBAC at opp layer" comment was promising a check that wasn't
+    # actually performed at this endpoint. Load opp + assert_same_tenant.
+    opp = (
+        await db.execute(select(Opportunity).where(Opportunity.id == opportunity_id))
+    ).scalar_one_or_none()
+    if opp is None:
+        raise NotFoundException("Firsat bulunamadi")
+    assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+
     row = (
         await db.execute(
             select(OpportunityFeaturesDaily)

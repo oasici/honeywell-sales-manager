@@ -47,13 +47,20 @@ export default function SavedReportsPage() {
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<ReportTemplate | null>(null);
 
-  const { data, isLoading } = useQuery<{ data: ReportTemplate[] }>({
+  const { data, isLoading } = useQuery<{
+    items?: ReportTemplate[];
+    data?: ReportTemplate[];
+  }>({
     queryKey: ['report-templates'],
     queryFn: reportsApi.getTemplates,
   });
 
+  // Round-5 Phase 7 — backend canonicalized to ``items``; legacy
+  // ``data`` retained server-side as additive bridge.
   const templates: ReportTemplate[] =
-    data?.data ?? (Array.isArray(data) ? (data as ReportTemplate[]) : []);
+    data?.items ??
+    data?.data ??
+    (Array.isArray(data) ? (data as ReportTemplate[]) : []);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => reportsApi.deleteTemplate(id),

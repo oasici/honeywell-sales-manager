@@ -280,12 +280,27 @@ async def bulk_import_users(
 
 
 def _user_to_dict(user: User) -> dict:
-    """Convert User to a dictionary response (excludes sensitive fields)."""
+    """Convert User to a dictionary response (excludes sensitive fields).
+
+    R5-API-2 — round-trip ``tenant_id`` (matching the round-4 standard
+    on customer/opportunity/lead/quote DTOs) and ``manager_id`` so the
+    SPA admin user picker can render org chart + tenant scope.
+    R5-TS-4 — round-trip ``password_change_required`` and
+    ``email_setup_completed`` so the forced-rotation flag reaches the
+    login flow consistently across users.py, audit.py, and auth.py.
+    """
     return {
         "id": user.id,
+        "tenant_id": getattr(user, "tenant_id", None),
+        "manager_id": getattr(user, "manager_id", None),
         "email": user.email,
         "full_name": user.full_name,
         "role": user.role,
         "is_active": user.is_active,
+        "email_setup_completed": getattr(user, "email_setup_completed", False),
+        "password_change_required": getattr(user, "password_change_required", False),
         "created_at": user.created_at.isoformat() if user.created_at else None,
+        "updated_at": (
+            user.updated_at.isoformat() if getattr(user, "updated_at", None) else None
+        ),
     }

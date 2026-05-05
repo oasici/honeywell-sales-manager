@@ -73,7 +73,7 @@ const yedekParcaItems: NavItem[] = [
     label: 'nav.parts_intel',
     to: '/parts-intel',
     icon: <Cog size={18} className="shrink-0" />,
-    roles: ['sales_manager', 'admin'],
+    roles: ['sales_manager', 'operations'],
   },
   {
     label: 'nav.quotes',

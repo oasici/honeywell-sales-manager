@@ -21,6 +21,10 @@ class QuoteCreate(BaseModel):
     language: str = Field(default="tr", max_length=5)
     currency: str = Field(default="TRY", max_length=10)
     tax_rate: float = Field(default=20.0, ge=0)
+    # R5-FORM-5 — valid_days was already on the model + DTO but was
+    # silently dropped from create/update payloads, leaving every quote
+    # at the model default (typically 30 days).
+    valid_days: int | None = Field(default=None, ge=1, le=365)
     notes: str | None = None
     items: list[QuoteItemCreate] = []
 
@@ -39,6 +43,7 @@ class QuoteUpdate(BaseModel):
     language: str | None = Field(default=None, max_length=5)
     currency: str | None = Field(default=None, max_length=10)
     tax_rate: float | None = Field(default=None, ge=0)
+    valid_days: int | None = Field(default=None, ge=1, le=365)
     notes: str | None = None
     items: list[QuoteItemCreate] | None = None
 
@@ -67,10 +72,21 @@ class QuoteItemResponse(BaseModel):
 
 
 class QuoteResponse(BaseModel):
+    """Quote response surface.
+
+    R5-API-6 — ``pdf_path`` is no longer returned by the handler
+    (round-4 swapped to a boolean ``has_pdf``); declaring it on the
+    schema would only mislead codegen consumers.
+    R5-API-3 — ``revision_no`` and ``superseded_by`` exposed so the
+    V9 revision tree UI can render the v1→v2→v3 chain.
+    """
+
     id: int
+    tenant_id: int | None = None
     quote_number: str
     customer_id: int | None = None
     email_request_id: int | None = None
+    opportunity_id: int | None = None
     created_by: int | None = None
     approved_by: int | None = None
     status: str
@@ -83,9 +99,13 @@ class QuoteResponse(BaseModel):
     grand_total: float
     valid_days: int
     notes: str | None = None
-    pdf_path: str | None = None
+    has_pdf: bool | None = None
     version: int
     parent_quote_id: int | None = None
+    revision_no: int | None = None
+    superseded_by: int | None = None
+    closed_at: datetime | None = None
+    close_reason: str | None = None
     created_at: datetime
     updated_at: datetime
 

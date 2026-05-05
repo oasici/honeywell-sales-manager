@@ -513,6 +513,40 @@ export default function OpportunityDetailPage() {
                   {opp.customer ? `${opp.customer.name} (${opp.customer.company})` : '-'}
                 </p>
               </div>
+              {/* R5-RENDER-OPP-2 — surface lead-source attribution
+                  (DB-6 / R4-TS-4). Read-only here; the channel that
+                  brought the opportunity in is fixed at conversion. */}
+              {opp.source && (
+                <div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {t('opp_detail.lbl_source')}
+                  </span>
+                  <p className="text-slate-700 dark:text-slate-300">{opp.source}</p>
+                </div>
+              )}
+              {/* R5-RENDER-OPP-2 — current forecast_category. The
+                  adjustment form below lets managers change this; here
+                  we just show the live value for context. */}
+              {opp.forecast_category && (
+                <div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {t('opp_detail.lbl_forecast_category')}
+                  </span>
+                  <p className="text-slate-700 dark:text-slate-300">
+                    {opp.forecast_category}
+                  </p>
+                </div>
+              )}
+              {/* R5-RENDER-OPP-2 — loss_reason; only meaningful when
+                  the deal was marked closed_lost. */}
+              {opp.status === 'closed_lost' && opp.loss_reason && (
+                <div className="col-span-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {t('opp_detail.lbl_loss_reason')}
+                  </span>
+                  <p className="text-red-700 dark:text-red-400">{opp.loss_reason}</p>
+                </div>
+              )}
               <div className="col-span-2">
                 <span className="text-xs text-slate-500 dark:text-slate-400">
                   {t('opp_detail.lbl_rotting')}
@@ -526,6 +560,62 @@ export default function OpportunityDetailPage() {
                   {t('opp_detail.rotting_hint')}
                 </p>
               </div>
+              {/* R5-RENDER-OPP-2 — revenue-leak audit trail. Renders a
+                  compact "stage X → Y" diff when any previous_* field
+                  is populated. Helps the rep see the most recent
+                  slip without opening the full timeline. */}
+              {(opp.previous_stage || opp.previous_amount != null || opp.previous_close_date) && (
+                <div className="col-span-2 rounded-lg border border-amber-100 bg-amber-50/40 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-950/20">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    {t('opp_detail.recent_change')}
+                  </p>
+                  <div className="mt-1 space-y-0.5 text-[12px] text-slate-700 dark:text-slate-300">
+                    {opp.previous_stage && opp.previous_stage !== opp.stage && (
+                      <p>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          {t('opp_detail.lbl_stage')}:
+                        </span>{' '}
+                        <span className="line-through opacity-60">
+                          {STAGE_LABELS[opp.previous_stage as keyof typeof STAGE_LABELS] ||
+                            opp.previous_stage}
+                        </span>{' '}
+                        →{' '}
+                        <span className="font-semibold">
+                          {STAGE_LABELS[opp.stage as keyof typeof STAGE_LABELS] || opp.stage}
+                        </span>
+                      </p>
+                    )}
+                    {opp.previous_amount != null && opp.previous_amount !== opp.amount && (
+                      <p>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          {t('opp_detail.lbl_amount')}:
+                        </span>{' '}
+                        <span className="line-through opacity-60 tabular-nums">
+                          {formatCurrency(opp.previous_amount, opp.currency)}
+                        </span>{' '}
+                        →{' '}
+                        <span className="font-semibold tabular-nums">
+                          {opp.amount != null ? formatCurrency(opp.amount, opp.currency) : '-'}
+                        </span>
+                      </p>
+                    )}
+                    {opp.previous_close_date && opp.previous_close_date !== opp.close_date && (
+                      <p>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          {t('opp_detail.lbl_close')}:
+                        </span>{' '}
+                        <span className="line-through opacity-60 tabular-nums">
+                          {opp.previous_close_date}
+                        </span>{' '}
+                        →{' '}
+                        <span className="font-semibold tabular-nums">
+                          {opp.close_date || '-'}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
 

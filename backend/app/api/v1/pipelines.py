@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select, update
+from sqlalchemy import func as sa_func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -17,6 +17,7 @@ from app.models.enums import UserRole
 from app.models.opportunity import Opportunity
 from app.models.pipeline import Pipeline
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/pipelines", tags=["Pipelines"])
 
@@ -50,6 +51,9 @@ class PipelineUpdate(BaseModel):
 def _serialize_pipeline(p: Pipeline) -> dict:
     return {
         "id": p.id,
+        # R5-TEN-26 — round-trip tenant_id so the SPA can verify the
+        # boundary (pattern from R4-DTO-5).
+        "tenant_id": getattr(p, "tenant_id", None),
         "name": p.name,
         "stages_json": p.stages_json,
         "is_default": p.is_default,
@@ -65,14 +69,44 @@ def _serialize_pipeline(p: Pipeline) -> dict:
 
 @router.get("/")
 async def list_pipelines(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     _: None = Depends(_require_multi_pipeline),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all pipelines."""
-    result = await db.execute(select(Pipeline).order_by(Pipeline.is_default.desc(), Pipeline.name))
+    """List pipelines visible to the caller's tenant.
+
+    Round-5 Phase 7 — canonical pagination envelope. ``pipelines`` is
+    preserved additively to bridge in-flight SPA builds.
+    """
+    import math as _math
+
+    stmt = scoped_for_user(
+        select(Pipeline).order_by(Pipeline.is_default.desc(), Pipeline.name),
+        current_user,
+        column=Pipeline.tenant_id,
+    )
+
+    count_result = await db.execute(
+        select(sa_func.count()).select_from(stmt.subquery())
+    )
+    total = count_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    result = await db.execute(stmt.offset(offset).limit(page_size))
     pipelines = result.scalars().all()
-    return {"pipelines": [_serialize_pipeline(p) for p in pipelines]}
+    items = [_serialize_pipeline(p) for p in pipelines]
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy key for in-flight consumers.
+        "pipelines": items,
+    }
 
 
 @router.post("/", status_code=201)
@@ -82,11 +116,20 @@ async def create_pipeline(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new pipeline. Manager-only."""
+    """Create a new pipeline. Manager-only, tenant-scoped."""
+    tenant_id = getattr(current_user, "tenant_id", None)
     if body.is_default:
-        await db.execute(update(Pipeline).values(is_default=False))
+        # Only flip is_default off within the caller's tenant.
+        await db.execute(
+            scoped_for_user(
+                update(Pipeline).values(is_default=False),
+                current_user,
+                column=Pipeline.tenant_id,
+            )
+        )
 
     pipeline = Pipeline(
+        tenant_id=tenant_id,
         name=body.name,
         stages_json=body.stages_json,
         description=body.description,
@@ -111,6 +154,9 @@ async def get_pipeline(
     pipeline = result.scalar_one_or_none()
     if pipeline is None:
         raise NotFoundException("Pipeline not found")
+    # R5-TEN-26 — both "doesn't exist" and "lives in another tenant"
+    # collapse to 404 so the API never leaks cross-tenant existence.
+    assert_same_tenant(pipeline, current_user, exception_cls=NotFoundException)
     return _serialize_pipeline(pipeline)
 
 
@@ -122,11 +168,12 @@ async def update_pipeline(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a pipeline. Manager-only."""
+    """Update a pipeline. Manager-only, tenant-scoped."""
     result = await db.execute(select(Pipeline).where(Pipeline.id == pipeline_id))
     pipeline = result.scalar_one_or_none()
     if pipeline is None:
         raise NotFoundException("Pipeline not found")
+    assert_same_tenant(pipeline, current_user, exception_cls=NotFoundException)
 
     if body.name is not None:
         pipeline.name = body.name
@@ -136,8 +183,15 @@ async def update_pipeline(
         pipeline.description = body.description
     if body.is_default is not None:
         if body.is_default:
+            # Only un-default other pipelines in the caller's tenant.
             await db.execute(
-                update(Pipeline).where(Pipeline.id != pipeline_id).values(is_default=False)
+                scoped_for_user(
+                    update(Pipeline)
+                    .where(Pipeline.id != pipeline_id)
+                    .values(is_default=False),
+                    current_user,
+                    column=Pipeline.tenant_id,
+                )
             )
         pipeline.is_default = body.is_default
 
@@ -153,11 +207,12 @@ async def delete_pipeline(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a pipeline. Fails if opportunities reference it. Manager-only."""
+    """Delete a pipeline. Fails if opportunities reference it. Manager-only, tenant-scoped."""
     result = await db.execute(select(Pipeline).where(Pipeline.id == pipeline_id))
     pipeline = result.scalar_one_or_none()
     if pipeline is None:
         raise NotFoundException("Pipeline not found")
+    assert_same_tenant(pipeline, current_user, exception_cls=NotFoundException)
 
     opp_result = await db.execute(
         select(Opportunity.id).where(Opportunity.pipeline_id == pipeline_id).limit(1)
@@ -175,13 +230,21 @@ async def set_default_pipeline(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Set pipeline as default, clearing all others. Manager-only."""
+    """Set pipeline as default, clearing all others. Manager-only, tenant-scoped."""
     result = await db.execute(select(Pipeline).where(Pipeline.id == pipeline_id))
     pipeline = result.scalar_one_or_none()
     if pipeline is None:
         raise NotFoundException("Pipeline not found")
+    assert_same_tenant(pipeline, current_user, exception_cls=NotFoundException)
 
-    await db.execute(update(Pipeline).values(is_default=False))
+    # R5-TEN-26 — only flip the flag within the caller's tenant.
+    await db.execute(
+        scoped_for_user(
+            update(Pipeline).values(is_default=False),
+            current_user,
+            column=Pipeline.tenant_id,
+        )
+    )
     pipeline.is_default = True
     await db.commit()
     await db.refresh(pipeline)

@@ -14,7 +14,7 @@ class AccountTeam(Base):
     __table_args__ = (
         UniqueConstraint("customer_id", "user_id", name="uq_account_team_customer_user"),
         # Round-4 R4-TEN-16 — tenant boundary on per-customer team rosters.
-        # TODO: backfill in alembic 20260504_add_tenant_id_to_territories_teams.
+        # TODO: backfill in alembic 20260504_phase4_tenant.
         Index("ix_account_team_tenant", "tenant_id"),
     )
 
@@ -39,7 +39,7 @@ class SharingRule(Base):
     __tablename__ = "sharing_rules"
     __table_args__ = (
         # Round-4 R4-TEN-16 — tenant boundary on sharing rules.
-        # TODO: backfill in alembic 20260504_add_tenant_id_to_territories_teams.
+        # TODO: backfill in alembic 20260504_phase4_tenant.
         Index("ix_sharing_rule_tenant", "tenant_id"),
     )
 

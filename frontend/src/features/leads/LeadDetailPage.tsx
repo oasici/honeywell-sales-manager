@@ -24,6 +24,8 @@ import {
   Briefcase,
   TrendingUp,
   TrendingDown,
+  Pencil,
+  X as XIcon,
 } from 'lucide-react';
 
 const STATUS_COLORS: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
@@ -141,6 +143,20 @@ export default function LeadDetailPage() {
     opportunity_amount: 0,
   });
 
+  // R5-FORM-2 — inline edit panel state. Pre-R5 LeadDetailPage only
+  // mutated `status`, so editable fields (first_name, last_name,
+  // phone, company, title, notes) had no UI affordance — reps had to
+  // delete + recreate. Mirrors the customer detail edit pattern.
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    phone: '',
+    company: '',
+    title: '',
+    notes: '',
+  });
+
   const { data: lead, isLoading } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => leadsApi.get(leadId),
@@ -190,6 +206,35 @@ export default function LeadDetailPage() {
 
   const canConvert = ['qualified', 'contacted'].includes(lead.status);
   const isConverted = lead.status === 'converted';
+
+  const startEdit = () => {
+    setEditForm({
+      first_name: lead.first_name || '',
+      last_name: lead.last_name || '',
+      phone: lead.phone || '',
+      company: lead.company || '',
+      title: lead.title || '',
+      notes: lead.notes || '',
+    });
+    setIsEditing(true);
+  };
+
+  const submitEdit = () => {
+    // Only send the editable fields the backend's LeadUpdate accepts.
+    updateMutation.mutate(
+      {
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        phone: editForm.phone || null,
+        company: editForm.company || null,
+        title: editForm.title || null,
+        notes: editForm.notes || null,
+      },
+      {
+        onSuccess: () => setIsEditing(false),
+      },
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -242,13 +287,10 @@ export default function LeadDetailPage() {
                 {t('lead_detail.score_breakdown')}
               </p>
               <ul className="space-y-1">
-                {(
-                  lead.score_breakdown as Array<{
-                    factor: string;
-                    points: number;
-                    reason?: string;
-                  }>
-                )
+                {/* R5-TS-3 — Lead.score_breakdown TS shape now matches
+                    the wire shape {factor, points, reason}; the local
+                    cast is no longer needed. */}
+                {lead.score_breakdown
                   .slice(0, 8)
                   .map((b, i) => (
                     <li
@@ -275,53 +317,147 @@ export default function LeadDetailPage() {
 
         {/* Info Card */}
         <Card title={t('lead_detail.contact_title')} className="lg:col-span-2">
-          <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-            <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4 text-slate-400" />
-              <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t('lead_detail.email')}
-                </p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white">{lead.email}</p>
+          {/* R5-FORM-2 — toggle between read-only summary and inline
+              edit form. Editable fields match LeadUpdate (first_name,
+              last_name, phone, company, title, notes); status stays
+              owned by the buttons in the dedicated card below. */}
+          {!isEditing ? (
+            <>
+              <div className="flex items-center justify-end px-4 pt-3">
+                {!isConverted && (
+                  <Button variant="ghost" size="sm" onClick={startEdit} type="button">
+                    <Pencil className="mr-1 h-3.5 w-3.5" /> {t('leads.edit')}
+                  </Button>
+                )}
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-slate-400" />
-              <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{t('leads.phone')}</p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white">
-                  {lead.phone || '-'}
-                </p>
+              <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-slate-400" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {t('lead_detail.email')}
+                    </p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      {lead.email}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-slate-400" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('leads.phone')}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      {lead.phone || '-'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-4 w-4 text-slate-400" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {t('leads.company')}
+                    </p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      {lead.company || '-'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Briefcase className="h-4 w-4 text-slate-400" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {t('leads.job_title')}
+                    </p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      {lead.title || '-'}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Building2 className="h-4 w-4 text-slate-400" />
-              <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{t('leads.company')}</p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white">
-                  {lead.company || '-'}
-                </p>
+              {lead.owner_name && (
+                <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {t('lead_detail.assigned_to')}:{' '}
+                    <span className="font-medium text-slate-900 dark:text-white">
+                      {lead.owner_name}
+                    </span>
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitEdit();
+              }}
+              className="space-y-3 p-4"
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label={t('leads.first_name')}
+                  value={editForm.first_name}
+                  onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                  required
+                />
+                <Input
+                  label={t('leads.last_name')}
+                  value={editForm.last_name}
+                  onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                  required
+                />
+                <Input
+                  label={t('leads.phone')}
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                />
+                <Input
+                  label={t('leads.company')}
+                  value={editForm.company}
+                  onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                />
+                <Input
+                  label={t('leads.job_title')}
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                />
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Briefcase className="h-4 w-4 text-slate-400" />
               <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{t('leads.job_title')}</p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white">
-                  {lead.title || '-'}
-                </p>
+                <label
+                  htmlFor="lead-edit-notes"
+                  className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-slate-300"
+                >
+                  {t('leads.notes')}
+                </label>
+                <textarea
+                  id="lead-edit-notes"
+                  rows={3}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder={t('leads.notes_ph')}
+                  className="block w-full rounded-[10px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
               </div>
-            </div>
-          </div>
-          {lead.owner_name && (
-            <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800">
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('lead_detail.assigned_to')}:{' '}
-                <span className="font-medium text-slate-900 dark:text-white">
-                  {lead.owner_name}
-                </span>
-              </p>
-            </div>
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  disabled={updateMutation.isPending}
+                >
+                  <XIcon className="mr-1 h-3.5 w-3.5" /> {t('common.cancel')}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  type="submit"
+                  loading={updateMutation.isPending}
+                >
+                  {t('leads.save')}
+                </Button>
+              </div>
+            </form>
           )}
         </Card>
 

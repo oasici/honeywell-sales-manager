@@ -40,6 +40,10 @@ _tenant_upload_attempts: dict[str, deque] = defaultdict(deque)
 _bulk_attempts: dict[str, deque] = defaultdict(deque)
 # Round-4 R4-RL-4/5 — KVKK / audit data export endpoints.
 _kvkk_export_attempts: dict[str, deque] = defaultdict(deque)
+# Round-5 R5-RL-7 — public /signatures/sign/{token} endpoints. Token
+# is a finite-length secrets.token_urlsafe(); without rate-limit, an
+# attacker iterates the token space to forge signatures. Per IP.
+_signing_attempts: dict[str, deque] = defaultdict(deque)
 _lock = Lock()
 
 
@@ -230,3 +234,22 @@ enforce_kvkk_export_rate_limit = make_user_rate_limit(
     "Veri ihrac limiti asildi. Lutfen kisa bir sure bekleyin.",
 )
 """Rate-limit KVKK / audit export endpoints (per user)."""
+
+
+# Round-5 R5-RL-7 — public signing endpoints. Per IP because the
+# /sign/{token} flow is unauthenticated (a customer clicks the email
+# link). 5/minute matches the token-iteration cost (5 wrong guesses
+# per IP per minute is not a usable enumeration attack).
+async def enforce_signing_rate_limit(request: Request) -> None:
+    """Per-IP rate limit on the public e-signature surface.
+
+    Without this, the unauthenticated POST /sign/{token} routes were
+    a token-iteration vector — attacker hammers the URL until they
+    hit a valid token then forges a 'signed' response.
+    """
+    _enforce_window(
+        _signing_attempts,
+        f"signing:{_get_client_ip(request)}",
+        getattr(settings, "RATE_LIMIT_SIGNING", "5/minute"),
+        "Cok fazla imza istegi. Lutfen birkac dakika bekleyin.",
+    )

@@ -107,6 +107,10 @@ const clearAuthAndRedirect = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
+  // R5-CACHE-1 — wipe TanStack cache on the 401 redirect path so the
+  // next user on this browser tab doesn't see prior PII for the
+  // 30s staleTime window. Lazy-import to avoid circular dep at boot.
+  void import('./queryClient').then((m) => m.queryClient.clear()).catch(() => {});
   // Guard against redirect loop: don't redirect if already on login
   if (!window.location.pathname.startsWith('/login')) {
     window.location.href = '/login';
@@ -355,8 +359,16 @@ export const partsApi = {
   },
 
   getCategories: async (): Promise<string[]> => {
-    const { data } = await api.get<string[]>('/parts/categories');
-    return data;
+    // Round-5 Phase 7 — backend now returns the canonical envelope
+    // ``{items, total}``. Tolerate the legacy bare-list shape for
+    // any in-flight responses mid-deploy.
+    const { data } = await api.get<{ items?: string[] } | string[]>(
+      '/parts/categories',
+    );
+    if (Array.isArray(data)) {
+      return data;
+    }
+    return data?.items ?? [];
   },
 
   getPart: async (id: number): Promise<SparePart> => {

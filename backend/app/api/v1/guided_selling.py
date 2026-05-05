@@ -9,12 +9,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import NotFoundException
+from app.core.rate_limit import enforce_ai_rate_limit, enforce_tenant_ai_rate_limit
 from app.models.enums import UserRole
 from app.models.selling_guide import SellingGuide
 from app.models.user import User
 from app.services.guided_selling_service import GuidedSellingService
 
-router = APIRouter(tags=["Guided Selling (CPQ)"])
+# R5-RL-8 — guided-selling wizard services may call Claude for product
+# recommendation narratives.
+router = APIRouter(
+    tags=["Guided Selling (CPQ)"],
+    dependencies=[
+        Depends(enforce_tenant_ai_rate_limit),
+        Depends(enforce_ai_rate_limit),
+    ],
+)
 
 
 class GuideCreate(BaseModel):

@@ -217,7 +217,10 @@ export default function SubscriptionDetailPage() {
           </div>
           {/* Customer + originating quote links — round-tripped by the
               API but previously not surfaced (audit F-8). Without these
-              the rep had to open another tab to navigate. */}
+              the rep had to open another tab to navigate.
+
+              R5-RENDER-SUB-1 — backend now ships the customer summary,
+              so we render the actual name instead of "#${customer_id}". */}
           {sub.customer_id != null && (
             <div>
               <p className="text-xs text-slate-500">{t('subscription.lbl_customer')}</p>
@@ -226,7 +229,9 @@ export default function SubscriptionDetailPage() {
                 onClick={() => navigate(`/customers/${sub.customer_id}`)}
                 className="font-medium text-honeywell-red hover:underline"
               >
-                #{sub.customer_id}
+                {sub.customer
+                  ? sub.customer.company || sub.customer.name
+                  : `#${sub.customer_id}`}
               </button>
             </div>
           )}

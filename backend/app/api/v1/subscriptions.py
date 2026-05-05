@@ -1,16 +1,28 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
 from app.models.user import User
 from app.services.subscription_service import SubscriptionService
 
-router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
+
+def _require_subscriptions() -> None:
+    """Round-5 R5-FLAG-15 — gate behind FEATURE_SUBSCRIPTIONS."""
+    if not settings.FEATURE_SUBSCRIPTIONS:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+router = APIRouter(
+    prefix="/subscriptions",
+    tags=["Subscriptions"],
+    dependencies=[Depends(_require_subscriptions)],
+)
 
 
 class SubscriptionCreate(BaseModel):
@@ -27,11 +39,22 @@ class SubscriptionCreate(BaseModel):
 
 
 def _serialize(sub) -> dict:
-    return {
+    # R5-RENDER-SUB-1 — surface customer summary so the list / detail
+    # view can render the customer name instead of "#${customer_id}".
+    # Mirrors the R5-API-1 invoice fix.
+    customer_summary: dict | None = None
+    if getattr(sub, "customer", None) is not None:
+        customer_summary = {
+            "id": sub.customer.id,
+            "name": sub.customer.name,
+            "company": sub.customer.company,
+        }
+    data = {
         "id": sub.id,
         # Round-4 R4-DTO-5 — round-trip tenant_id (R4-TEN-7).
         "tenant_id": getattr(sub, "tenant_id", None),
         "customer_id": sub.customer_id,
+        "customer": customer_summary,
         "quote_id": sub.quote_id,
         "name": sub.name,
         "status": sub.status,
@@ -47,6 +70,10 @@ def _serialize(sub) -> dict:
         "created_at": sub.created_at.isoformat() if sub.created_at else None,
         "updated_at": sub.updated_at.isoformat() if sub.updated_at else None,
     }
+    # R5-PERM-1 — admin-configured field-permission rules apply here.
+    from app.services.field_permission_service import apply_request_perms
+
+    return apply_request_perms(data, "subscription")
 
 
 @router.get("/mrr-dashboard")
@@ -64,26 +91,60 @@ async def mrr_dashboard(
 @router.get("/renewals")
 async def upcoming_renewals(
     days: int = Query(30, ge=1, le=365),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Round-5 Phase 7 — canonical pagination envelope.
+
+    Service still returns the full filtered list; we slice in Python
+    because the renewal window is bounded (max ~365 days, single
+    tenant) and the row count is naturally small. Adding cursor-level
+    pagination would require a service rewrite without measurable win.
+    """
+    import math as _math
+
     service = SubscriptionService(db)
     subs = await service.get_upcoming_renewals(current_user, days=days)
-    return {"items": [_serialize(s) for s in subs]}
+    total = len(subs)
+    offset = (page - 1) * page_size
+    page_items = subs[offset : offset + page_size]
+    return {
+        "items": [_serialize(s) for s in page_items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+    }
 
 
 @router.get("/")
 async def list_subscriptions(
     customer_id: int | None = Query(None),
     status: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Round-5 Phase 7 — canonical pagination envelope."""
+    import math as _math
+
     service = SubscriptionService(db)
     subs = await service.list_subscriptions(
         current_user, customer_id=customer_id, status=status
     )
-    return {"items": [_serialize(s) for s in subs]}
+    total = len(subs)
+    offset = (page - 1) * page_size
+    page_items = subs[offset : offset + page_size]
+    return {
+        "items": [_serialize(s) for s in page_items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": _math.ceil(total / page_size) if total > 0 else 0,
+    }
 
 
 @router.post("/")

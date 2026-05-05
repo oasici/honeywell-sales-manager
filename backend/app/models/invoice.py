@@ -17,7 +17,7 @@ class Invoice(Base):
         Index("ix_invoice_status", "status"),
         # Round-4 R4-CLOSE-1 / R4-TEN-5 — tenant boundary on the
         # billing surface. Backfilled from customers.tenant_id by
-        # alembic 20260504_add_tenant_id_to_billing.
+        # alembic 20260504_billing_tenant.
         Index("ix_invoice_tenant", "tenant_id"),
     )
 

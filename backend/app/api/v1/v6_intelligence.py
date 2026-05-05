@@ -49,7 +49,18 @@ async def _load_opportunity(
     return opp
 
 
-router = APIRouter(prefix="/v6", tags=["V6 Intelligence Depth"])
+# R5-RL-8 — V6 intelligence is a deeper analytics surface than V5 and
+# may invoke Claude for narratives. Apply same rate-limit pattern.
+from app.core.rate_limit import (
+    enforce_ai_rate_limit as _enforce_ai_rl,
+    enforce_tenant_ai_rate_limit as _enforce_tenant_ai_rl,
+)
+
+router = APIRouter(
+    prefix="/v6",
+    tags=["V6 Intelligence Depth"],
+    dependencies=[Depends(_enforce_tenant_ai_rl), Depends(_enforce_ai_rl)],
+)
 
 
 def _require_v5():

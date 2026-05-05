@@ -303,6 +303,11 @@ export default function SubscriptionListPage() {
           <thead>
             <tr className="border-b text-left" style={{ borderColor: 'var(--border)' }}>
               <th className="px-4 py-3 font-medium text-slate-500">{t('subscription.col_name')}</th>
+              {/* R5-RENDER-SUB-1 — customer column. Backend now ships
+                  the summary on every subscription DTO. */}
+              <th className="px-4 py-3 font-medium text-slate-500">
+                {t('subscription.col_customer')}
+              </th>
               <th className="px-4 py-3 font-medium text-slate-500">
                 {t('subscription.col_status')}
               </th>
@@ -318,14 +323,14 @@ export default function SubscriptionListPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   {t('subscription.loading')}
                 </td>
               </tr>
             )}
             {!isLoading && filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   {t('subscription.empty')}
                 </td>
               </tr>
@@ -339,6 +344,15 @@ export default function SubscriptionListPage() {
               >
                 <td className="px-4 py-3 font-medium" style={{ color: 'var(--text-primary)' }}>
                   {sub.name}
+                </td>
+                <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                  {sub.customer ? (
+                    <span className="text-sm">
+                      {sub.customer.company || sub.customer.name}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">#{sub.customer_id}</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span

@@ -685,6 +685,8 @@ const translations = {
     'contracts.search_ph': 'Kontrat başlığı…',
     'contracts.empty': 'Kontrat bulunamadı',
     'contracts.col_title': 'Başlık',
+    // R5-RENDER-CONTRACT-1 — surface customer column on the list.
+    'contracts.col_customer': 'Müşteri',
     'contracts.col_status': 'Durum',
     'contracts.col_start': 'Başlangıç',
     'contracts.col_end': 'Bitiş',
@@ -862,6 +864,12 @@ const translations = {
     'leads.phone': 'Telefon',
     'leads.company': 'Firma',
     'leads.job_title': 'Unvan',
+    // R5-FORM-1 — notes textarea on the lead create modal.
+    'leads.notes': 'Notlar',
+    'leads.notes_ph': 'Lead hakkında ek bilgi (isteğe bağlı)…',
+    // R5-FORM-2 — inline edit affordance on lead detail.
+    'leads.edit': 'Düzenle',
+    'leads.save': 'Kaydet',
     'leads.delete_title': "Lead'leri Sil",
     'leads.delete_message':
       '{count} lead’i silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
@@ -1082,6 +1090,13 @@ const translations = {
     'opp_detail.days_suffix': 'gün',
     'opp_detail.rotting_hint':
       'Takvim günü olarak son aktivite kaydından; kayıt yoksa kaydın son güncellenmesinden bu yana geçen süre. Board, özet ve kokpitteki bayatlık aynı tanıma göre hesaplanır.',
+    // R5-RENDER-OPP-2 — read-only revenue-leak fields surfaced on the
+    // detail page (source / forecast_category / loss_reason / recent
+    // change diff). Pre-R5 these were on the wire but never rendered.
+    'opp_detail.lbl_source': 'Kaynak',
+    'opp_detail.lbl_forecast_category': 'Forecast kategorisi',
+    'opp_detail.lbl_loss_reason': 'Kayıp nedeni',
+    'opp_detail.recent_change': 'Son değişiklik',
     'opp_detail.pipeline_suggest_title': 'Pipeline önerisi',
     'opp_detail.pipeline_suggest_desc':
       'Kurallar ve (yapılandırıldıysa) AI ile önerilen aşama ve sonraki adımlar. Bayatlık hesabı board ile aynıdır (son aktivite; yoksa güncelleme).',
@@ -1768,6 +1783,8 @@ const translations = {
     'subscription.cycle_quarterly': 'Çeyreklik',
     'subscription.cycle_annual': 'Yıllık',
     'subscription.col_name': 'Ad',
+    // R5-RENDER-SUB-1 — customer column on the subscription list.
+    'subscription.col_customer': 'Müşteri',
     'subscription.col_status': 'Durum',
     'subscription.col_period': 'Dönem',
     'subscription.col_mrr': 'MRR',
@@ -2943,6 +2960,8 @@ const translations = {
     'contracts.search_ph': 'Contract title…',
     'contracts.empty': 'No contracts found',
     'contracts.col_title': 'Title',
+    // R5-RENDER-CONTRACT-1 — surface customer column on the list.
+    'contracts.col_customer': 'Customer',
     'contracts.col_status': 'Status',
     'contracts.col_start': 'Start',
     'contracts.col_end': 'End',
@@ -3119,6 +3138,12 @@ const translations = {
     'leads.phone': 'Phone',
     'leads.company': 'Company',
     'leads.job_title': 'Title',
+    // R5-FORM-1 — notes textarea on lead create.
+    'leads.notes': 'Notes',
+    'leads.notes_ph': 'Optional context about this lead…',
+    // R5-FORM-2 — inline edit affordance on lead detail.
+    'leads.edit': 'Edit',
+    'leads.save': 'Save',
     'leads.delete_title': 'Delete leads',
     'leads.delete_message':
       'Are you sure you want to delete {count} lead(s)? This can’t be undone.',
@@ -3338,6 +3363,11 @@ const translations = {
     'opp_detail.days_suffix': 'days',
     'opp_detail.rotting_hint':
       'Calendar days since the latest activity log entry; if there is none, since the record was last updated. Rotting matches the board, summary, and cockpit.',
+    // R5-RENDER-OPP-2 — read-only revenue-leak fields.
+    'opp_detail.lbl_source': 'Source',
+    'opp_detail.lbl_forecast_category': 'Forecast category',
+    'opp_detail.lbl_loss_reason': 'Loss reason',
+    'opp_detail.recent_change': 'Recent change',
     'opp_detail.pipeline_suggest_title': 'Pipeline suggestion',
     'opp_detail.pipeline_suggest_desc':
       'Rule-based (and AI when configured) suggested stage and next steps. Staleness matches the board (last activity; otherwise last update).',
@@ -4008,6 +4038,8 @@ const translations = {
     'subscription.cycle_quarterly': 'Quarterly',
     'subscription.cycle_annual': 'Annual',
     'subscription.col_name': 'Name',
+    // R5-RENDER-SUB-1 — customer column on the subscription list.
+    'subscription.col_customer': 'Customer',
     'subscription.col_status': 'Status',
     'subscription.col_period': 'Period',
     'subscription.col_mrr': 'MRR',

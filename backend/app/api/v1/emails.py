@@ -171,10 +171,16 @@ async def get_training_data(
         lines = "\n".join(json.dumps(item, ensure_ascii=False) for item in items)
         return PlainTextResponse(content=lines, media_type="application/jsonl")
 
+    # Round-5 Phase 7 — canonical pagination envelope. ``count`` and
+    # ``data`` are kept additively for any in-flight consumers.
     return {
-        "count": total,
+        "items": items,
+        "total": total,
         "page": page,
         "page_size": page_size,
+        "pages": math.ceil(total / page_size) if total > 0 else 0,
+        # Additive legacy keys.
+        "count": total,
         "data": items,
     }
 
@@ -397,8 +403,20 @@ async def get_email_thread(
     _assert_email_same_tenant(email, current_user)
     _check_email_ownership(email, current_user)
 
+    # Round-5 Phase 7 — canonical envelope. ``thread_id`` is kept as
+    # an extra field, and ``emails`` is preserved additively so the
+    # SPA can read either ``items`` or ``emails`` mid-rollout.
     if not email.thread_id:
-        return {"thread_id": None, "emails": [_email_to_dict(email)]}
+        single = [_email_to_dict(email)]
+        return {
+            "items": single,
+            "total": 1,
+            "page": 1,
+            "page_size": 1,
+            "pages": 1,
+            "thread_id": None,
+            "emails": single,
+        }
 
     thread_result = await db.execute(
         select(EmailRequest)
@@ -406,10 +424,17 @@ async def get_email_thread(
         .order_by(EmailRequest.created_at.asc())
     )
     thread_emails = thread_result.scalars().all()
+    items = [_email_to_dict(e) for e in thread_emails]
+    total = len(items)
 
     return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total if total > 0 else 1,
+        "pages": 1 if total > 0 else 0,
         "thread_id": email.thread_id,
-        "emails": [_email_to_dict(e) for e in thread_emails],
+        "emails": items,
     }
 
 
@@ -811,6 +836,12 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
     """Convert EmailRequest to a dictionary response."""
     data = {
         "id": email.id,
+        # R5-API-4 — round-trip tenant_id and dedupe metadata so the
+        # SPA's "duplicate of" link can render and so multi-tenant
+        # analytics can group emails by tenant.
+        "tenant_id": getattr(email, "tenant_id", None),
+        "is_duplicate": getattr(email, "is_duplicate", False),
+        "duplicate_of_id": getattr(email, "duplicate_of_id", None),
         "customer_id": email.customer_id,
         "opportunity_id": getattr(email, "opportunity_id", None),
         "message_id": email.message_id,
