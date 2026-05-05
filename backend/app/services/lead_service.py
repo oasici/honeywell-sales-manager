@@ -117,6 +117,11 @@ class LeadService:
                         "lead_id": lead.id,
                         "old_score": old_score,
                         "new_score": lead.lead_score,
+                        # R5-EVENT-2 — frontend score-history (LeadDetailPage)
+                        # reads payload.delta. Pre-R5 the field never existed
+                        # on the wire, so every row in the SPA showed a
+                        # red TrendingDown icon and "0" delta value.
+                        "delta": (lead.lead_score or 0) - (old_score or 0),
                         "reason": "lead_updated",
                     },
                     entity_type="lead",

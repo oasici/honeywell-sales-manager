@@ -103,6 +103,8 @@ def _reset_rate_limit_buckets():
         "_tenant_upload_attempts",
         "_bulk_attempts",
         "_kvkk_export_attempts",
+        # Round-5 R5-RL-7
+        "_signing_attempts",
     ):
         bucket = getattr(_rl, name, None)
         if bucket is not None:

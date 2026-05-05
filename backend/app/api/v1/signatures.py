@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
+from app.core.rate_limit import enforce_signing_rate_limit
 from app.models.contract import Contract
 from app.models.invoice import Invoice
 from app.models.quote import Quote
@@ -360,6 +361,7 @@ async def get_signing_page(
     token: str,
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_esign),
+    _rl=Depends(enforce_signing_rate_limit),
 ):
     """Return document summary for the public signing page (no auth required)."""
     sig = await _get_sig_or_404(token, db)
@@ -405,6 +407,7 @@ async def submit_signature(
     request: Request,
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_esign),
+    _rl=Depends(enforce_signing_rate_limit),
 ):
     """Submit a signature for the given token (no auth required)."""
     sig = await _get_sig_or_404(token, db)
@@ -449,6 +452,7 @@ async def decline_signature(
     token: str,
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_esign),
+    _rl=Depends(enforce_signing_rate_limit),
 ):
     """Decline a signature request (no auth required)."""
     sig = await _get_sig_or_404(token, db)

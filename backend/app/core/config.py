@@ -204,6 +204,10 @@ class Settings(BaseSettings):
     #     across a botnet that defeats the per-IP layer)
     RATE_LIMIT_BULK: str = "5/minute"
     RATE_LIMIT_KVKK_EXPORT: str = "2/minute"
+    # Round-5 R5-RL-7 — public e-signature endpoints. Tight limit
+    # because the surface is unauthenticated and the token is
+    # enumerable in theory (finite secrets.token_urlsafe length).
+    RATE_LIMIT_SIGNING: str = "5/minute"
     RATE_LIMIT_LOGIN_USERNAME: str = "5/minute"
 
     # ── Cross-tenant probe alerting (V13 security signal) ──

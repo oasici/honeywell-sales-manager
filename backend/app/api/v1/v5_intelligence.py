@@ -46,9 +46,19 @@ from app.services import (
     timing_engine_service,
 )
 from app.services.tenant_context import assert_same_tenant
+from app.core.rate_limit import (
+    enforce_ai_rate_limit as _enforce_ai_rl,
+    enforce_tenant_ai_rate_limit as _enforce_tenant_ai_rl,
+)
 
 
-router = APIRouter(prefix="/v5", tags=["V5 Intelligence"])
+# R5-RL-8 — V5 intelligence services hit Claude (objection mining,
+# benchmark gaps); router-level rate limits prevent cost amplification.
+router = APIRouter(
+    prefix="/v5",
+    tags=["V5 Intelligence"],
+    dependencies=[Depends(_enforce_tenant_ai_rl), Depends(_enforce_ai_rl)],
+)
 
 
 def _require_v5():

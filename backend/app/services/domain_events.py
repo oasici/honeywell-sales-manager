@@ -82,6 +82,10 @@ EVENT_PAYLOAD_SCHEMAS: dict[str, dict] = {
         "lead_id": "int",
         "old_score": "float|None",
         "new_score": "float",
+        # R5-EVENT-2 — frontend score-history reads delta directly
+        # rather than recomputing from new-old; documented here so
+        # any new producer remembers to include it.
+        "delta": "float",
         "reason": "str",
     },
     DomainEvents.SIGNAL_CREATED: {

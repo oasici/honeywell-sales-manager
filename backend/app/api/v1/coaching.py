@@ -13,13 +13,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.rate_limit import enforce_ai_rate_limit, enforce_tenant_ai_rate_limit
 from app.models.coaching_plan import CoachingPlan
 from app.models.coaching_snapshot import CoachingSnapshot
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.coaching_service import CoachingService
 
-router = APIRouter(prefix="/coaching", tags=["Coaching Engine"])
+# R5-RL-8 — coaching surfaces call into V5/V6/V7 services that may
+# proxy through Claude. Without router-level rate limits, a scripted
+# client could amplify cost burn. Both per-user and per-tenant caps
+# apply (tenant cap is a no-op in single-tenant deployments).
+router = APIRouter(
+    prefix="/coaching",
+    tags=["Coaching Engine"],
+    dependencies=[
+        Depends(enforce_tenant_ai_rate_limit),
+        Depends(enforce_ai_rate_limit),
+    ],
+)
 
 
 def _require_cockpit():
