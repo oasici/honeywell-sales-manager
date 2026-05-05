@@ -59,11 +59,23 @@ class AmendmentCreate(BaseModel):
 
 
 def _serialize_contract(c: Contract) -> dict:
+    # R5-RENDER-CONTRACT-1 — list/detail endpoints used to omit the
+    # customer object entirely, so the contract list rendered "—" or
+    # "#${customer_id}" in the customer column. Mirrors the R5-API-1
+    # invoice fix; selectin relationship makes this free.
+    customer_summary: dict | None = None
+    if getattr(c, "customer", None) is not None:
+        customer_summary = {
+            "id": c.customer.id,
+            "name": c.customer.name,
+            "company": c.customer.company,
+        }
     data = {
         "id": c.id,
         # Round-4 R4-DTO-6 — round-trip tenant_id (R4-TEN-6).
         "tenant_id": getattr(c, "tenant_id", None),
         "customer_id": c.customer_id,
+        "customer": customer_summary,
         "quote_id": c.quote_id,
         "title": c.title,
         "status": c.status,

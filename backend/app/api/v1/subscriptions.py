@@ -39,11 +39,22 @@ class SubscriptionCreate(BaseModel):
 
 
 def _serialize(sub) -> dict:
+    # R5-RENDER-SUB-1 — surface customer summary so the list / detail
+    # view can render the customer name instead of "#${customer_id}".
+    # Mirrors the R5-API-1 invoice fix.
+    customer_summary: dict | None = None
+    if getattr(sub, "customer", None) is not None:
+        customer_summary = {
+            "id": sub.customer.id,
+            "name": sub.customer.name,
+            "company": sub.customer.company,
+        }
     data = {
         "id": sub.id,
         # Round-4 R4-DTO-5 — round-trip tenant_id (R4-TEN-7).
         "tenant_id": getattr(sub, "tenant_id", None),
         "customer_id": sub.customer_id,
+        "customer": customer_summary,
         "quote_id": sub.quote_id,
         "name": sub.name,
         "status": sub.status,

@@ -1737,6 +1737,9 @@ export interface Subscription {
   // tooling and the SPA's tenant guard can read it.
   tenant_id?: number | null;
   customer_id: number;
+  // R5-RENDER-SUB-1 — customer summary now ships on the wire, mirroring
+  // the invoice DTO. Replaces the "#${customer_id}" placeholder UI.
+  customer?: { id: number; name: string; company: string } | null;
   quote_id: number | null;
   name: string;
   status: string;
@@ -1912,6 +1915,10 @@ export interface Contract {
   // multi-tenant rollout.
   tenant_id?: number | null;
   customer_id: number;
+  // R5-RENDER-CONTRACT-1 — customer summary mirrors the invoice DTO
+  // shape so the contract list/detail can render the customer name
+  // without a separate query.
+  customer?: { id: number; name: string; company: string } | null;
   quote_id: number | null;
   title: string;
   status: string;

@@ -51,6 +51,10 @@ class Contract(Base):
         lazy="selectin",
         cascade="all, delete-orphan",
     )
+    # R5-RENDER-CONTRACT-1 — surface the customer summary on the
+    # serialiser (mirroring the R5-API-1 invoice fix). selectin keeps
+    # the list endpoint a single round-trip.
+    customer = relationship("Customer", lazy="selectin")
 
 
 class ContractAmendment(Base):

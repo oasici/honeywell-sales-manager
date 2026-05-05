@@ -72,6 +72,37 @@ const FALLBACK_TONE = STAGE_TONE.prospecting;
 
 /* ─────────────────────── KanbanCard ─────────────────────── */
 
+/**
+ * Forecast-category pill tones. Mirrors the four ForecastCategory enum
+ * values returned by the backend; ``commit`` gets the strongest weight
+ * so it stands out at a glance, ``omitted`` is muted because it's
+ * excluded from forecast rollups.
+ */
+const FORECAST_CATEGORY_TONE: Record<string, string> = {
+  commit: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40',
+  best_case: 'bg-blue-50 text-blue-700 ring-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:ring-blue-900/40',
+  pipeline: 'bg-slate-50 text-slate-600 ring-slate-200 dark:bg-slate-900/40 dark:text-slate-400 dark:ring-slate-800',
+  omitted: 'bg-slate-50 text-slate-400 ring-slate-100 dark:bg-slate-900/40 dark:text-slate-500 dark:ring-slate-800',
+};
+
+const FORECAST_CATEGORY_LABEL: Record<string, string> = {
+  commit: 'Commit',
+  best_case: 'Best',
+  pipeline: 'Pipe',
+  omitted: 'Omit',
+};
+
+/**
+ * Coerce ``probability`` (0-1 or 0-100) to a percent integer suitable
+ * for display. The backend has historically been inconsistent here so
+ * we accept either shape. Returns ``null`` when probability is absent.
+ */
+function probabilityPct(prob: number | undefined): number | null {
+  if (prob == null) return null;
+  if (prob <= 1) return Math.round(prob * 100);
+  return Math.round(prob);
+}
+
 interface KanbanCardProps {
   opp: Opportunity;
   healthScore?: { score: number; risk_level: string } | null;
@@ -89,6 +120,8 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
   }, [opp.last_activity_at]);
 
   const isRotting = opp.rotting_days > 7;
+  const probPct = probabilityPct(opp.probability);
+  const isClosedLost = opp.status === 'closed_lost';
 
   return (
     <button
@@ -96,12 +129,38 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
       onClick={() => navigate(`/opportunities/${opp.id}`)}
       className="group w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-(--shadow-xs) transition-all hover:-translate-y-px hover:border-honeywell-red/30 hover:shadow-(--shadow-sm) focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-800 dark:bg-slate-900"
     >
-      <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
-        {opp.title}
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-slate-900 dark:text-white">
+          {opp.title}
+        </p>
+        {/* R5-RENDER-OPP-1 — forecast_category pill. Hidden when null
+            so cards without a category stay visually quieter. */}
+        {opp.forecast_category && (
+          <span
+            className={[
+              'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ring-1 ring-inset',
+              FORECAST_CATEGORY_TONE[opp.forecast_category] ?? FORECAST_CATEGORY_TONE.pipeline,
+            ].join(' ')}
+            title={`Forecast: ${opp.forecast_category}`}
+          >
+            {FORECAST_CATEGORY_LABEL[opp.forecast_category] ?? opp.forecast_category}
+          </span>
+        )}
+      </div>
       {opp.customer && (
         <p className="mt-0.5 truncate text-[12px] text-slate-500 dark:text-slate-400">
           {opp.customer.name}
+        </p>
+      )}
+      {/* R5-RENDER-OPP-1 — loss_reason is only meaningful when the
+          deal is closed_lost; suppressing on other statuses prevents
+          stale text from cluttering open-deal cards. */}
+      {isClosedLost && opp.loss_reason && (
+        <p
+          className="mt-0.5 truncate text-[11px] italic text-red-600 dark:text-red-400"
+          title={opp.loss_reason}
+        >
+          {opp.loss_reason}
         </p>
       )}
 
@@ -114,6 +173,12 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
           ) : (
             <span className="text-[12px] text-slate-400">—</span>
           )}
+          {/* R5-RENDER-OPP-1 — show probability as % next to amount. */}
+          {probPct != null && (
+            <span className="text-[11px] font-medium tabular-nums text-slate-500 dark:text-slate-400">
+              {probPct}%
+            </span>
+          )}
           {healthScore && (
             <DealHealthBadge score={healthScore.score} riskLevel={healthScore.risk_level} />
           )}
@@ -125,7 +190,7 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
         )}
       </div>
 
-      {(opp.open_tasks_count || lastActivityDays != null || opp.owner) && (
+      {(opp.open_tasks_count || lastActivityDays != null || opp.owner || opp.source) && (
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800">
           <div className="flex min-w-0 items-center gap-2 text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
             {typeof opp.open_tasks_count === 'number' && opp.open_tasks_count > 0 && (
@@ -141,6 +206,16 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
               >
                 <Activity size={11} className="text-slate-400" />
                 {t('board.last_activity_fmt').replace('{{d}}', String(lastActivityDays))}
+              </span>
+            )}
+            {/* R5-RENDER-OPP-1 — small source hint (lead-source
+                attribution). Truncated to keep the meta row tidy. */}
+            {opp.source && (
+              <span
+                className="truncate text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500"
+                title={`Source: ${opp.source}`}
+              >
+                {opp.source}
               </span>
             )}
           </div>

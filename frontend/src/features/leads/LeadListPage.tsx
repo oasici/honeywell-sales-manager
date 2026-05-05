@@ -76,6 +76,10 @@ export default function LeadListPage() {
     phone: '',
     company: '',
     title: '',
+    // R5-FORM-1 — backend's LeadCreate already accepts notes, but the
+    // SPA never surfaced the field. Added so reps can capture context
+    // (lead-source rationale, intro call summary etc.) at create time.
+    notes: '',
     source: 'manual',
   });
 
@@ -110,6 +114,7 @@ export default function LeadListPage() {
         phone: '',
         company: '',
         title: '',
+        notes: '',
         source: 'manual',
       });
     },
@@ -412,6 +417,25 @@ export default function LeadListPage() {
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
+          {/* R5-FORM-1 — surface the notes field so reps can capture
+              free-text context at create time. Backend accepts it via
+              LeadCreate.notes. */}
+          <div>
+            <label
+              htmlFor="lead-notes"
+              className="mb-1.5 block text-[12px] font-medium text-slate-700 dark:text-slate-300"
+            >
+              {t('leads.notes')}
+            </label>
+            <textarea
+              id="lead-notes"
+              rows={3}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              placeholder={t('leads.notes_ph')}
+              className="block w-full rounded-[10px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+          </div>
         </form>
       </Modal>
 
