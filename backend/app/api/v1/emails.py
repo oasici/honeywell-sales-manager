@@ -811,6 +811,12 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
     """Convert EmailRequest to a dictionary response."""
     data = {
         "id": email.id,
+        # R5-API-4 — round-trip tenant_id and dedupe metadata so the
+        # SPA's "duplicate of" link can render and so multi-tenant
+        # analytics can group emails by tenant.
+        "tenant_id": getattr(email, "tenant_id", None),
+        "is_duplicate": getattr(email, "is_duplicate", False),
+        "duplicate_of_id": getattr(email, "duplicate_of_id", None),
         "customer_id": email.customer_id,
         "opportunity_id": getattr(email, "opportunity_id", None),
         "message_id": email.message_id,

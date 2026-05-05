@@ -9,7 +9,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import extract, func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,7 +39,10 @@ def _require_lead_lifecycle():
 class LeadCreate(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
-    email: str = Field(min_length=3, max_length=255)
+    # R5-API-9 — was bare ``str``, accepting "foo" / "a@b" until the DB
+    # unique constraint fired downstream. EmailStr forces format
+    # validation at the boundary, matching CustomerCreate / UserCreate.
+    email: EmailStr
     phone: str | None = None
     company: str | None = None
     title: str | None = None
@@ -66,7 +69,8 @@ class LeadConvertRequest(BaseModel):
 class WebLeadFormRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
-    email: str = Field(min_length=3, max_length=255)
+    # R5-API-9 — same boundary validation as LeadCreate.
+    email: EmailStr
     phone: str | None = None
     company: str | None = None
     message: str | None = None
@@ -590,6 +594,10 @@ def _lead_to_dict(lead: Lead) -> dict:
         "converted_customer_id": lead.converted_customer_id,
         "converted_opportunity_id": lead.converted_opportunity_id,
         "converted_at": lead.converted_at.isoformat() if lead.converted_at else None,
+        # R5-API-10 — surface who converted the lead so the audit
+        # surface in the UI can render the actor (was previously
+        # only available via the audit log JOIN).
+        "converted_by": getattr(lead, "converted_by", None),
         "notes": lead.notes,
         "created_at": lead.created_at.isoformat() if lead.created_at else None,
         "updated_at": lead.updated_at.isoformat() if lead.updated_at else None,

@@ -13,6 +13,9 @@ class SparePartCreate(BaseModel):
     description_tr: str | None = None
     category: str | None = Field(default=None, max_length=200)
     subcategory: str | None = Field(default=None, max_length=200)
+    # R5-API-7 — pricing guardrail; pricing engine refuses to quote
+    # below this margin. 0..100, percentage.
+    min_margin_pct: float | None = Field(default=None, ge=0, le=100)
     keywords_json: str | None = None
     aliases_json: str | None = None
 
@@ -32,6 +35,8 @@ class SparePartUpdate(BaseModel):
     subcategory: str | None = Field(default=None, max_length=200)
     transfer_price: float | None = None
     supplier_price: float | None = None
+    # R5-API-7 — see SparePartCreate.min_margin_pct.
+    min_margin_pct: float | None = Field(default=None, ge=0, le=100)
     keywords_json: str | None = None
     aliases_json: str | None = None
 
@@ -47,6 +52,7 @@ class SparePartResponse(BaseModel):
     description_tr: str | None = None
     category: str | None = None
     subcategory: str | None = None
+    min_margin_pct: float | None = None  # R5-API-7
     keywords_json: str | None = None
     aliases_json: str | None = None
     is_active: bool

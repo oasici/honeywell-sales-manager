@@ -18,7 +18,17 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
+    """Auth-flow user surface.
+
+    R5-API-2 / R5-TS-4 — adds tenant_id and manager_id so the SPA's
+    /auth/me + /auth/login responses carry the same identity surface
+    as /api/v1/users/* (and so the auth store can populate org-chart
+    UI without a second round-trip).
+    """
+
     id: int
+    tenant_id: int | None = None
+    manager_id: int | None = None
     email: str
     full_name: str
     role: str
@@ -26,6 +36,7 @@ class UserResponse(BaseModel):
     email_setup_completed: bool = False
     password_change_required: bool = False
     created_at: datetime
+    updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

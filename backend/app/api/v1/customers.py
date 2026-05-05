@@ -994,5 +994,16 @@ def _customer_to_dict(customer: Customer) -> dict:
         # exposing now so the API contract is consistent.
         "parent_id": getattr(customer, "parent_id", None),
         "territory_id": getattr(customer, "territory_id", None),
+        # R5-API metadata — surface compliance state so the SPA can
+        # render a "pending deletion" banner / data classification
+        # badge without re-querying. KVKK consent itself is still
+        # gated behind /compliance/* (handled in _customer_to_dict's
+        # docstring above).
+        "data_classification": getattr(customer, "data_classification", None),
+        "deletion_requested_at": (
+            customer.deletion_requested_at.isoformat()
+            if getattr(customer, "deletion_requested_at", None)
+            else None
+        ),
     }
     return apply_request_perms(data, "customer")

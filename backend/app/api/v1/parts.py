@@ -289,7 +289,13 @@ async def import_catalog(
 
 
 def _part_to_dict(part: SparePart) -> dict:
-    """Convert SparePart to a dictionary response."""
+    """Convert SparePart to a dictionary response.
+
+    R5-API-7 — ``min_margin_pct`` is consumed by the pricing engine as
+    a guardrail but was previously hidden from every consumer. Surface
+    it so part editors can show + edit the threshold instead of
+    operators having to make direct DB edits.
+    """
     return {
         "id": part.id,
         "honeywell_code": part.honeywell_code,
@@ -304,6 +310,7 @@ def _part_to_dict(part: SparePart) -> dict:
         "transfer_price": part.transfer_price,
         "supplier_price": part.supplier_price,
         "price_currency": part.price_currency,
+        "min_margin_pct": getattr(part, "min_margin_pct", None),
         "keywords_json": part.keywords_json,
         "aliases_json": part.aliases_json,
         "is_active": part.is_active,
