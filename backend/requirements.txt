@@ -38,7 +38,7 @@ httpx>=0.27.0
 rapidfuzz==3.10.1
 
 # PDF generation
-weasyprint==68.0  # CVE-2025-68616
+weasyprint==68.1  # CVE-2025-68616
 jinja2==3.1.6  # CVE-2025-27516
 
 # Email
