@@ -9,6 +9,86 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.3.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.2.0...v1.3.0) (2026-05-06)
+
+
+### Added
+
+* **alembic:** round-4 v1.9.14 — bootstrap migration consolidation, drift gate flipped to fail-on-drift ([79427db](https://github.com/oasici/honeywell-sales-manager/commit/79427dbc982999ef306b64efc8fc5963236bce69))
+* **audit:** apply 2026-05-01 cross-layer audit — quick wins + safe refactors ([85710a9](https://github.com/oasici/honeywell-sales-manager/commit/85710a9777cae12a9671b00fcb198f47efa94d41))
+* **audit:** events + DTO contracts + tenant round-trip (round-2 v1.7.0) ([d8fdaa2](https://github.com/oasici/honeywell-sales-manager/commit/d8fdaa29d3fbd016b3f3bc0f1939c7f9455d04c6))
+* **audit:** phase 1 — backend serializer fields + frontend types + UI render ([3b3a9b1](https://github.com/oasici/honeywell-sales-manager/commit/3b3a9b130d0e46c17fff08d33f0019a573a24731))
+* **audit:** phase 2 — V5 intelligence client + widgets + feature_store /latest ([d9018e9](https://github.com/oasici/honeywell-sales-manager/commit/d9018e96a3d6b789a3249d26ba1c15675c5a2443))
+* **audit:** phase 3 — V10 parts-intel dashboard completion ([62ebd0e](https://github.com/oasici/honeywell-sales-manager/commit/62ebd0ee23dba83e43024ff811c49008faa14b1f))
+* **audit:** phase 4+5 — V9 backlog doc + feature-flag context + system health ([5c5c58a](https://github.com/oasici/honeywell-sales-manager/commit/5c5c58aa899d35da384ca271de9bbd64a4ae8d32))
+* **audit:** round-3 v1.8.0 — DB drift + TS types + FLAG-2 + EVT-5 + AUD-2 + envelope ([5ce5fdc](https://github.com/oasici/honeywell-sales-manager/commit/5ce5fdc45ae2c265d799200e9abd5b47e1d66599))
+* **audit:** round-3 v1.8.1 — surface 10 fetched-but-not-rendered datasets ([e2bd1f1](https://github.com/oasici/honeywell-sales-manager/commit/e2bd1f1201c1a20215cd3d7bc0ec3269e584e7c0))
+* **audit:** surface 12 fetched-but-not-rendered datasets (round-2 F-1..F-12) ([b255ed3](https://github.com/oasici/honeywell-sales-manager/commit/b255ed32c744a04891d14c13cd50e5379b2b407c))
+* **db:** round-4 v1.9.6 — schema-introspection sanity check (R4 §3) ([6d617b2](https://github.com/oasici/honeywell-sales-manager/commit/6d617b29b7d6367f4949f4f312a5a572ca3e3354))
+* **events:** round-4 v1.9.11 — dead-letter store + customer.created emit (EG-1, EVT-201) ([ec1e1aa](https://github.com/oasici/honeywell-sales-manager/commit/ec1e1aadcec5c7a0ce4d8019827c201d0a8f2e70))
+* **flags:** round-4 v1.9.9 — expose flags + author FeatureFlagGate + wrap routes (FLAG-1/3) ([f5a50f9](https://github.com/oasici/honeywell-sales-manager/commit/f5a50f994ddb0e7718b2fc21fa3cfc7b8fa345c2))
+* **ops:** bootstrap intelligence pipeline workflow ([a820318](https://github.com/oasici/honeywell-sales-manager/commit/a82031858b672f4e8ef261bc2b7fd303d6615d61))
+* **ops:** seed activity history workflow for fresh tenants ([a29adcd](https://github.com/oasici/honeywell-sales-manager/commit/a29adcd18e1cf84f99147708eb22cad86ac8bd84))
+* **p3:** retire Redis + cross-tenant observability + V4 tenant guards ([a8e886a](https://github.com/oasici/honeywell-sales-manager/commit/a8e886a5173cd536bd8c66fe8f74b9449a102492))
+* **p3:** V12 backfill workflow + prod env hardening + sentry tooling ([00a3b72](https://github.com/oasici/honeywell-sales-manager/commit/00a3b72fbb077a882d3718efc9bbd25e5116ffaf))
+* **rag:** activate Qdrant + embedding model via opt-in env vars ([b5b9298](https://github.com/oasici/honeywell-sales-manager/commit/b5b929813066adab322549caa8bb5970fdd4e4de))
+* **ui:** playbook detail header actions, segments builder, dashboard live tiles, sequence templates, keywords i18n ([def4abc](https://github.com/oasici/honeywell-sales-manager/commit/def4abc67714e43f2d5e465b5395f02773260d32))
+* **v10:** spare parts intelligence layer + PG test DB migration ([9762e7f](https://github.com/oasici/honeywell-sales-manager/commit/9762e7f558846af8f30d2d6af770dec43c034c3c))
+* **v11:** Qdrant RAG completion + UAT pass-2 (notification fetch + AI tabs) ([471e377](https://github.com/oasici/honeywell-sales-manager/commit/471e3771c66f3b27b49a459c6bc59e008f303b8c))
+* **v12:** close last 2 backlog items — multi-tenant CRM enforcement + transformer sequence embedding ([afd53fc](https://github.com/oasici/honeywell-sales-manager/commit/afd53fc58dffc303b960e314fc5297caf545bb2d))
+* **v9:** close V2/V3 gaps — CRM sync, calendar OAuth, board UX, NL search, quote revisions, slippage ([9af0221](https://github.com/oasici/honeywell-sales-manager/commit/9af02212a068ed4ab3c8276a651c1c5bc1105c43))
+
+
+### Fixed
+
+* **backfill:** V8 script now also populates V5 structured embeddings ([c475760](https://github.com/oasici/honeywell-sales-manager/commit/c475760a03ac1a8bfe7298080636084f13f3d124))
+* **ci+ui:** round-4 v1.9.13 — soften schema-drift CI gate + Tailwind v4 canonical classes ([eb08225](https://github.com/oasici/honeywell-sales-manager/commit/eb08225ed41584cd1ab3f614e44aa7a322eae376))
+* **config:** production validators warn instead of crash boot ([eb0dbd1](https://github.com/oasici/honeywell-sales-manager/commit/eb0dbd18be4715bc5d730d17a1e8557f6e013ed7))
+* **custom-fields:** migrate value_date column from TIMESTAMPTZ to DATE (audit DB-5) ([2287fbf](https://github.com/oasici/honeywell-sales-manager/commit/2287fbfd32e3ab27ae0fc46371d995af0b65accf))
+* **db:** add CREATE TABLE migration for invoices (audit DB-7) ([3ecc5ad](https://github.com/oasici/honeywell-sales-manager/commit/3ecc5ad0e701e6a734197e8519392d9f4f1344a8))
+* **db:** enable SSL on asyncpg connections (Render Postgres) ([edc6ea2](https://github.com/oasici/honeywell-sales-manager/commit/edc6ea262729fcdc2599701d28a39f0caf357a50))
+* **db:** hotfix — ensure opportunities.source column exists in prod ([b9cd419](https://github.com/oasici/honeywell-sales-manager/commit/b9cd419d530d08dda57008eef0a564b42034a68f))
+* **db:** round-4 v1.9.5 — backfill missing CREATE TABLE migrations (R4-DB-1/2/3) ([c8071bc](https://github.com/oasici/honeywell-sales-manager/commit/c8071bc0039d7ea12a5d8d209edf09c82e652f4f))
+* **deploy:** background RAG-deps install so gunicorn binds port immediately ([cc1fafb](https://github.com/oasici/honeywell-sales-manager/commit/cc1fafbeca49fbf800e14be003127451abcef05d))
+* **deploy:** round-4 v1.9.12 — repair phase-4 migration FK columns + 2 TS errors ([439125a](https://github.com/oasici/honeywell-sales-manager/commit/439125a122f22861c6f8fbeaa3dfaef2d42bec35))
+* **deploy:** v1.5.0 deploy failures — cockpit TS7006 + config import path ([7cd54e0](https://github.com/oasici/honeywell-sales-manager/commit/7cd54e0e6d1d152a79f80913d433104fb9bb20c4))
+* **frontend:** round-4 v1.9.7 — types + crash fix + render gaps (TS-1..10, CLOSE-2, NAME-1, FMT-1) ([34f1cee](https://github.com/oasici/honeywell-sales-manager/commit/34f1ceea76de61a32612d2f727077101eef7111b))
+* **frontend:** round-4 v1.9.8 — cache invalidation helper + 9 sites (CACHE-101..112) ([980bffd](https://github.com/oasici/honeywell-sales-manager/commit/980bffdb4ed2ba7c42ade7c783eb9f0f5e668d9f))
+* **p2:** rename V13 alembic revision to fit 32-char version_num ([d3f6f42](https://github.com/oasici/honeywell-sales-manager/commit/d3f6f42965891747a6bd2891bc1553f82feb358a))
+* **p3:** V8 backfill script also pre-syncs sales_events_shadow ([db6ae59](https://github.com/oasici/honeywell-sales-manager/commit/db6ae5985a18f6c2828cdd12d7b4ab59e6f83b0e))
+* **parts-intel:** drop UserRole.ADMIN reference (enum has no ADMIN) ([73afa1a](https://github.com/oasici/honeywell-sales-manager/commit/73afa1a1646c5f2ca368ce3f2fce318b388fe654))
+* **rag:** replace torch+sentence-transformers with fastembed (Free tier fit) ([18937f4](https://github.com/oasici/honeywell-sales-manager/commit/18937f4279fbe41ede35703d148963bc480deb83))
+* **rag:** switch to OpenAI HTTP embeddings (Free-tier OOM repair) ([ea0ac0b](https://github.com/oasici/honeywell-sales-manager/commit/ea0ac0bda3e3349f4e6ec9eea6d5983c7c977f11))
+* **round-5:** v1.10.0 — Day-0 hotfix close 7 visible incidents ([9a62bec](https://github.com/oasici/honeywell-sales-manager/commit/9a62beca21b12d2c08f089d90d4b6bb487e709db))
+* **round-5:** v1.10.1 — close 8 tenant scoping regressions ([57fecc1](https://github.com/oasici/honeywell-sales-manager/commit/57fecc15cfdd3c1e663bbdf84dee1d20c72e3322))
+* **round-5:** v1.10.11 — repair tsc -b strict-mode build errors after merge ([39ca803](https://github.com/oasici/honeywell-sales-manager/commit/39ca803921a67c12fa68d564366f10fdefbf24b6))
+* **round-5:** v1.10.2 — field perms, secrets at rest, two new flags ([83fb0f5](https://github.com/oasici/honeywell-sales-manager/commit/83fb0f5d67729e174690d92327bd686e90460c64))
+* **round-5:** v1.10.3 — rate limits + event payload sanity ([437b474](https://github.com/oasici/honeywell-sales-manager/commit/437b474e410eae46362e865a87c134ed5a988ace))
+* **round-5:** v1.10.4 — DTO drift sweep across user, quote, email, parts, lead, customer ([2d7af5a](https://github.com/oasici/honeywell-sales-manager/commit/2d7af5a13954febfbb35a37c47e92365047c5143))
+* **round-5:** v1.10.5 — TS type sync across User, Lead, Quote, Email, Sub, Inv, Contract, Pipeline, Territory, Campaign ([fb8a18d](https://github.com/oasici/honeywell-sales-manager/commit/fb8a18d7b03114ba1bcd166a672b5a30c6ffe83a))
+* **round-5:** v1.10.6 — pagination envelope sweep across 11 list endpoints ([946d674](https://github.com/oasici/honeywell-sales-manager/commit/946d674abb4ecfd39bfde8a078becedbee589b59))
+* **round-5:** v1.10.7 — wrap 17 SPA routes with FeatureFlagGate + sidebar role fix ([3704dfc](https://github.com/oasici/honeywell-sales-manager/commit/3704dfcc30f099ab00f0f7317bbbe4f1406ef641))
+* **round-5:** v1.10.8 — UI completeness across kanban, opp detail, contract, subscription, lead ([eec2f1e](https://github.com/oasici/honeywell-sales-manager/commit/eec2f1ed428c491259c4998b76a3c70f9b501c12))
+* **security:** close 5 more cross-tenant gaps + repair v1.6.1 TEN-1 regression ([fa7cfb8](https://github.com/oasici/honeywell-sales-manager/commit/fa7cfb8535a5a44bd366607e9aa8932e3968ca2f))
+* **security:** close cross-tenant gaps on bulk-action, approval history, quote compare ([a050f97](https://github.com/oasici/honeywell-sales-manager/commit/a050f97023e533472fccf4561e0ed5af7b4a3918))
+* **security:** round-4 hotfix — close 4 cross-tenant gaps + 2 DTO regressions (v1.9.0) ([5a88108](https://github.com/oasici/honeywell-sales-manager/commit/5a88108c79d9099f28a55ff3956774767f9e9bfd))
+* **security:** round-4 v1.9.1 — wire field-permission masking + Fernet OAuth/esign secrets + webhook HMAC ([9278c2f](https://github.com/oasici/honeywell-sales-manager/commit/9278c2f168d5e80409dbf84817f3c258d7faddb8))
+* **security:** round-4 v1.9.10 — rate-limit bulk + RAG + KVKK exports + per-username login (RL-2/3/4/5/6) ([346a920](https://github.com/oasici/honeywell-sales-manager/commit/346a920f3d8067b4d306d8de49c86156199cf5df))
+* **security:** round-4 v1.9.2 — tenant_id on Invoice/Contract/Subscription/RevenueSchedule (TEN-5/6/7/8 + CLOSE-1) ([fc49bf4](https://github.com/oasici/honeywell-sales-manager/commit/fc49bf4698b1a2ecc1c3edabf284be89055434a1))
+* **security:** round-4 v1.9.3 — per-feature tenant scoping (TEN-9..24, 16 modules) ([4e8d4f8](https://github.com/oasici/honeywell-sales-manager/commit/4e8d4f84e7932c0ae21eb881e38f163e25b39eef))
+* **security:** round-4 v1.9.4 — ReportEngine tenant predicate (TEN-14) ([b743085](https://github.com/oasici/honeywell-sales-manager/commit/b7430853249c9b865536d92adfe385be40a82ebc))
+* **seed:** use V6 tokenizer-canonical activity types ([63efdcd](https://github.com/oasici/honeywell-sales-manager/commit/63efdcd442a9332f32f5c9cd44b46d900f013f09))
+* **uat:** V9 UAT items 4 + 15 — deep i18n on Opportunity/Customer detail pages ([2b33fe9](https://github.com/oasici/honeywell-sales-manager/commit/2b33fe9d25cc685c710e9616d6cbdcb487c02b9d))
+* **uat:** V9 UAT pass-1 — seed extension + 3 quick UI removals ([4d4b174](https://github.com/oasici/honeywell-sales-manager/commit/4d4b174886549ccedcc3c867278c52d88b59e8a9))
+* **uat:** V9 UAT pass-3 — i18n diacritics + Pipeline key dropdown + Compliance + Sequence template flow + Risk badge fallback ([687f7ac](https://github.com/oasici/honeywell-sales-manager/commit/687f7acd7c3c76c8e7a3f4c33b84f948b99cadb6))
+* **v12-backfill:** install sentence-transformers on the runner ([40f6b95](https://github.com/oasici/honeywell-sales-manager/commit/40f6b9596b4cf2529fdbb4a203434dba04ce8237))
+* **v12:** correct transformer_seq_repository import path ([6d02244](https://github.com/oasici/honeywell-sales-manager/commit/6d022444479ff57e968c1c09e2fe8f6db7acb863))
+
+
+### Documentation
+
+* **stabilization:** production freeze report ([e0923de](https://github.com/oasici/honeywell-sales-manager/commit/e0923de740a831b15b9439532060b4306fc6f895))
+
 ## [1.2.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.1.0...v1.2.0) (2026-05-05)
 
 
