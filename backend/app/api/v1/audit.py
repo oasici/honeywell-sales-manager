@@ -343,10 +343,11 @@ def _user_to_dict(user: User) -> dict:
         "is_active": getattr(user, "is_active", None),
         "email_setup_completed": getattr(user, "email_setup_completed", False),
         "password_change_required": getattr(user, "password_change_required", False),
-        "created_at": user.created_at.isoformat() if getattr(user, "created_at", None) else None,
-        "updated_at": (
-            user.updated_at.isoformat() if getattr(user, "updated_at", None) else None
-        ),
+        # User.created_at / updated_at are non-null columns; the direct
+        # truthiness check is sufficient. Removed the redundant
+        # getattr-with-default pattern (Gemini review on PR #41).
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None,
     }
 
 

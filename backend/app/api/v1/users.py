@@ -300,7 +300,9 @@ def _user_to_dict(user: User) -> dict:
         "email_setup_completed": getattr(user, "email_setup_completed", False),
         "password_change_required": getattr(user, "password_change_required", False),
         "created_at": user.created_at.isoformat() if user.created_at else None,
-        "updated_at": (
-            user.updated_at.isoformat() if getattr(user, "updated_at", None) else None
-        ),
+        # User.updated_at is a non-null column (Mapped[datetime] with a
+        # server-side default + onupdate), so the direct truthiness check
+        # mirrors created_at's style. The redundant getattr-with-default
+        # pattern was Gemini-flagged on PR #41.
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None,
     }
