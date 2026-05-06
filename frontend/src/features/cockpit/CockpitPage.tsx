@@ -1584,7 +1584,11 @@ export default function CockpitPage() {
     [t],
   );
 
-  const { data: kpis, isLoading: isKpisLoading, isError: isKpisError } = useQuery<CockpitKpis>({
+  const {
+    data: kpis,
+    isLoading: isKpisLoading,
+    isError: isKpisError,
+  } = useQuery<CockpitKpis>({
     queryKey: ['cockpit', 'kpis'],
     queryFn: cockpitApi.getKpis,
     refetchInterval: 60_000,

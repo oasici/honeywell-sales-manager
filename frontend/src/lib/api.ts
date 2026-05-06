@@ -372,9 +372,7 @@ export const partsApi = {
     // Round-5 Phase 7 — backend now returns the canonical envelope
     // ``{items, total}``. Tolerate the legacy bare-list shape for
     // any in-flight responses mid-deploy.
-    const { data } = await api.get<{ items?: string[] } | string[]>(
-      '/parts/categories',
-    );
+    const { data } = await api.get<{ items?: string[] } | string[]>('/parts/categories');
     if (Array.isArray(data)) {
       return data;
     }

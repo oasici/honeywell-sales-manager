@@ -215,8 +215,7 @@ export default function EmailDetailPage() {
             KVKK · {email.data_classification}
           </span>
           <span className="ml-2 opacity-80">
-            Bu mesaj sınıflandırılmış veri içerir; paylaşım kısıtlamalarına
-            dikkat ediniz.
+            Bu mesaj sınıflandırılmış veri içerir; paylaşım kısıtlamalarına dikkat ediniz.
           </span>
         </div>
       )}

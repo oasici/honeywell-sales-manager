@@ -306,7 +306,17 @@ function TimingWindowsWidget({ opportunityId }: Props) {
                         key={i}
                         className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                       >
-                        {rc}
+                        {/* R6-RENDER-9 — backend used to write a mixed
+                            array (string + {ideal_hours, actual_hours,
+                            segment_key} object), so older rows in prod
+                            can still leak an object through the typed
+                            string[] contract. Coerce defensively to
+                            avoid React error #31. */}
+                        {typeof rc === 'string'
+                          ? rc
+                          : Object.entries(rc as Record<string, unknown>)
+                              .map(([k, v]) => `${k}=${String(v)}`)
+                              .join(' · ')}
                       </li>
                     ))}
                   </ul>

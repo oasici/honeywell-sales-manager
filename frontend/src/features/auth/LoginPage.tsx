@@ -128,9 +128,7 @@ export function LoginPage() {
             </span>
             <div className="leading-tight">
               <p className="text-[15px] font-semibold">Honeywell</p>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
-                Sales Suite
-              </p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">Sales Suite</p>
             </div>
           </div>
         </div>
@@ -143,8 +141,8 @@ export function LoginPage() {
             Boru hattı, teklif ve müşteri zekâsı tek panelde.
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-slate-300">
-            E-postadan teklife, sinyalden tahmine — saha ekibinizin günlük
-            iş akışını hızlandıran modern satış komuta merkezi.
+            E-postadan teklife, sinyalden tahmine — saha ekibinizin günlük iş akışını hızlandıran
+            modern satış komuta merkezi.
           </p>
 
           <ul className="mt-10 space-y-4">
@@ -155,9 +153,7 @@ export function LoginPage() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-[13px] font-semibold text-white">{bullet.title}</p>
-                  <p className="mt-0.5 text-[12px] leading-relaxed text-slate-400">
-                    {bullet.body}
-                  </p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-slate-400">{bullet.body}</p>
                 </div>
               </li>
             ))}
@@ -218,9 +214,7 @@ export function LoginPage() {
             </form>
           </div>
 
-          <p className="mt-6 text-center text-[12px] text-slate-500">
-            {t('auth.footer')}
-          </p>
+          <p className="mt-6 text-center text-[12px] text-slate-500">{t('auth.footer')}</p>
         </div>
       </main>
     </div>

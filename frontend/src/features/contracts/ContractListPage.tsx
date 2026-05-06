@@ -172,8 +172,7 @@ export default function ContractListPage() {
   // audit A-6 + Round-5 Phase 7; keep legacy fallbacks for in-flight
   // responses mid-deploy.
   const contracts: Contract[] = contractsData?.items || contractsData?.contracts || [];
-  const expiringContracts: Contract[] =
-    expiringData?.items || expiringData?.contracts || [];
+  const expiringContracts: Contract[] = expiringData?.items || expiringData?.contracts || [];
   const expiringCount = expiringData?.total ?? expiringData?.count ?? 0;
 
   const statusOptions = useMemo(
@@ -585,10 +584,7 @@ export default function ContractListPage() {
             placeholder="—"
           />
           <div>
-            <label
-              htmlFor="contract-terms-json"
-              className="mb-1 block text-sm text-slate-500"
-            >
+            <label htmlFor="contract-terms-json" className="mb-1 block text-sm text-slate-500">
               Şartlar (JSON, opsiyonel)
             </label>
             <textarea

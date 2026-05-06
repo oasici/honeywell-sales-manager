@@ -65,9 +65,7 @@ export function LoadingSpinner({
   return (
     <div className="flex min-h-[320px] flex-col items-center justify-center px-4 text-center">
       <div className="mb-5 h-12 w-12 animate-spin rounded-full border-[3px] border-slate-200 border-t-honeywell-red dark:border-slate-700" />
-      <h2 className="text-heading-3 text-slate-900 dark:text-white">
-        {t('loading.stuck_title')}
-      </h2>
+      <h2 className="text-heading-3 text-slate-900 dark:text-white">{t('loading.stuck_title')}</h2>
       <p className="mt-1.5 max-w-md text-[13px] text-slate-500 dark:text-slate-400">
         {t('loading.stuck_body')}
       </p>
@@ -90,9 +88,7 @@ export function LoadingSpinner({
             // shared device sees the previous user's cached PII for the
             // 30s staleTime window. Lazy import + catch matches the
             // pattern in lib/api.ts:113.
-            import('../../lib/queryClient')
-              .then((m) => m.queryClient.clear())
-              .catch(() => {});
+            import('../../lib/queryClient').then((m) => m.queryClient.clear()).catch(() => {});
             window.location.href = '/login';
           }}
           className="inline-flex h-9 items-center rounded-[12px] border border-slate-200 bg-white px-4 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"

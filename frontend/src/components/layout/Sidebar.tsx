@@ -372,19 +372,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             </NavLink>
             {/* R6-NAV-1 — /playbooks/templates and /playbooks/analytics
                 were routed but never linked. */}
-            <NavLink
-              to="/playbooks/templates"
-              className={navLinkClass}
-              onClick={onNavigate}
-            >
+            <NavLink to="/playbooks/templates" className={navLinkClass} onClick={onNavigate}>
               <FileText size={18} className="shrink-0" />
               Şablonlar
             </NavLink>
-            <NavLink
-              to="/playbooks/analytics"
-              className={navLinkClass}
-              onClick={onNavigate}
-            >
+            <NavLink to="/playbooks/analytics" className={navLinkClass} onClick={onNavigate}>
               <BarChart2 size={18} className="shrink-0" />
               Playbook Analitiği
             </NavLink>
@@ -419,11 +411,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               {t('nav.segments')}
             </NavLink>
             {/* R6-NAV-1 — /engagement/scorecards routed but never linked. */}
-            <NavLink
-              to="/engagement/scorecards"
-              className={navLinkClass}
-              onClick={onNavigate}
-            >
+            <NavLink to="/engagement/scorecards" className={navLinkClass} onClick={onNavigate}>
               <Trophy size={18} className="shrink-0" />
               Etkileşim Skorları
             </NavLink>
@@ -466,19 +454,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             that need first-class navigation. */}
         {(userRole === 'sales_manager' || userRole === 'operations') && (
           <>
-            <NavLink
-              to="/compliance/retention"
-              className={navLinkClass}
-              onClick={onNavigate}
-            >
+            <NavLink to="/compliance/retention" className={navLinkClass} onClick={onNavigate}>
               <Database size={18} className="shrink-0" />
               Saklama Politikaları
             </NavLink>
-            <NavLink
-              to="/compliance/breaches"
-              className={navLinkClass}
-              onClick={onNavigate}
-            >
+            <NavLink to="/compliance/breaches" className={navLinkClass} onClick={onNavigate}>
               <AlertTriangle size={18} className="shrink-0" />
               İhlal Kayıtları
             </NavLink>

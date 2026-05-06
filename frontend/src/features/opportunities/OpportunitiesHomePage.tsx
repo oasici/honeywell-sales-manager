@@ -309,11 +309,8 @@ export default function OpportunitiesHomePage() {
                     {o.previous_amount != null &&
                       Number(o.previous_amount) !== Number(o.amount || 0) && (
                         <span className="text-amber-600 dark:text-amber-400">
-                          {formatCurrency(
-                            Number(o.previous_amount),
-                            o.currency || 'TRY',
-                          )}{' '}
-                          → {formatCurrency(Number(o.amount || 0), o.currency || 'TRY')}
+                          {formatCurrency(Number(o.previous_amount), o.currency || 'TRY')} →{' '}
+                          {formatCurrency(Number(o.amount || 0), o.currency || 'TRY')}
                         </span>
                       )}
                     {/* Closed-lost reason badge — surfaces the manual

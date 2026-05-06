@@ -82,7 +82,9 @@ function CommentItem({
 
   return (
     <div className={isNested ? 'ml-8 border-l-2 border-slate-200 pl-4 dark:border-slate-800' : ''}>
-      <div className={`flex gap-3 py-3 ${isReplyTarget ? 'bg-blue-50 dark:bg-blue-900/10 -mx-2 px-2 rounded-lg' : ''}`}>
+      <div
+        className={`flex gap-3 py-3 ${isReplyTarget ? 'bg-blue-50 dark:bg-blue-900/10 -mx-2 px-2 rounded-lg' : ''}`}
+      >
         <div
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${avatarColor}`}
         >
@@ -90,9 +92,7 @@ function CommentItem({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-900 dark:text-white">
-              {userName}
-            </span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-white">{userName}</span>
             <span className="text-[10px] text-slate-400">
               {comment.created_at ? formatTimestamp(comment.created_at) : ''}
             </span>
@@ -148,9 +148,7 @@ interface MentionDropdownProps {
 }
 
 function MentionDropdown({ users, filter, onSelect }: MentionDropdownProps) {
-  const filtered = users.filter((u) =>
-    u.full_name.toLowerCase().includes(filter.toLowerCase()),
-  );
+  const filtered = users.filter((u) => u.full_name.toLowerCase().includes(filter.toLowerCase()));
 
   if (filtered.length === 0) return null;
 
@@ -205,7 +203,8 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
     staleTime: 300_000,
   });
 
-  const users = usersData?.users ?? (Array.isArray(usersData) ? usersData as unknown as User[] : []);
+  const users =
+    usersData?.users ?? (Array.isArray(usersData) ? (usersData as unknown as User[]) : []);
   const comments = commentsData?.items ?? commentsData?.comments ?? [];
 
   const createMutation = useMutation({
@@ -315,11 +314,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
         )}
         <div className="relative flex gap-2">
           {isMentioning && (
-            <MentionDropdown
-              users={users}
-              filter={mentionFilter}
-              onSelect={handleMentionSelect}
-            />
+            <MentionDropdown users={users} filter={mentionFilter} onSelect={handleMentionSelect} />
           )}
           <textarea
             ref={inputRef}

@@ -368,13 +368,11 @@ export default function OpportunityDetailPage() {
   const { data: dealRoomsData, isLoading: dealRoomsLoading } = useQuery<{
     items?: DealRoom[];
     deal_rooms?: DealRoom[];
-  }>(
-    {
-      queryKey: ['deal-rooms'],
-      queryFn: () => dealRoomsApi.list(),
-      enabled: !!oppId,
-    },
-  );
+  }>({
+    queryKey: ['deal-rooms'],
+    queryFn: () => dealRoomsApi.list(),
+    enabled: !!oppId,
+  });
 
   const oppDealRooms = (dealRoomsData?.items ?? dealRoomsData?.deal_rooms ?? []).filter(
     (r) => r.opportunity_id === oppId,
@@ -601,17 +599,13 @@ export default function OpportunityDetailPage() {
                   label="Kapanış tarihi"
                   type="date"
                   value={editForm.close_date}
-                  onChange={(e) =>
-                    setEditForm((p) => ({ ...p, close_date: e.target.value }))
-                  }
+                  onChange={(e) => setEditForm((p) => ({ ...p, close_date: e.target.value }))}
                 />
                 <div>
                   <label className="mb-1 block text-xs text-slate-500">Durum</label>
                   <select
                     value={editForm.status}
-                    onChange={(e) =>
-                      setEditForm((p) => ({ ...p, status: e.target.value }))
-                    }
+                    onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value }))}
                     className="w-full rounded-lg border px-3 py-2 text-sm"
                     style={{
                       borderColor: 'var(--border)',
@@ -630,9 +624,7 @@ export default function OpportunityDetailPage() {
                     <Input
                       label="Kayıp nedeni"
                       value={editForm.loss_reason}
-                      onChange={(e) =>
-                        setEditForm((p) => ({ ...p, loss_reason: e.target.value }))
-                      }
+                      onChange={(e) => setEditForm((p) => ({ ...p, loss_reason: e.target.value }))}
                       placeholder="Fiyat / rakip / zamanlama / …"
                     />
                   </div>
@@ -695,9 +687,7 @@ export default function OpportunityDetailPage() {
                   <span className="text-xs text-slate-500 dark:text-slate-400">
                     {t('opp_detail.lbl_forecast_category')}
                   </span>
-                  <p className="text-slate-700 dark:text-slate-300">
-                    {opp.forecast_category}
-                  </p>
+                  <p className="text-slate-700 dark:text-slate-300">{opp.forecast_category}</p>
                 </div>
               )}
               {/* R5-RENDER-OPP-2 — loss_reason; only meaningful when
@@ -771,9 +761,7 @@ export default function OpportunityDetailPage() {
                           {opp.previous_close_date}
                         </span>{' '}
                         →{' '}
-                        <span className="font-semibold tabular-nums">
-                          {opp.close_date || '-'}
-                        </span>
+                        <span className="font-semibold tabular-nums">{opp.close_date || '-'}</span>
                       </p>
                     )}
                   </div>

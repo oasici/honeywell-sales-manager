@@ -79,10 +79,14 @@ const FALLBACK_TONE = STAGE_TONE.prospecting;
  * excluded from forecast rollups.
  */
 const FORECAST_CATEGORY_TONE: Record<string, string> = {
-  commit: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40',
-  best_case: 'bg-blue-50 text-blue-700 ring-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:ring-blue-900/40',
-  pipeline: 'bg-slate-50 text-slate-600 ring-slate-200 dark:bg-slate-900/40 dark:text-slate-400 dark:ring-slate-800',
-  omitted: 'bg-slate-50 text-slate-400 ring-slate-100 dark:bg-slate-900/40 dark:text-slate-500 dark:ring-slate-800',
+  commit:
+    'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-900/40',
+  best_case:
+    'bg-blue-50 text-blue-700 ring-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:ring-blue-900/40',
+  pipeline:
+    'bg-slate-50 text-slate-600 ring-slate-200 dark:bg-slate-900/40 dark:text-slate-400 dark:ring-slate-800',
+  omitted:
+    'bg-slate-50 text-slate-400 ring-slate-100 dark:bg-slate-900/40 dark:text-slate-500 dark:ring-slate-800',
 };
 
 const FORECAST_CATEGORY_LABEL: Record<string, string> = {
@@ -201,21 +205,18 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
             {formatCurrency(opp.previous_amount, opp.currency)}
           </span>
           <span aria-hidden>→</span>
-          <span>
-            {opp.amount != null ? formatCurrency(opp.amount, opp.currency) : '—'}
-          </span>
+          <span>{opp.amount != null ? formatCurrency(opp.amount, opp.currency) : '—'}</span>
         </p>
       )}
       {/* R6-RENDER-OPP-1 — close-date slip indicator. */}
-      {opp.previous_close_date &&
-        opp.previous_close_date !== opp.close_date && (
-          <p
-            className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400"
-            title="Kapanış tarihi değişti"
-          >
-            Kapanış: {opp.previous_close_date} → {opp.close_date ?? '—'}
-          </p>
-        )}
+      {opp.previous_close_date && opp.previous_close_date !== opp.close_date && (
+        <p
+          className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400"
+          title="Kapanış tarihi değişti"
+        >
+          Kapanış: {opp.previous_close_date} → {opp.close_date ?? '—'}
+        </p>
+      )}
       {/* R6-RENDER-OPP-1 — pipeline/territory chips for cross-filter
           scans. Tiny so they don't crowd the card. */}
       {(opp.pipeline_id != null || opp.territory_id != null) && (
@@ -243,10 +244,7 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
               </span>
             )}
             {typeof lastActivityDays === 'number' && (
-              <span
-                title={t('board.rotting_tooltip')}
-                className="inline-flex items-center gap-1"
-              >
+              <span title={t('board.rotting_tooltip')} className="inline-flex items-center gap-1">
                 <Activity size={11} className="text-slate-400" />
                 {t('board.last_activity_fmt').replace('{{d}}', String(lastActivityDays))}
               </span>
@@ -437,8 +435,7 @@ export default function BoardPage() {
   const customerOptions = [
     {
       value: '',
-      label:
-        debouncedCustomerQuery.length < 2 ? 'Aramak için yazın…' : 'Seçin…',
+      label: debouncedCustomerQuery.length < 2 ? 'Aramak için yazın…' : 'Seçin…',
     },
     ...(customerHits ?? []).map((c) => ({
       value: String(c.id),
@@ -485,9 +482,7 @@ export default function BoardPage() {
                 ].join(' ')}
               >
                 {p.name}
-                {p.is_default && (
-                  <Star size={11} className="text-amber-500" fill="currentColor" />
-                )}
+                {p.is_default && <Star size={11} className="text-amber-500" fill="currentColor" />}
               </button>
             );
           })}

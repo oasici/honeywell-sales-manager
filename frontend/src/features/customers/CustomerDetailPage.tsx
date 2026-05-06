@@ -253,13 +253,10 @@ export default function CustomerDetailPage() {
           website: customer.website || '',
           linkedin_url: customer.linkedin_url || '',
           industry: customer.industry || '',
-          employee_count:
-            customer.employee_count != null ? String(customer.employee_count) : '',
-          annual_revenue:
-            customer.annual_revenue != null ? String(customer.annual_revenue) : '',
+          employee_count: customer.employee_count != null ? String(customer.employee_count) : '',
+          annual_revenue: customer.annual_revenue != null ? String(customer.annual_revenue) : '',
           parent_id: customer.parent_id != null ? String(customer.parent_id) : '',
-          territory_id:
-            customer.territory_id != null ? String(customer.territory_id) : '',
+          territory_id: customer.territory_id != null ? String(customer.territory_id) : '',
         }),
       );
     }
@@ -268,8 +265,7 @@ export default function CustomerDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (payload: typeof form) => {
       // R6-FORM-3 — coerce string inputs to the Partial<Customer> wire shape.
-      const toNumberOrNull = (raw: string) =>
-        raw.trim() === '' ? null : Number(raw);
+      const toNumberOrNull = (raw: string) => (raw.trim() === '' ? null : Number(raw));
       const wire: Partial<Customer> = {
         name: payload.name,
         company: payload.company,
@@ -417,8 +413,8 @@ export default function CustomerDetailPage() {
         <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
           <span className="font-semibold">KVKK silme talebi alındı.</span>
           <span className="ml-2 opacity-80">
-            Bu hesap {formatDate(customer.deletion_requested_at)} tarihinden
-            itibaren silinme süreci içerisindedir; yeni faaliyet açmayınız.
+            Bu hesap {formatDate(customer.deletion_requested_at)} tarihinden itibaren silinme süreci
+            içerisindedir; yeni faaliyet açmayınız.
           </span>
         </div>
       )}
@@ -471,8 +467,7 @@ export default function CustomerDetailPage() {
                       customer.employee_count != null ? String(customer.employee_count) : '',
                     annual_revenue:
                       customer.annual_revenue != null ? String(customer.annual_revenue) : '',
-                    parent_id:
-                      customer.parent_id != null ? String(customer.parent_id) : '',
+                    parent_id: customer.parent_id != null ? String(customer.parent_id) : '',
                     territory_id:
                       customer.territory_id != null ? String(customer.territory_id) : '',
                   });

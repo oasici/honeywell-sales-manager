@@ -151,9 +151,7 @@ export default function CampaignListPage() {
       start_date: form.start_date || undefined,
       end_date: form.end_date || undefined,
       budget: form.budget ? parseFloat(form.budget) : undefined,
-      expected_revenue: form.expected_revenue
-        ? parseFloat(form.expected_revenue)
-        : undefined,
+      expected_revenue: form.expected_revenue ? parseFloat(form.expected_revenue) : undefined,
     });
   }, [form, createMutation]);
 

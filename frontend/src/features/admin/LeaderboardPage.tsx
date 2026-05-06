@@ -57,10 +57,7 @@ export default function LeaderboardPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Sıralama"
-        description="Ekip performansı, rozetler ve dönemsel başarı"
-      />
+      <PageHeader title="Sıralama" description="Ekip performansı, rozetler ve dönemsel başarı" />
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-end gap-3">

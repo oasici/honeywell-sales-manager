@@ -247,13 +247,17 @@ async def materialize_windows_for_opportunity(
             )
         ).scalar_one_or_none()
 
-        reasons = [
+        # R6-RENDER-9 — reason_codes is typed as ``string[]`` end-to-end
+        # (TS lib/types.ts:1161, OpportunityIntelligencePanel renders
+        # each entry as a React child). Pre-fix this list contained one
+        # string + one object, so the SPA hit React error #31 on every
+        # opportunity that had a recommended action window. Flatten the
+        # metadata into compact ``key=value`` strings.
+        reasons: list[str] = [
             spec.reason_code,
-            {
-                "ideal_hours": round(ideal_hours, 1),
-                "actual_hours": round(actual_hours, 1),
-                "segment_key": seg,
-            },
+            f"segment={seg}",
+            f"ideal_hours={round(ideal_hours, 1)}",
+            f"actual_hours={round(actual_hours, 1)}",
         ]
         if existing is not None:
             existing.window_start = window_start

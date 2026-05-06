@@ -106,8 +106,7 @@ export default function SubscriptionListPage() {
   const customerIdNum = form.customer_id ? Number(form.customer_id) : null;
   const { data: customerQuotes } = useQuery({
     queryKey: ['subscription-form-quotes', customerIdNum],
-    queryFn: () =>
-      quotesApi.getQuotes({ customer_id: customerIdNum, page_size: 50 }),
+    queryFn: () => quotesApi.getQuotes({ customer_id: customerIdNum, page_size: 50 }),
     enabled: showCreate && customerIdNum != null,
   });
 
@@ -370,9 +369,7 @@ export default function SubscriptionListPage() {
                 </td>
                 <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
                   {sub.customer ? (
-                    <span className="text-sm">
-                      {sub.customer.company || sub.customer.name}
-                    </span>
+                    <span className="text-sm">{sub.customer.company || sub.customer.name}</span>
                   ) : (
                     <span className="text-slate-400">#{sub.customer_id}</span>
                   )}

@@ -332,8 +332,7 @@ export default function CustomerListPage() {
       // (number / null), not the form's string state. Coerce here so
       // the input value stays a controlled string but the wire payload
       // matches the Partial<Customer> contract on customersApi.create.
-      const toNumberOrNull = (raw: string) =>
-        raw.trim() === '' ? null : Number(raw);
+      const toNumberOrNull = (raw: string) => (raw.trim() === '' ? null : Number(raw));
       const wire: Partial<Customer> = {
         name: payload.name,
         company: payload.company,
