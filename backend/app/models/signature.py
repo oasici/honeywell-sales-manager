@@ -14,7 +14,10 @@ from app.core.database import Base
 class SignatureRequest(Base):
     __tablename__ = "signature_requests"
     __table_args__ = (
-        Index("ix_sig_token", "token", unique=True),
+        # R6-DB-1 — explicit ``Index("ix_sig_token", "token", unique=True)``
+        # plus ``unique=True`` on the column produced two indexes covering
+        # identical column. Drop the explicit one; the column-level UNIQUE
+        # auto-creates the index.
         Index("ix_sig_document", "document_type", "document_id"),
         Index("ix_sig_tenant", "tenant_id"),
     )

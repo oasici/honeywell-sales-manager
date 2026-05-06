@@ -280,6 +280,16 @@ export const authApi = {
   logout: async (refreshToken?: string | null): Promise<void> => {
     await api.post('/auth/logout', refreshToken ? { refresh_token: refreshToken } : {});
   },
+
+  // R6-RENDER-4 — paired with the login redirect when
+  // password_change_required is set. Backend clears the flag when this
+  // POST succeeds.
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    await api.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  },
 };
 
 // ── Dashboard ────────────────────────────────────────
@@ -2442,10 +2452,14 @@ export const campaignsApi = {
   create: async (payload: {
     name: string;
     type: string;
+    // R6-FORM-2 — backend CampaignCreate accepts both fields; the
+    // SPA used to silently drop them.
+    status?: string;
     description?: string;
     start_date?: string;
     end_date?: string;
     budget?: number;
+    expected_revenue?: number;
   }) => {
     const { data } = await api.post('/campaigns/', payload);
     return data;
@@ -2714,8 +2728,10 @@ export const chatApi = {
     return data;
   },
   listSessions: async () => {
+    // R6-PAGE-1 — backend canonicalized to {items, total, page, …}.
+    // The agent page expects a bare array, so unwrap here.
     const { data } = await api.get('/chat/sessions/');
-    return data;
+    return Array.isArray(data) ? data : (data?.items ?? data?.sessions ?? []);
   },
   assignSession: async (id: number) => {
     const { data } = await api.patch(`/chat/sessions/${id}/assign`);
@@ -2726,8 +2742,9 @@ export const chatApi = {
     return data;
   },
   getMessages: async (sessionId: number) => {
+    // R6-PAGE-1 — see listSessions.
     const { data } = await api.get(`/chat/sessions/${sessionId}/messages`);
-    return data;
+    return Array.isArray(data) ? data : (data?.items ?? data?.messages ?? []);
   },
   sendMessage: async (
     sessionId: number,

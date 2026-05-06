@@ -54,6 +54,15 @@ export function LoginPage() {
     try {
       await login(values.email, values.password);
       toast.success(t('auth.login_success'));
+      // R6-RENDER-4 — admin-reset / first-login users have a temporary
+      // password and must change it before navigating into the app.
+      // Backend returns ``user.password_change_required=true``; the
+      // store has the fresh user object now.
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.password_change_required) {
+        navigate('/auth/change-password', { replace: true });
+        return;
+      }
       navigate(from, { replace: true });
     } catch (error: unknown) {
       const raw = (

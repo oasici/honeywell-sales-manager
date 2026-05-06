@@ -89,6 +89,12 @@ export default function CustomerDetailPage() {
     // Editable so reps can correct bad enrichment results (audit F-1).
     website: '',
     linkedin_url: '',
+    // R6-FORM-3 — full firmographic + hierarchy edit set.
+    industry: '',
+    employee_count: '',
+    annual_revenue: '',
+    parent_id: '',
+    territory_id: '',
   });
 
   const { data: customer, isLoading } = useQuery<Customer>({
@@ -246,13 +252,42 @@ export default function CustomerDetailPage() {
           preferred_lang: customer.preferred_lang || '',
           website: customer.website || '',
           linkedin_url: customer.linkedin_url || '',
+          industry: customer.industry || '',
+          employee_count:
+            customer.employee_count != null ? String(customer.employee_count) : '',
+          annual_revenue:
+            customer.annual_revenue != null ? String(customer.annual_revenue) : '',
+          parent_id: customer.parent_id != null ? String(customer.parent_id) : '',
+          territory_id:
+            customer.territory_id != null ? String(customer.territory_id) : '',
         }),
       );
     }
   }, [customer]);
 
   const updateMutation = useMutation({
-    mutationFn: (payload: typeof form) => customersApi.updateCustomer(customerId, payload),
+    mutationFn: (payload: typeof form) => {
+      // R6-FORM-3 — coerce string inputs to the Partial<Customer> wire shape.
+      const toNumberOrNull = (raw: string) =>
+        raw.trim() === '' ? null : Number(raw);
+      const wire: Partial<Customer> = {
+        name: payload.name,
+        company: payload.company,
+        email: payload.email,
+        phone: payload.phone,
+        address: payload.address,
+        tax_id: payload.tax_id,
+        preferred_lang: payload.preferred_lang,
+        website: payload.website || null,
+        linkedin_url: payload.linkedin_url || null,
+        industry: payload.industry || null,
+        employee_count: toNumberOrNull(payload.employee_count),
+        annual_revenue: payload.annual_revenue || null,
+        parent_id: toNumberOrNull(payload.parent_id),
+        territory_id: toNumberOrNull(payload.territory_id),
+      };
+      return customersApi.updateCustomer(customerId, wire);
+    },
     onSuccess: () => {
       toast.success(t('customer_detail.toast_updated'));
       setEditing(false);
@@ -373,6 +408,20 @@ export default function CustomerDetailPage() {
 
   return (
     <div>
+      {/* R6-RENDER-6 — KVKK Article 17 pending-deletion banner. Backend
+          flips ``deletion_requested_at`` when a deletion request is
+          accepted but pending hard-delete. Without this banner, reps
+          might keep working a relationship that is on the verge of
+          being purged. */}
+      {customer.deletion_requested_at && (
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+          <span className="font-semibold">KVKK silme talebi alındı.</span>
+          <span className="ml-2 opacity-80">
+            Bu hesap {formatDate(customer.deletion_requested_at)} tarihinden
+            itibaren silinme süreci içerisindedir; yeni faaliyet açmayınız.
+          </span>
+        </div>
+      )}
       <PageHeader
         title={customer.company || customer.name}
         description={customer.company ? customer.name : undefined}
@@ -417,6 +466,15 @@ export default function CustomerDetailPage() {
                     preferred_lang: customer.preferred_lang || '',
                     website: customer.website || '',
                     linkedin_url: customer.linkedin_url || '',
+                    industry: customer.industry || '',
+                    employee_count:
+                      customer.employee_count != null ? String(customer.employee_count) : '',
+                    annual_revenue:
+                      customer.annual_revenue != null ? String(customer.annual_revenue) : '',
+                    parent_id:
+                      customer.parent_id != null ? String(customer.parent_id) : '',
+                    territory_id:
+                      customer.territory_id != null ? String(customer.territory_id) : '',
                   });
                 }
               }}
@@ -499,6 +557,46 @@ export default function CustomerDetailPage() {
                 value={form.linkedin_url}
                 onChange={(e) => updateField('linkedin_url', e.target.value)}
                 placeholder="https://linkedin.com/company/…"
+              />
+              {/* R6-FORM-3 — firmographic + hierarchy fields. */}
+              <Input
+                label="Sektör"
+                value={form.industry}
+                onChange={(e) => updateField('industry', e.target.value)}
+                placeholder="Manufacturing"
+              />
+              <Input
+                label="Çalışan sayısı"
+                type="number"
+                min={0}
+                value={form.employee_count}
+                onChange={(e) => updateField('employee_count', e.target.value)}
+                placeholder="500"
+              />
+              <Input
+                label="Yıllık gelir"
+                type="number"
+                min={0}
+                step="1000"
+                value={form.annual_revenue}
+                onChange={(e) => updateField('annual_revenue', e.target.value)}
+                placeholder="50000000"
+              />
+              <Input
+                label="Üst hesap (parent customer ID)"
+                type="number"
+                min={1}
+                value={form.parent_id}
+                onChange={(e) => updateField('parent_id', e.target.value)}
+                placeholder="—"
+              />
+              <Input
+                label="Bölge (territory ID)"
+                type="number"
+                min={1}
+                value={form.territory_id}
+                onChange={(e) => updateField('territory_id', e.target.value)}
+                placeholder="—"
               />
             </div>
           ) : (

@@ -12,7 +12,10 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    # R6-DB-1 — UNIQUE auto-creates a btree index; the explicit
+    # ``index=True`` was producing a duplicate. Same R5-DB-2/3 sweep,
+    # missed family. Drop migration: 20260506_drop_dup_unique_indexes.
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="sales_rep")

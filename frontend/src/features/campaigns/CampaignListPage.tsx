@@ -81,6 +81,11 @@ interface CreateForm {
   start_date: string;
   end_date: string;
   budget: string;
+  // R6-FORM-2 — backend CampaignCreate accepts both. The list page
+  // already renders ``campaign.expected_revenue`` (line 311) but the
+  // value was always missing for in-app-created campaigns.
+  expected_revenue: string;
+  status: string;
 }
 
 const INITIAL_FORM: CreateForm = {
@@ -90,6 +95,8 @@ const INITIAL_FORM: CreateForm = {
   start_date: '',
   end_date: '',
   budget: '',
+  expected_revenue: '',
+  status: 'draft',
 };
 
 export default function CampaignListPage() {
@@ -139,10 +146,14 @@ export default function CampaignListPage() {
     createMutation.mutate({
       name: form.name,
       type: form.type,
+      status: form.status || undefined,
       description: form.description || undefined,
       start_date: form.start_date || undefined,
       end_date: form.end_date || undefined,
       budget: form.budget ? parseFloat(form.budget) : undefined,
+      expected_revenue: form.expected_revenue
+        ? parseFloat(form.expected_revenue)
+        : undefined,
     });
   }, [form, createMutation]);
 
@@ -435,14 +446,34 @@ export default function CampaignListPage() {
               onChange={(e) => setForm({ ...form, end_date: e.target.value })}
             />
           </div>
-          <Input
-            label="Bütçe"
-            type="number"
-            min={0}
-            step={0.01}
-            value={form.budget}
-            onChange={(e) => setForm({ ...form, budget: e.target.value })}
-            placeholder="0.00"
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Bütçe"
+              type="number"
+              min={0}
+              step={0.01}
+              value={form.budget}
+              onChange={(e) => setForm({ ...form, budget: e.target.value })}
+              placeholder="0.00"
+            />
+            <Input
+              label="Beklenen gelir"
+              type="number"
+              min={0}
+              step={0.01}
+              value={form.expected_revenue}
+              onChange={(e) => setForm({ ...form, expected_revenue: e.target.value })}
+              placeholder="0.00"
+            />
+          </div>
+          <Select
+            label="Durum"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+            options={CAMPAIGN_STATUS_VALUES.map((value) => ({
+              value,
+              label: translateCampaignStatus(value, t),
+            }))}
           />
         </div>
       </Modal>

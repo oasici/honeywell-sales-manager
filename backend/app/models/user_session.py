@@ -15,7 +15,8 @@ class UserSession(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, index=True,
     )
-    jti: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    # R6-DB-1 — UNIQUE auto-creates a btree index. See user.py.
+    jti: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     device_info: Mapped[str | None] = mapped_column(String(200), nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

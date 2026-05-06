@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
-import { subscriptionsApi, customersApi } from '../../lib/api';
+import { subscriptionsApi, customersApi, quotesApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type { Subscription, MrrDashboard } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -34,6 +34,11 @@ interface CreateFormState {
   customer_id: string;
   billing_cycle: string;
   start_date: string;
+  // R6-FORM-6 — backend ``SubscriptionCreate`` accepts both fields;
+  // pre-R6 the create modal silently dropped them so reps could not
+  // record contracted end-date or link a quote on creation.
+  end_date: string;
+  quote_id: string;
   mrr: string;
   auto_renew: boolean;
   currency: string;
@@ -45,6 +50,8 @@ const INITIAL_FORM: CreateFormState = {
   customer_id: '',
   billing_cycle: 'monthly',
   start_date: new Date().toISOString().slice(0, 10),
+  end_date: '',
+  quote_id: '',
   mrr: '',
   auto_renew: true,
   currency: 'TRY',
@@ -93,6 +100,17 @@ export default function SubscriptionListPage() {
     enabled: showCreate,
   });
 
+  // R6-FORM-6 — only fetch quotes once a customer is picked. Manager
+  // -unfiltered list would scale poorly and the SPA only needs the
+  // selected customer's quotes for the link dropdown.
+  const customerIdNum = form.customer_id ? Number(form.customer_id) : null;
+  const { data: customerQuotes } = useQuery({
+    queryKey: ['subscription-form-quotes', customerIdNum],
+    queryFn: () =>
+      quotesApi.getQuotes({ customer_id: customerIdNum, page_size: 50 }),
+    enabled: showCreate && customerIdNum != null,
+  });
+
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => subscriptionsApi.create(payload),
     onSuccess: () => {
@@ -114,6 +132,10 @@ export default function SubscriptionListPage() {
       customer_id: Number(form.customer_id),
       billing_cycle: form.billing_cycle,
       start_date: form.start_date,
+      // R6-FORM-6 — empty string → null so backend interprets as
+      // "open-ended"; non-empty passes through as ISO date.
+      end_date: form.end_date || null,
+      quote_id: form.quote_id ? Number(form.quote_id) : null,
       mrr: Number(form.mrr) || 0,
       auto_renew: form.auto_renew,
       currency: form.currency,
@@ -311,11 +333,12 @@ export default function SubscriptionListPage() {
               <th className="px-4 py-3 font-medium text-slate-500">
                 {t('subscription.col_status')}
               </th>
-              <th className="px-4 py-3 font-medium text-slate-500">
+              {/* R6-RESP-1 — period + next-renewal collapse on mobile. */}
+              <th className="hidden px-4 py-3 font-medium text-slate-500 sm:table-cell">
                 {t('subscription.col_period')}
               </th>
               <th className="px-4 py-3 font-medium text-slate-500">{t('subscription.col_mrr')}</th>
-              <th className="px-4 py-3 font-medium text-slate-500">
+              <th className="hidden px-4 py-3 font-medium text-slate-500 md:table-cell">
                 {t('subscription.col_next_renewal')}
               </th>
             </tr>
@@ -361,11 +384,15 @@ export default function SubscriptionListPage() {
                     {statusLabel(sub.status)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-slate-500">{cycleLabel(sub.billing_cycle)}</td>
+                <td className="hidden px-4 py-3 text-slate-500 sm:table-cell">
+                  {cycleLabel(sub.billing_cycle)}
+                </td>
                 <td className="px-4 py-3 font-medium" style={{ color: 'var(--text-primary)' }}>
                   {formatCurrency(sub.mrr, sub.currency)}
                 </td>
-                <td className="px-4 py-3 text-slate-500">{sub.next_renewal_date ?? '-'}</td>
+                <td className="hidden px-4 py-3 text-slate-500 md:table-cell">
+                  {sub.next_renewal_date ?? '-'}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -461,6 +488,55 @@ export default function SubscriptionListPage() {
                       color: 'var(--text-primary)',
                     }}
                   />
+                </div>
+              </div>
+              {/* R6-FORM-6 — end_date + quote_id were missing pre-R6 so
+                  contracted end-dates and quote→subscription links could
+                  not be set on creation. */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="sub-end" className="mb-1 block text-sm text-slate-500">
+                    Bitiş tarihi (opsiyonel)
+                  </label>
+                  <input
+                    id="sub-end"
+                    type="date"
+                    value={form.end_date}
+                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                    style={{
+                      borderColor: 'var(--border)',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--text-primary)',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="sub-quote" className="mb-1 block text-sm text-slate-500">
+                    İlgili teklif (opsiyonel)
+                  </label>
+                  <select
+                    id="sub-quote"
+                    value={form.quote_id}
+                    onChange={(e) => setForm({ ...form, quote_id: e.target.value })}
+                    disabled={!form.customer_id}
+                    className="w-full rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
+                    style={{
+                      borderColor: 'var(--border)',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <option value="">
+                      {form.customer_id ? '— seçiniz —' : 'Önce müşteri seçin'}
+                    </option>
+                    {(customerQuotes?.items ?? []).map((q) => (
+                      <option key={q.id} value={q.id}>
+                        {q.quote_number}
+                        {q.status ? ` · ${q.status}` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">

@@ -27,16 +27,24 @@ class Pipeline(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     stages_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # JSON array: [{"key": "prospecting", "label": "Prospecting", "order": 1, "probability": 10}]
-    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    # R6-DB-5 — explicit ``nullable=False`` so the model survives a
+    # future flip of the type annotation. Migrations declare these
+    # columns as NOT NULL; relying on ``Mapped[bool]`` to imply that is
+    # brittle — see audit R6-DB-4/5.
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    # R6-DB-4 — explicit ``nullable=False`` on timestamps.
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
 
     creator = relationship("User", lazy="selectin")

@@ -36,7 +36,10 @@ class UserResponse(BaseModel):
     email_setup_completed: bool = False
     password_change_required: bool = False
     created_at: datetime
-    updated_at: datetime | None = None
+    # R6-DB-3 — model declares ``updated_at`` as non-null Mapped[datetime];
+    # schema drifted to Optional, leading codegen consumers to handle a
+    # null state that never occurs.
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 

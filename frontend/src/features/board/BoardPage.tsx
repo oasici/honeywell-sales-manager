@@ -189,6 +189,49 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
           </Badge>
         )}
       </div>
+      {/* R6-RENDER-OPP-1 — surface revenue slip ("$50k → $30k") inline
+          on the kanban so managers can scan slippage without opening
+          each deal. Same data was visible on the detail page only. */}
+      {opp.previous_amount != null && opp.previous_amount !== opp.amount && (
+        <p
+          className="mt-1 flex items-center gap-1 text-[11px] font-medium tabular-nums text-amber-600 dark:text-amber-400"
+          title="Tutar değişti"
+        >
+          <span className="opacity-60 line-through">
+            {formatCurrency(opp.previous_amount, opp.currency)}
+          </span>
+          <span aria-hidden>→</span>
+          <span>
+            {opp.amount != null ? formatCurrency(opp.amount, opp.currency) : '—'}
+          </span>
+        </p>
+      )}
+      {/* R6-RENDER-OPP-1 — close-date slip indicator. */}
+      {opp.previous_close_date &&
+        opp.previous_close_date !== opp.close_date && (
+          <p
+            className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400"
+            title="Kapanış tarihi değişti"
+          >
+            Kapanış: {opp.previous_close_date} → {opp.close_date ?? '—'}
+          </p>
+        )}
+      {/* R6-RENDER-OPP-1 — pipeline/territory chips for cross-filter
+          scans. Tiny so they don't crowd the card. */}
+      {(opp.pipeline_id != null || opp.territory_id != null) && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {opp.pipeline_id != null && (
+            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+              P-{opp.pipeline_id}
+            </span>
+          )}
+          {opp.territory_id != null && (
+            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+              T-{opp.territory_id}
+            </span>
+          )}
+        </div>
+      )}
 
       {(opp.open_tasks_count || lastActivityDays != null || opp.owner || opp.source) && (
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 dark:border-slate-800">

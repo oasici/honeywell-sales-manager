@@ -180,13 +180,14 @@ function PriceTiersTab() {
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500">
                     {t('pricing_admin.col_min_qty')}
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500">
+                  {/* R6-RESP-1 — collapse max-qty + discount-pct on mobile. */}
+                  <th className="hidden px-4 py-3 text-xs font-semibold uppercase text-slate-500 sm:table-cell">
                     {t('pricing_admin.col_max_qty')}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500">
                     {t('pricing_admin.col_unit_price')}
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500">
+                  <th className="hidden px-4 py-3 text-xs font-semibold uppercase text-slate-500 sm:table-cell">
                     {t('pricing_admin.col_discount_pct')}
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase text-slate-500"></th>
@@ -212,9 +213,9 @@ function PriceTiersTab() {
                       className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
                     >
                       <td className="px-4 py-3">{tier.min_qty}</td>
-                      <td className="px-4 py-3">{tier.max_qty ?? '—'}</td>
+                      <td className="hidden px-4 py-3 sm:table-cell">{tier.max_qty ?? '—'}</td>
                       <td className="px-4 py-3 font-mono">{tier.unit_price.toFixed(2)}</td>
-                      <td className="px-4 py-3">%{tier.discount_pct}</td>
+                      <td className="hidden px-4 py-3 sm:table-cell">%{tier.discount_pct}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => deleteTierMutation.mutate(tier.id)}

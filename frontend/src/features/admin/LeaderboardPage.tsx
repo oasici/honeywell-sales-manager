@@ -95,10 +95,11 @@ export default function LeaderboardPage() {
                 <th className="px-4 py-3 text-right text-overline text-slate-500 dark:text-slate-400">
                   Değer
                 </th>
-                <th className="px-4 py-3 text-right text-overline text-slate-500 dark:text-slate-400">
+                {/* R6-RESP-1 — change + badges columns collapse on mobile. */}
+                <th className="hidden px-4 py-3 text-right text-overline text-slate-500 sm:table-cell dark:text-slate-400">
                   Değişim
                 </th>
-                <th className="px-4 py-3 text-center text-overline text-slate-500 dark:text-slate-400">
+                <th className="hidden px-4 py-3 text-center text-overline text-slate-500 md:table-cell dark:text-slate-400">
                   Rozetler
                 </th>
               </tr>
@@ -168,10 +169,10 @@ export default function LeaderboardPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-right text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
                       {formatValue(entry.value, metric)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-right sm:table-cell">
                       <DeltaBadge delta={entry.delta_vs_prev_period} metric={metric} />
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="hidden px-4 py-3 text-center md:table-cell">
                       <button
                         type="button"
                         onClick={(e) => {

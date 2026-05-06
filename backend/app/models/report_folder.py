@@ -30,7 +30,12 @@ class ReportFolder(Base):
     owner_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
     )
-    is_shared: Mapped[bool] = mapped_column(Boolean, default=False)
+    # R6-DB-5 — explicit nullable=False so the model survives a future
+    # type-annotation flip; matches the migration shape.
+    is_shared: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # R6-DB-4 — explicit nullable=False on the timestamp.
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )

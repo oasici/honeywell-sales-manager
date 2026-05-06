@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthGuard } from '../features/auth/AuthGuard';
 import { LoginPage } from '../features/auth/LoginPage';
+import { ForcePasswordChangePage } from '../features/auth/ForcePasswordChangePage';
 import { Layout } from '../components/layout/Layout';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
@@ -171,6 +172,18 @@ export default function App() {
         }
       />
       <Route path="/login" element={<LoginPage />} />
+      {/* R6-RENDER-4 — admin-reset / first-login users land here. Wrapped
+          in AuthGuard so an unauthenticated user can't reach the form,
+          and so AuthGuard's password_change_required redirect can route
+          here without a loop (the guard whitelists this path). */}
+      <Route
+        path="/auth/change-password"
+        element={
+          <AuthGuard>
+            <ForcePasswordChangePage />
+          </AuthGuard>
+        }
+      />
       <Route
         path="/sign/:token"
         element={

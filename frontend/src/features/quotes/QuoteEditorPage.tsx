@@ -63,6 +63,10 @@ export default function QuoteEditorPage() {
   const [language, setLanguage] = useState('tr');
   const [currency, setCurrency] = useState('USD');
   const [taxRate, setTaxRate] = useState(20);
+  // R6-FORM-5 — backend ``QuoteCreate.valid_days`` accepts 1-365.
+  // Pre-R6 the form silently dropped the field, so every quote
+  // landed on the model default and never expired correctly.
+  const [validDays, setValidDays] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<EditableItem[]>([]);
   const [partSearch, setPartSearch] = useState('');
@@ -102,6 +106,7 @@ export default function QuoteEditorPage() {
         setLanguage(quote.language);
         setCurrency(quote.currency);
         setTaxRate(quote.tax_rate);
+        setValidDays(quote.valid_days ?? null);
         setNotes(quote.notes || '');
         setItems(quote.items.map(itemToEditable));
         if (quote.customer) {
@@ -175,6 +180,10 @@ export default function QuoteEditorPage() {
       language,
       currency,
       tax_rate: taxRate,
+      // R6-FORM-5 — null means "use backend default"; an explicit value
+      // overrides the per-tenant default so reps can shorten/lengthen
+      // validity for one-off deals.
+      valid_days: validDays ?? null,
       notes,
       items: items.map((item, idx) => ({
         spare_part_id: item.spare_part_id,
@@ -186,7 +195,7 @@ export default function QuoteEditorPage() {
         sort_order: idx + 1,
       })),
     });
-  }, [customerId, language, currency, taxRate, notes, items, saveMutation, t]);
+  }, [customerId, language, currency, taxRate, validDays, notes, items, saveMutation, t]);
 
   const addPartToItems = useCallback((part: SparePart) => {
     const price = part.supplier_price ?? part.transfer_price ?? 0;
@@ -366,6 +375,38 @@ export default function QuoteEditorPage() {
             {translateStatus(status, t)}
           </span>
         )}
+        {/* R6-RENDER-2 — Quote revision lineage badge. Backend has
+            shipped revision_no + superseded_by since R5-API-3 but no
+            consumer rendered them. A draft that has been superseded by
+            a newer revision should be visibly stale. */}
+        {!isNew && quote?.revision_no != null && quote.revision_no > 1 && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium ${
+              quote?.superseded_by
+                ? 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300'
+                : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+            }`}
+            title={
+              quote?.superseded_by
+                ? `Bu teklif #${quote.superseded_by} numaralı yeni versiyonla değiştirildi`
+                : `Revizyon ${quote.revision_no}`
+            }
+          >
+            Revizyon {quote.revision_no}
+            {quote?.superseded_by && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/quotes/${quote.superseded_by}`);
+                }}
+                className="ml-1 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
+              >
+                · Yeni versiyon →
+              </button>
+            )}
+          </span>
+        )}
         <Button variant="secondary" onClick={() => navigate('/quotes')}>
           {t('common.back')}
         </Button>
@@ -502,6 +543,18 @@ export default function QuoteEditorPage() {
               max={100}
               value={taxRate}
               onChange={(e) => setTaxRate(Number(e.target.value))}
+            />
+            <Input
+              label="Geçerlilik (gün)"
+              type="number"
+              min={1}
+              max={365}
+              placeholder="30"
+              value={validDays ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setValidDays(raw === '' ? null : Number(raw));
+              }}
             />
           </div>
         </Card>

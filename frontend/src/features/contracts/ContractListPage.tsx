@@ -79,6 +79,10 @@ export default function ContractListPage() {
   // Create form state
   const [formTitle, setFormTitle] = useState('');
   const [formCustomerId, setFormCustomerId] = useState<number | null>(null);
+  // R6-FORM-1 — backend ContractCreate accepts ``quote_id`` and
+  // ``terms_json``; pre-R6 the modal silently dropped both.
+  const [formQuoteId, setFormQuoteId] = useState<string>('');
+  const [formTermsJson, setFormTermsJson] = useState<string>('');
   const [formCustomerSearch, setFormCustomerSearch] = useState('');
   const [formStartDate, setFormStartDate] = useState('');
   const [formEndDate, setFormEndDate] = useState('');
@@ -123,6 +127,8 @@ export default function ContractListPage() {
     setFormStartDate('');
     setFormEndDate('');
     setFormValue('');
+    setFormQuoteId('');
+    setFormTermsJson('');
   }, []);
 
   const handleCreate = useCallback(() => {
@@ -130,14 +136,37 @@ export default function ContractListPage() {
       toast.error(t('contracts.err_title_customer'));
       return;
     }
+    // R6-FORM-1 — terms_json is free-form metadata. Validate as JSON
+    // before send so the backend doesn't 500 on a typo'd payload.
+    let termsJsonNormalized: unknown = undefined;
+    if (formTermsJson.trim()) {
+      try {
+        termsJsonNormalized = JSON.parse(formTermsJson);
+      } catch {
+        toast.error('Sözleşme şartları geçerli JSON olmalıdır');
+        return;
+      }
+    }
     createMutation.mutate({
       customer_id: formCustomerId,
       title: formTitle,
       start_date: formStartDate || undefined,
       end_date: formEndDate || undefined,
       value: formValue ? parseFloat(formValue) : undefined,
+      quote_id: formQuoteId ? Number(formQuoteId) : undefined,
+      terms_json: termsJsonNormalized,
     });
-  }, [formTitle, formCustomerId, formStartDate, formEndDate, formValue, createMutation, t]);
+  }, [
+    formTitle,
+    formCustomerId,
+    formStartDate,
+    formEndDate,
+    formValue,
+    formQuoteId,
+    formTermsJson,
+    createMutation,
+    t,
+  ]);
 
   // Backend canonicalized to {items,total,page,page_size,pages} in
   // audit A-6 + Round-5 Phase 7; keep legacy fallbacks for in-flight
@@ -314,16 +343,17 @@ export default function ContractListPage() {
                       <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
                         {t('contracts.col_status')}
                       </th>
-                      <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
+                      {/* R6-RESP-1 — collapse low-value columns on mobile. */}
+                      <th className="hidden px-4 py-3 text-overline text-slate-500 sm:table-cell dark:text-slate-400">
                         {t('contracts.col_start')}
                       </th>
-                      <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
+                      <th className="hidden px-4 py-3 text-overline text-slate-500 sm:table-cell dark:text-slate-400">
                         {t('contracts.col_end')}
                       </th>
                       <th className="px-4 py-3 text-right text-overline text-slate-500 dark:text-slate-400">
                         {t('contracts.col_value')}
                       </th>
-                      <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
+                      <th className="hidden px-4 py-3 text-overline text-slate-500 md:table-cell dark:text-slate-400">
                         {t('contracts.col_created')}
                       </th>
                     </tr>
@@ -359,10 +389,10 @@ export default function ContractListPage() {
                             {translateContractStatus(contract.status, t)}
                           </Badge>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+                        <td className="hidden whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 sm:table-cell dark:text-slate-400">
                           {contract.start_date ? formatDate(contract.start_date, locale) : '—'}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+                        <td className="hidden whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 sm:table-cell dark:text-slate-400">
                           {contract.end_date ? formatDate(contract.end_date, locale) : '—'}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
@@ -370,7 +400,7 @@ export default function ContractListPage() {
                             ? contract.value.toLocaleString(locale, { minimumFractionDigits: 2 })
                             : '—'}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-400 dark:text-slate-500">
+                        <td className="hidden whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-400 md:table-cell dark:text-slate-500">
                           {contract.created_at ? formatDate(contract.created_at, locale) : '—'}
                         </td>
                       </tr>
@@ -545,6 +575,36 @@ export default function ContractListPage() {
             onChange={(e) => setFormValue(e.target.value)}
             placeholder={t('contracts.value_ph')}
           />
+          {/* R6-FORM-1 — quote linkage + custom terms metadata. */}
+          <Input
+            label="İlgili teklif (Quote ID, opsiyonel)"
+            type="number"
+            min={1}
+            value={formQuoteId}
+            onChange={(e) => setFormQuoteId(e.target.value)}
+            placeholder="—"
+          />
+          <div>
+            <label
+              htmlFor="contract-terms-json"
+              className="mb-1 block text-sm text-slate-500"
+            >
+              Şartlar (JSON, opsiyonel)
+            </label>
+            <textarea
+              id="contract-terms-json"
+              rows={4}
+              value={formTermsJson}
+              onChange={(e) => setFormTermsJson(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 font-mono text-xs"
+              style={{
+                borderColor: 'var(--border)',
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text-primary)',
+              }}
+              placeholder={'{"sla":"99.9","payment_terms":"net30"}'}
+            />
+          </div>
         </div>
       </Modal>
     </div>

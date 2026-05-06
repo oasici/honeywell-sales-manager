@@ -293,6 +293,16 @@ const INITIAL_FORM = {
   // ability to correct bad enrichment manually (audit F-1).
   website: '',
   linkedin_url: '',
+  // R6-FORM-3 — Round-5 widened CustomerCreate/CustomerUpdate to also
+  // accept these firmographic fields. The form was only updated for
+  // website + linkedin_url so reps could see industry/employee_count
+  // in the list (CustomerListPage.tsx:130) but not edit them. Territory
+  // rollups + parent-account hierarchies were unsettable from the UI.
+  industry: '',
+  employee_count: '',
+  annual_revenue: '',
+  parent_id: '',
+  territory_id: '',
 };
 
 export default function CustomerListPage() {
@@ -317,7 +327,31 @@ export default function CustomerListPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: typeof form) => customersApi.createCustomer(payload),
+    mutationFn: (payload: typeof form) => {
+      // R6-FORM-3 — backend expects ``industry`` etc. as the right type
+      // (number / null), not the form's string state. Coerce here so
+      // the input value stays a controlled string but the wire payload
+      // matches the Partial<Customer> contract on customersApi.create.
+      const toNumberOrNull = (raw: string) =>
+        raw.trim() === '' ? null : Number(raw);
+      const wire: Partial<Customer> = {
+        name: payload.name,
+        company: payload.company,
+        email: payload.email,
+        phone: payload.phone,
+        address: payload.address,
+        tax_id: payload.tax_id,
+        preferred_lang: payload.preferred_lang,
+        website: payload.website || null,
+        linkedin_url: payload.linkedin_url || null,
+        industry: payload.industry || null,
+        employee_count: toNumberOrNull(payload.employee_count),
+        annual_revenue: payload.annual_revenue || null,
+        parent_id: toNumberOrNull(payload.parent_id),
+        territory_id: toNumberOrNull(payload.territory_id),
+      };
+      return customersApi.createCustomer(wire);
+    },
     onSuccess: (newCustomer) => {
       toast.success(t('customers.toast_created'));
       setModalOpen(false);
@@ -590,6 +624,52 @@ export default function CustomerListPage() {
               value={form.linkedin_url}
               onChange={(e) => updateField('linkedin_url', e.target.value)}
               placeholder="https://linkedin.com/company/…"
+            />
+          </div>
+          {/* R6-FORM-3 — firmographic fields (industry, employee_count,
+              annual_revenue, parent_id, territory_id) accepted by the
+              backend since R5-FORM-3/4 but never surfaced in the form. */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Sektör"
+              value={form.industry}
+              onChange={(e) => updateField('industry', e.target.value)}
+              placeholder="Manufacturing"
+            />
+            <Input
+              label="Çalışan sayısı"
+              type="number"
+              min={0}
+              value={form.employee_count}
+              onChange={(e) => updateField('employee_count', e.target.value)}
+              placeholder="500"
+            />
+            <Input
+              label="Yıllık gelir"
+              type="number"
+              min={0}
+              step="1000"
+              value={form.annual_revenue}
+              onChange={(e) => updateField('annual_revenue', e.target.value)}
+              placeholder="50000000"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Üst hesap (parent customer ID)"
+              type="number"
+              min={1}
+              value={form.parent_id}
+              onChange={(e) => updateField('parent_id', e.target.value)}
+              placeholder="—"
+            />
+            <Input
+              label="Bölge (territory ID)"
+              type="number"
+              min={1}
+              value={form.territory_id}
+              onChange={(e) => updateField('territory_id', e.target.value)}
+              placeholder="—"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">

@@ -84,6 +84,15 @@ export function LoadingSpinner({
           onClick={() => {
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
+            // R6-CACHE-1 — R5-CACHE-1 wired queryClient.clear() into the
+            // canonical logout + 401 paths but missed this fallback
+            // "Tekrar Giris Yap" button. Without it, the next user on a
+            // shared device sees the previous user's cached PII for the
+            // 30s staleTime window. Lazy import + catch matches the
+            // pattern in lib/api.ts:113.
+            import('../../lib/queryClient')
+              .then((m) => m.queryClient.clear())
+              .catch(() => {});
             window.location.href = '/login';
           }}
           className="inline-flex h-9 items-center rounded-[12px] border border-slate-200 bg-white px-4 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"

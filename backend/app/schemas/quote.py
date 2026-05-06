@@ -9,7 +9,10 @@ from app.schemas.customer import CustomerResponse
 
 class QuoteItemCreate(BaseModel):
     spare_part_id: int | None = None
-    honeywell_code: str | None = Field(default=None, max_length=100)
+    # R6-API-2b — DB column is VARCHAR(500); R5-API-5 lifted SparePart
+    # but missed the quote-item input schemas. Concatenated SKU strings
+    # >100 chars hit by import flows were rejecting at boundary with 422.
+    honeywell_code: str | None = Field(default=None, max_length=500)
     description: str | None = Field(default=None, max_length=500)
     quantity: int = Field(ge=1)
     unit_price: float = Field(ge=0)
@@ -31,7 +34,8 @@ class QuoteCreate(BaseModel):
 
 class QuoteItemUpdate(BaseModel):
     spare_part_id: int | None = None
-    honeywell_code: str | None = Field(default=None, max_length=100)
+    # R6-API-2b — see QuoteItemCreate.honeywell_code.
+    honeywell_code: str | None = Field(default=None, max_length=500)
     description: str | None = Field(default=None, max_length=500)
     quantity: int | None = Field(default=None, ge=1)
     unit_price: float | None = Field(default=None, ge=0)

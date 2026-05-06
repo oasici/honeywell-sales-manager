@@ -46,6 +46,10 @@ function TimeoutFallback({ timeoutMs = 5000 }: TimeoutFallbackProps) {
           onClick={() => {
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
+            // R6-CACHE-1 — see LoadingSpinner.tsx for rationale.
+            import('../../lib/queryClient')
+              .then((m) => m.queryClient.clear())
+              .catch(() => {});
             window.location.href = '/login';
           }}
           className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"

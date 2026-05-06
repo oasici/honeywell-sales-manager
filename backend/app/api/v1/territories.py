@@ -157,7 +157,16 @@ async def list_territories(
     )
     result = await db.execute(query)
     territories = result.scalars().all()
-    return {"territories": [_serialize_territory(t) for t in territories]}
+    # R6-PAGE-1 — canonical envelope.
+    items = [_serialize_territory(t) for t in territories]
+    total = len(items)
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.get("/tree")

@@ -94,7 +94,16 @@ async def list_deal_rooms(
     )
     result = await db.execute(stmt)
     rooms = result.scalars().all()
-    return {"deal_rooms": [_serialize(r) for r in rooms]}
+    # R6-PAGE-1 — canonical envelope.
+    items = [_serialize(r) for r in rooms]
+    total = len(items)
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/deal-rooms/", status_code=201)

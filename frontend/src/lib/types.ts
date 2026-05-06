@@ -48,6 +48,12 @@ export interface Customer {
   parent_id?: number | null;
   /** Territory FK; used by territory-scoped list filters. */
   territory_id?: number | null;
+  // R6-API-9 / R6-RENDER-6 — KVKK metadata round-tripped by the
+  // canonical _customer_to_dict but missing from TS until now.
+  data_classification?: 'public' | 'internal' | 'confidential' | 'restricted' | null;
+  /** ISO timestamp set by KVKK Article 17 deletion flow. When non-null
+   * the SPA must surface a "pending deletion" banner. */
+  deletion_requested_at?: string | null;
 }
 
 export interface CustomerIntelligenceOpportunityItem {
@@ -1818,6 +1824,9 @@ export interface GuidedSellingSuggestion {
 // ── Campaigns ──
 export interface Campaign {
   id: number;
+  // R6-API-1 — tenant_id round-tripped after the 20260506 migration so
+  // the SPA can verify isolation client-side, mirroring R4-CLOSE-1.
+  tenant_id?: number | null;
   name: string;
   type: string;
   status: string;
@@ -1844,6 +1853,8 @@ export interface CampaignMember {
   responded_at?: string;
   // R5-TS-14 — defensive isoformat.
   created_at: string | null;
+  // R6-API-4 — backend now emits these summary objects so the SPA
+  // can render member rows with names instead of "#${lead_id}".
   lead?: { id: number; first_name: string; last_name: string; email: string };
   customer?: { id: number; name: string; email: string; company: string };
 }
@@ -1879,7 +1890,10 @@ export interface Invoice {
   grand_total: number;
   items_json?: string;
   notes?: string;
-  pdf_path?: string;
+  // R6-API-3 — Round-5 swapped Quote.pdf_path for has_pdf to stop
+  // leaking server filesystem paths to the SPA. Same swap now applied
+  // to Invoice. Fetch the binary via GET /invoices/{id}/pdf.
+  has_pdf?: boolean;
   paid_at?: string;
   created_at: string;
   updated_at: string;

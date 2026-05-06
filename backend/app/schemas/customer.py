@@ -54,7 +54,18 @@ class CustomerUpdate(BaseModel):
 
 
 class CustomerResponse(BaseModel):
+    """Customer response surface.
+
+    R6-API-9 — pre-R6 the canonical ``_customer_to_dict`` emitted 17
+    fields while the schema declared 7, leaving 11 fields invisible to
+    OpenAPI / SDK codegen consumers. Mirrors R5-FORM-3/4 which widened
+    the input side; this brings the output side back in sync.
+    """
+
     id: int
+    # R6-API-9 — round-trip tenant_id, mirroring R4-CLOSE-1 for
+    # opportunity/quote/etc.
+    tenant_id: int | None = None
     name: str
     company: str | None = None
     email: str
@@ -68,5 +79,24 @@ class CustomerResponse(BaseModel):
 
     quote_count: int | None = None
     total_quote_value: float | None = None
+
+    # R6-API-9 — firmographic fields populated by the AI enrichment
+    # pipeline + manual overrides.
+    industry: str | None = None
+    employee_count: int | None = None
+    annual_revenue: str | None = None
+    website: str | None = None
+    linkedin_url: str | None = None
+    enriched_at: datetime | None = None
+
+    # R6-API-9 — account hierarchy + territory rollups.
+    parent_id: int | None = None
+    territory_id: int | None = None
+
+    # R6-API-9 / R6-RENDER-6 — KVKK metadata. ``deletion_requested_at``
+    # gates the SPA's pending-delete banner; ``data_classification``
+    # drives row-level masking decisions.
+    data_classification: str | None = None
+    deletion_requested_at: datetime | None = None
 
     model_config = {"from_attributes": True}

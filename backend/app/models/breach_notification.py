@@ -28,9 +28,10 @@ class BreachNotification(Base):
     affected_customers_json: Mapped[str | None] = mapped_column(
         Text, nullable=True
     )  # [customer_id, ...]
-    severity: Mapped[str] = mapped_column(String(20), default="high")
+    # R6-DB-5 — explicit nullable=False matches the migration shape.
+    severity: Mapped[str] = mapped_column(String(20), default="high", nullable=False)
     status: Mapped[str] = mapped_column(
-        String(20), default="open"
+        String(20), default="open", nullable=False
     )  # open | investigating | notified | closed
     notified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -38,6 +39,9 @@ class BreachNotification(Base):
     created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
     )
+    # R6-DB-4 — explicit nullable=False on the timestamp.
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )

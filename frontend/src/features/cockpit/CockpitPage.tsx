@@ -69,7 +69,17 @@ const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
 
 // ── KPI Strip ────────────────────────────────────────
 
-function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean }) {
+// R6-RENDER-8 — also accept isError so the strip can render a recoverable
+// error state instead of a blank page when the cockpit endpoint 500s.
+function KpiStrip({
+  data,
+  isLoading,
+  isError,
+}: {
+  data?: CockpitKpis;
+  isLoading: boolean;
+  isError?: boolean;
+}) {
   const t = useT();
 
   const kpis = useMemo(() => {
@@ -121,6 +131,14 @@ function KpiStrip({ data, isLoading }: { data?: CockpitKpis; isLoading: boolean 
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-[104px] rounded-2xl" />
         ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+        Cockpit metrikleri yüklenemedi. Sayfayı yenilemeyi deneyin.
       </div>
     );
   }
@@ -1566,7 +1584,7 @@ export default function CockpitPage() {
     [t],
   );
 
-  const { data: kpis, isLoading: isKpisLoading } = useQuery<CockpitKpis>({
+  const { data: kpis, isLoading: isKpisLoading, isError: isKpisError } = useQuery<CockpitKpis>({
     queryKey: ['cockpit', 'kpis'],
     queryFn: cockpitApi.getKpis,
     refetchInterval: 60_000,
@@ -1577,7 +1595,7 @@ export default function CockpitPage() {
       <PageHeader title={t('cockpit.title')} description={t('cockpit.description')} />
 
       {/* KPI Strip */}
-      <KpiStrip data={kpis} isLoading={isKpisLoading} />
+      <KpiStrip data={kpis} isLoading={isKpisLoading} isError={isKpisError} />
 
       <RiskyAccountsPanel />
       <MomentumDeclinePanel />

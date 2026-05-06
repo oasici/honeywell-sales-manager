@@ -34,7 +34,18 @@ class EmailMatchResult(BaseModel):
 
 
 class EmailResponse(BaseModel):
+    """Email request response surface.
+
+    R6-API-8 — pre-R6 the schema declared 19 fields while the router
+    emitted 32. The schema isn't currently used as a runtime return
+    annotation (so no functional bug), but OpenAPI / SDK codegen drift
+    silently spread to every consumer of the spec. Same shape as
+    R5-API-2 fix on UserResponse.
+    """
+
     id: int
+    # R6-API-8 — tenant_id round-trips per R4-CLOSE-1.
+    tenant_id: int | None = None
     customer_id: int | None = None
     message_id: str
     from_address: str
@@ -53,6 +64,36 @@ class EmailResponse(BaseModel):
     assigned_to: int | None = None
     reviewed_by: int | None = None
     created_at: datetime
+
+    # R6-API-8 — duplicate detection. Set when the parser identifies a
+    # message-id we've already processed; the SPA renders a "Yinelenen"
+    # banner with a link to the original (R6-RENDER-5).
+    is_duplicate: bool | None = None
+    duplicate_of_id: int | None = None
+
+    # R6-API-8 — opportunity linkage written by the auto-router.
+    opportunity_id: int | None = None
+
+    # R6-API-8 — threading. ``thread_id`` groups messages that belong to
+    # the same back-and-forth; ``in_reply_to`` is the parent message id.
+    thread_id: str | None = None
+    in_reply_to: str | None = None
+
+    # R6-API-8 — read state + agent-priority signals.
+    is_read: bool | None = None
+    priority: str | None = None
+    triage_reason: str | None = None
+
+    # R6-API-8 — sentiment analysis output.
+    sentiment: str | None = None
+    sentiment_score: float | None = None
+
+    # R6-API-8 — KVKK metadata. ``data_classification`` drives the
+    # restricted-message banner (R6-RENDER-3).
+    data_classification: str | None = None
+
+    # R6-API-8 — last AI parse timestamp; SPA shows "Son güncelleme".
+    last_parsed_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

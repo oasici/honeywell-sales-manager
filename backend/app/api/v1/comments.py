@@ -119,7 +119,16 @@ async def list_comments(
     stmt = scoped_for_user(stmt, current_user, column=Comment.tenant_id)
     result = await db.execute(stmt)
     comments = result.scalars().all()
-    return {"comments": [_serialize_comment(c) for c in comments]}
+    # R6-PAGE-1 — canonical envelope.
+    items = [_serialize_comment(c) for c in comments]
+    total = len(items)
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/", status_code=201)

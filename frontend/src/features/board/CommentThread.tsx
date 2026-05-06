@@ -191,7 +191,9 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
   const [mentionFilter, setMentionFilter] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { data: commentsData } = useQuery<{ comments: Comment[] }>({
+  // R6-PAGE-1 — backend canonicalized comments to {items, total, …};
+  // accept both shapes during the transition window.
+  const { data: commentsData } = useQuery<{ items?: Comment[]; comments?: Comment[] }>({
     queryKey: ['comments', entityType, entityId],
     queryFn: () => commentsApi.list({ entity_type: entityType, entity_id: entityId }),
     refetchInterval: REFETCH_INTERVAL_MS,
@@ -204,7 +206,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
   });
 
   const users = usersData?.users ?? (Array.isArray(usersData) ? usersData as unknown as User[] : []);
-  const comments = commentsData?.comments ?? [];
+  const comments = commentsData?.items ?? commentsData?.comments ?? [];
 
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => commentsApi.create(payload),

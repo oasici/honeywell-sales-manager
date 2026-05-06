@@ -17,6 +17,7 @@ import {
 } from '../../lib/api';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -363,7 +364,11 @@ export default function OpportunityDetailPage() {
     onError: () => toast.error(t('settings.operation_failed')),
   });
 
-  const { data: dealRoomsData, isLoading: dealRoomsLoading } = useQuery<{ deal_rooms: DealRoom[] }>(
+  // R6-PAGE-1 — accept canonical {items} alongside legacy {deal_rooms}.
+  const { data: dealRoomsData, isLoading: dealRoomsLoading } = useQuery<{
+    items?: DealRoom[];
+    deal_rooms?: DealRoom[];
+  }>(
     {
       queryKey: ['deal-rooms'],
       queryFn: () => dealRoomsApi.list(),
@@ -371,7 +376,9 @@ export default function OpportunityDetailPage() {
     },
   );
 
-  const oppDealRooms = (dealRoomsData?.deal_rooms ?? []).filter((r) => r.opportunity_id === oppId);
+  const oppDealRooms = (dealRoomsData?.items ?? dealRoomsData?.deal_rooms ?? []).filter(
+    (r) => r.opportunity_id === oppId,
+  );
 
   const createDealRoomMutation = useMutation({
     mutationFn: () =>
@@ -429,6 +436,54 @@ export default function OpportunityDetailPage() {
     onError: () => toast.error(t('settings.operation_failed')),
   });
 
+  // R6-FORM-4 — Pre-R6 the only mutation on this page was the stage
+  // pill. Backend ``OpportunityUpdate`` accepts 8 fields. Without an
+  // edit form, reps could not rename a deal, fix amount typos, change
+  // customer attribution, or mark closed_lost with a reason — every
+  // such change required backend access.
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    amount: '',
+    currency: '',
+    close_date: '',
+    status: '',
+    loss_reason: '',
+  });
+
+  useEffect(() => {
+    if (opp) {
+      setEditForm({
+        title: opp.title || '',
+        amount: opp.amount != null ? String(opp.amount) : '',
+        currency: opp.currency || 'TRY',
+        close_date: opp.close_date || '',
+        status: opp.status || '',
+        loss_reason: opp.loss_reason || '',
+      });
+    }
+  }, [opp]);
+
+  const editMutation = useMutation({
+    mutationFn: (payload: typeof editForm) => {
+      const wire: Record<string, unknown> = {
+        title: payload.title.trim() || undefined,
+        amount: payload.amount.trim() === '' ? null : Number(payload.amount),
+        currency: payload.currency || undefined,
+        close_date: payload.close_date || null,
+        status: payload.status || undefined,
+        loss_reason: payload.loss_reason || null,
+      };
+      return opportunitiesApi.update(oppId, wire);
+    },
+    onSuccess: () => {
+      toast.success('Fırsat güncellendi');
+      setEditing(false);
+      onOpportunityChanged(queryClient, oppId);
+    },
+    onError: () => toast.error(t('settings.operation_failed')),
+  });
+
   const [adjForm, setAdjForm] = useState({
     new_amount: '',
     new_category: 'pipeline',
@@ -475,7 +530,115 @@ export default function OpportunityDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Details */}
         <div className="lg:col-span-2 space-y-6">
-          <Card title={t('opp_detail.card_info')}>
+          <Card
+            title={t('opp_detail.card_info')}
+            action={
+              !editing ? (
+                <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                  Düzenle
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEditing(false);
+                      if (opp) {
+                        setEditForm({
+                          title: opp.title || '',
+                          amount: opp.amount != null ? String(opp.amount) : '',
+                          currency: opp.currency || 'TRY',
+                          close_date: opp.close_date || '',
+                          status: opp.status || '',
+                          loss_reason: opp.loss_reason || '',
+                        });
+                      }
+                    }}
+                  >
+                    İptal
+                  </Button>
+                  <Button
+                    size="sm"
+                    loading={editMutation.isPending}
+                    onClick={() => editMutation.mutate(editForm)}
+                  >
+                    Kaydet
+                  </Button>
+                </div>
+              )
+            }
+          >
+            {editing && (
+              // R6-FORM-4 — inline edit form for the 6 most-changed
+              // OpportunityUpdate fields. Stage stays separate (the
+              // pipeline pill mutation above) so the dual-write of
+              // ``stage`` plus ``previous_stage`` round-tripping
+              // continues to work.
+              <div className="mb-4 grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3 sm:grid-cols-2 dark:border-slate-700 dark:bg-slate-800/40">
+                <div className="sm:col-span-2">
+                  <Input
+                    label="Başlık"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+                  />
+                </div>
+                <Input
+                  label="Tutar"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={editForm.amount}
+                  onChange={(e) => setEditForm((p) => ({ ...p, amount: e.target.value }))}
+                />
+                <Input
+                  label="Para birimi"
+                  value={editForm.currency}
+                  onChange={(e) => setEditForm((p) => ({ ...p, currency: e.target.value }))}
+                  placeholder="TRY"
+                />
+                <Input
+                  label="Kapanış tarihi"
+                  type="date"
+                  value={editForm.close_date}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, close_date: e.target.value }))
+                  }
+                />
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">Durum</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) =>
+                      setEditForm((p) => ({ ...p, status: e.target.value }))
+                    }
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                    style={{
+                      borderColor: 'var(--border)',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <option value="">— seçiniz —</option>
+                    <option value="open">Açık</option>
+                    <option value="closed_won">Kazanıldı</option>
+                    <option value="closed_lost">Kaybedildi</option>
+                  </select>
+                </div>
+                {editForm.status === 'closed_lost' && (
+                  <div className="sm:col-span-2">
+                    <Input
+                      label="Kayıp nedeni"
+                      value={editForm.loss_reason}
+                      onChange={(e) =>
+                        setEditForm((p) => ({ ...p, loss_reason: e.target.value }))
+                      }
+                      placeholder="Fiyat / rakip / zamanlama / …"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-xs text-slate-500 dark:text-slate-400">

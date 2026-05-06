@@ -351,36 +351,25 @@ def _user_to_dict(user: User) -> dict:
     }
 
 
+# R6-API-7 / R6-API-13 — KVKK Article 15 export must be a strict
+# superset of what the user sees in the SPA. Pre-R6 these helpers
+# returned 7 fields each while the canonical serializers returned
+# 17+. Duplication produced silent drift every time round-4/5 added
+# a column. Reuse the canonical serializers instead.
+from app.api.v1.customers import _customer_to_dict as _customer_to_dict_canonical
+from app.api.v1.opportunities import _opp_to_dict as _opportunity_to_dict_canonical
+from app.api.v1.emails import _email_to_dict as _email_to_dict_canonical
+
+
 def _customer_to_dict(customer: Customer) -> dict:
-    return {
-        "id": customer.id,
-        "name": customer.name,
-        "email": customer.email,
-        "phone": customer.phone,
-        "company": customer.company,
-        "created_at": customer.created_at.isoformat() if customer.created_at else None,
-    }
+    return _customer_to_dict_canonical(customer)
 
 
 def _opportunity_to_dict(opp: Opportunity) -> dict:
-    return {
-        "id": opp.id,
-        "title": opp.title,
-        "stage": opp.stage,
-        "status": opp.status,
-        "amount": opp.amount,
-        "currency": opp.currency,
-        "close_date": opp.close_date.isoformat() if opp.close_date else None,
-        "created_at": opp.created_at.isoformat() if opp.created_at else None,
-    }
+    return _opportunity_to_dict_canonical(opp)
 
 
 def _email_request_to_dict(email: EmailRequest) -> dict:
-    return {
-        "id": email.id,
-        "message_id": email.message_id,
-        "from_address": email.from_address,
-        "subject": email.subject,
-        "received_at": email.received_at.isoformat() if email.received_at else None,
-        "status": email.status,
-    }
+    # Audit export wants the headers, not bodies (the body export is a
+    # separate ``include_body=True`` flow).
+    return _email_to_dict_canonical(email, include_body=False)

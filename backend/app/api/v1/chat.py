@@ -142,7 +142,17 @@ async def list_sessions(
     query = scoped_for_user(query, current_user, column=ChatSession.tenant_id)
     result = await db.execute(query)
     sessions = result.scalars().all()
-    return {"sessions": [_serialize_session(s) for s in sessions]}
+    # R6-PAGE-1 — canonical envelope. Pre-R6 returned ``{sessions: [...]}``;
+    # SPA list components had to special-case the shape.
+    items = [_serialize_session(s) for s in sessions]
+    total = len(items)
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.patch("/sessions/{session_id}/assign")
@@ -233,7 +243,16 @@ async def get_messages(
     msg_stmt = scoped_for_user(msg_stmt, current_user, column=ChatMessage.tenant_id)
     messages_result = await db.execute(msg_stmt)
     messages = messages_result.scalars().all()
-    return {"messages": [_serialize_message(m) for m in messages]}
+    # R6-PAGE-1 — canonical envelope.
+    items = [_serialize_message(m) for m in messages]
+    total = len(items)
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/sessions/{session_id}/messages", status_code=201)
@@ -354,7 +373,16 @@ async def list_auto_rules(
     )
     result = await db.execute(rule_stmt)
     rules = result.scalars().all()
-    return {"rules": [_serialize_rule(r) for r in rules]}
+    # R6-PAGE-1 — canonical envelope.
+    items = [_serialize_rule(r) for r in rules]
+    total = len(items)
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/auto-response-rules/", status_code=201)

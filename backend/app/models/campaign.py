@@ -15,9 +15,16 @@ class Campaign(Base):
     __table_args__ = (
         Index("ix_campaign_status", "status"),
         Index("ix_campaign_created_by", "created_by"),
+        # R6-API-1 — tenant_id index added in 20260506_campaign_tenant.
+        Index("ix_campaign_tenant", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # R6-API-1 — Round-4 added ``tenant_id`` to every CRM table; the
+    # campaign module never received the treatment, leaving every
+    # ``GET /campaigns`` cross-tenant readable. Backfilled from the
+    # creator's tenant by the 20260506 migration.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     type: Mapped[str] = mapped_column(String(30), nullable=False, default="email")
     # email | event | webinar | direct_mail | social | other
@@ -50,9 +57,13 @@ class CampaignMember(Base):
         UniqueConstraint("campaign_id", "lead_id", name="uq_campaign_lead"),
         UniqueConstraint("campaign_id", "customer_id", name="uq_campaign_customer"),
         Index("ix_campaign_member_campaign", "campaign_id"),
+        # R6-API-1 — tenant_id mirrors parent campaign; backfilled by
+        # the 20260506 migration via ``UPDATE … FROM campaigns``.
+        Index("ix_campaign_member_tenant", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     campaign_id: Mapped[int] = mapped_column(Integer, ForeignKey("campaigns.id"), nullable=False)
     lead_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("leads.id"), nullable=True)
     customer_id: Mapped[int | None] = mapped_column(

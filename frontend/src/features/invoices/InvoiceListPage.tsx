@@ -302,10 +302,12 @@ export default function InvoiceListPage() {
                   <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
                     {t('invoices.col_status')}
                   </th>
-                  <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
+                  {/* R6-RESP-1 — issue/due dates collapse on mobile so the
+                      sub-400px viewport doesn't sideways-scroll the table. */}
+                  <th className="hidden px-4 py-3 text-overline text-slate-500 sm:table-cell dark:text-slate-400">
                     {t('invoices.col_issue')}
                   </th>
-                  <th className="px-4 py-3 text-overline text-slate-500 dark:text-slate-400">
+                  <th className="hidden px-4 py-3 text-overline text-slate-500 sm:table-cell dark:text-slate-400">
                     {t('invoices.col_due')}
                   </th>
                   <th className="px-4 py-3 text-right text-overline text-slate-500 dark:text-slate-400">
@@ -340,12 +342,12 @@ export default function InvoiceListPage() {
                         {translateInvoiceStatus(invoice.status, t)}
                       </Badge>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 sm:table-cell dark:text-slate-400">
                       {invoice.issue_date
                         ? new Date(invoice.issue_date).toLocaleDateString(locale)
                         : '—'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 dark:text-slate-400">
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 sm:table-cell dark:text-slate-400">
                       {invoice.due_date
                         ? new Date(invoice.due_date).toLocaleDateString(locale)
                         : '—'}

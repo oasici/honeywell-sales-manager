@@ -8,6 +8,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
+from pathlib import Path
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -116,7 +118,11 @@ def _invoice_to_dict(invoice: Invoice) -> dict:
         "grand_total": invoice.grand_total,
         "items_json": invoice.items_json,
         "notes": invoice.notes,
-        "pdf_path": invoice.pdf_path,
+        # R6-API-3 — Round-5 R5-API-6 swapped Quote's ``pdf_path`` (server
+        # filesystem path) for ``has_pdf`` boolean. Same swap was missed
+        # for Invoice. Emitting the raw path leaks the deploy's data
+        # layout to the SPA.
+        "has_pdf": bool(invoice.pdf_path),
         "paid_at": invoice.paid_at.isoformat() if invoice.paid_at else None,
         "created_at": invoice.created_at.isoformat() if invoice.created_at else None,
         "updated_at": invoice.updated_at.isoformat() if invoice.updated_at else None,
@@ -419,3 +425,82 @@ async def create_invoice_from_quote(
         "invoice_number": invoice.invoice_number,
         "quote_id": quote_id,
     }
+
+
+@router.get("/{invoice_id}/pdf")
+async def download_invoice_pdf(
+    invoice_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_invoicing),
+):
+    """Download invoice PDF — regenerates on-the-fly if file is missing.
+
+    R6-API-3 — paired with the ``pdf_path`` → ``has_pdf`` swap in
+    ``_invoice_to_dict``. SPA must hit this endpoint to fetch the
+    binary; the server filesystem path is no longer leaked.
+    """
+    from app.core.security import is_safe_path
+    from app.services.invoice_generator import (
+        INVOICES_DIR,
+        generate_invoice_pdf,
+    )
+
+    result = await db.execute(select(Invoice).where(Invoice.id == invoice_id))
+    invoice = result.scalar_one_or_none()
+    if not invoice:
+        raise NotFoundException("Fatura bulunamadi")
+    assert_same_tenant(invoice, current_user, exception_cls=NotFoundException)
+
+    if (
+        invoice.created_by != current_user.id
+        and current_user.role != UserRole.SALES_MANAGER.value
+    ):
+        raise HTTPException(status_code=403, detail="Bu faturayi indirme yetkiniz yok")
+
+    pdf_file = Path(invoice.pdf_path) if invoice.pdf_path else None
+    needs_regeneration = not pdf_file or not pdf_file.exists()
+
+    if needs_regeneration:
+        try:
+            customer_name = ""
+            customer_company = ""
+            if getattr(invoice, "customer", None) is not None:
+                customer_name = invoice.customer.name or ""
+                customer_company = invoice.customer.company or ""
+            invoice_data = {
+                "invoice_number": invoice.invoice_number,
+                "issue_date": invoice.issue_date.isoformat() if invoice.issue_date else None,
+                "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
+                "currency": invoice.currency,
+                "customer_name": customer_name,
+                "customer_company": customer_company,
+                "items": json.loads(invoice.items_json) if invoice.items_json else [],
+                "subtotal": invoice.subtotal,
+                "tax_rate": invoice.tax_rate,
+                "tax_amount": invoice.tax_amount,
+                "grand_total": invoice.grand_total,
+                "notes": invoice.notes or "",
+            }
+            pdf_path = await generate_invoice_pdf(invoice_data)
+            invoice.pdf_path = pdf_path
+            await db.flush()
+            pdf_file = Path(pdf_path)
+        except Exception as exc:
+            logger.error("Invoice PDF generation failed for %s: %s", invoice_id, exc)
+            raise HTTPException(
+                status_code=400,
+                detail="PDF olusturma basarisiz oldu. Lutfen tekrar deneyin.",
+            )
+
+    if not is_safe_path(INVOICES_DIR, str(pdf_file)):
+        raise HTTPException(status_code=400, detail="Invalid PDF path")
+
+    if not pdf_file.exists():
+        raise NotFoundException("PDF dosyasi diskte bulunamadi")
+
+    return FileResponse(
+        path=str(pdf_file),
+        media_type="application/pdf",
+        filename=f"{invoice.invoice_number}.pdf",
+    )

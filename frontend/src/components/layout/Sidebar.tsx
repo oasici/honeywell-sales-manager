@@ -287,6 +287,13 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             )}
           </NavLink>
         )}
+        {/* R6-NAV-1 — /approvals/rules was routed but never linked. */}
+        {userRole === 'sales_manager' && (
+          <NavLink to="/approvals/rules" className={navLinkClass} onClick={onNavigate}>
+            <Workflow size={18} className="shrink-0" />
+            Onay Kuralları
+          </NavLink>
+        )}
 
         {/* Yedek Parça collapsible section */}
         <div>
@@ -329,10 +336,22 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               <Brain size={18} className="shrink-0" />
               {t('nav.ai_assistant')}
             </NavLink>
+            {/* R6-NAV-1 — /ai/tasks routed but absent from sidebar. */}
+            <NavLink to="/ai/tasks" className={navLinkClass} onClick={onNavigate}>
+              <ListChecks size={18} className="shrink-0" />
+              AI Görevleri
+            </NavLink>
             <NavLink to="/insights" className={navLinkClass} onClick={onNavigate}>
               <TrendingUp size={18} className="shrink-0" />
               {t('nav.insights')}
             </NavLink>
+            {/* R6-NAV-1 — Report Builder routed but never surfaced. */}
+            {userRole === 'sales_manager' && (
+              <NavLink to="/reports/builder" className={navLinkClass} onClick={onNavigate}>
+                <BarChart3 size={18} className="shrink-0" />
+                Rapor Oluşturucu
+              </NavLink>
+            )}
             <NavLink to="/email-templates" className={navLinkClass} onClick={onNavigate}>
               <FilePenLine size={18} className="shrink-0" />
               {t('nav.email_templates')}
@@ -346,10 +365,30 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
 
         {/* Oyun Planlari - manager only */}
         {userRole === 'sales_manager' && (
-          <NavLink to="/playbooks" className={navLinkClass} onClick={onNavigate}>
-            <BookOpen size={18} className="shrink-0" />
-            {t('nav.playbooks')}
-          </NavLink>
+          <>
+            <NavLink to="/playbooks" className={navLinkClass} onClick={onNavigate}>
+              <BookOpen size={18} className="shrink-0" />
+              {t('nav.playbooks')}
+            </NavLink>
+            {/* R6-NAV-1 — /playbooks/templates and /playbooks/analytics
+                were routed but never linked. */}
+            <NavLink
+              to="/playbooks/templates"
+              className={navLinkClass}
+              onClick={onNavigate}
+            >
+              <FileText size={18} className="shrink-0" />
+              Şablonlar
+            </NavLink>
+            <NavLink
+              to="/playbooks/analytics"
+              className={navLinkClass}
+              onClick={onNavigate}
+            >
+              <BarChart2 size={18} className="shrink-0" />
+              Playbook Analitiği
+            </NavLink>
+          </>
         )}
 
         {/* Koçluk - manager only */}
@@ -378,6 +417,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <NavLink to="/engagement/segments" className={navLinkClass} onClick={onNavigate}>
               <UsersRound size={18} className="shrink-0" />
               {t('nav.segments')}
+            </NavLink>
+            {/* R6-NAV-1 — /engagement/scorecards routed but never linked. */}
+            <NavLink
+              to="/engagement/scorecards"
+              className={navLinkClass}
+              onClick={onNavigate}
+            >
+              <Trophy size={18} className="shrink-0" />
+              Etkileşim Skorları
             </NavLink>
           </>
         )}
@@ -412,6 +460,29 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <Shield size={18} className="shrink-0" />
             {t('nav.compliance')}
           </NavLink>
+        )}
+        {/* R6-NAV-1 — /compliance/retention and /compliance/breaches
+            were routed but never linked. Both are KVKK-mandated tools
+            that need first-class navigation. */}
+        {(userRole === 'sales_manager' || userRole === 'operations') && (
+          <>
+            <NavLink
+              to="/compliance/retention"
+              className={navLinkClass}
+              onClick={onNavigate}
+            >
+              <Database size={18} className="shrink-0" />
+              Saklama Politikaları
+            </NavLink>
+            <NavLink
+              to="/compliance/breaches"
+              className={navLinkClass}
+              onClick={onNavigate}
+            >
+              <AlertTriangle size={18} className="shrink-0" />
+              İhlal Kayıtları
+            </NavLink>
+          </>
         )}
 
         {/* Entegrasyonlar - manager only */}

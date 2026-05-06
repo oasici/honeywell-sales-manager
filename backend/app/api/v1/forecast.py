@@ -157,7 +157,16 @@ async def list_adjustments(
     """Get adjustment history for an opportunity."""
     service = ForecastService(db)
     adjustments = await service.get_adjustments(opportunity_id)
-    return {"items": [_adjustment_to_dict(a) for a in adjustments]}
+    items = [_adjustment_to_dict(a) for a in adjustments]
+    total = len(items)
+    # R6-PAGE-1 — canonical envelope.
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 # -- Snapshot Endpoints --
@@ -173,7 +182,16 @@ async def list_snapshots(
     """Get pipeline snapshots (manager only)."""
     service = ForecastService(db)
     snapshots = await service.get_snapshots(start_date=start_date, end_date=end_date)
-    return {"items": [_snapshot_to_dict(s) for s in snapshots]}
+    items = [_snapshot_to_dict(s) for s in snapshots]
+    total = len(items)
+    # R6-PAGE-1 — canonical envelope.
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/snapshot", status_code=201)

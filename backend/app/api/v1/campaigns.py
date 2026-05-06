@@ -12,9 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.core.exceptions import NotFoundException
 from app.models.campaign import Campaign, CampaignMember
 from app.models.enums import UserRole
 from app.models.user import User
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
 
@@ -67,6 +69,9 @@ class MemberStatusUpdate(BaseModel):
 def _campaign_to_dict(campaign: Campaign, member_count: int = 0) -> dict:
     data = {
         "id": campaign.id,
+        # R6-API-1 — tenant_id round-tripped after the migration so the
+        # SPA can verify isolation client-side.
+        "tenant_id": getattr(campaign, "tenant_id", None),
         "name": campaign.name,
         "type": campaign.type,
         "status": campaign.status,
@@ -89,11 +94,33 @@ def _campaign_to_dict(campaign: Campaign, member_count: int = 0) -> dict:
 
 
 def _member_to_dict(member: CampaignMember) -> dict:
+    # R6-API-4 — lead and customer relationships are loaded selectin
+    # on the model, so emitting summary objects is free. Without them
+    # the SPA could only render "#${lead_id}" / "#${customer_id}"
+    # placeholder rows.
+    lead_summary: dict | None = None
+    if getattr(member, "lead", None) is not None:
+        lead_summary = {
+            "id": member.lead.id,
+            "first_name": member.lead.first_name,
+            "last_name": member.lead.last_name,
+            "email": member.lead.email,
+        }
+    customer_summary: dict | None = None
+    if getattr(member, "customer", None) is not None:
+        customer_summary = {
+            "id": member.customer.id,
+            "name": member.customer.name,
+            "email": member.customer.email,
+            "company": member.customer.company,
+        }
     return {
         "id": member.id,
         "campaign_id": member.campaign_id,
         "lead_id": member.lead_id,
         "customer_id": member.customer_id,
+        "lead": lead_summary,
+        "customer": customer_summary,
         "status": member.status,
         "responded_at": member.responded_at.isoformat() if member.responded_at else None,
         "created_at": member.created_at.isoformat() if member.created_at else None,
@@ -124,6 +151,10 @@ async def list_campaigns(
     if page_size < 1 or page_size > 200:
         page_size = 20
     query = select(Campaign).order_by(Campaign.created_at.desc())
+    # R6-API-1 — tenant scoping. Pre-R6, every authenticated user saw
+    # every other tenant's campaigns. Mirrors the round-4 fix for
+    # invoice/contract/subscription.
+    query = scoped_for_user(query, current_user, column=Campaign.tenant_id)
     if status:
         query = query.where(Campaign.status == status)
     if type:
@@ -168,6 +199,8 @@ async def create_campaign(
 ):
     """Create a new campaign (manager only)."""
     campaign = Campaign(
+        # R6-API-1 — every CRM row carries tenant_id (R4-CLOSE-1).
+        tenant_id=getattr(current_user, "tenant_id", None),
         name=body.name,
         type=body.type,
         status=body.status,
@@ -198,6 +231,9 @@ async def get_campaign(
     campaign = result.scalar_one_or_none()
     if not campaign:
         raise HTTPException(status_code=404, detail="Kampanya bulunamadi")
+    # R6-API-1 — cross-tenant access maps to 404, not 403, so an attacker
+    # cannot probe campaign IDs to enumerate other tenants.
+    assert_same_tenant(campaign, current_user, exception_cls=NotFoundException)
 
     count_res = await db.execute(
         select(func.count(CampaignMember.id)).where(
@@ -221,6 +257,7 @@ async def update_campaign(
     campaign = result.scalar_one_or_none()
     if not campaign:
         raise HTTPException(status_code=404, detail="Kampanya bulunamadi")
+    assert_same_tenant(campaign, current_user, exception_cls=NotFoundException)
 
     update_data = body.model_dump(exclude_none=True)
     if not update_data:
@@ -246,6 +283,7 @@ async def delete_campaign(
     campaign = result.scalar_one_or_none()
     if not campaign:
         raise HTTPException(status_code=404, detail="Kampanya bulunamadi")
+    assert_same_tenant(campaign, current_user, exception_cls=NotFoundException)
 
     campaign.status = "cancelled"
     await db.commit()
@@ -264,6 +302,7 @@ async def get_campaign_roi(
     campaign = result.scalar_one_or_none()
     if not campaign:
         raise HTTPException(status_code=404, detail="Kampanya bulunamadi")
+    assert_same_tenant(campaign, current_user, exception_cls=NotFoundException)
 
     count_res = await db.execute(
         select(func.count(CampaignMember.id)).where(
@@ -322,8 +361,10 @@ async def list_campaign_members(
 ):
     """List campaign members with pagination."""
     campaign_res = await db.execute(select(Campaign).where(Campaign.id == campaign_id))
-    if not campaign_res.scalar_one_or_none():
+    campaign = campaign_res.scalar_one_or_none()
+    if not campaign:
         raise HTTPException(status_code=404, detail="Kampanya bulunamadi")
+    assert_same_tenant(campaign, current_user, exception_cls=NotFoundException)
 
     count_res = await db.execute(
         select(func.count(CampaignMember.id)).where(
@@ -359,8 +400,10 @@ async def add_campaign_members(
 ):
     """Bulk add members (leads or customers) to a campaign."""
     campaign_res = await db.execute(select(Campaign).where(Campaign.id == campaign_id))
-    if not campaign_res.scalar_one_or_none():
+    campaign = campaign_res.scalar_one_or_none()
+    if not campaign:
         raise HTTPException(status_code=404, detail="Kampanya bulunamadi")
+    assert_same_tenant(campaign, current_user, exception_cls=NotFoundException)
 
     added = 0
     invalid = 0
@@ -369,6 +412,10 @@ async def add_campaign_members(
             invalid += 1
             continue
         member = CampaignMember(
+            # R6-API-1 — child rows mirror their parent's tenant_id so
+            # cross-tenant attempts (lead_id from another tenant) still
+            # leave a row that scoped_for_user filters out.
+            tenant_id=getattr(campaign, "tenant_id", None),
             campaign_id=campaign_id,
             lead_id=entry.lead_id,
             customer_id=entry.customer_id,
@@ -405,6 +452,9 @@ async def remove_campaign_member(
     member = result.scalar_one_or_none()
     if not member:
         raise HTTPException(status_code=404, detail="Uye bulunamadi")
+    # R6-API-1 — assert via parent campaign, since legacy rows may have
+    # NULL tenant_id while the campaign carries the correct value.
+    assert_same_tenant(member.campaign, current_user, exception_cls=NotFoundException)
 
     await db.delete(member)
     await db.commit()
@@ -430,6 +480,7 @@ async def update_member_status(
     member = result.scalar_one_or_none()
     if not member:
         raise HTTPException(status_code=404, detail="Uye bulunamadi")
+    assert_same_tenant(member.campaign, current_user, exception_cls=NotFoundException)
 
     member.status = body.status
     await db.commit()

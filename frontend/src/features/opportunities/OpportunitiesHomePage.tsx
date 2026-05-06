@@ -302,14 +302,15 @@ export default function OpportunitiesHomePage() {
                       )}
                     {/* Revenue-leak diff: when an open deal has a
                         previous_amount that differs from the current
-                        amount, surface the slip. */}
-                    {(o as unknown as { previous_amount?: number | null }).previous_amount !=
-                      null &&
-                      Number((o as unknown as { previous_amount: number }).previous_amount) !==
-                        Number(o.amount || 0) && (
+                        amount, surface the slip.
+                        R6-RENDER-7 — Opportunity.previous_amount has been
+                        on the TS type since R5-TS-9; the unsafe cast was
+                        leftover from before that. */}
+                    {o.previous_amount != null &&
+                      Number(o.previous_amount) !== Number(o.amount || 0) && (
                         <span className="text-amber-600 dark:text-amber-400">
                           {formatCurrency(
-                            Number((o as unknown as { previous_amount: number }).previous_amount),
+                            Number(o.previous_amount),
                             o.currency || 'TRY',
                           )}{' '}
                           → {formatCurrency(Number(o.amount || 0), o.currency || 'TRY')}

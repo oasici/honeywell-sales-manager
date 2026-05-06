@@ -99,7 +99,17 @@ async def list_rules(
     )
     result = await db.execute(stmt.order_by(ApprovalRule.priority.desc()))
     rules = result.scalars().all()
-    return {"items": [_rule_to_dict(r) for r in rules]}
+    # R6-PAGE-1 — fill in total/page/pages so the SPA's pagination
+    # component doesn't have to special-case the shape.
+    items = [_rule_to_dict(r) for r in rules]
+    total = len(items)
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/rules", status_code=201)
@@ -185,7 +195,16 @@ async def list_pending(
     """Get approval requests pending for the current user."""
     service = ApprovalService(db)
     pending = await service.get_pending_approvals(current_user.id)
-    return {"items": [_request_to_dict(r) for r in pending]}
+    items = [_request_to_dict(r) for r in pending]
+    total = len(items)
+    # R6-PAGE-1 — canonical envelope.
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/{request_id}/approve")
@@ -232,7 +251,16 @@ async def approval_history(
     await _assert_entity_in_tenant(db, entity_type, entity_id, current_user)
     service = ApprovalService(db)
     history = await service.get_approval_history(entity_type, entity_id)
-    return {"items": [_request_to_dict(r) for r in history]}
+    items = [_request_to_dict(r) for r in history]
+    total = len(items)
+    # R6-PAGE-1 — canonical envelope.
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/quick-approve/{request_id}")

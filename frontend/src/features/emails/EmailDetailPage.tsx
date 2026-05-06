@@ -197,6 +197,52 @@ export default function EmailDetailPage() {
         </div>
       )}
 
+      {/* R6-RENDER-3 — KVKK data classification badge. Backend round-trips
+          ``data_classification`` since round-4; until now the SPA never
+          rendered it, so reps couldn't tell at a glance which messages
+          were "restricted" vs "public". */}
+      {email.data_classification && email.data_classification !== 'public' && (
+        <div
+          className={`mb-3 rounded-lg border px-3 py-2 text-[12px] ${
+            email.data_classification === 'restricted'
+              ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300'
+              : email.data_classification === 'confidential'
+                ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300'
+                : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300'
+          }`}
+        >
+          <span className="font-semibold uppercase tracking-wider">
+            KVKK · {email.data_classification}
+          </span>
+          <span className="ml-2 opacity-80">
+            Bu mesaj sınıflandırılmış veri içerir; paylaşım kısıtlamalarına
+            dikkat ediniz.
+          </span>
+        </div>
+      )}
+      {/* R6-RENDER-5 — duplicate-detection affordance. Pre-R6 the parser
+          set ``is_duplicate``/``duplicate_of_id`` but the SPA never
+          rendered the link, so reps acted on the dup as if it were a
+          fresh inquiry. */}
+      {email.is_duplicate && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">
+          <span className="font-semibold">Yinelenen mesaj.</span>
+          {email.duplicate_of_id != null ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/emails/${email.duplicate_of_id}`)}
+              className="ml-2 underline underline-offset-2 hover:no-underline"
+            >
+              Orijinali görüntüle (#{email.duplicate_of_id})
+            </button>
+          ) : (
+            <span className="ml-2 opacity-80">
+              Aynı içerikli daha önce işlenmiş bir kayıt mevcut.
+            </span>
+          )}
+        </div>
+      )}
+
       <PageHeader title={email.subject || '(Konu yok)'}>
         <Button variant="secondary" onClick={() => navigate('/emails')}>
           {t('emails.detail_back')}
