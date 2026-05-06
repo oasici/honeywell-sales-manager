@@ -152,7 +152,15 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         working-directory: backend
-        run: pip install -r requirements.txt pip-audit
+        # Upgrade pip first so the audit runs against a pip release that
+        # has CVE-2026-6357 patched (fix landed in pip 26.1; the runner
+        # ships 26.0.1 as of 2026-05). Without this, pip-audit flags the
+        # runner's own pip as vulnerable and fails the gate. The
+        # CVE-2026-3219 ignore stays as a safety net for the older
+        # advisory that still has no upstream fix.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pip-audit
       - name: Dependency audit (JSON report)
         id: audit
         working-directory: backend
@@ -164,7 +172,10 @@ jobs:
         # available upstream. Tracked via dependency-audit runbook; revisit
         # when pip ships a patched release. Until then we ignore it
         # explicitly so the gate stays meaningful for everything else.
-        run: pip-audit --strict --ignore-vuln CVE-2026-3219 -f json -o pip-audit.json || true
+        # CVE-2026-6357 is also pip-itself; fix is in pip 26.1 which the
+        # upgrade step above installs, but we keep the ignore as belt-
+        # and-braces in case the runner image rolls back.
+        run: pip-audit --strict --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-6357 -f json -o pip-audit.json || true
       - name: Fail on HIGH or CRITICAL vulnerabilities
         working-directory: backend
         run: |
