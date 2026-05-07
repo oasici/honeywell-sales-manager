@@ -238,12 +238,9 @@ export default function LeadDetailPage() {
     if (editForm.email && editForm.email !== lead.email) {
       wire.email = editForm.email;
     }
-    updateMutation.mutate(
-      wire,
-      {
-        onSuccess: () => setIsEditing(false),
-      },
-    );
+    updateMutation.mutate(wire, {
+      onSuccess: () => setIsEditing(false),
+    });
   };
 
   return (
@@ -304,10 +301,7 @@ export default function LeadDetailPage() {
                     field narrowing. */}
                 {lead.score_breakdown
                   .slice(0, 8)
-                  .map((
-                    b: { factor: string; points: number; reason?: string },
-                    i: number,
-                  ) => (
+                  .map((b: { factor: string; points: number; reason?: string }, i: number) => (
                     <li
                       key={i}
                       className="flex items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300"

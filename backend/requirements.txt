@@ -5,7 +5,7 @@
 fastapi==0.122.1
 uvicorn[standard]==0.46.0
 gunicorn==23.0.0
-python-multipart==0.0.26  # CVE-2026-24486, CVE-2026-40347
+python-multipart==0.0.27  # CVE-2026-24486, CVE-2026-40347, CVE-2026-42561 (header parsing DoS)
 
 # Database
 sqlalchemy[asyncio]==2.0.49

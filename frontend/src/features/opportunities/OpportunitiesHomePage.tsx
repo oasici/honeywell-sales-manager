@@ -350,9 +350,7 @@ export default function OpportunitiesHomePage() {
                         SPA was reading a flat `customer_name` that the
                         backend never emits. */}
                     {o.customer?.name && (
-                      <span className="truncate">
-                        {o.customer.company || o.customer.name}
-                      </span>
+                      <span className="truncate">{o.customer.company || o.customer.name}</span>
                     )}
                     {/* Close date — fetched but never rendered before
                         audit F-15. Critical "this deal closes Friday"
@@ -462,9 +460,7 @@ export default function OpportunitiesHomePage() {
                       }}
                     >
                       <span className="font-medium">{c.name}</span>
-                      {c.company && (
-                        <span className="ml-2 text-slate-500">{c.company}</span>
-                      )}
+                      {c.company && <span className="ml-2 text-slate-500">{c.company}</span>}
                     </button>
                   ))}
                 </div>
@@ -502,9 +498,7 @@ export default function OpportunitiesHomePage() {
               label="Kapanış tarihi"
               type="date"
               value={createForm.close_date}
-              onChange={(e) =>
-                setCreateForm((p) => ({ ...p, close_date: e.target.value }))
-              }
+              onChange={(e) => setCreateForm((p) => ({ ...p, close_date: e.target.value }))}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -523,9 +517,7 @@ export default function OpportunitiesHomePage() {
               </label>
               <select
                 value={createForm.currency}
-                onChange={(e) =>
-                  setCreateForm((p) => ({ ...p, currency: e.target.value }))
-                }
+                onChange={(e) => setCreateForm((p) => ({ ...p, currency: e.target.value }))}
                 className="block w-full rounded-[12px] border px-3 py-2 text-sm"
                 style={{
                   borderColor: 'var(--border)',
@@ -539,7 +531,10 @@ export default function OpportunitiesHomePage() {
               </select>
             </div>
           </div>
-          <div className="flex justify-end gap-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+          <div
+            className="flex justify-end gap-2 border-t pt-3"
+            style={{ borderColor: 'var(--border)' }}
+          >
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>
               İptal
             </Button>

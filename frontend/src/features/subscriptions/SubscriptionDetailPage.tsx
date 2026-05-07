@@ -234,9 +234,7 @@ export default function SubscriptionDetailPage() {
               <Input
                 label="Ad"
                 value={editForm.name}
-                onChange={(e) =>
-                  setEditForm((p) => ({ ...p, name: e.target.value }))
-                }
+                onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
               />
             </div>
             <div>
@@ -245,9 +243,7 @@ export default function SubscriptionDetailPage() {
               </label>
               <select
                 value={editForm.billing_cycle}
-                onChange={(e) =>
-                  setEditForm((p) => ({ ...p, billing_cycle: e.target.value }))
-                }
+                onChange={(e) => setEditForm((p) => ({ ...p, billing_cycle: e.target.value }))}
                 className="w-full rounded-[12px] border px-3 py-2 text-sm"
                 style={{
                   borderColor: 'var(--border)',
@@ -266,9 +262,7 @@ export default function SubscriptionDetailPage() {
               </label>
               <select
                 value={editForm.currency}
-                onChange={(e) =>
-                  setEditForm((p) => ({ ...p, currency: e.target.value }))
-                }
+                onChange={(e) => setEditForm((p) => ({ ...p, currency: e.target.value }))}
                 className="w-full rounded-[12px] border px-3 py-2 text-sm"
                 style={{
                   borderColor: 'var(--border)',
@@ -285,17 +279,13 @@ export default function SubscriptionDetailPage() {
               label="Başlangıç tarihi"
               type="date"
               value={editForm.start_date}
-              onChange={(e) =>
-                setEditForm((p) => ({ ...p, start_date: e.target.value }))
-              }
+              onChange={(e) => setEditForm((p) => ({ ...p, start_date: e.target.value }))}
             />
             <Input
               label="Bitiş tarihi (opsiyonel)"
               type="date"
               value={editForm.end_date}
-              onChange={(e) =>
-                setEditForm((p) => ({ ...p, end_date: e.target.value }))
-              }
+              onChange={(e) => setEditForm((p) => ({ ...p, end_date: e.target.value }))}
             />
             <Input
               label="MRR"
@@ -303,22 +293,16 @@ export default function SubscriptionDetailPage() {
               min={0}
               step="0.01"
               value={editForm.mrr}
-              onChange={(e) =>
-                setEditForm((p) => ({ ...p, mrr: e.target.value }))
-              }
+              onChange={(e) => setEditForm((p) => ({ ...p, mrr: e.target.value }))}
             />
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={editForm.auto_renew}
-                onChange={(e) =>
-                  setEditForm((p) => ({ ...p, auto_renew: e.target.checked }))
-                }
+                onChange={(e) => setEditForm((p) => ({ ...p, auto_renew: e.target.checked }))}
                 className="h-4 w-4 rounded border-slate-200"
               />
-              <span style={{ color: 'var(--text-primary)' }}>
-                Otomatik yenile
-              </span>
+              <span style={{ color: 'var(--text-primary)' }}>Otomatik yenile</span>
             </label>
           </div>
           <div className="mt-4 flex justify-end gap-2">
@@ -413,9 +397,7 @@ export default function SubscriptionDetailPage() {
                 onClick={() => navigate(`/customers/${sub.customer_id}`)}
                 className="font-medium text-honeywell-red hover:underline"
               >
-                {sub.customer
-                  ? sub.customer.company || sub.customer.name
-                  : `#${sub.customer_id}`}
+                {sub.customer ? sub.customer.company || sub.customer.name : `#${sub.customer_id}`}
               </button>
             </div>
           )}

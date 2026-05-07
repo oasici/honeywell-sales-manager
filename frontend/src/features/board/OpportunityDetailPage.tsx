@@ -479,8 +479,7 @@ export default function OpportunityDetailPage() {
         status: payload.status || undefined,
         loss_reason: payload.loss_reason || null,
         stage: payload.stage || undefined,
-        customer_id:
-          payload.customer_id.trim() === '' ? null : Number(payload.customer_id),
+        customer_id: payload.customer_id.trim() === '' ? null : Number(payload.customer_id),
       };
       return opportunitiesApi.update(oppId, wire);
     },
@@ -561,8 +560,7 @@ export default function OpportunityDetailPage() {
                           status: opp.status || '',
                           loss_reason: opp.loss_reason || '',
                           stage: opp.stage || '',
-                          customer_id:
-                            opp.customer_id != null ? String(opp.customer_id) : '',
+                          customer_id: opp.customer_id != null ? String(opp.customer_id) : '',
                         });
                       }
                     }}
@@ -641,9 +639,7 @@ export default function OpportunityDetailPage() {
                   <label className="mb-1 block text-xs text-slate-500">Aşama</label>
                   <select
                     value={editForm.stage}
-                    onChange={(e) =>
-                      setEditForm((p) => ({ ...p, stage: e.target.value }))
-                    }
+                    onChange={(e) => setEditForm((p) => ({ ...p, stage: e.target.value }))}
                     className="w-full rounded-lg border px-3 py-2 text-sm"
                     style={{
                       borderColor: 'var(--border)',
@@ -664,9 +660,7 @@ export default function OpportunityDetailPage() {
                   type="number"
                   min={1}
                   value={editForm.customer_id}
-                  onChange={(e) =>
-                    setEditForm((p) => ({ ...p, customer_id: e.target.value }))
-                  }
+                  onChange={(e) => setEditForm((p) => ({ ...p, customer_id: e.target.value }))}
                   placeholder={
                     opp.customer
                       ? `${opp.customer.name}${opp.customer.company ? ` · ${opp.customer.company}` : ''} (#${opp.customer_id ?? '?'})`
@@ -677,8 +671,7 @@ export default function OpportunityDetailPage() {
                 />
                 {editForm.stage && editForm.stage !== opp.stage && (
                   <p className="sm:col-span-2 text-[11px] text-amber-600 dark:text-amber-400">
-                    Uyarı: aşama değişikliği <code>previous_stage</code> alanını da
-                    günceller.
+                    Uyarı: aşama değişikliği <code>previous_stage</code> alanını da günceller.
                   </p>
                 )}
                 {editForm.status === 'closed_lost' && (

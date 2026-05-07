@@ -215,10 +215,7 @@ export function onEmailChanged(qc: QueryClient, emailId: number | null): void {
  * the SPA only invalidated `['invoices']`. Customer detail's revenue
  * tile + cockpit cash-flow rollup also read from invoice writes.
  */
-export function onInvoiceCreated(
-  qc: QueryClient,
-  customerId?: number | null,
-): void {
+export function onInvoiceCreated(qc: QueryClient, customerId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['invoices'] });
   qc.invalidateQueries({ queryKey: ['rev-rec-schedules'] });
   qc.invalidateQueries({ queryKey: ['cockpit'] });
@@ -234,10 +231,7 @@ export function onInvoiceCreated(
  * the renewals queue (a new sub may show up there shortly), and the
  * MRR dashboard.
  */
-export function onSubscriptionChanged(
-  qc: QueryClient,
-  subscriptionId: number | null,
-): void {
+export function onSubscriptionChanged(qc: QueryClient, subscriptionId: number | null): void {
   qc.invalidateQueries({ queryKey: ['subscriptions'] });
   if (subscriptionId) {
     qc.invalidateQueries({ queryKey: ['subscriptions', String(subscriptionId)] });
@@ -248,10 +242,7 @@ export function onSubscriptionChanged(
  * R7-CACHE-1 — Campaign created/updated. Invalidates campaign list,
  * the campaign's detail (members + ROI), and the dashboard tile.
  */
-export function onCampaignChanged(
-  qc: QueryClient,
-  campaignId: number | null,
-): void {
+export function onCampaignChanged(qc: QueryClient, campaignId: number | null): void {
   qc.invalidateQueries({ queryKey: ['campaigns'] });
   if (campaignId) {
     qc.invalidateQueries({ queryKey: ['campaign', campaignId] });

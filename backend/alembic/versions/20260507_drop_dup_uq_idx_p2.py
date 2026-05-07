@@ -21,7 +21,7 @@ quotes, parts).
 The auto-created ``*_key`` constraint indexes (e.g. ``leads_email_key``)
 stay in place — UNIQUE constraints in PostgreSQL always carry an index.
 
-Revision ID: 20260507_drop_dup_unique_indexes_phase2
+Revision ID: 20260507_drop_dup_uq_idx_p2
 Revises: 20260506_drop_dup_unique_indexes
 Create Date: 2026-05-07
 """
@@ -31,7 +31,7 @@ from __future__ import annotations
 from alembic import op
 
 
-revision = "20260507_drop_dup_unique_indexes_phase2"
+revision = "20260507_drop_dup_uq_idx_p2"
 down_revision = "20260506_drop_dup_unique_indexes"
 branch_labels = None
 depends_on = None

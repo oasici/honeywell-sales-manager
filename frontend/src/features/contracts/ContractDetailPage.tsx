@@ -200,9 +200,7 @@ export default function ContractDetailPage() {
                 <Input
                   label="Başlık"
                   value={editForm.title}
-                  onChange={(e) =>
-                    setEditForm((p) => ({ ...p, title: e.target.value }))
-                  }
+                  onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
                 />
               </div>
               <Input
@@ -211,26 +209,20 @@ export default function ContractDetailPage() {
                 min={0}
                 step="0.01"
                 value={editForm.value}
-                onChange={(e) =>
-                  setEditForm((p) => ({ ...p, value: e.target.value }))
-                }
+                onChange={(e) => setEditForm((p) => ({ ...p, value: e.target.value }))}
               />
               <div className="grid grid-cols-2 gap-3 sm:col-span-2">
                 <Input
                   label="Başlangıç"
                   type="date"
                   value={editForm.start_date}
-                  onChange={(e) =>
-                    setEditForm((p) => ({ ...p, start_date: e.target.value }))
-                  }
+                  onChange={(e) => setEditForm((p) => ({ ...p, start_date: e.target.value }))}
                 />
                 <Input
                   label="Bitiş"
                   type="date"
                   value={editForm.end_date}
-                  onChange={(e) =>
-                    setEditForm((p) => ({ ...p, end_date: e.target.value }))
-                  }
+                  onChange={(e) => setEditForm((p) => ({ ...p, end_date: e.target.value }))}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -240,9 +232,7 @@ export default function ContractDetailPage() {
                 <textarea
                   rows={4}
                   value={editForm.terms_json}
-                  onChange={(e) =>
-                    setEditForm((p) => ({ ...p, terms_json: e.target.value }))
-                  }
+                  onChange={(e) => setEditForm((p) => ({ ...p, terms_json: e.target.value }))}
                   className="w-full rounded-lg border px-3 py-2 font-mono text-xs"
                   style={{
                     borderColor: 'var(--border)',
