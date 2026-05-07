@@ -1,12 +1,15 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, XCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, XCircle, RefreshCw, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionsApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 import type { Subscription } from '../../lib/types';
 import { useT } from '../../hooks/useT';
 import type { TranslationKey } from '../../lib/i18n';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -85,6 +88,57 @@ export default function SubscriptionDetailPage() {
     onError: () => toast.error(t('subscription.toast_renew_fail')),
   });
 
+  // R7-FORM-2 — inline edit panel; backend PATCH endpoint added in the
+  // same fix. Pre-fix the SPA had no edit affordance at all.
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    billing_cycle: '',
+    start_date: '',
+    end_date: '',
+    mrr: '',
+    auto_renew: true,
+    currency: '',
+  });
+
+  useEffect(() => {
+    if (sub) {
+      setEditForm({
+        name: sub.name || '',
+        billing_cycle: sub.billing_cycle || 'monthly',
+        start_date: sub.start_date || '',
+        end_date: sub.end_date || '',
+        mrr: sub.mrr != null ? String(sub.mrr) : '',
+        auto_renew: !!sub.auto_renew,
+        currency: sub.currency || 'TRY',
+      });
+    }
+  }, [sub]);
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: typeof editForm) => {
+      const wire: Record<string, unknown> = {
+        name: payload.name.trim() || undefined,
+        billing_cycle: payload.billing_cycle || undefined,
+        currency: payload.currency || undefined,
+        auto_renew: payload.auto_renew,
+      };
+      if (payload.mrr.trim() !== '') wire.mrr = Number(payload.mrr);
+      if (payload.start_date) wire.start_date = payload.start_date;
+      // Empty end_date means "open-ended"; backend treats null/missing
+      // as no change but the user wants to clear it → send null.
+      wire.end_date = payload.end_date || null;
+      return subscriptionsApi.update(Number(id), wire);
+    },
+    onSuccess: () => {
+      toast.success('Abonelik güncellendi');
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptions', id] });
+    },
+    onError: () => toast.error('Abonelik güncellenemedi'),
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -115,7 +169,18 @@ export default function SubscriptionDetailPage() {
           {t('subscription.back_list')}
         </button>
         <div className="flex gap-2">
-          {sub.status === 'active' && (
+          {/* R7-FORM-2 — Edit button. */}
+          {!editing && (
+            <Button
+              variant="secondary"
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-1"
+            >
+              <Pencil size={14} />
+              Düzenle
+            </Button>
+          )}
+          {sub.status === 'active' && !editing && (
             <>
               <button
                 type="button"
@@ -150,6 +215,125 @@ export default function SubscriptionDetailPage() {
           )}
         </div>
       </div>
+
+      {/* R7-FORM-2 — inline edit panel. Sits above the read-only summary
+          when editing=true. */}
+      {editing && (
+        <div
+          className="rounded-xl border p-6"
+          style={{
+            borderColor: 'var(--border)',
+            backgroundColor: 'var(--surface-secondary, var(--surface))',
+          }}
+        >
+          <h2 className="mb-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+            Aboneliği düzenle
+          </h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Input
+                label="Ad"
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, name: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                Faturalandırma
+              </label>
+              <select
+                value={editForm.billing_cycle}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, billing_cycle: e.target.value }))
+                }
+                className="w-full rounded-[12px] border px-3 py-2 text-sm"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <option value="monthly">{t('subscription.cycle_monthly')}</option>
+                <option value="quarterly">{t('subscription.cycle_quarterly')}</option>
+                <option value="annual">{t('subscription.cycle_annual')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                Para birimi
+              </label>
+              <select
+                value={editForm.currency}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, currency: e.target.value }))
+                }
+                className="w-full rounded-[12px] border px-3 py-2 text-sm"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <option value="TRY">TRY</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+            <Input
+              label="Başlangıç tarihi"
+              type="date"
+              value={editForm.start_date}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, start_date: e.target.value }))
+              }
+            />
+            <Input
+              label="Bitiş tarihi (opsiyonel)"
+              type="date"
+              value={editForm.end_date}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, end_date: e.target.value }))
+              }
+            />
+            <Input
+              label="MRR"
+              type="number"
+              min={0}
+              step="0.01"
+              value={editForm.mrr}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, mrr: e.target.value }))
+              }
+            />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={editForm.auto_renew}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, auto_renew: e.target.checked }))
+                }
+                className="h-4 w-4 rounded border-slate-200"
+              />
+              <span style={{ color: 'var(--text-primary)' }}>
+                Otomatik yenile
+              </span>
+            </label>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setEditing(false)}>
+              İptal
+            </Button>
+            <Button
+              onClick={() => updateMutation.mutate(editForm)}
+              loading={updateMutation.isPending}
+            >
+              Kaydet
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div
         className="rounded-xl border p-6"

@@ -18,7 +18,9 @@ from app.models.coaching_plan import CoachingPlan
 from app.models.coaching_snapshot import CoachingSnapshot
 from app.models.enums import UserRole
 from app.models.user import User
+from app.core.exceptions import NotFoundException
 from app.services.coaching_service import CoachingService
+from app.services.tenant_context import assert_same_tenant
 
 # R5-RL-8 — coaching surfaces call into V5/V6/V7 services that may
 # proxy through Claude. Without router-level rate limits, a scripted
@@ -124,11 +126,15 @@ async def create_coaching_plan(
     except (json.JSONDecodeError, TypeError):
         raise HTTPException(status_code=400, detail="goals_json gecerli JSON formati olmali")
 
-    # Verify target user exists
+    # Verify target user exists and is in the same tenant.
+    # R7-API-2 — pre-fix the manager could mint CoachingPlans against
+    # any tenant's user_id, polluting the foreign tenant's coaching
+    # surface with manager_id pointing into tenant A.
     user_result = await db.execute(select(User).where(User.id == body.user_id))
     target_user = user_result.scalar_one_or_none()
     if not target_user:
         raise HTTPException(status_code=404, detail="Hedef kullanici bulunamadi")
+    assert_same_tenant(target_user, current_user, exception_cls=NotFoundException)
 
     plan = CoachingPlan(
         user_id=body.user_id,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -56,6 +56,61 @@ export default function ContractDetailPage() {
       onContractChanged(queryClient, contractId);
     },
     onError: () => toast.error(t('contracts.toast_activate_failed')),
+  });
+
+  // R7-FORM-3 — inline edit. Pre-fix the SPA only had "activate" and
+  // "amend" affordances, so a typo in title or value forced an
+  // audit-tracked amendment workflow.
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    value: '',
+    start_date: '',
+    end_date: '',
+    terms_json: '',
+  });
+
+  useEffect(() => {
+    if (contract) {
+      setEditForm({
+        title: contract.title || '',
+        value: contract.value != null ? String(contract.value) : '',
+        start_date: contract.start_date || '',
+        end_date: contract.end_date || '',
+        terms_json: contract.terms_json || '',
+      });
+    }
+  }, [contract]);
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: typeof editForm) => {
+      let termsJsonNormalized: unknown = undefined;
+      if (payload.terms_json.trim()) {
+        try {
+          termsJsonNormalized = JSON.parse(payload.terms_json);
+        } catch {
+          // Re-throw as a friendly toast, not as a JSON exception.
+          throw new Error('Sözleşme şartları geçerli JSON olmalıdır');
+        }
+      }
+      const wire: Record<string, unknown> = {
+        title: payload.title.trim() || undefined,
+      };
+      if (payload.value.trim() !== '') wire.value = parseFloat(payload.value);
+      if (payload.start_date) wire.start_date = payload.start_date;
+      if (payload.end_date) wire.end_date = payload.end_date;
+      if (termsJsonNormalized !== undefined) wire.terms_json = JSON.stringify(termsJsonNormalized);
+      return contractsApi.update(contractId, wire);
+    },
+    onSuccess: () => {
+      toast.success('Sözleşme güncellendi');
+      setEditing(false);
+      onContractChanged(queryClient, contractId);
+    },
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : 'Sözleşme güncellenemedi';
+      toast.error(msg);
+    },
   });
 
   const amendMutation = useMutation({
@@ -125,12 +180,93 @@ export default function ContractDetailPage() {
             {t('contracts.activate')}
           </Button>
         )}
+        {/* R7-FORM-3 — Düzenle. Pre-fix only Amend was available. */}
+        {!editing && (
+          <Button variant="secondary" onClick={() => setEditing(true)}>
+            Düzenle
+          </Button>
+        )}
         <Button variant="secondary" onClick={() => setIsAmendOpen(true)}>
           {t('contracts.add_amendment')}
         </Button>
       </PageHeader>
 
       <div className="space-y-6">
+        {/* R7-FORM-3 — inline edit panel. */}
+        {editing && (
+          <Card title="Sözleşmeyi düzenle">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Input
+                  label="Başlık"
+                  value={editForm.title}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, title: e.target.value }))
+                  }
+                />
+              </div>
+              <Input
+                label="Tutar"
+                type="number"
+                min={0}
+                step="0.01"
+                value={editForm.value}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, value: e.target.value }))
+                }
+              />
+              <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                <Input
+                  label="Başlangıç"
+                  type="date"
+                  value={editForm.start_date}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, start_date: e.target.value }))
+                  }
+                />
+                <Input
+                  label="Bitiş"
+                  type="date"
+                  value={editForm.end_date}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, end_date: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                  Şartlar (JSON, opsiyonel)
+                </label>
+                <textarea
+                  rows={4}
+                  value={editForm.terms_json}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, terms_json: e.target.value }))
+                  }
+                  className="w-full rounded-lg border px-3 py-2 font-mono text-xs"
+                  style={{
+                    borderColor: 'var(--border)',
+                    backgroundColor: 'var(--surface)',
+                    color: 'var(--text-primary)',
+                  }}
+                  placeholder={'{"sla":"99.9","payment_terms":"net30"}'}
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setEditing(false)}>
+                İptal
+              </Button>
+              <Button
+                onClick={() => updateMutation.mutate(editForm)}
+                loading={updateMutation.isPending}
+              >
+                Kaydet
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Status Flow */}
         <Card title={t('contracts.card_status_flow')}>
           <div className="flex items-center gap-1">

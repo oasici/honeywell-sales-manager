@@ -511,13 +511,15 @@ async def export_template_excel(
     except ImportError:
         raise HTTPException(status_code=501, detail="openpyxl yuklu degil")
 
+    # R7-TEN-3 — pre-fix this re-loaded the template via a bare SELECT,
+    # leaking the foreign tenant's report.name into the worksheet title
+    # and Content-Disposition header even though engine.execute_report
+    # itself was tenant-safe. Use the canonical helper that runs
+    # assert_same_tenant before any other work.
+    report = await _get_user_template(db, template_id, current_user)
+
     engine = ReportEngine(db)
     result = await engine.execute_report(template_id, current_user, limit=5000, offset=0)
-
-    report_result = await db.execute(select(ReportTemplate).where(ReportTemplate.id == template_id))
-    report = report_result.scalar_one_or_none()
-    if not report:
-        raise HTTPException(status_code=404, detail="Rapor bulunamadi")
 
     wb = openpyxl.Workbook()
     ws = wb.active

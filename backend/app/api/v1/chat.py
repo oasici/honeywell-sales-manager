@@ -262,7 +262,20 @@ async def send_message(
     _: None = Depends(_require_live_chat),
     db: AsyncSession = Depends(get_db),
 ):
-    """Send a message to a session. Auto-response fires for visitor messages."""
+    """Send a message to a session. Auto-response fires for visitor messages.
+
+    R7-TEN-4 — public visitor endpoint; ``sender_type`` ∈ {agent, bot}
+    is reserved for authenticated agent flows. Pre-fix, an anonymous
+    caller could spoof ``sender_type=agent, sender_id=42`` and the
+    transcript rendered as if agent #42 sent the message.
+    """
+    # R7-TEN-4 — block agent/bot impersonation on the public endpoint.
+    # Authenticated agent message paths live elsewhere (assigned-agent
+    # flow); the visitor endpoint must only accept ``visitor`` messages.
+    if body.sender_type != "visitor":
+        raise BadRequestException(
+            "Only visitor messages may be posted to the public chat endpoint"
+        )
     if body.sender_type not in VALID_SENDER_TYPES:
         raise BadRequestException(
             f"Invalid sender_type. Must be one of: {', '.join(sorted(VALID_SENDER_TYPES))}"

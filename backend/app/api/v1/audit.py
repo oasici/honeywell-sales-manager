@@ -229,11 +229,19 @@ async def export_user_data(
 
     # Email requests aren't directly owned by a user, but if the user's
     # email address matches a sender we surface those too.
+    # R7-TEN-2 — pre-fix this query had no scoped_for_user; if email is
+    # ever shared across tenants (user moved tenants, domain reuse), the
+    # KVKK export would leak foreign EmailRequest rows. The surrounding
+    # queries are all tenant-scoped; this was the lone outlier.
     sent_emails = []
     if user.email:
         sent_emails = (
             await db.execute(
-                select(EmailRequest).where(EmailRequest.from_address == user.email)
+                scoped_for_user(
+                    select(EmailRequest),
+                    current_user,
+                    column=EmailRequest.tenant_id,
+                ).where(EmailRequest.from_address == user.email)
             )
         ).scalars().all()
 

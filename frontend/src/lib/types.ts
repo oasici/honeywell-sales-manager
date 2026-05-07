@@ -13,7 +13,8 @@ export interface User {
   is_active: boolean;
   email_setup_completed: boolean;
   password_change_required?: boolean;
-  created_at: string;
+  // R7-TS-2 — backend emits `isoformat() if x else None`.
+  created_at: string | null;
   updated_at?: string | null;
 }
 
@@ -54,6 +55,9 @@ export interface Customer {
   /** ISO timestamp set by KVKK Article 17 deletion flow. When non-null
    * the SPA must surface a "pending deletion" banner. */
   deletion_requested_at?: string | null;
+  // R7-TS-5 — `_customer_to_dict` on the detail endpoint augments the
+  // payload with a stats block (customers.py:222-227).
+  stats?: { total_quotes: number; total_value: number; sent_quotes: number };
 }
 
 export interface CustomerIntelligenceOpportunityItem {
@@ -195,13 +199,18 @@ export interface EmailRequest {
   message_id: string;
   from_address: string;
   subject: string;
-  body_text: string;
-  body_html: string;
+  // R7-TS-1 — backend list endpoints call `_email_to_dict(email)` with
+  // ``include_body=False`` (emails.py:875), so these three fields are
+  // omitted on list responses. Marking optional so consumers using
+  // `email.body_text.slice(...)` are forced to null-check.
+  body_text?: string;
+  body_html?: string;
   language: string;
   // R5-TS-16 — backend may emit null on rare seed paths.
   received_at: string | null;
   status: string;
-  parsed_data: ParsedData | null;
+  // R7-TS-1 — also conditional on include_body.
+  parsed_data?: ParsedData | null;
   error_message: string | null;
   category: string | null;
   category_confidence: number | null;
@@ -341,8 +350,9 @@ export interface Quote {
   // _quote_to_dict so the SPA can render the v1→v2→v3 lineage.
   revision_no?: number | null;
   superseded_by?: number | null;
-  created_at: string;
-  updated_at: string;
+  // R7-TS-2 — backend emits `isoformat() if x else None`; nullable.
+  created_at: string | null;
+  updated_at: string | null;
   customer?: Customer;
   items: QuoteItem[];
 }
@@ -531,8 +541,9 @@ export interface Opportunity {
   owner: { id: number; full_name: string } | null;
   quotes: { id: number; quote_number: string; status: string; grand_total: number }[];
   open_quotes_count?: number;
-  created_at: string;
-  updated_at: string;
+  // R7-TS-2 — backend emits `isoformat() if x else None`; nullable.
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // Mirrors backend OpportunitySignalType enum (app/models/enums.py).
@@ -1750,7 +1761,8 @@ export interface Subscription {
   name: string;
   status: string;
   billing_cycle: string;
-  start_date: string;
+  // R7-TS-3 — backend emits `isoformat() if x else None`; nullable.
+  start_date: string | null;
   end_date: string | null;
   mrr: number;
   next_renewal_date: string | null;
@@ -1895,8 +1907,9 @@ export interface Invoice {
   // to Invoice. Fetch the binary via GET /invoices/{id}/pdf.
   has_pdf?: boolean;
   paid_at?: string;
-  created_at: string;
-  updated_at: string;
+  // R7-TS-2 — backend emits `isoformat() if x else None`; nullable.
+  created_at: string | null;
+  updated_at: string | null;
   customer?: { id: number; name: string; company: string };
 }
 

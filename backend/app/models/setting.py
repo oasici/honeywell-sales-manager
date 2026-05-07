@@ -10,7 +10,8 @@ class Setting(Base):
     __tablename__ = "settings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
+    key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     value: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -10,8 +10,9 @@ class SparePart(Base):
     __tablename__ = "spare_parts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
     honeywell_code: Mapped[str] = mapped_column(
-        String(500), unique=True, nullable=False, index=True
+        String(500), unique=True, nullable=False
     )
     name_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     name_tr: Mapped[str | None] = mapped_column(Text, nullable=True)

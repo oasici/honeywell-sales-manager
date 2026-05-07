@@ -20,8 +20,9 @@ class AccountEnrichment(Base):
     __tablename__ = "account_enrichments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
     customer_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True, unique=True
+        Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, unique=True
     )
 
     pipeline_open_amount: Mapped[float] = mapped_column(Float, default=0.0)

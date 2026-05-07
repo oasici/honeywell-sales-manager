@@ -102,7 +102,18 @@ async def list_tiers(
             .order_by(PriceTier.min_qty.asc())
         )
     ).scalars().all()
-    return {"price_entry_id": price_entry_id, "tiers": [_serialize_tier(t) for t in tiers]}
+    items = [_serialize_tier(t) for t in tiers]
+    total = len(items)
+    # R7-API-4 — canonical pagination envelope; legacy keys retained.
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        "price_entry_id": price_entry_id,
+        "tiers": items,
+    }
 
 
 @router.post("/tiers", status_code=201)

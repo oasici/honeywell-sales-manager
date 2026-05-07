@@ -34,7 +34,20 @@ async def list_notifications(
         unread_only=unread_only,
         limit=limit,
     )
-    return {"notifications": notifications}
+    # R7-API-4 — canonical pagination envelope. Pre-fix the SPA had to
+    # special-case the {notifications:[]} shape. ``notifications`` is
+    # also kept as an alias for the bell-icon header consumer that
+    # hasn't migrated yet.
+    total = len(notifications)
+    return {
+        "items": notifications,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        # Legacy alias — drop once the header has migrated.
+        "notifications": notifications,
+    }
 
 
 @router.get("/unread-count")

@@ -53,6 +53,9 @@ class LeadCreate(BaseModel):
 class LeadUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
+    # R7-FORM-5 — pre-fix LeadUpdate dropped email entirely, so a typo
+    # at lead creation forced delete-and-recreate.
+    email: EmailStr | None = None
     phone: str | None = None
     company: str | None = None
     title: str | None = None
@@ -113,19 +116,27 @@ async def lead_analytics(
     """Conversion analytics: rate by source, avg time to convert, funnel by status."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=window)
 
+    # R7-API-1 — pre-fix the three aggregation queries below ran without
+    # scoped_for_user; manager in tenant A saw funnel/by_source/weekly_trend
+    # data for every other tenant. Same shape as R4-TEN-7 fix on the
+    # subscription MRR dashboard.
+
     # Funnel: count by status
-    funnel_result = await db.execute(
-        select(Lead.status, func.count(Lead.id))
-        .where(Lead.created_at >= cutoff)
-        .group_by(Lead.status)
-    )
+    funnel_stmt = scoped_for_user(
+        select(Lead.status, func.count(Lead.id)).where(Lead.created_at >= cutoff),
+        current_user,
+        column=Lead.tenant_id,
+    ).group_by(Lead.status)
+    funnel_result = await db.execute(funnel_stmt)
     funnel = {row[0]: row[1] for row in funnel_result.all()}
 
     # By source: count, converted, avg days to convert
-    all_leads_result = await db.execute(
-        select(Lead)
-        .where(Lead.created_at >= cutoff)
+    all_leads_stmt = scoped_for_user(
+        select(Lead).where(Lead.created_at >= cutoff),
+        current_user,
+        column=Lead.tenant_id,
     )
+    all_leads_result = await db.execute(all_leads_stmt)
     all_leads = all_leads_result.scalars().all()
 
     source_stats: dict[str, dict] = defaultdict(
@@ -166,10 +177,14 @@ async def lead_analytics(
         })
 
     # Trend: conversions per week
-    converted_leads_result = await db.execute(
-        select(Lead)
-        .where(Lead.status == "converted", Lead.converted_at >= cutoff)
+    converted_leads_stmt = scoped_for_user(
+        select(Lead).where(
+            Lead.status == "converted", Lead.converted_at >= cutoff
+        ),
+        current_user,
+        column=Lead.tenant_id,
     )
+    converted_leads_result = await db.execute(converted_leads_stmt)
     converted_leads = converted_leads_result.scalars().all()
 
     weekly_trend: dict[str, int] = defaultdict(int)
@@ -322,18 +337,25 @@ async def list_scoring_configs(
     )
     configs = result.scalars().all()
 
+    items = [
+        {
+            "id": c.id,
+            "factor_name": c.factor_name,
+            "weight": c.weight,
+            "is_active": c.is_active,
+            "description": c.description,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+        }
+        for c in configs
+    ]
+    total = len(items)
+    # R7-API-4 — canonical pagination envelope.
     return {
-        "items": [
-            {
-                "id": c.id,
-                "factor_name": c.factor_name,
-                "weight": c.weight,
-                "is_active": c.is_active,
-                "description": c.description,
-                "created_at": c.created_at.isoformat() if c.created_at else None,
-            }
-            for c in configs
-        ],
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
     }
 
 

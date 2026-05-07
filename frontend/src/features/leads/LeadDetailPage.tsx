@@ -151,6 +151,9 @@ export default function LeadDetailPage() {
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
+    // R7-FORM-5 — backend LeadUpdate now accepts email; pre-fix
+    // typo at lead creation forced delete-and-recreate.
+    email: '',
     phone: '',
     company: '',
     title: '',
@@ -211,6 +214,7 @@ export default function LeadDetailPage() {
     setEditForm({
       first_name: lead.first_name || '',
       last_name: lead.last_name || '',
+      email: lead.email || '',
       phone: lead.phone || '',
       company: lead.company || '',
       title: lead.title || '',
@@ -221,15 +225,21 @@ export default function LeadDetailPage() {
 
   const submitEdit = () => {
     // Only send the editable fields the backend's LeadUpdate accepts.
+    const wire: Record<string, unknown> = {
+      first_name: editForm.first_name,
+      last_name: editForm.last_name,
+      phone: editForm.phone || null,
+      company: editForm.company || null,
+      title: editForm.title || null,
+      notes: editForm.notes || null,
+    };
+    // Only send email if it changed; backend rejects duplicates with
+    // 409 (caught upstream as a generic toast).
+    if (editForm.email && editForm.email !== lead.email) {
+      wire.email = editForm.email;
+    }
     updateMutation.mutate(
-      {
-        first_name: editForm.first_name,
-        last_name: editForm.last_name,
-        phone: editForm.phone || null,
-        company: editForm.company || null,
-        title: editForm.title || null,
-        notes: editForm.notes || null,
-      },
+      wire,
       {
         onSuccess: () => setIsEditing(false),
       },
@@ -410,6 +420,14 @@ export default function LeadDetailPage() {
                   value={editForm.last_name}
                   onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
                   required
+                />
+                {/* R7-FORM-5 — email is editable now (backend LeadUpdate
+                    accepts EmailStr). */}
+                <Input
+                  label="E-posta"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                 />
                 <Input
                   label={t('leads.phone')}

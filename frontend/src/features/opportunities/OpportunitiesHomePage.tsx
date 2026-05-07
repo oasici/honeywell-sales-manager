@@ -1,19 +1,23 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Search, ShieldAlert, ArrowRight, Filter, RefreshCw } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Search, ShieldAlert, ArrowRight, Filter, RefreshCw, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { opportunitiesApi, dealHealthApi } from '../../lib/api';
+import { Modal } from '../../components/ui/Modal';
+import { customersApi, dealHealthApi, opportunitiesApi } from '../../lib/api';
+import { onOpportunityChanged } from '../../lib/cacheInvalidation';
 import { formatCurrency } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 
-import type { Opportunity } from '../../lib/types';
+import type { Customer, Opportunity, PaginatedResponse } from '../../lib/types';
 
 type StageFilter =
   | 'all'
@@ -44,13 +48,73 @@ function stageVariant(stage?: string) {
   return 'default';
 }
 
+interface CreateOppForm {
+  title: string;
+  customer_id: string;
+  stage: string;
+  amount: string;
+  currency: string;
+  close_date: string;
+}
+
+const INITIAL_CREATE_FORM: CreateOppForm = {
+  title: '',
+  customer_id: '',
+  stage: 'prospecting',
+  amount: '',
+  currency: 'TRY',
+  close_date: '',
+};
+
 export default function OpportunitiesHomePage() {
   const t = useT();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [query, setQuery] = useState('');
   const [stage, setStage] = useState<StageFilter>('all');
   const [limit, setLimit] = useState(50);
+  // R7-FORM-1 — pre-fix the SPA had no standalone "Create Opportunity"
+  // form anywhere; reps had to fake-create a Lead and convert it to
+  // mint an expansion deal on an existing customer.
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState<CreateOppForm>(INITIAL_CREATE_FORM);
+  const [customerSearch, setCustomerSearch] = useState('');
+
+  const customerResults = useQuery<PaginatedResponse<Customer>>({
+    queryKey: ['opp-create-customer-search', customerSearch],
+    queryFn: () => customersApi.getCustomers({ search: customerSearch, page_size: 10 }),
+    enabled: createOpen && customerSearch.length >= 2,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: Record<string, unknown>) => opportunitiesApi.create(payload),
+    onSuccess: (created: Opportunity) => {
+      toast.success('Fırsat oluşturuldu');
+      onOpportunityChanged(queryClient, created.id);
+      setCreateOpen(false);
+      setCreateForm(INITIAL_CREATE_FORM);
+      setCustomerSearch('');
+      navigate(`/opportunities/${created.id}`);
+    },
+    onError: () => toast.error('Fırsat oluşturulamadı'),
+  });
+
+  const handleCreate = () => {
+    if (!createForm.title.trim()) {
+      toast.error('Başlık zorunludur');
+      return;
+    }
+    const payload: Record<string, unknown> = {
+      title: createForm.title.trim(),
+      stage: createForm.stage,
+      currency: createForm.currency,
+    };
+    if (createForm.customer_id) payload.customer_id = Number(createForm.customer_id);
+    if (createForm.amount.trim()) payload.amount = parseFloat(createForm.amount);
+    if (createForm.close_date) payload.close_date = createForm.close_date;
+    createMutation.mutate(payload);
+  };
 
   const oppsQuery = useQuery({
     queryKey: ['opportunities-home', { query, stage, limit }],
@@ -73,8 +137,10 @@ export default function OpportunitiesHomePage() {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter((o) => {
-      const hay =
-        `${o.title || ''} ${String((o as unknown as { customer_name?: string }).customer_name || '')}`.toLowerCase();
+      // R7-TS-7 — backend nests customer name under `o.customer.name`;
+      // the previous flat `customer_name` cast was always undefined.
+      const customerHay = `${o.customer?.name ?? ''} ${o.customer?.company ?? ''}`;
+      const hay = `${o.title || ''} ${customerHay}`.toLowerCase();
       return hay.includes(q);
     });
   }, [oppsQuery.data, query]);
@@ -91,9 +157,14 @@ export default function OpportunitiesHomePage() {
             <RefreshCw size={16} />
             Yenile
           </Button>
-          <Button variant="primary" onClick={() => navigate('/board')}>
+          <Button variant="secondary" onClick={() => navigate('/board')}>
             <ArrowRight size={16} />
             Kanban’a Git
+          </Button>
+          {/* R7-FORM-1 — Yeni Fırsat (was missing entirely). */}
+          <Button variant="primary" onClick={() => setCreateOpen(true)}>
+            <Plus size={16} />
+            Yeni Fırsat
           </Button>
         </div>
       </PageHeader>
@@ -275,11 +346,14 @@ export default function OpportunitiesHomePage() {
                   </div>
                   <div className="mt-1 flex flex-wrap gap-3 text-sm text-slate-500">
                     <span>{formatCurrency(Number(o.amount || 0), o.currency || 'TRY')}</span>
-                    {(o as unknown as { customer_name?: string }).customer_name ? (
+                    {/* R7-TS-7 — backend nests customer.name; pre-fix the
+                        SPA was reading a flat `customer_name` that the
+                        backend never emits. */}
+                    {o.customer?.name && (
                       <span className="truncate">
-                        {(o as unknown as { customer_name?: string }).customer_name}
+                        {o.customer.company || o.customer.name}
                       </span>
-                    ) : null}
+                    )}
                     {/* Close date — fetched but never rendered before
                         audit F-15. Critical "this deal closes Friday"
                         signal. */}
@@ -293,13 +367,14 @@ export default function OpportunitiesHomePage() {
                       </span>
                     )}
                     {/* Rotting indicator — shows in red when the deal
-                        has been stale for more than a week. */}
-                    {typeof (o as unknown as { rotting_days?: number }).rotting_days === 'number' &&
-                      (o as unknown as { rotting_days: number }).rotting_days > 7 && (
-                        <span className="font-medium text-rose-600 dark:text-rose-400">
-                          🥀 {(o as unknown as { rotting_days: number }).rotting_days}g durgun
-                        </span>
-                      )}
+                        has been stale for more than a week.
+                        R7-TS-7 — Opportunity.rotting_days is required on
+                        the type, so no cast needed. */}
+                    {typeof o.rotting_days === 'number' && o.rotting_days > 7 && (
+                      <span className="font-medium text-rose-600 dark:text-rose-400">
+                        🥀 {o.rotting_days}g durgun
+                      </span>
+                    )}
                     {/* Revenue-leak diff: when an open deal has a
                         previous_amount that differs from the current
                         amount, surface the slip.
@@ -332,6 +407,148 @@ export default function OpportunitiesHomePage() {
           ))}
         </div>
       )}
+
+      {/* R7-FORM-1 — Create Opportunity modal. Backend OpportunityCreate
+          accepts title, stage, amount, currency, close_date, customer_id.
+          Pre-fix this form did not exist and OpportunityCreate was
+          unreachable from the SPA. */}
+      <Modal
+        isOpen={createOpen}
+        onClose={() => {
+          setCreateOpen(false);
+          setCreateForm(INITIAL_CREATE_FORM);
+          setCustomerSearch('');
+        }}
+        title="Yeni Fırsat"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Başlık"
+            value={createForm.title}
+            onChange={(e) => setCreateForm((p) => ({ ...p, title: e.target.value }))}
+            placeholder="Honeywell servis genişletme"
+            required
+          />
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+              Müşteri
+            </label>
+            <Input
+              placeholder="Müşteri adıyla arayın…"
+              value={customerSearch}
+              onChange={(e) => {
+                setCustomerSearch(e.target.value);
+                if (createForm.customer_id) {
+                  setCreateForm((p) => ({ ...p, customer_id: '' }));
+                }
+              }}
+            />
+            {customerSearch.length >= 2 &&
+              !createForm.customer_id &&
+              (customerResults.data?.items?.length ?? 0) > 0 && (
+                <div
+                  className="mt-1 max-h-48 overflow-y-auto rounded-lg border bg-white shadow-sm dark:bg-slate-900"
+                  style={{ borderColor: 'var(--border)' }}
+                >
+                  {(customerResults.data?.items ?? []).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                      onClick={() => {
+                        setCreateForm((p) => ({ ...p, customer_id: String(c.id) }));
+                        setCustomerSearch(`${c.name}${c.company ? ` · ${c.company}` : ''}`);
+                      }}
+                    >
+                      <span className="font-medium">{c.name}</span>
+                      {c.company && (
+                        <span className="ml-2 text-slate-500">{c.company}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            {createForm.customer_id && (
+              <p className="mt-1 text-[12px] text-slate-500">
+                Seçildi: müşteri #{createForm.customer_id}
+              </p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                Aşama
+              </label>
+              <select
+                value={createForm.stage}
+                onChange={(e) => setCreateForm((p) => ({ ...p, stage: e.target.value }))}
+                className="block w-full rounded-[12px] border px-3 py-2 text-sm"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <option value="prospecting">Prospecting</option>
+                <option value="qualified">Qualified</option>
+                <option value="proposal">Proposal</option>
+                <option value="negotiation">Negotiation</option>
+                <option value="closed_won">Closed Won</option>
+                <option value="closed_lost">Closed Lost</option>
+              </select>
+            </div>
+            <Input
+              label="Kapanış tarihi"
+              type="date"
+              value={createForm.close_date}
+              onChange={(e) =>
+                setCreateForm((p) => ({ ...p, close_date: e.target.value }))
+              }
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Tutar"
+              type="number"
+              min={0}
+              step="0.01"
+              value={createForm.amount}
+              onChange={(e) => setCreateForm((p) => ({ ...p, amount: e.target.value }))}
+              placeholder="0.00"
+            />
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                Para birimi
+              </label>
+              <select
+                value={createForm.currency}
+                onChange={(e) =>
+                  setCreateForm((p) => ({ ...p, currency: e.target.value }))
+                }
+                className="block w-full rounded-[12px] border px-3 py-2 text-sm"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <option value="TRY">TRY</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+            <Button variant="secondary" onClick={() => setCreateOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleCreate} loading={createMutation.isPending}>
+              Oluştur
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

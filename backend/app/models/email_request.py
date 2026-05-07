@@ -23,7 +23,8 @@ class EmailRequest(Base):
     customer_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=True, index=True
     )
-    message_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
+    message_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     from_address: Mapped[str] = mapped_column(String(255), nullable=False)
     subject: Mapped[str | None] = mapped_column(String(500), nullable=True)
     body_text: Mapped[str | None] = mapped_column(Text, nullable=True)

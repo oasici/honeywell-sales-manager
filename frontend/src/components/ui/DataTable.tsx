@@ -36,7 +36,21 @@ interface Column<T> {
   width?: string;
   /** Apply tabular-nums for clean numeric alignment. */
   numeric?: boolean;
+  /**
+   * R7-RESP-2 — hide the column on viewports below this Tailwind
+   * breakpoint. Mirrors the `hidden sm:table-cell` pattern CLAUDE.md
+   * mandates for mobile responsiveness on tables. Pre-fix the
+   * primitive had no built-in mechanism, so every consumer that
+   * needed responsive table layout hand-rolled their own `<table>`.
+   */
+  hideOn?: 'sm' | 'md' | 'lg';
 }
+
+const HIDE_CLASS: Record<NonNullable<Column<unknown>['hideOn']>, string> = {
+  sm: 'hidden sm:table-cell',
+  md: 'hidden md:table-cell',
+  lg: 'hidden lg:table-cell',
+};
 
 interface DataTableProps<T> {
   columns: Column<T>[];
@@ -135,6 +149,7 @@ export function DataTable<T = any>({
                     className={[
                       'px-5 py-3 text-overline text-slate-500',
                       ALIGN_CLASS[align],
+                      col.hideOn ? HIDE_CLASS[col.hideOn] : '',
                       col.sortable
                         ? 'cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300'
                         : '',
@@ -196,6 +211,7 @@ export function DataTable<T = any>({
                         className={[
                           `px-5 ${rowPadY} text-slate-700 dark:text-slate-300`,
                           ALIGN_CLASS[align],
+                          col.hideOn ? HIDE_CLASS[col.hideOn] : '',
                           col.numeric ? 'tabular-nums' : '',
                         ].join(' ')}
                       >

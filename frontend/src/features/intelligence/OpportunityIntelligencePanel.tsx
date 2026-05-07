@@ -58,8 +58,7 @@ function MomentumDriversWidget({ opportunityId }: Props) {
   }
 
   const band = data.momentum_band ?? 'low';
-  const bandTone =
-    band === 'high' ? 'success' : band === 'medium' ? 'info' : 'warning';
+  const bandTone = band === 'high' ? 'success' : band === 'medium' ? 'info' : 'warning';
   const bandLabel = band === 'high' ? 'Yüksek' : band === 'medium' ? 'Orta' : 'Düşük';
 
   return (
@@ -72,9 +71,7 @@ function MomentumDriversWidget({ opportunityId }: Props) {
           {bandLabel}
         </Badge>
         {data.snapshot_date && (
-          <span className="text-[11px] text-slate-400 tabular-nums">
-            {data.snapshot_date}
-          </span>
+          <span className="text-[11px] text-slate-400 tabular-nums">{data.snapshot_date}</span>
         )}
       </div>
 
@@ -87,20 +84,13 @@ function MomentumDriversWidget({ opportunityId }: Props) {
           {data.momentum_drivers.slice(0, 6).map((driver, i) => {
             const label = String(driver.label ?? `Sürücü ${i + 1}`);
             const contribution =
-              typeof driver.contribution === 'number'
-                ? driver.contribution
-                : null;
+              typeof driver.contribution === 'number' ? driver.contribution : null;
             const positive =
               driver.direction === 'positive' ||
               (typeof contribution === 'number' && contribution > 0);
             return (
-              <li
-                key={i}
-                className="flex items-center justify-between gap-2 text-[12px]"
-              >
-                <span className="truncate text-slate-700 dark:text-slate-300">
-                  {label}
-                </span>
+              <li key={i} className="flex items-center justify-between gap-2 text-[12px]">
+                <span className="truncate text-slate-700 dark:text-slate-300">{label}</span>
                 <span
                   className={`tabular-nums font-medium ${
                     positive
@@ -124,16 +114,12 @@ function MomentumDriversWidget({ opportunityId }: Props) {
         <div>
           <dt className="text-overline text-slate-400">Aşama hızı</dt>
           <dd className="text-slate-700 tabular-nums dark:text-slate-200">
-            {data.stage_velocity_days != null
-              ? `${data.stage_velocity_days.toFixed(1)} gün`
-              : '—'}
+            {data.stage_velocity_days != null ? `${data.stage_velocity_days.toFixed(1)} gün` : '—'}
           </dd>
         </div>
         <div>
           <dt className="text-overline text-slate-400">Alıcı durumu</dt>
-          <dd className="text-slate-700 dark:text-slate-200">
-            {data.buyer_state ?? '—'}
-          </dd>
+          <dd className="text-slate-700 dark:text-slate-200">{data.buyer_state ?? '—'}</dd>
         </div>
       </dl>
     </Card>
@@ -217,8 +203,7 @@ function ObjectionsWidget({ opportunityId }: Props) {
               <span className="font-semibold text-rose-600">{open.length}</span> açık
             </span>
             <span className="text-slate-500">
-              <span className="font-semibold text-emerald-600">{resolved.length}</span>{' '}
-              çözüldü
+              <span className="font-semibold text-emerald-600">{resolved.length}</span> çözüldü
             </span>
           </div>
           <ul className="space-y-1.5">
@@ -229,11 +214,7 @@ function ObjectionsWidget({ opportunityId }: Props) {
               >
                 <Badge
                   variant={
-                    o.severity === 'high'
-                      ? 'danger'
-                      : o.severity === 'med'
-                        ? 'warning'
-                        : 'default'
+                    o.severity === 'high' ? 'danger' : o.severity === 'med' ? 'warning' : 'default'
                   }
                   size="sm"
                 >
@@ -273,15 +254,13 @@ function TimingWindowsWidget({ opportunityId }: Props) {
     <Card title="Önerilen Aksiyon Pencereleri">
       {items.length === 0 ? (
         <p className="text-[12px] text-slate-500">
-          Aktif öneri penceresi yok — sıradaki öneriler V5 timing engine tarafından
-          tetikleniyor.
+          Aktif öneri penceresi yok — sıradaki öneriler V5 timing engine tarafından tetikleniyor.
         </p>
       ) : (
         <ul className="space-y-1.5">
           {items.slice(0, 4).map((w) => {
             const urgency = w.urgency_score ?? 0;
-            const tone =
-              urgency >= 0.75 ? 'danger' : urgency >= 0.5 ? 'warning' : 'info';
+            const tone = urgency >= 0.75 ? 'danger' : urgency >= 0.5 ? 'warning' : 'info';
             return (
               <li
                 key={w.id}

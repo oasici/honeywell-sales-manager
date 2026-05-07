@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.user import User
 from app.services.subscription_service import SubscriptionService
 
@@ -36,6 +38,25 @@ class SubscriptionCreate(BaseModel):
     auto_renew: bool = True
     items_json: str | None = None
     currency: str = "TRY"
+
+
+class SubscriptionUpdate(BaseModel):
+    """R7-FORM-2 — pre-fix the SPA had no Subscription edit path; the
+    backend was missing the schema and PATCH route entirely.
+
+    All fields are optional so partial updates work the way the inline
+    edit panel needs (only fields the user touches go on the wire).
+    """
+
+    name: str | None = None
+    billing_cycle: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    mrr: float | None = None
+    auto_renew: bool | None = None
+    items_json: str | None = None
+    currency: str | None = None
+    quote_id: int | None = None
 
 
 def _serialize(sub) -> dict:
@@ -169,6 +190,47 @@ async def get_subscription(
     sub = await service.get_subscription(sub_id, current_user)
     if sub is None:
         raise NotFoundException("Abonelik bulunamadi")
+    return _serialize(sub)
+
+
+@router.patch("/{sub_id}")
+async def update_subscription(
+    sub_id: int,
+    body: SubscriptionUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """R7-FORM-2 — partial subscription update. The service helper runs
+    `assert_same_tenant` internally, so cross-tenant access maps to 404."""
+    service = SubscriptionService(db)
+    sub = await service.get_subscription(sub_id, current_user)
+    if sub is None:
+        raise NotFoundException("Abonelik bulunamadi")
+
+    update_data = body.model_dump(exclude_none=True)
+    if not update_data:
+        raise BadRequestException("Guncellenecek alan bulunamadi")
+
+    # Coerce ISO date strings the SPA emits into date objects on the
+    # ORM side. Accept either YYYY-MM-DD or full ISO datetime.
+    for date_field in ("start_date", "end_date"):
+        if date_field in update_data and update_data[date_field] is not None:
+            raw = update_data[date_field]
+            try:
+                if isinstance(raw, str) and len(raw) == 10:
+                    update_data[date_field] = date.fromisoformat(raw)
+                elif isinstance(raw, str):
+                    update_data[date_field] = datetime.fromisoformat(raw).date()
+            except ValueError:
+                raise BadRequestException(
+                    f"Gecersiz tarih: {date_field}={raw}"
+                )
+
+    for key, value in update_data.items():
+        setattr(sub, key, value)
+
+    await db.commit()
+    await db.refresh(sub)
     return _serialize(sub)
 
 

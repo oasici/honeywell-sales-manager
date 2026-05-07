@@ -21,7 +21,8 @@ class NetworkSegment(Base):
     # Round-4 v1.9.14 — column was added by migration but the
     # model file never declared it; schema_check caught the drift.
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
-    segment_key: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
+    segment_key: Mapped[str] = mapped_column(String(80), unique=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     definition_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

@@ -13,6 +13,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { BulkActionBar } from '../../components/ui/BulkActionBar';
 import { useMultiSelect } from '../../hooks/useMultiSelect';
 import { customersApi, quotesApi } from '../../lib/api';
+import { onCustomerCreated } from '../../lib/cacheInvalidation';
 import { DuplicateWarning } from '../../components/ui/DuplicateWarning';
 import { formatCurrency } from '../../lib/formatters';
 import { STATUS_COLORS } from '../../lib/constants';
@@ -355,7 +356,9 @@ export default function CustomerListPage() {
       toast.success(t('customers.toast_created'));
       setModalOpen(false);
       setForm(INITIAL_FORM);
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      // R7-CACHE-1 — pre-fix only invalidated ['customers']; helper
+      // cascades into high-intent + dashboard tiles.
+      onCustomerCreated(queryClient);
       // Hydrate the detail-page cache so navigating to the freshly
       // created record doesn't show stale/empty data until F5.
       if (newCustomer?.id != null) {
@@ -369,9 +372,11 @@ export default function CustomerListPage() {
     mutationFn: (file: File) => customersApi.importCustomers(file),
     onSuccess: (res) => {
       toast.success(t('customers.toast_imported').replace('{count}', String(res.imported)));
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      // R7-CACHE-1 — bulk import emits N customer.created events; same
+      // cascade as single create.
+      onCustomerCreated(queryClient);
     },
-    onError: () => toast.error(t('customers.toast_import_failed')),
+    onError: () => toast.error(t('customers.toast_create_failed')),
   });
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -16,8 +16,9 @@ class LeadScoringConfig(Base):
     __tablename__ = "lead_scoring_configs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
     factor_name: Mapped[str] = mapped_column(
-        String(50), unique=True, nullable=False, index=True,
+        String(50), unique=True, nullable=False,
     )
     weight: Mapped[int] = mapped_column(Integer, default=10)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

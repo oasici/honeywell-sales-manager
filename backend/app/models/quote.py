@@ -10,7 +10,8 @@ class Quote(Base):
     __tablename__ = "quotes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    quote_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
+    quote_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     customer_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=True, index=True
     )

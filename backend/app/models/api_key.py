@@ -14,7 +14,8 @@ class ApiKey(Base):
     __tablename__ = "api_keys"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    key_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
+    key_hash: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False

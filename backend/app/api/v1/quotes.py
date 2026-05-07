@@ -779,6 +779,10 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
         data["items"] = [
             {
                 "id": item.id,
+                # R7-API-5 — schema declares these fields, serializer
+                # used to drop them; consumers got `None` for spare_part
+                # name/category and a missing `quote_id` round-trip.
+                "quote_id": item.quote_id,
                 "spare_part_id": item.spare_part_id,
                 "original_text": item.original_text,
                 "honeywell_code": item.honeywell_code,
@@ -791,6 +795,14 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
                 "match_strategy": item.match_strategy,
                 "is_confirmed": item.is_confirmed,
                 "sort_order": item.sort_order,
+                "spare_part_name": (
+                    item.spare_part.name_en if item.spare_part else None
+                ),
+                "spare_part_category": (
+                    getattr(item.spare_part, "category", None)
+                    if item.spare_part
+                    else None
+                ),
                 "spare_part": {
                     "id": item.spare_part.id,
                     "honeywell_code": item.spare_part.honeywell_code,

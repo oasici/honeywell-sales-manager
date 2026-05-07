@@ -12,9 +12,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.approval import ApprovalRequest, ApprovalRule
 from app.models.enums import UserRole
+from app.models.opportunity import Opportunity
+from app.models.quote import Quote
+from app.models.user import User
 from app.services.notification_service import create_notification
+from app.services.tenant_context import assert_same_tenant
 
 logger = logging.getLogger(__name__)
+
+# R7-TEN-1 — ApprovalRequest itself has no tenant_id, so the tenant
+# guard has to reach through to the parent entity. Mirrors the map in
+# api/v1/approvals.py:_APPROVAL_ENTITY_MODELS but kept local here so
+# the service stays self-contained.
+_APPROVAL_PARENT_MODELS = {
+    "quote": Quote,
+    "opportunity": Opportunity,
+}
 
 OPERATOR_MAP = {
     "gt": gt,
@@ -162,6 +175,58 @@ class ApprovalService:
 
         return requests
 
+    async def _load_acting_user(self, user_id: int) -> User:
+        """Fetch the acting user. R7-TEN-1 — needed to enforce tenant
+        boundary on the parent entity before any state mutation."""
+        result = await self.db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if user is None:
+            raise NotFoundException("Onay talebi bulunamadi")
+        return user
+
+    async def _assert_request_actionable(
+        self, approval_request: ApprovalRequest, acting_user: User,
+    ) -> None:
+        """R7-TEN-1 — Reject cross-tenant approve/reject before mutating
+        state. Pre-fix, a tenant-A user could guess a tenant-B request id
+        and approve/reject it, triggering downstream invoice/contract
+        events on the foreign quote/opportunity. The cascade-reject path
+        was particularly dangerous (DoS).
+
+        Two checks:
+          1. Parent entity (quote/opportunity) must be in caller's tenant.
+             If the parent doesn't exist (legacy data or test fixtures
+             with phantom entity_ids), the check is skipped — the only
+             real attack vector is a *real* parent in a different tenant,
+             which ``assert_same_tenant`` rejects.
+          2. Caller must be the assigned approver OR have manager role.
+        """
+        parent_model = _APPROVAL_PARENT_MODELS.get(approval_request.entity_type)
+        if parent_model is not None:
+            parent_result = await self.db.execute(
+                select(parent_model).where(
+                    parent_model.id == approval_request.entity_id
+                )
+            )
+            parent = parent_result.scalar_one_or_none()
+            if parent is not None:
+                assert_same_tenant(
+                    parent, acting_user, exception_cls=NotFoundException
+                )
+
+        # Assigned-approver verification — managers can act as
+        # catch-all approvers (matches the self-approval bypass
+        # below). Skip when the caller is the original requester so
+        # the more-specific BadRequestException("onaylayamazsiniz")
+        # fires from the self-approval check downstream.
+        if (
+            approval_request.assigned_to is not None
+            and acting_user.id != approval_request.requested_by
+            and approval_request.assigned_to != acting_user.id
+            and acting_user.role != UserRole.SALES_MANAGER.value
+        ):
+            raise NotFoundException("Onay talebi bulunamadi")
+
     async def approve(
         self, request_id: int, user_id: int, comments: str = "",
     ) -> ApprovalRequest:
@@ -180,14 +245,13 @@ class ApprovalService:
                 f"Bu talep zaten islendi (durum: {approval_request.status})"
             )
 
+        # R7-TEN-1 — tenant + assigned-approver guard before any mutation.
+        acting_user = await self._load_acting_user(user_id)
+        await self._assert_request_actionable(approval_request, acting_user)
+
         # Self-approval prevention (sales_manager exempt)
         if approval_request.requested_by == user_id:
-            from app.models.user import User
-            user_result = await self.db.execute(
-                select(User).where(User.id == user_id)
-            )
-            user = user_result.scalar_one_or_none()
-            if not user or user.role != UserRole.SALES_MANAGER.value:
+            if acting_user.role != UserRole.SALES_MANAGER.value:
                 raise BadRequestException("Kendi talebinizi onaylayamazsiniz")
 
         approval_request.status = "approved"
@@ -232,6 +296,13 @@ class ApprovalService:
             raise BadRequestException(
                 f"Bu talep zaten islendi (durum: {approval_request.status})"
             )
+
+        # R7-TEN-1 — tenant + assigned-approver guard before any mutation.
+        # Cascade-reject path is especially dangerous; pre-fix a tenant-A
+        # user could mass-reject every pending request on a tenant-B
+        # entity.
+        acting_user = await self._load_acting_user(user_id)
+        await self._assert_request_actionable(approval_request, acting_user)
 
         now = datetime.now(timezone.utc)
 

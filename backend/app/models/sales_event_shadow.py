@@ -17,7 +17,8 @@ class SalesEventShadow(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Dedupe key across sources, e.g. shadow:activity_logs:42
-    source_ref: Mapped[str] = mapped_column(String(180), nullable=False, unique=True, index=True)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
+    source_ref: Mapped[str] = mapped_column(String(180), nullable=False, unique=True)
     provenance: Mapped[str] = mapped_column(String(40), nullable=False)
 
     account_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)

@@ -447,6 +447,11 @@ export default function OpportunityDetailPage() {
     close_date: '',
     status: '',
     loss_reason: '',
+    // R7-FORM-4 — pre-fix the inline edit dropped these two fields,
+    // so customer reassignment and the non-drag stage path were both
+    // unreachable from detail.
+    stage: '',
+    customer_id: '',
   });
 
   useEffect(() => {
@@ -458,6 +463,8 @@ export default function OpportunityDetailPage() {
         close_date: opp.close_date || '',
         status: opp.status || '',
         loss_reason: opp.loss_reason || '',
+        stage: opp.stage || '',
+        customer_id: opp.customer_id != null ? String(opp.customer_id) : '',
       });
     }
   }, [opp]);
@@ -471,6 +478,9 @@ export default function OpportunityDetailPage() {
         close_date: payload.close_date || null,
         status: payload.status || undefined,
         loss_reason: payload.loss_reason || null,
+        stage: payload.stage || undefined,
+        customer_id:
+          payload.customer_id.trim() === '' ? null : Number(payload.customer_id),
       };
       return opportunitiesApi.update(oppId, wire);
     },
@@ -550,6 +560,9 @@ export default function OpportunityDetailPage() {
                           close_date: opp.close_date || '',
                           status: opp.status || '',
                           loss_reason: opp.loss_reason || '',
+                          stage: opp.stage || '',
+                          customer_id:
+                            opp.customer_id != null ? String(opp.customer_id) : '',
                         });
                       }
                     }}
@@ -619,6 +632,55 @@ export default function OpportunityDetailPage() {
                     <option value="closed_lost">Kaybedildi</option>
                   </select>
                 </div>
+                {/* R7-FORM-4 — pre-fix the inline edit dropped stage and
+                    customer_id. The kanban drag-drop covers most stage
+                    moves, but a detail-page change without dragging back
+                    to the board was unreachable. Customer reassignment
+                    was completely impossible from the SPA. */}
+                <div>
+                  <label className="mb-1 block text-xs text-slate-500">Aşama</label>
+                  <select
+                    value={editForm.stage}
+                    onChange={(e) =>
+                      setEditForm((p) => ({ ...p, stage: e.target.value }))
+                    }
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                    style={{
+                      borderColor: 'var(--border)',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <option value="prospecting">Prospecting</option>
+                    <option value="qualified">Qualified</option>
+                    <option value="proposal">Proposal</option>
+                    <option value="negotiation">Negotiation</option>
+                    <option value="closed_won">Closed Won</option>
+                    <option value="closed_lost">Closed Lost</option>
+                  </select>
+                </div>
+                <Input
+                  label="Müşteri (ID)"
+                  type="number"
+                  min={1}
+                  value={editForm.customer_id}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, customer_id: e.target.value }))
+                  }
+                  placeholder={
+                    opp.customer
+                      ? `${opp.customer.name}${opp.customer.company ? ` · ${opp.customer.company}` : ''} (#${opp.customer_id ?? '?'})`
+                      : opp.customer_id != null
+                        ? `Mevcut: #${opp.customer_id}`
+                        : '—'
+                  }
+                />
+                {editForm.stage && editForm.stage !== opp.stage && (
+                  <p className="sm:col-span-2 text-[11px] text-amber-600 dark:text-amber-400">
+                    Uyarı: aşama değişikliği <code>previous_stage</code> alanını da
+                    günceller.
+                  </p>
+                )}
                 {editForm.status === 'closed_lost' && (
                   <div className="sm:col-span-2">
                     <Input

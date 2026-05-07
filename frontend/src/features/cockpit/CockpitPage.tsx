@@ -143,7 +143,16 @@ function KpiStrip({
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    // R7-RENDER-1 — pre-fix returned `null`, leaving a blank page when
+    // useQuery resolved with undefined data (rare but possible during
+    // cache eviction). Show a calm empty surface instead.
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+        Veri yok.
+      </div>
+    );
+  }
 
   // Linear/Stripe-style KPI tile: 11/600 uppercase eyebrow with icon, then a
   // big tabular-nums value (28/700). The 28px value is what makes the tile

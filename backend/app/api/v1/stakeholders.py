@@ -123,7 +123,18 @@ async def list_by_opportunity(
             .order_by(Stakeholder.seniority.desc().nullslast(), Stakeholder.name)
         )
     ).scalars().all()
-    return {"opportunity_id": opportunity_id, "stakeholders": [_serialize(s) for s in rows]}
+    items = [_serialize(s) for s in rows]
+    total = len(items)
+    # R7-API-4 — canonical pagination envelope; legacy keys retained.
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        "opportunity_id": opportunity_id,
+        "stakeholders": items,
+    }
 
 
 @router.get("/customer/{customer_id}")
@@ -142,7 +153,18 @@ async def list_by_customer(
             .order_by(Stakeholder.name)
         )
     ).scalars().all()
-    return {"customer_id": customer_id, "stakeholders": [_serialize(s) for s in rows]}
+    items = [_serialize(s) for s in rows]
+    total = len(items)
+    # R7-API-4 — canonical pagination envelope; legacy keys retained.
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        "customer_id": customer_id,
+        "stakeholders": items,
+    }
 
 
 @router.post("/", status_code=201)

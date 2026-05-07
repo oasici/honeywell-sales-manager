@@ -54,7 +54,16 @@ async def check_duplicates(
         email=payload.email,
         exclude_id=payload.exclude_id,
     )
-    return {"data": matches}
+    # R7-API-4 — canonical pagination envelope; ``data`` legacy.
+    total = len(matches)
+    return {
+        "items": matches,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        "data": matches,
+    }
 
 
 @router.post("/merge/preview")

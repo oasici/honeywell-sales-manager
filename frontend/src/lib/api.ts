@@ -2395,6 +2395,11 @@ export const subscriptionsApi = {
     const { data } = await api.post('/subscriptions/', payload);
     return data;
   },
+  // R7-FORM-2 — partial update endpoint added in the same fix.
+  update: async (id: number, payload: Record<string, unknown>) => {
+    const { data } = await api.patch(`/subscriptions/${id}`, payload);
+    return data;
+  },
   cancel: async (id: number) => {
     const { data } = await api.post(`/subscriptions/${id}/cancel`);
     return data;

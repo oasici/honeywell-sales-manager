@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { onLeadCreated } from '../../lib/cacheInvalidation';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -105,7 +106,9 @@ export default function LeadListPage() {
     mutationFn: (payload: typeof form) => leadsApi.create(payload),
     onSuccess: () => {
       toast.success(t('leads.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      // R7-CACHE-1 — pre-fix only invalidated ['leads']; the helper
+      // also touches dashboard / cockpit / lead-analytics rollups.
+      onLeadCreated(queryClient);
       setShowCreate(false);
       setForm({
         first_name: '',

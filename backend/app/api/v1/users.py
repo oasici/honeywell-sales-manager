@@ -5,7 +5,7 @@ import io
 import math
 
 from fastapi import APIRouter, Depends, Query, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field, ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +29,13 @@ class RoleUpdate(BaseModel):
 
 class PasswordResetRequest(BaseModel):
     new_password: str
+
+
+class _CsvRow(BaseModel):
+    """Per-row validator for the bulk user CSV import (R7-API-3)."""
+
+    email: EmailStr
+    full_name: str = Field(min_length=1)
 
 
 @router.get("/")
@@ -220,13 +227,19 @@ async def bulk_import_users(
         role = (row.get("role") or "").strip()
         password = (row.get("password") or "").strip()
 
-        # Validate row
-        if not email or "@" not in email:
-            errors.append({"row": row_num, "email": email, "error": "Gecersiz email"})
-            continue
-
-        if not full_name:
-            errors.append({"row": row_num, "email": email, "error": "Isim bos olamaz"})
+        # R7-API-3 — pre-fix the email check was just `"@" in email`,
+        # which let through malformed addresses (`a@`, `@b`, `a@b`, etc.)
+        # and exposed downstream callers to header-injection candidates.
+        # CLAUDE.md mandates EmailStr at User create paths.
+        try:
+            _CsvRow(email=email, full_name=full_name)
+        except ValidationError as exc:
+            first = exc.errors()[0] if exc.errors() else {"msg": "Gecersiz email"}
+            errors.append({
+                "row": row_num,
+                "email": email,
+                "error": str(first.get("msg") or "Gecersiz email"),
+            })
             continue
 
         if role not in VALID_ROLES:

@@ -15,8 +15,9 @@ class MeetingLink(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, index=True
     )
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
     slug: Mapped[str] = mapped_column(
-        String(50), unique=True, index=True, nullable=False
+        String(50), unique=True, nullable=False
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, default=30)

@@ -158,10 +158,11 @@ export default function CampaignListPage() {
   if (isError) {
     return (
       <div>
-        <PageHeader title="Kampanyalar" description="Kampanya yönetimi ve ROI takibi" />
+        {/* R7-I18N-1 — i18n keys now wired. */}
+        <PageHeader title={t('campaigns.title')} description={t('campaigns.desc')} />
         <div className="rounded-2xl border border-red-100 bg-red-50/40 p-8 text-center dark:border-red-900/40 dark:bg-red-950/20">
           <p className="text-[14px] font-medium text-red-700 dark:text-red-400">
-            Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.
+            {t('campaigns.error_loading')}
           </p>
         </div>
       </div>
@@ -183,10 +184,10 @@ export default function CampaignListPage() {
 
   return (
     <div>
-      <PageHeader title="Kampanyalar" description="Kampanya yönetimi ve ROI takibi">
+      <PageHeader title={t('campaigns.title')} description={t('campaigns.desc')}>
         <Button onClick={() => setIsCreateOpen(true)}>
           <Megaphone size={14} />
-          Yeni Kampanya
+          {t('campaigns.new')}
         </Button>
       </PageHeader>
 

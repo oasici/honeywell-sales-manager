@@ -13,8 +13,11 @@ from app.core.database import Base
 class DealRoom(Base):
     __tablename__ = "deal_rooms"
     __table_args__ = (
+        # R7-DB-1 — explicit ``Index("ix_deal_room_token", "external_token",
+        # unique=True)`` plus column-level ``unique=True`` on
+        # ``external_token`` produced two indexes covering the same column.
+        # Drop the explicit one; the column UNIQUE auto-creates the index.
         Index("ix_deal_room_opportunity", "opportunity_id"),
-        Index("ix_deal_room_token", "external_token", unique=True),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

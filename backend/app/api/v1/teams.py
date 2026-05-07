@@ -86,18 +86,27 @@ async def list_team_members(
     service = AccessService(db)
     members = await service.get_team_members(customer_id)
 
+    items = [
+        TeamMemberResponse(
+            id=m.id,
+            customer_id=m.customer_id,
+            user_id=m.user_id,
+            role=m.role,
+            user_email=m.user.email if m.user else None,
+            user_full_name=m.user.full_name if m.user else None,
+        )
+        for m in members
+    ]
+    total = len(items)
+    # R7-API-4 — canonical pagination envelope; ``data`` kept as legacy
+    # alias for SPA consumers mid-migration.
     return {
-        "data": [
-            TeamMemberResponse(
-                id=m.id,
-                customer_id=m.customer_id,
-                user_id=m.user_id,
-                role=m.role,
-                user_email=m.user.email if m.user else None,
-                user_full_name=m.user.full_name if m.user else None,
-            )
-            for m in members
-        ]
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        "data": items,
     }
 
 
@@ -192,8 +201,16 @@ async def list_sharing_rules(
     result = await db.execute(query)
     rules = result.scalars().all()
 
+    items = [SharingRuleResponse.model_validate(r) for r in rules]
+    total = len(items)
+    # R7-API-4 — canonical pagination envelope.
     return {
-        "data": [SharingRuleResponse.model_validate(r) for r in rules]
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        "data": items,
     }
 
 

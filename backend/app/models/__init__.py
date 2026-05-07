@@ -107,6 +107,17 @@ from app.models.v7_tenant import Tenant
 # ── V8 sequence text embedding ──
 from app.models.v8_text_embedding import OpportunityTextEmbedding
 
+# ── V12 transformer-based opportunity sequence embedding ──
+# R7-DB-2 — pre-fix this module was never imported here, so SQLAlchemy
+# `Base.metadata` never registered the `opportunity_transformer_seq_embeddings`
+# table. The bootstrap migration covered the table, but
+# `Base.metadata.create_all()` (tests + dev fallback) skipped it and
+# `schema_check.py` couldn't compare against it (it iterates
+# `base_metadata.sorted_tables`).
+from app.models.v12_transformer_seq_embedding import (
+    OpportunityTransformerSeqEmbedding,
+)
+
 # ── V9 V2/V3 gap closure ──
 from app.models.v9_crm_sync import (
     CrmConnection,
@@ -245,6 +256,8 @@ __all__ = [
     "Tenant",
     # V8
     "OpportunityTextEmbedding",
+    # V12
+    "OpportunityTransformerSeqEmbedding",
     # V9
     "CrmConnection",
     "CrmFieldMapping",

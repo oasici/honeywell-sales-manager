@@ -170,3 +170,93 @@ export function onActivityLogged(
   }
   qc.invalidateQueries({ queryKey: ['cockpit'] });
 }
+
+/**
+ * R7-CACHE-1 — Lead created from list / web-lead form / CSV import.
+ * Pre-fix LeadListPage.create only invalidated `['leads']`, missing
+ * the dashboard funnel + cockpit lead-source rollup that read from
+ * the same writes.
+ */
+export function onLeadCreated(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['leads'] });
+  qc.invalidateQueries({ queryKey: ['lead-analytics'] });
+  qc.invalidateQueries({ queryKey: ['dashboard'] });
+  qc.invalidateQueries({ queryKey: ['cockpit'] });
+  qc.invalidateQueries({ queryKey: ['notifications'] });
+}
+
+/**
+ * R7-CACHE-1 — Customer created. Touches the customer list, the
+ * high-intent pin list (new customer with high intent score lands
+ * directly), and the dashboard customer-count tile.
+ */
+export function onCustomerCreated(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['customers'] });
+  qc.invalidateQueries({ queryKey: ['high-intent-accounts'] });
+  qc.invalidateQueries({ queryKey: ['dashboard'] });
+  qc.invalidateQueries({ queryKey: ['notifications'] });
+}
+
+/**
+ * R7-CACHE-1 — Email parsed / re-parsed / reviewed. List view, the
+ * email's detail, and the matches sub-query all need to refresh.
+ */
+export function onEmailChanged(qc: QueryClient, emailId: number | null): void {
+  qc.invalidateQueries({ queryKey: ['emails'] });
+  if (emailId) {
+    qc.invalidateQueries({ queryKey: ['email', emailId] });
+    qc.invalidateQueries({ queryKey: ['email-matches', emailId] });
+  }
+  qc.invalidateQueries({ queryKey: ['notifications'] });
+}
+
+/**
+ * R7-CACHE-1 — Invoice created (especially via from-quote). Pre-fix
+ * the SPA only invalidated `['invoices']`. Customer detail's revenue
+ * tile + cockpit cash-flow rollup also read from invoice writes.
+ */
+export function onInvoiceCreated(
+  qc: QueryClient,
+  customerId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['invoices'] });
+  qc.invalidateQueries({ queryKey: ['rev-rec-schedules'] });
+  qc.invalidateQueries({ queryKey: ['cockpit'] });
+  qc.invalidateQueries({ queryKey: ['dashboard'] });
+  if (customerId) {
+    qc.invalidateQueries({ queryKey: ['customer', customerId] });
+    qc.invalidateQueries({ queryKey: ['account-360', customerId] });
+  }
+}
+
+/**
+ * R7-CACHE-1 — Subscription created or updated. Invalidates list,
+ * the renewals queue (a new sub may show up there shortly), and the
+ * MRR dashboard.
+ */
+export function onSubscriptionChanged(
+  qc: QueryClient,
+  subscriptionId: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['subscriptions'] });
+  if (subscriptionId) {
+    qc.invalidateQueries({ queryKey: ['subscriptions', String(subscriptionId)] });
+  }
+}
+
+/**
+ * R7-CACHE-1 — Campaign created/updated. Invalidates campaign list,
+ * the campaign's detail (members + ROI), and the dashboard tile.
+ */
+export function onCampaignChanged(
+  qc: QueryClient,
+  campaignId: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['campaigns'] });
+  if (campaignId) {
+    qc.invalidateQueries({ queryKey: ['campaign', campaignId] });
+    qc.invalidateQueries({ queryKey: ['campaign-roi', campaignId] });
+    qc.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
+  }
+  qc.invalidateQueries({ queryKey: ['dashboard'] });
+}

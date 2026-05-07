@@ -287,11 +287,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             )}
           </NavLink>
         )}
-        {/* R6-NAV-1 — /approvals/rules was routed but never linked. */}
+        {/* R6-NAV-1 — /approvals/rules was routed but never linked.
+            R7-I18N-2 — i18n key now wired. */}
         {userRole === 'sales_manager' && (
           <NavLink to="/approvals/rules" className={navLinkClass} onClick={onNavigate}>
             <Workflow size={18} className="shrink-0" />
-            Onay Kuralları
+            {t('nav.approval_rules')}
           </NavLink>
         )}
 
@@ -336,20 +337,22 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               <Brain size={18} className="shrink-0" />
               {t('nav.ai_assistant')}
             </NavLink>
-            {/* R6-NAV-1 — /ai/tasks routed but absent from sidebar. */}
+            {/* R6-NAV-1 — /ai/tasks routed but absent from sidebar.
+                R7-I18N-2 — i18n key now wired. */}
             <NavLink to="/ai/tasks" className={navLinkClass} onClick={onNavigate}>
               <ListChecks size={18} className="shrink-0" />
-              AI Görevleri
+              {t('nav.ai_tasks')}
             </NavLink>
             <NavLink to="/insights" className={navLinkClass} onClick={onNavigate}>
               <TrendingUp size={18} className="shrink-0" />
               {t('nav.insights')}
             </NavLink>
-            {/* R6-NAV-1 — Report Builder routed but never surfaced. */}
+            {/* R6-NAV-1 — Report Builder routed but never surfaced.
+                R7-I18N-2 — i18n key now wired. */}
             {userRole === 'sales_manager' && (
               <NavLink to="/reports/builder" className={navLinkClass} onClick={onNavigate}>
                 <BarChart3 size={18} className="shrink-0" />
-                Rapor Oluşturucu
+                {t('nav.report_builder')}
               </NavLink>
             )}
             <NavLink to="/email-templates" className={navLinkClass} onClick={onNavigate}>
@@ -374,11 +377,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                 were routed but never linked. */}
             <NavLink to="/playbooks/templates" className={navLinkClass} onClick={onNavigate}>
               <FileText size={18} className="shrink-0" />
-              Şablonlar
+              {t('nav.playbook_templates')}
             </NavLink>
             <NavLink to="/playbooks/analytics" className={navLinkClass} onClick={onNavigate}>
               <BarChart2 size={18} className="shrink-0" />
-              Playbook Analitiği
+              {t('nav.playbook_analytics')}
             </NavLink>
           </>
         )}
@@ -413,7 +416,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             {/* R6-NAV-1 — /engagement/scorecards routed but never linked. */}
             <NavLink to="/engagement/scorecards" className={navLinkClass} onClick={onNavigate}>
               <Trophy size={18} className="shrink-0" />
-              Etkileşim Skorları
+              {t('nav.scorecards')}
             </NavLink>
           </>
         )}
@@ -456,11 +459,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           <>
             <NavLink to="/compliance/retention" className={navLinkClass} onClick={onNavigate}>
               <Database size={18} className="shrink-0" />
-              Saklama Politikaları
+              {t('nav.retention')}
             </NavLink>
             <NavLink to="/compliance/breaches" className={navLinkClass} onClick={onNavigate}>
               <AlertTriangle size={18} className="shrink-0" />
-              İhlal Kayıtları
+              {t('nav.breaches')}
             </NavLink>
           </>
         )}
@@ -513,6 +516,22 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               <MessageSquare size={18} className="shrink-0" />
               {t('nav.live_chat')}
             </NavLink>
+            {/* R7-NAV-1 — /users was orphaned (managers had to type the
+                URL). Manager-only entry into the user-management surface. */}
+            {userRole === 'sales_manager' && (
+              <NavLink to="/users" className={navLinkClass} onClick={onNavigate}>
+                <UsersRound size={18} className="shrink-0" />
+                {t('nav.user_management')}
+              </NavLink>
+            )}
+            {/* R7-NAV-2 — /reports legacy ReportsPage lived without a
+                NavLink, only reachable by URL guess. */}
+            {userRole === 'sales_manager' && (
+              <NavLink to="/reports" className={navLinkClass} onClick={onNavigate}>
+                <FileText size={18} className="shrink-0" />
+                {t('nav.reports_legacy')}
+              </NavLink>
+            )}
             {canSeeAudit && (
               <>
                 <NavLink to="/audit" className={navLinkClass} onClick={onNavigate}>

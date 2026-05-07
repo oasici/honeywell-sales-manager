@@ -18,8 +18,9 @@ class SharedDocument(Base):
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     file_url: Mapped[str] = mapped_column(String(500), nullable=False)
     shared_with_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    # R7-DB-1 — UNIQUE auto-creates a btree index.
     tracking_token: Mapped[str] = mapped_column(
-        String(64), unique=True, index=True, nullable=False
+        String(64), unique=True, nullable=False
     )
     views_count: Mapped[int] = mapped_column(Integer, default=0)
     first_viewed_at: Mapped[datetime | None] = mapped_column(

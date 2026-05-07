@@ -68,15 +68,27 @@ async def get_health_overview(
         sum(r.score for r in reports) / len(reports), 1
     ) if reports else 0
 
+    items = [_report_to_dict(r) for r in reports]
+    total = len(items)
+    summary = {
+        "total_customers": total,
+        "healthy_count": healthy_count,
+        "at_risk_count": at_risk_count,
+        "churning_count": churning_count,
+        "average_score": avg_score,
+    }
+    # R7-API-4 — canonical pagination envelope (CLAUDE.md ban on
+    # ``{breaches: [], count: N}``-style envelopes applies here).
+    # ``customers`` and ``summary`` aliases are kept for the SPA.
     return {
-        "summary": {
-            "total_customers": len(reports),
-            "healthy_count": healthy_count,
-            "at_risk_count": at_risk_count,
-            "churning_count": churning_count,
-            "average_score": avg_score,
-        },
-        "customers": [_report_to_dict(r) for r in reports],
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        # Backwards-compatible keys for SPA consumers mid-migration.
+        "summary": summary,
+        "customers": items,
     }
 
 
@@ -91,13 +103,30 @@ async def get_at_risk_customers(
     try:
         service = CustomerHealthService(db)
         reports = await service.get_at_risk_customers(limit=limit)
+        items = [_report_to_dict(r) for r in reports]
+        total = len(items)
+        # R7-API-4 — canonical pagination envelope. ``count``/``customers``
+        # kept as legacy aliases for in-flight SPA consumers.
         return {
-            "count": len(reports),
-            "customers": [_report_to_dict(r) for r in reports],
+            "items": items,
+            "total": total,
+            "page": 1,
+            "page_size": total,
+            "pages": 1 if total > 0 else 0,
+            "count": total,
+            "customers": items,
         }
     except Exception as exc:
         logging.getLogger(__name__).error("At-risk customers failed: %s", exc)
-        return {"count": 0, "customers": []}
+        return {
+            "items": [],
+            "total": 0,
+            "page": 1,
+            "page_size": 0,
+            "pages": 0,
+            "count": 0,
+            "customers": [],
+        }
 
 
 @router.get("/{customer_id}")

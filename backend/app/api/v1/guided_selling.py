@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.core.exceptions import NotFoundException
@@ -15,11 +16,24 @@ from app.models.selling_guide import SellingGuide
 from app.models.user import User
 from app.services.guided_selling_service import GuidedSellingService
 
+
+def _require_guided_selling() -> None:
+    """R7-API-9 — gate the entire router on the FEATURE_GUIDED_SELLING
+    flag. CLAUDE.md ban: "never ship a frontend-only gate". Pre-fix the
+    flag was declared in config + checked inside one handler in
+    opportunities.py, but every other guided-selling endpoint was live
+    regardless of flag state.
+    """
+    if not settings.FEATURE_GUIDED_SELLING:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
 # R5-RL-8 — guided-selling wizard services may call Claude for product
 # recommendation narratives.
 router = APIRouter(
     tags=["Guided Selling (CPQ)"],
     dependencies=[
+        Depends(_require_guided_selling),
         Depends(enforce_tenant_ai_rate_limit),
         Depends(enforce_ai_rate_limit),
     ],
@@ -45,7 +59,15 @@ async def list_guides(
     """List all active selling guides."""
     service = GuidedSellingService(db)
     guides = await service.list_guides()
-    return {"guides": guides}
+    # R7-API-4 — canonical pagination envelope.
+    total = len(guides)
+    return {
+        "items": guides,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/guided-selling/", status_code=201)
