@@ -30,7 +30,12 @@ else:
     _is_local = (
         "localhost" in _db_url
         or "127.0.0.1" in _db_url
-        or "@db:" in _db_url  # docker-compose service name
+        # Round-9 — match every docker-compose db service variant
+        # (db, db-sandbox, db-test, etc.). Pre-fix only ``@db:`` was
+        # detected, so sandbox + test compose runs were being forced
+        # into TLS against an alpine Postgres with no cert.
+        or "@db:" in _db_url
+        or "@db-" in _db_url
     )
     if not _is_local:
         _connect_args["ssl"] = "require"
