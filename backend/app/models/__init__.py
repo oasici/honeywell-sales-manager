@@ -128,6 +128,10 @@ from app.models.v9_crm_sync import (
 from app.models.v9_calendar import CalendarConnection, MeetingAutoLink
 from app.models.v9_board_ux import PipelineReviewQueueEntry
 from app.models.v9_nl_search import EmailEmbedding, TranscriptEmbedding
+# v1.13 — plan-adoption primitives
+from app.models.decision_graph import DecisionNode, DecisionEdge
+from app.models.ai_attribute import AiAttributeDefinition, AiAttributeValue
+from app.models.relationship_graph import RelationshipEdge, RelationshipScore
 
 __all__ = [
     "EmailStatus",
@@ -268,4 +272,11 @@ __all__ = [
     "PipelineReviewQueueEntry",
     "EmailEmbedding",
     "TranscriptEmbedding",
+    # v1.13 plan-adoption primitives
+    "DecisionNode",
+    "DecisionEdge",
+    "AiAttributeDefinition",
+    "AiAttributeValue",
+    "RelationshipEdge",
+    "RelationshipScore",
 ]

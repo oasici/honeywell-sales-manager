@@ -49,6 +49,9 @@ import {
   History,
   Activity,
   ListTree,
+  LineChart,
+  Network as NetworkIcon,
+  Sparkles,
 } from 'lucide-react';
 import { approvalsApi } from '../../lib/api';
 
@@ -197,6 +200,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <NavLink to="/cockpit" className={navLinkClass} onClick={onNavigate}>
               <Radar size={18} className="shrink-0" />
               {t('nav.cockpit')}
+            </NavLink>
+            <NavLink to="/forecast" className={navLinkClass} onClick={onNavigate}>
+              <LineChart size={18} className="shrink-0" />
+              {t('nav.forecast')}
+            </NavLink>
+            <NavLink to="/network-intelligence" className={navLinkClass} onClick={onNavigate}>
+              <NetworkIcon size={18} className="shrink-0" />
+              {t('nav.network_intelligence')}
             </NavLink>
             <NavLink to="/board" className={navLinkClass} onClick={onNavigate}>
               <Kanban size={18} className="shrink-0" />
@@ -487,6 +498,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
             <NavLink to="/admin/custom-fields" className={navLinkClass} onClick={onNavigate}>
               <FormInput size={18} className="shrink-0" />
               {t('nav.custom_fields')}
+            </NavLink>
+            <NavLink to="/admin/ai-attributes" className={navLinkClass} onClick={onNavigate}>
+              <Sparkles size={18} className="shrink-0" />
+              {t('nav.ai_attributes')}
             </NavLink>
             <NavLink to="/admin/field-permissions" className={navLinkClass} onClick={onNavigate}>
               <KeyRound size={18} className="shrink-0" />

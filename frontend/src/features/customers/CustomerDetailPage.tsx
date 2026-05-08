@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { HealthScoreCard } from './HealthScoreCard';
+import RelationshipPanel from '../intelligence/RelationshipPanel';
 import AccountTeamPanel from './AccountTeamPanel';
 import CommentThread from '../board/CommentThread';
 import { SummarySourceLinks } from '../../components/ai/SummarySourceLinks';
@@ -785,6 +786,9 @@ export default function CustomerDetailPage() {
         ) : healthData ? (
           <HealthScoreCard health={healthData} />
         ) : null}
+
+        {/* v1.13 plan-adoption — relationship coverage on the account */}
+        <RelationshipPanel kind="account" entityId={customerId} />
 
         {/* Account 360 — Sprint 3 */}
         {account360Loading ? (

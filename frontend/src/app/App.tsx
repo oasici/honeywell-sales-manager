@@ -143,6 +143,13 @@ const AgentChatPage = lazy(() => import('../features/chat/AgentChatPage'));
 // Marketing landing page (public, no auth)
 const LandingPage = lazy(() => import('../features/landing/LandingPage'));
 
+// v1.13 plan-adoption pages
+const ForecastPage = lazy(() => import('../features/forecast/ForecastPage'));
+const NetworkInsightPage = lazy(
+  () => import('../features/intelligence/NetworkInsightPage'),
+);
+const AiAttributesPage = lazy(() => import('../features/admin/AiAttributesPage'));
+
 export default function App() {
   // Force a top-level rerender on language changes so non-hook consumers
   // (formatters, option lists, etc.) update consistently.
@@ -341,6 +348,37 @@ export default function App() {
             <Suspense fallback={<LoadingSpinner />}>
               <ErrorBoundary>
                 <ReportsPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        {/* v1.13 plan-adoption routes */}
+        <Route
+          path="forecast"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <ForecastPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="network-intelligence"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <NetworkInsightPage />
+              </ErrorBoundary>
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/ai-attributes"
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <AiAttributesPage />
               </ErrorBoundary>
             </Suspense>
           }

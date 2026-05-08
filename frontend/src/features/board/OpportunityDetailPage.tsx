@@ -39,6 +39,9 @@ import ActivityLogPanel from './ActivityLogPanel';
 import CommentThread from './CommentThread';
 import BuyerRelationshipMap from '../opportunities/BuyerRelationshipMap';
 import OpportunityIntelligencePanel from '../intelligence/OpportunityIntelligencePanel';
+import NbaTray from '../intelligence/NbaTray';
+import DecisionGraphPanel from '../intelligence/DecisionGraphPanel';
+import RelationshipPanel from '../intelligence/RelationshipPanel';
 import type {
   OpportunityEvent,
   ForecastAdjustment,
@@ -1006,6 +1009,15 @@ export default function OpportunityDetailPage() {
           sessionStorage. */}
       <div className="mt-6">
         <OpportunityIntelligencePanel opportunityId={oppId} />
+      </div>
+
+      {/* v1.13 plan-adoption — NBA + decision graph + relationship side-by-side */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <NbaTray opportunityId={oppId} />
+        <DecisionGraphPanel opportunityId={oppId} />
+      </div>
+      <div className="mt-6">
+        <RelationshipPanel kind="opportunity" entityId={oppId} allowRebuild />
       </div>
 
       {/* Deal Health Section */}

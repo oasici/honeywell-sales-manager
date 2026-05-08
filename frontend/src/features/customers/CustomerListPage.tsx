@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChevronDown, ExternalLink, FileText, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SavedViewsBar } from '../../components/ui/SavedViewsBar';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
@@ -466,6 +467,26 @@ export default function CustomerListPage() {
         </Button>
         <Button onClick={() => setModalOpen(true)}>{t('customers.new')}</Button>
       </PageHeader>
+
+      {/* S-E saved views — universal */}
+      <div className="mb-3">
+        <SavedViewsBar
+          route="/customers"
+          queryJson={JSON.stringify({ search, page })}
+          onApply={(view) => {
+            try {
+              const payload = JSON.parse(view.query_json) as {
+                search?: string;
+                page?: number;
+              };
+              if (typeof payload.search === 'string') setSearch(payload.search);
+              if (typeof payload.page === 'number') setPage(payload.page);
+            } catch {
+              /* ignore */
+            }
+          }}
+        />
+      </div>
 
       {/* Search + Select All */}
       <div className="mb-6 flex items-center gap-4">

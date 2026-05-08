@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { onLeadCreated } from '../../lib/cacheInvalidation';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SavedViewsBar } from '../../components/ui/SavedViewsBar';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
@@ -296,6 +297,28 @@ export default function LeadListPage() {
           {t('leads.new')}
         </Button>
       </PageHeader>
+
+      {/* S-E saved views — universal across list pages */}
+      <div className="mb-3">
+        <SavedViewsBar
+          route="/leads"
+          queryJson={JSON.stringify({ search, statusFilter, page })}
+          onApply={(view) => {
+            try {
+              const payload = JSON.parse(view.query_json) as {
+                search?: string;
+                statusFilter?: string;
+                page?: number;
+              };
+              if (typeof payload.search === 'string') setSearch(payload.search);
+              if (typeof payload.statusFilter === 'string') setStatusFilter(payload.statusFilter);
+              if (typeof payload.page === 'number') setPage(payload.page);
+            } catch {
+              /* ignore malformed view */
+            }
+          }}
+        />
+      </div>
 
       {/* Filter row — search input gets a leading icon adornment so the
           intent is unmistakable. Status select sits beside it; "Tümünü

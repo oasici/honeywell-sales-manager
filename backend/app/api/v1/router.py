@@ -72,6 +72,13 @@ from app.api.v1.prices import router as prices_router
 from app.api.v1.quotes import router as quotes_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.users import router as users_router
+# v1.13 plan-adoption routers
+from app.api.v1.momentum import router as momentum_router
+from app.api.v1.next_best_actions import router as next_best_actions_router
+from app.api.v1.network_intelligence import router as network_intelligence_router
+from app.api.v1.decision_graph import router as decision_graph_router
+from app.api.v1.ai_attributes import router as ai_attributes_router
+from app.api.v1.relationship_graph import router as relationship_graph_router
 
 v1_router = APIRouter()
 
@@ -147,3 +154,10 @@ v1_router.include_router(revenue_recognition_router)
 v1_router.include_router(chat_router)
 v1_router.include_router(pricing_router)
 v1_router.include_router(stakeholders_router)
+# v1.13 plan-adoption — primitives + façades
+v1_router.include_router(momentum_router)
+v1_router.include_router(next_best_actions_router)
+v1_router.include_router(network_intelligence_router)
+v1_router.include_router(decision_graph_router)
+v1_router.include_router(ai_attributes_router)
+v1_router.include_router(relationship_graph_router)

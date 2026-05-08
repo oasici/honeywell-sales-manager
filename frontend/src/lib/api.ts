@@ -3002,4 +3002,269 @@ export const v5IntelligenceApi = {
   },
 };
 
+// ── v1.13 plan-adoption surfaces ───────────────────────────────────────
+
+export const momentumApi = {
+  getCurrent: async (opportunityId: number) => {
+    const { data } = await api.get(`/momentum/${opportunityId}`);
+    return data as {
+      opportunity_id: number;
+      score: number | null;
+      band: string;
+      drivers: Array<{ label: string; impact: number; value: unknown }>;
+      snapshot_date: string | null;
+    };
+  },
+  getHistory: async (opportunityId: number, days = 30) => {
+    const { data } = await api.get(`/momentum/${opportunityId}/history`, {
+      params: { days },
+    });
+    return data as {
+      items: Array<{ snapshot_date: string; score: number | null; band: string }>;
+    };
+  },
+  getDistribution: async () => {
+    const { data } = await api.get('/momentum/distribution');
+    return data as {
+      snapshot_date: string;
+      bands: Array<{ band: string; count: number; amount: number }>;
+      avg_score: number | null;
+      total_deals: number;
+    };
+  },
+};
+
+export const nbaApi = {
+  list: async (opportunityId: number, includeDone = false) => {
+    const { data } = await api.get(`/next-best-actions/${opportunityId}`, {
+      params: { include_done: includeDone },
+    });
+    return data as {
+      items: Array<{
+        id: number;
+        title: string;
+        description: string | null;
+        status: string;
+        priority: string;
+        due_at: string | null;
+        created_at: string | null;
+      }>;
+    };
+  },
+  generate: async (opportunityId: number, maxActions = 5) => {
+    const { data } = await api.post(`/next-best-actions/${opportunityId}/generate`, {
+      max_actions: maxActions,
+    });
+    return data as { generated_at: string; items: Array<Record<string, unknown>> };
+  },
+  dismiss: async (opportunityId: number, taskId: number) => {
+    const { data } = await api.post(
+      `/next-best-actions/${opportunityId}/${taskId}/dismiss`,
+    );
+    return data;
+  },
+};
+
+export const networkIntelligenceApi = {
+  segments: async () => {
+    const { data } = await api.get('/network-intelligence/segments');
+    return data as { items: Array<{ segment_key: string; name: string; tenant_id: number | null }> };
+  },
+  overview: async (segmentKey?: string) => {
+    const { data } = await api.get('/network-intelligence/overview', {
+      params: segmentKey ? { segment_key: segmentKey } : undefined,
+    });
+    return data as {
+      segment_key: string;
+      snapshot_date: string | null;
+      sample_size?: number;
+      metrics: Array<{
+        key: string;
+        label: string;
+        tenant_value: number | null;
+        segment_value: number | null;
+        higher_is_better: boolean;
+        gap_pct: number | null;
+        verdict: string;
+      }>;
+    };
+  },
+  federated: async (benchmarkKey: string, includeSuppressed = false) => {
+    const { data } = await api.get(
+      `/network-intelligence/federated/${encodeURIComponent(benchmarkKey)}`,
+      { params: { include_suppressed: includeSuppressed } },
+    );
+    return data as { items: Array<Record<string, unknown>> };
+  },
+};
+
+export const decisionGraphApi = {
+  get: async (opportunityId: number) => {
+    const { data } = await api.get(`/decision-graph/${opportunityId}`);
+    return data as {
+      opportunity_id: number;
+      nodes: Array<{
+        id: number;
+        node_type: string;
+        label: string;
+        state: string;
+        owner_stakeholder_id: number | null;
+        blocker_reason: string | null;
+        completed_at: string | null;
+        updated_at: string | null;
+      }>;
+      edges: Array<{
+        id: number;
+        from_node_id: number;
+        to_node_id: number;
+        edge_type: string;
+        is_satisfied: boolean;
+      }>;
+      progress: { total: number; complete: number; ratio: number };
+    };
+  },
+  initialize: async (opportunityId: number) => {
+    const { data } = await api.post(`/decision-graph/${opportunityId}/initialize`);
+    return data;
+  },
+  patchNode: async (
+    opportunityId: number,
+    nodeId: number,
+    body: { state: string; blocker_reason?: string | null },
+  ) => {
+    const { data } = await api.patch(
+      `/decision-graph/${opportunityId}/nodes/${nodeId}`,
+      body,
+    );
+    return data;
+  },
+};
+
+export const aiAttributesApi = {
+  listDefinitions: async (entityType?: string, activeOnly = true) => {
+    const { data } = await api.get('/ai-attributes/definitions', {
+      params: { entity_type: entityType, active_only: activeOnly },
+    });
+    return data as {
+      items: Array<{
+        id: number;
+        entity_type: string;
+        key: string;
+        label: string;
+        description: string | null;
+        data_type: string;
+        prompt_template: string;
+        is_active: boolean;
+        refresh_hours: number;
+      }>;
+    };
+  },
+  createDefinition: async (body: {
+    entity_type: string;
+    key: string;
+    label: string;
+    description?: string | null;
+    data_type: string;
+    prompt_template: string;
+    refresh_hours?: number;
+  }) => {
+    const { data } = await api.post('/ai-attributes/definitions', body);
+    return data;
+  },
+  updateDefinition: async (
+    definitionId: number,
+    body: Partial<{
+      label: string;
+      description: string | null;
+      prompt_template: string;
+      is_active: boolean;
+      refresh_hours: number;
+    }>,
+  ) => {
+    const { data } = await api.patch(`/ai-attributes/definitions/${definitionId}`, body);
+    return data;
+  },
+  listValues: async (entityType: string, entityId: number) => {
+    const { data } = await api.get('/ai-attributes/values', {
+      params: { entity_type: entityType, entity_id: entityId },
+    });
+    return data as {
+      items: Array<{
+        id: number;
+        definition_id: number;
+        entity_type: string;
+        entity_id: number;
+        value: unknown;
+        confidence: number | null;
+        model_name: string | null;
+        generated_at: string | null;
+      }>;
+    };
+  },
+  generate: async (
+    definitionId: number,
+    body: { entity_id: number; context?: Record<string, string> },
+  ) => {
+    const { data } = await api.post(
+      `/ai-attributes/definitions/${definitionId}/generate`,
+      body,
+    );
+    return data;
+  },
+};
+
+export const relationshipsApi = {
+  edges: async (kind: string, entityId: number, limit = 100) => {
+    const { data } = await api.get(`/relationships/edges/${kind}/${entityId}`, {
+      params: { limit },
+    });
+    return data as {
+      items: Array<{
+        id: number;
+        from_kind: string;
+        from_id: number;
+        to_kind: string;
+        to_id: number;
+        relation_type: string | null;
+        strength: number;
+        interaction_count: number;
+        last_interaction_at: string | null;
+      }>;
+    };
+  },
+  score: async (kind: string, entityId: number) => {
+    const { data } = await api.get(`/relationships/score/${kind}/${entityId}`);
+    return data as {
+      target_kind: string;
+      target_id: number;
+      edge_count: number;
+      strongest_strength: number;
+      avg_strength: number;
+      coverage_score: number;
+      strongest_edge_id: number | null;
+    } | null;
+  },
+  strongest: async (kind: string, entityId: number, limit = 5) => {
+    const { data } = await api.get(`/relationships/strongest/${kind}/${entityId}`, {
+      params: { limit },
+    });
+    return data as {
+      items: Array<{
+        from_kind: string;
+        from_id: number;
+        to_kind: string;
+        to_id: number;
+        strength: number;
+        relation_type: string | null;
+      }>;
+    };
+  },
+  rebuildOpportunity: async (opportunityId: number) => {
+    const { data } = await api.post(
+      `/relationships/rebuild/opportunity/${opportunityId}`,
+    );
+    return data as { opportunity_id: number; edges_touched: number; stakeholders: number };
+  },
+};
+
 export default api;

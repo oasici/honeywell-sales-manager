@@ -5,6 +5,7 @@ import { Search, ShieldAlert, ArrowRight, Filter, RefreshCw, Plus } from 'lucide
 import { toast } from 'sonner';
 
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SavedViewsBar } from '../../components/ui/SavedViewsBar';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -168,6 +169,42 @@ export default function OpportunitiesHomePage() {
           </Button>
         </div>
       </PageHeader>
+
+      {/* S-E saved views — universal */}
+      <div className="mb-3">
+        <SavedViewsBar
+          route="/opportunities"
+          queryJson={JSON.stringify({ query, stage, limit })}
+          onApply={(view) => {
+            try {
+              const payload = JSON.parse(view.query_json) as {
+                query?: string;
+                stage?: string;
+                limit?: number;
+              };
+              const VALID_STAGES = [
+                'all',
+                'prospecting',
+                'qualified',
+                'proposal',
+                'negotiation',
+                'closed_won',
+                'closed_lost',
+              ] as const;
+              if (typeof payload.query === 'string') setQuery(payload.query);
+              if (
+                typeof payload.stage === 'string' &&
+                (VALID_STAGES as readonly string[]).includes(payload.stage)
+              ) {
+                setStage(payload.stage as StageFilter);
+              }
+              if (typeof payload.limit === 'number') setLimit(payload.limit);
+            } catch {
+              /* ignore malformed view */
+            }
+          }}
+        />
+      </div>
 
       {/* Top widgets */}
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">

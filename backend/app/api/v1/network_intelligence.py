@@ -1,0 +1,51 @@
+"""Network Intelligence API.
+
+Plan adoption — Phase 5 / Sprints 21-24 unified read façade.
+Composes existing benchmark services into manager-facing insight cards.
+"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.dependencies import get_current_user
+from app.models.user import User
+from app.services import network_intelligence_service
+
+router = APIRouter(prefix="/network-intelligence", tags=["Network Intelligence"])
+
+
+@router.get("/segments")
+async def list_segments(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    items = await network_intelligence_service.list_segments(db, current_user)
+    return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
+
+
+@router.get("/overview")
+async def get_overview(
+    segment_key: str | None = Query(None, description="Segment key (e.g. 'stage:qualified')"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Manager insight cards: tenant vs. segment median across the 5 key metrics."""
+    return await network_intelligence_service.get_segment_overview(
+        db, current_user, segment_key=segment_key
+    )
+
+
+@router.get("/federated/{benchmark_key}")
+async def get_federated(
+    benchmark_key: str,
+    include_suppressed: bool = Query(False),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    items = await network_intelligence_service.list_federated(
+        db, current_user, benchmark_key=benchmark_key, include_suppressed=include_suppressed
+    )
+    return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
