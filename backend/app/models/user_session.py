@@ -12,6 +12,8 @@ class UserSession(Base):
     __tablename__ = "user_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-8 R8-PII-1 — tenant_id backfilled from user.tenant_id.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, index=True,
     )

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Sparkles, Power } from 'lucide-react';
+import { Plus, Sparkles, Power, Eye, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -12,20 +12,15 @@ import { Modal } from '../../components/ui/Modal';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { aiAttributesApi } from '../../lib/api';
+import { onAiAttributeValueChanged } from '../../lib/cacheInvalidation';
+import { formatDateTime } from '../../lib/formatters';
 
 /**
  * S-H — AI attributes admin page.
  * Manages definition CRUD + on-demand generation preview.
  */
 
-const ENTITY_TYPES = [
-  'opportunity',
-  'customer',
-  'lead',
-  'account',
-  'quote',
-  'contract',
-] as const;
+const ENTITY_TYPES = ['opportunity', 'customer', 'lead', 'account', 'quote', 'contract'] as const;
 const DATA_TYPES = ['text', 'number', 'boolean', 'list_text'] as const;
 
 interface DefinitionFormState {
@@ -53,6 +48,10 @@ export default function AiAttributesPage() {
   const [filterEntity, setFilterEntity] = useState<string | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<DefinitionFormState>(EMPTY_FORM);
+  // Round-8 R8-DEAD-4 — admin-side preview: pick a definition + entity_id
+  // and trigger value generation to sanity-check prompt output.
+  const [previewDefId, setPreviewDefId] = useState<number | null>(null);
+  const [previewEntityId, setPreviewEntityId] = useState<string>('');
 
   const listQuery = useQuery({
     queryKey: ['ai-attributes', 'definitions', filterEntity ?? 'all'],
@@ -79,6 +78,36 @@ export default function AiAttributesPage() {
   });
 
   const items = listQuery.data?.items ?? [];
+  const previewDef = previewDefId != null ? items.find((d) => d.id === previewDefId) : undefined;
+
+  const previewQuery = useQuery({
+    queryKey: ['ai-attributes', 'preview', previewDefId, previewEntityId],
+    queryFn: async () => {
+      if (!previewDef || !previewEntityId) return null;
+      const result = await aiAttributesApi.listValues(
+        previewDef.entity_type,
+        Number(previewEntityId),
+      );
+      return result.items.find((v) => v.definition_id === previewDefId) ?? null;
+    },
+    enabled: previewDef != null && previewEntityId.trim() !== '',
+  });
+
+  const previewGenerateMutation = useMutation({
+    mutationFn: async (definitionId: number) => {
+      const def = items.find((d) => d.id === definitionId);
+      if (!def || !previewEntityId) throw new Error('Önce varlık ID gir');
+      return aiAttributesApi.generate(definitionId, { entity_id: Number(previewEntityId) });
+    },
+    onSuccess: () => {
+      toast.success('Önizleme değeri üretildi');
+      if (previewDef && previewEntityId) {
+        onAiAttributeValueChanged(qc, previewDef.entity_type, Number(previewEntityId));
+      }
+      qc.invalidateQueries({ queryKey: ['ai-attributes', 'preview'] });
+    },
+    onError: () => toast.error('Önizleme üretilemedi'),
+  });
 
   return (
     <div className="space-y-5">
@@ -155,12 +184,21 @@ export default function AiAttributesPage() {
                   <span>her {def.refresh_hours}s</span>
                 </div>
                 {def.description && (
-                  <p className="mt-2 text-caption text-slate-500 line-clamp-2">
-                    {def.description}
-                  </p>
+                  <p className="mt-2 text-caption text-slate-500 line-clamp-2">{def.description}</p>
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  onClick={() => {
+                    setPreviewDefId(def.id);
+                    setPreviewEntityId('');
+                  }}
+                  aria-label="Önizle"
+                >
+                  <Eye className="h-3 w-3" />
+                </Button>
                 <Button
                   variant="tertiary"
                   size="sm"
@@ -175,11 +213,7 @@ export default function AiAttributesPage() {
         ))}
       </div>
 
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Yeni AI özniteliği"
-      >
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Yeni AI özniteliği">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
@@ -253,9 +287,79 @@ export default function AiAttributesPage() {
               variant="primary"
               size="sm"
               onClick={() => createMutation.mutate(form)}
-              disabled={!form.key || !form.label || !form.prompt_template || createMutation.isPending}
+              disabled={
+                !form.key || !form.label || !form.prompt_template || createMutation.isPending
+              }
             >
               Oluştur
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Round-8 R8-DEAD-4 — value preview / debug surface. */}
+      <Modal
+        isOpen={previewDefId != null}
+        onClose={() => {
+          setPreviewDefId(null);
+          setPreviewEntityId('');
+        }}
+        title={previewDef ? `Önizleme — ${previewDef.label}` : 'Önizleme'}
+      >
+        <div className="space-y-3">
+          <Input
+            label={`Varlık ID (${previewDef?.entity_type ?? '...'})`}
+            type="number"
+            value={previewEntityId}
+            onChange={(e) => setPreviewEntityId(e.target.value)}
+            placeholder="örn. 42"
+          />
+
+          {previewQuery.data ? (
+            <Card className="bg-slate-50">
+              <p className="text-caption text-slate-500">Mevcut değer</p>
+              <p className="mt-1 break-words text-body-strong">
+                {String(previewQuery.data.value ?? '—')}
+              </p>
+              <div className="mt-2 flex items-center gap-2 text-caption text-slate-500">
+                {previewQuery.data.confidence != null && (
+                  <Badge variant="info">
+                    güven: {Math.round(previewQuery.data.confidence * 100)}%
+                  </Badge>
+                )}
+                {previewQuery.data.model_name && (
+                  <Badge variant="default">{previewQuery.data.model_name}</Badge>
+                )}
+                {previewQuery.data.generated_at && (
+                  <span>{formatDateTime(previewQuery.data.generated_at)}</span>
+                )}
+              </div>
+            </Card>
+          ) : previewEntityId && previewDef && !previewQuery.isLoading ? (
+            <p className="text-caption text-slate-500">Bu varlık için henüz değer yok.</p>
+          ) : null}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="tertiary"
+              size="sm"
+              onClick={() => {
+                setPreviewDefId(null);
+                setPreviewEntityId('');
+              }}
+            >
+              Kapat
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => previewDefId && previewGenerateMutation.mutate(previewDefId)}
+              disabled={!previewEntityId || previewGenerateMutation.isPending}
+            >
+              <RefreshCw
+                className={`mr-1 h-3 w-3 ${previewGenerateMutation.isPending ? 'animate-spin' : ''}`}
+              />
+              Şimdi üret
             </Button>
           </div>
         </div>

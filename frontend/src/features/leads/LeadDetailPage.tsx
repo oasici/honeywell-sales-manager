@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { onLeadConverted, onLeadScoreChanged } from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
+import AiAttributeValuesPanel from '../intelligence/AiAttributeValuesPanel';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -543,6 +544,11 @@ export default function LeadDetailPage() {
             </p>
           </Card>
         )}
+      </div>
+
+      {/* Round-8 R8-DEAD-2 — AI attribute values for this lead. */}
+      <div className="mt-6">
+        <AiAttributeValuesPanel entityType="lead" entityId={leadId} />
       </div>
 
       {/* Convert Modal */}

@@ -70,6 +70,9 @@ async def list_dashboards(
                 "widgets_json": d.widgets_json,
                 "is_default": d.is_default,
                 "created_at": d.created_at.isoformat() if d.created_at else None,
+                # Round-8 R8-CAST-2 — round-trip updated_at so the frontend
+                # can drop its `as unknown as { updated_at?: string }` cast.
+                "updated_at": d.updated_at.isoformat() if d.updated_at else None,
             }
             for d in dashboards
         ],

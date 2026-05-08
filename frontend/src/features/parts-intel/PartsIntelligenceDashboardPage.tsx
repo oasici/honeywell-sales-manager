@@ -128,13 +128,8 @@ function MarginHealthPanel() {
                 {r.honeywell_code ?? `#${r.spare_part_id}`}
               </Link>
               <div className="flex items-center gap-2 text-[11px] tabular-nums">
-                <span className="text-slate-500">
-                  taban %{(r.min_margin_pct ?? 0).toFixed(1)}
-                </span>
-                <Badge
-                  variant={r.severity === 'danger' ? 'danger' : 'warning'}
-                  size="sm"
-                >
+                <span className="text-slate-500">taban %{(r.min_margin_pct ?? 0).toFixed(1)}</span>
+                <Badge variant={r.severity === 'danger' ? 'danger' : 'warning'} size="sm">
                   %{(r.derived_margin_pct ?? 0).toFixed(1)}
                 </Badge>
               </div>
@@ -166,9 +161,7 @@ function InflationTaxPanel() {
       {q.isLoading ? (
         <Skeleton variant="card" />
       ) : !q.data || q.data.value === 0 ? (
-        <p className="text-[12px] text-slate-500">
-          Anlamlı fiyat sürüklenmesi tespit edilmedi.
-        </p>
+        <p className="text-[12px] text-slate-500">Anlamlı fiyat sürüklenmesi tespit edilmedi.</p>
       ) : (
         <>
           <p className="text-3xl font-bold tabular-nums text-slate-900 dark:text-white">
@@ -180,10 +173,7 @@ function InflationTaxPanel() {
           {q.data.drivers.length > 0 && (
             <ul className="mt-3 space-y-1">
               {q.data.drivers.slice(0, 5).map((d, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between text-[11px]"
-                >
+                <li key={i} className="flex items-center justify-between text-[11px]">
                   <span className="truncate text-slate-700 dark:text-slate-300">
                     {String(d.label ?? `Sürücü ${i + 1}`)}
                   </span>
@@ -234,10 +224,7 @@ function StalePricingPanel() {
               </Link>
               <div className="flex items-center gap-2 text-[11px]">
                 <span className="tabular-nums text-slate-500">{r.age_days}g</span>
-                <span
-                  className="text-[10px] uppercase text-slate-400"
-                  title={r.reason}
-                >
+                <span className="text-[10px] uppercase text-slate-400" title={r.reason}>
                   {r.reason === 'expired_valid_until'
                     ? 'süresi geçmiş'
                     : r.reason === 'no_price_entry'
@@ -507,14 +494,12 @@ export default function PartsIntelligenceDashboardPage() {
                   header: 'Eksik Alan',
                   render: (row) => {
                     const r = row as ObsolescenceRow;
-                    const v = (r as unknown as { missing_fields_count?: number })
-                      .missing_fields_count;
                     return (
                       <span
                         className="text-xs text-slate-600"
                         title="Hareketsizlik + fiyat yaşı + eksik alan + talep azalışı bileşik risk skorunu oluşturur"
                       >
-                        {v == null ? '—' : `${v} / 4`}
+                        {r.missing_fields_count == null ? '—' : `${r.missing_fields_count} / 4`}
                       </span>
                     );
                   },
@@ -524,11 +509,11 @@ export default function PartsIntelligenceDashboardPage() {
                   header: 'Talep Azalışı',
                   render: (row) => {
                     const r = row as ObsolescenceRow;
-                    const v = (r as unknown as { quote_freq_decay_pct?: number })
-                      .quote_freq_decay_pct;
                     return (
                       <span className="text-xs text-slate-600 tabular-nums">
-                        {v == null ? '—' : `%${v.toFixed(0)}`}
+                        {r.quote_freq_decay_pct == null
+                          ? '—'
+                          : `%${r.quote_freq_decay_pct.toFixed(0)}`}
                       </span>
                     );
                   },

@@ -42,6 +42,8 @@ import OpportunityIntelligencePanel from '../intelligence/OpportunityIntelligenc
 import NbaTray from '../intelligence/NbaTray';
 import DecisionGraphPanel from '../intelligence/DecisionGraphPanel';
 import RelationshipPanel from '../intelligence/RelationshipPanel';
+import MomentumPanel from '../intelligence/MomentumPanel';
+import AiAttributeValuesPanel from '../intelligence/AiAttributeValuesPanel';
 import type {
   OpportunityEvent,
   ForecastAdjustment,
@@ -455,6 +457,9 @@ export default function OpportunityDetailPage() {
     // unreachable from detail.
     stage: '',
     customer_id: '',
+    // Round-8 R8-FORM-1 — was rendered read-only in the detail view but
+    // missing from the edit form, so reps couldn't update commit category.
+    forecast_category: '',
   });
 
   useEffect(() => {
@@ -468,6 +473,7 @@ export default function OpportunityDetailPage() {
         loss_reason: opp.loss_reason || '',
         stage: opp.stage || '',
         customer_id: opp.customer_id != null ? String(opp.customer_id) : '',
+        forecast_category: opp.forecast_category || '',
       });
     }
   }, [opp]);
@@ -483,6 +489,7 @@ export default function OpportunityDetailPage() {
         loss_reason: payload.loss_reason || null,
         stage: payload.stage || undefined,
         customer_id: payload.customer_id.trim() === '' ? null : Number(payload.customer_id),
+        forecast_category: payload.forecast_category || null,
       };
       return opportunitiesApi.update(oppId, wire);
     },
@@ -564,6 +571,7 @@ export default function OpportunityDetailPage() {
                           loss_reason: opp.loss_reason || '',
                           stage: opp.stage || '',
                           customer_id: opp.customer_id != null ? String(opp.customer_id) : '',
+                          forecast_category: opp.forecast_category || '',
                         });
                       }
                     }}
@@ -672,6 +680,27 @@ export default function OpportunityDetailPage() {
                         : '—'
                   }
                 />
+                {/* Round-8 R8-FORM-1 — forecast_category was read-only;
+                    reps/managers can now update commit/best/pipeline. */}
+                <div>
+                  <label className="block text-caption text-slate-500 mb-1">
+                    Forecast kategorisi
+                  </label>
+                  <select
+                    value={editForm.forecast_category}
+                    onChange={(e) =>
+                      setEditForm((p) => ({ ...p, forecast_category: e.target.value }))
+                    }
+                    className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
+                  >
+                    <option value="">— seçiniz —</option>
+                    {FORECAST_CATEGORIES.map((cat) => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {editForm.stage && editForm.stage !== opp.stage && (
                   <p className="sm:col-span-2 text-[11px] text-amber-600 dark:text-amber-400">
                     Uyarı: aşama değişikliği <code>previous_stage</code> alanını da günceller.
@@ -1011,13 +1040,19 @@ export default function OpportunityDetailPage() {
         <OpportunityIntelligencePanel opportunityId={oppId} />
       </div>
 
-      {/* v1.13 plan-adoption — NBA + decision graph + relationship side-by-side */}
+      {/* v1.13 plan-adoption — NBA + decision graph side-by-side */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <NbaTray opportunityId={oppId} />
         <DecisionGraphPanel opportunityId={oppId} />
       </div>
-      <div className="mt-6">
+      {/* Round-8 R8-DEAD-1 — momentum + relationship coverage in a paired row. */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <MomentumPanel opportunityId={oppId} />
         <RelationshipPanel kind="opportunity" entityId={oppId} allowRebuild />
+      </div>
+      {/* Round-8 R8-DEAD-2 — surface persisted AI attribute values. */}
+      <div className="mt-6">
+        <AiAttributeValuesPanel entityType="opportunity" entityId={oppId} />
       </div>
 
       {/* Deal Health Section */}

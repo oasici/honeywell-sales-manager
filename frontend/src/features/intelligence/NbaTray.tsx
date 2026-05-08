@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { nbaApi } from '../../lib/api';
+import { formatDate } from '../../lib/formatters';
 
 /**
  * S-G — NBA tray.
@@ -45,6 +46,8 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['nba', opportunityId] });
     },
+    // Round-8 R8-CACHE-5 — surface failures so silent dismisses don't pile up.
+    onError: () => toast.error('Aksiyon kapatılamadı'),
   });
 
   const items = listQuery.data?.items ?? [];
@@ -113,7 +116,7 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
                 )}
                 {task.due_at && (
                   <p className="mt-1 text-caption text-slate-400">
-                    Vade: {new Date(task.due_at).toLocaleDateString()}
+                    Vade: {formatDate(task.due_at)}
                   </p>
                 )}
               </div>

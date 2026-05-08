@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import json
-
 import io
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse, StreamingResponse
@@ -89,6 +89,9 @@ class ReportTemplateResponse(BaseModel):
     is_system: bool
     created_by: int | None
     is_public: bool
+    # Round-8 R8-CAST-1 — round-trip last_run_at so the SavedReportsPage
+    # can drop its `as unknown as { last_run_at?: string }` cast.
+    last_run_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

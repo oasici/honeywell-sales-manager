@@ -14,6 +14,9 @@ class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    # Round-8 R8-PII-1 — tenant_id added; backfilled from
+    # opportunity_id → opportunities.tenant_id (or customer_id → customers.tenant_id).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     activity_type: Mapped[str] = mapped_column(
         String(30), nullable=False
     )  # email_received, email_parsed, quote_created, quote_approved, quote_sent,

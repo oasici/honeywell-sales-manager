@@ -58,3 +58,8 @@ class ReportTemplate(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+    # Round-8 R8-CAST-1 — set by the report runner each time the template
+    # is executed; surfaced as "Son çalıştırma" in SavedReportsPage.
+    last_run_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

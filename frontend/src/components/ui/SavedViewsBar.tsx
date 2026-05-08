@@ -86,11 +86,7 @@ export function SavedViewsBar({ route, queryJson, onApply }: SavedViewsBarProps)
         </span>
       ))}
 
-      <Modal
-        isOpen={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
-        title="Görünümü kaydet"
-      >
+      <Modal isOpen={showSaveModal} onClose={() => setShowSaveModal(false)} title="Görünümü kaydet">
         <div className="space-y-3">
           <Input
             label="İsim"

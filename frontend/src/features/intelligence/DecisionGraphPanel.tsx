@@ -15,6 +15,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { decisionGraphApi } from '../../lib/api';
+import { onDecisionGraphChanged } from '../../lib/cacheInvalidation';
 
 /**
  * S-C — decision graph viewer.
@@ -55,7 +56,7 @@ export function DecisionGraphPanel({ opportunityId }: DecisionGraphPanelProps) {
     mutationFn: () => decisionGraphApi.initialize(opportunityId),
     onSuccess: () => {
       toast.success('Karar grafı oluşturuldu');
-      qc.invalidateQueries({ queryKey: ['decision-graph', opportunityId] });
+      onDecisionGraphChanged(qc, opportunityId);
     },
     onError: () => toast.error('Graf oluşturulamadı'),
   });
@@ -64,7 +65,8 @@ export function DecisionGraphPanel({ opportunityId }: DecisionGraphPanelProps) {
     mutationFn: ({ nodeId, state }: { nodeId: number; state: string }) =>
       decisionGraphApi.patchNode(opportunityId, nodeId, { state }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['decision-graph', opportunityId] });
+      // Round-8 R8-CACHE-6 — fan out to deal-risk + decision-gap consumers.
+      onDecisionGraphChanged(qc, opportunityId);
     },
     onSettled: () => setActingNodeId(null),
   });
@@ -79,7 +81,9 @@ export function DecisionGraphPanel({ opportunityId }: DecisionGraphPanelProps) {
     );
   }
 
-  if (!graph || graph.nodes.length === 0) {
+  // Round-8 R8-EMPTY-1 — distinguish "graph never created" from
+  // "graph exists but is mid-initialization".
+  if (!graph) {
     return (
       <Card
         title="Karar süreci"
@@ -99,6 +103,18 @@ export function DecisionGraphPanel({ opportunityId }: DecisionGraphPanelProps) {
             <PlayCircle className="mr-1 h-3 w-3" />
             Varsayılan grafı oluştur
           </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  // Round-8 R8-EMPTY-1 — graph row exists but no nodes yet (in-flight init).
+  if (graph.nodes.length === 0) {
+    return (
+      <Card title="Karar süreci">
+        <div className="flex flex-col items-center gap-3 py-6">
+          <Skeleton className="h-3 w-32" />
+          <p className="text-caption text-slate-500">Grafı hazırlanıyor...</p>
         </div>
       </Card>
     );

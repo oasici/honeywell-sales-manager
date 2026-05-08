@@ -104,7 +104,8 @@ function TrendChart({ snapshots }: { snapshots: CoachingSnapshot[] }) {
   }
 
   const chartData = snapshots.map((snap) => ({
-    date: formatSnapshotDate(snap.created_at),
+    // Round-8 R8-TS-1 — created_at is now nullable across timestamp interfaces.
+    date: snap.created_at ? formatSnapshotDate(snap.created_at) : '—',
     score: snap.score,
   }));
 

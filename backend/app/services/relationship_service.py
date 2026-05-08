@@ -98,6 +98,48 @@ def _score_dict(s: RelationshipScore) -> dict[str, Any]:
     }
 
 
+async def _verify_endpoint_tenant(
+    db: AsyncSession, kind: str, entity_id: int, current_user: User
+) -> None:
+    """Round-8 R8-TEN-1 — when the endpoint is a CRM entity, load the
+    parent record and assert tenant. Cross-tenant lookups raise 404.
+    Graph endpoints whose parent isn't a tenant-scoped row (e.g. ``user``
+    is itself a tenant member) skip the check.
+    """
+    if kind == "opportunity":
+        opp = (
+            await db.execute(select(Opportunity).where(Opportunity.id == entity_id))
+        ).scalar_one_or_none()
+        if opp is None:
+            raise NotFoundException("Firsat bulunamadi")
+        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+    elif kind == "account":
+        from app.models.customer import Customer
+
+        cust = (
+            await db.execute(select(Customer).where(Customer.id == entity_id))
+        ).scalar_one_or_none()
+        if cust is None:
+            raise NotFoundException("Hesap bulunamadi")
+        assert_same_tenant(cust, current_user, exception_cls=NotFoundException)
+    elif kind == "stakeholder":
+        from app.models.sequence_v2 import Stakeholder
+
+        sh = (
+            await db.execute(select(Stakeholder).where(Stakeholder.id == entity_id))
+        ).scalar_one_or_none()
+        if sh is None:
+            raise NotFoundException("Paydas bulunamadi")
+        # Stakeholder doesn't carry tenant_id directly; verify through opp/customer.
+        if sh.opportunity_id is not None:
+            opp = (
+                await db.execute(select(Opportunity).where(Opportunity.id == sh.opportunity_id))
+            ).scalar_one_or_none()
+            if opp is None:
+                raise NotFoundException("Paydas bulunamadi")
+            assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+
+
 async def get_edges_for_endpoint(
     db: AsyncSession,
     *,
@@ -108,6 +150,8 @@ async def get_edges_for_endpoint(
 ) -> list[dict[str, Any]]:
     if kind not in ENDPOINT_KINDS:
         return []
+
+    await _verify_endpoint_tenant(db, kind, entity_id, current_user)
 
     stmt = (
         select(RelationshipEdge)
@@ -136,6 +180,9 @@ async def get_score_for_endpoint(
     entity_id: int,
     current_user: User,
 ) -> dict[str, Any] | None:
+    if kind not in ENDPOINT_KINDS:
+        return None
+    await _verify_endpoint_tenant(db, kind, entity_id, current_user)
     score = (
         await db.execute(
             select(RelationshipScore).where(
@@ -159,6 +206,9 @@ async def get_strongest_connections(
     current_user: User,
     limit: int = 5,
 ) -> list[dict[str, Any]]:
+    if target_kind not in ENDPOINT_KINDS:
+        return []
+    await _verify_endpoint_tenant(db, target_kind, target_id, current_user)
     edges = (
         await db.execute(
             select(RelationshipEdge)

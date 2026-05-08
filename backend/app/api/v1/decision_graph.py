@@ -6,16 +6,23 @@ process graph on top of the existing decision_gaps detector.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.services import decision_graph_service
 
 router = APIRouter(prefix="/decision-graph", tags=["Decision Graph"])
+
+
+def _require_decision_graph() -> None:
+    """Round-8 R8-FLAG-4 — paired feature gate."""
+    if not settings.FEATURE_DECISION_GRAPH:
+        raise HTTPException(status_code=404, detail="Not found")
 
 
 class NodeStatePatch(BaseModel):
@@ -28,6 +35,7 @@ async def get_graph(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_decision_graph),
 ):
     return await decision_graph_service.get_graph(db, opportunity_id, current_user)
 
@@ -37,6 +45,7 @@ async def initialize(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_decision_graph),
 ):
     return await decision_graph_service.initialize_default(db, opportunity_id, current_user)
 
@@ -48,6 +57,7 @@ async def patch_node(
     body: NodeStatePatch,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_decision_graph),
 ):
     return await decision_graph_service.update_node_state(
         db,

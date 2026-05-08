@@ -14,6 +14,8 @@ class CompetitorMention(Base):
     __tablename__ = "competitor_mentions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-8 R8-PII-1 — tenant_id backfilled from opportunity_id chain.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     competitor_name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     source_entity_type: Mapped[str] = mapped_column(
         String(30), nullable=False

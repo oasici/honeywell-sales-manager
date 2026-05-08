@@ -53,6 +53,7 @@ import {
 import { Badge } from '../../components/ui/Badge';
 import { HealthScoreCard } from './HealthScoreCard';
 import RelationshipPanel from '../intelligence/RelationshipPanel';
+import AiAttributeValuesPanel from '../intelligence/AiAttributeValuesPanel';
 import AccountTeamPanel from './AccountTeamPanel';
 import CommentThread from '../board/CommentThread';
 import { SummarySourceLinks } from '../../components/ai/SummarySourceLinks';
@@ -789,6 +790,9 @@ export default function CustomerDetailPage() {
 
         {/* v1.13 plan-adoption — relationship coverage on the account */}
         <RelationshipPanel kind="account" entityId={customerId} />
+
+        {/* Round-8 R8-DEAD-2 — surface AI attribute values for the customer. */}
+        <AiAttributeValuesPanel entityType="customer" entityId={customerId} />
 
         {/* Account 360 — Sprint 3 */}
         {account360Loading ? (

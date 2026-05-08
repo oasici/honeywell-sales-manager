@@ -417,6 +417,19 @@ class Settings(BaseSettings):
     # Required by: forecast predictions, win probability scoring
     FEATURE_AI_PREDICTIONS: bool = False
 
+    # ── Round-8 plan-adoption feature flags ──
+    # Depends on: nightly feature_store_builder
+    # Required by: /network-intelligence pages + cockpit benchmark cards
+    FEATURE_NETWORK_INTELLIGENCE: bool = True
+
+    # Depends on: ANTHROPIC_API_KEY (offline placeholder when unset)
+    # Required by: /admin/ai-attributes + AiAttributeValuesPanel
+    FEATURE_AI_ATTRIBUTES: bool = True
+
+    # Depends on: stakeholders + decision_gap_service
+    # Required by: /decision-graph routes + DecisionGraphPanel on opportunity detail
+    FEATURE_DECISION_GRAPH: bool = True
+
     # --- Lead & Deal Management ---
     # Depends on: DATABASE_URL
     # Required by: lead status transitions, lifecycle stage tracking

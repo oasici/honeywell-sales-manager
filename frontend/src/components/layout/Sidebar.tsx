@@ -201,14 +201,21 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
               <Radar size={18} className="shrink-0" />
               {t('nav.cockpit')}
             </NavLink>
-            <NavLink to="/forecast" className={navLinkClass} onClick={onNavigate}>
-              <LineChart size={18} className="shrink-0" />
-              {t('nav.forecast')}
-            </NavLink>
-            <NavLink to="/network-intelligence" className={navLinkClass} onClick={onNavigate}>
-              <NetworkIcon size={18} className="shrink-0" />
-              {t('nav.network_intelligence')}
-            </NavLink>
+            {/* Round-8 R8-NAV-1/2 — manager-only views. Forecast endpoints
+                require SALES_MANAGER role; network intelligence is restricted
+                to managers per the page docstring. */}
+            {userRole === 'sales_manager' && (
+              <>
+                <NavLink to="/forecast" className={navLinkClass} onClick={onNavigate}>
+                  <LineChart size={18} className="shrink-0" />
+                  {t('nav.forecast')}
+                </NavLink>
+                <NavLink to="/network-intelligence" className={navLinkClass} onClick={onNavigate}>
+                  <NetworkIcon size={18} className="shrink-0" />
+                  {t('nav.network_intelligence')}
+                </NavLink>
+              </>
+            )}
             <NavLink to="/board" className={navLinkClass} onClick={onNavigate}>
               <Kanban size={18} className="shrink-0" />
               {t('nav.board')}

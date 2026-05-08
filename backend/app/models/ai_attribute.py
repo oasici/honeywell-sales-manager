@@ -54,10 +54,17 @@ class AiAttributeDefinition(Base):
     key: Mapped[str] = mapped_column(String(80), nullable=False)
     label: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    data_type: Mapped[str] = mapped_column(String(20), nullable=False, default="text")
+    # Round-8 R8-DB-2 — server_default for create_all()/bootstrap parity.
+    data_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="text", server_default="text"
+    )
     prompt_template: Mapped[str] = mapped_column(Text, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    refresh_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=24)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    refresh_hours: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=24, server_default="24"
+    )
     created_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True
     )

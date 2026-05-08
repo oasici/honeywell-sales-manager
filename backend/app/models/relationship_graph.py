@@ -65,14 +65,19 @@ class RelationshipEdge(Base):
     # The role this edge plays — champion, sponsor, decision_maker, etc.
     # Free-form so the service can experiment without migrations.
     relation_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
-    # 0..100 normalized strength. Higher = closer connection.
-    strength: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    # Counts feeding the strength score; useful for explainability.
-    interaction_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Round-8 R8-DB-2 — server_default for create_all()/bootstrap parity.
+    strength: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0, server_default="0"
+    )
+    interaction_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     last_interaction_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    source: Mapped[str] = mapped_column(String(20), nullable=False, default="derived")
+    source: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="derived", server_default="derived"
+    )
     metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -110,10 +115,19 @@ class RelationshipScore(Base):
     target_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Aggregate metrics across edges with this target endpoint.
-    edge_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    strongest_strength: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    avg_strength: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    coverage_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    # Round-8 R8-DB-2 — server_default propagated for bootstrap parity.
+    edge_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    strongest_strength: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0, server_default="0"
+    )
+    avg_strength: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0, server_default="0"
+    )
+    coverage_score: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0, server_default="0"
+    )
     # The single best edge id, denormalized for fast lookups.
     strongest_edge_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("relationship_edges.id"), nullable=True

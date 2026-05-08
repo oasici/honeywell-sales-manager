@@ -30,7 +30,9 @@ export interface Customer {
   address: string;
   tax_id: string;
   preferred_lang: string;
-  created_at: string;
+  /** Round-8 R8-TS-1 — backend emits ``isoformat() if x else None``;
+   * legacy rows without a created_at can still arrive. */
+  created_at: string | null;
   /** Owner — round-tripped by the API but missing from TS pre-audit (TS-3). */
   created_by?: number;
   /** Last-update timestamp — needed to render "updated X ago" labels. */
@@ -371,7 +373,7 @@ export interface Notification {
   is_read: boolean;
   entity_type?: string | null;
   entity_id?: number | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 // ── Dashboard / Analytics ────────────────────────────
@@ -678,7 +680,7 @@ export interface ActivityLogEntry {
   entity_type: string;
   entity_id: number;
   summary: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 // ── Approval Routing ──
@@ -826,6 +828,8 @@ export interface ReportTemplate {
   is_system: boolean;
   created_by: number | null;
   is_public: boolean;
+  // Round-8 R8-CAST-1 — set by the report runner; surfaced in SavedReportsPage.
+  last_run_at?: string | null;
 }
 
 // ── Revenue Cockpit ──────────────────────────────────
@@ -841,7 +845,7 @@ export interface RevenueSignalItem {
   confidence: number;
   recommended_action: string | null;
   is_resolved: boolean;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface CockpitKpis {
@@ -868,7 +872,7 @@ export interface CockpitAction {
   opportunity_id: number | null;
   owner_id: number | null;
   due_at: string | null;
-  created_at: string;
+  created_at: string | null;
   rotting_days?: number;
   last_activity_at?: string | null;
   open_tasks_count?: number;
@@ -948,7 +952,7 @@ export interface AiTask {
   status: string;
   source: string;
   priority: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface AiSummarySource {
@@ -1008,6 +1012,8 @@ export interface DashboardConfig {
   widgets_json: string;
   is_default: boolean;
   created_at: string | null;
+  // Round-8 R8-CAST-2 — round-tripped by the dashboard_builder router.
+  updated_at?: string | null;
 }
 
 export interface DashboardWidget {
@@ -1039,7 +1045,7 @@ export interface Playbook {
   category: string | null;
   is_active: boolean;
   created_by: number | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface PlaybookExecution {
@@ -1088,14 +1094,14 @@ export interface CoachingPlan {
   weeks: number;
   start_date: string | null;
   status: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface CoachingSnapshot {
   id: number;
   score: number;
   indicators_json: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface CoachingBenchmark {
@@ -1120,7 +1126,7 @@ export interface Transcript {
   summary: string | null;
   action_items_json: string | null;
   sentiment: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface KeywordPack {
@@ -1140,7 +1146,7 @@ export interface Sequence {
   // returns it; downstream parses it as a list. Made optional and
   // accept either shape.
   auto_enroll_rules?: Record<string, unknown> | unknown[] | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface SequenceEnrollment {
@@ -1215,7 +1221,7 @@ export interface Segment {
   description: string | null;
   rules: Record<string, unknown>[];
   customer_count: number;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface EngagementScorecard {
@@ -1466,8 +1472,8 @@ export interface Comment {
   body: string;
   mentions_json: string | null;
   parent_id: number | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   user?: { id: number; full_name: string };
   replies?: Comment[];
 }
@@ -1486,7 +1492,7 @@ export interface ActivityLogFull {
   outcome: string | null;
   attendees_json: string | null;
   agenda: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface ActivityMetrics {
@@ -1924,7 +1930,7 @@ export interface SignatureRequest {
   signed_at?: string;
   viewed_at?: string;
   expires_at: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface ContractAmendment {
@@ -1999,7 +2005,7 @@ export interface TerritoryAssignment {
   territory_id: number;
   user_id: number;
   role: string;
-  created_at: string;
+  created_at: string | null;
   user?: { id: number; full_name: string; email: string };
 }
 
@@ -2073,7 +2079,7 @@ export interface RevenueSchedule {
   total_amount: number;
   recognized_amount: number;
   currency: string;
-  created_at: string;
+  created_at: string | null;
   contract?: { id: number; title: string };
   entries?: RevenueScheduleEntry[];
 }
@@ -2095,7 +2101,7 @@ export interface ChatSession {
   assigned_agent_id?: number;
   status: string;
   metadata_json?: string;
-  created_at: string;
+  created_at: string | null;
   agent?: { id: number; full_name: string };
   unread_count?: number;
 }
@@ -2108,7 +2114,7 @@ export interface ChatMessage {
   content: string;
   message_type: string;
   is_read: boolean;
-  created_at: string;
+  created_at: string | null;
 }
 
 // Re-export so consumers can import from the canonical types module

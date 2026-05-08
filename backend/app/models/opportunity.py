@@ -105,6 +105,8 @@ class OpportunitySignal(Base):
     __tablename__ = "opportunity_signals"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-8 R8-PII-1 — tenant_id backfilled from opportunity.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False, index=True
     )
@@ -127,6 +129,8 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-8 R8-PII-1 — tenant_id backfilled from owner.tenant_id (or opportunity).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     opportunity_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=True, index=True

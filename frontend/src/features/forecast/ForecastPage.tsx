@@ -62,10 +62,7 @@ export default function ForecastPage() {
           legacy_weighted: number;
           hybrid_weighted: number;
         }>;
-        by_confidence: Record<
-          string,
-          { count: number; amount: number; hybrid_weighted: number }
-        >;
+        by_confidence: Record<string, { count: number; amount: number; hybrid_weighted: number }>;
       }
     | undefined;
 
@@ -100,10 +97,7 @@ export default function ForecastPage() {
     | undefined;
 
   const isLoading =
-    hybridQuery.isLoading ||
-    wowQuery.isLoading ||
-    accuracyQuery.isLoading ||
-    teamQuery.isLoading;
+    hybridQuery.isLoading || wowQuery.isLoading || accuracyQuery.isLoading || teamQuery.isLoading;
 
   const commit = hybrid?.hybrid_weighted_total ?? 0;
   const legacy = hybrid?.legacy_weighted_total ?? 0;
@@ -144,9 +138,7 @@ export default function ForecastPage() {
               <Activity className="h-4 w-4 text-slate-400" />
             </div>
             <div className="mt-2 text-heading-2 tabular-nums">{formatCurrency(legacy)}</div>
-            <div className="mt-1 text-caption text-slate-400">
-              Eski stage-probability ağırlıklı
-            </div>
+            <div className="mt-1 text-caption text-slate-400">Eski stage-probability ağırlıklı</div>
           </Card>
           <Card>
             <div className="flex items-center justify-between">
@@ -170,9 +162,7 @@ export default function ForecastPage() {
       {wow && wow.weeks.length > 0 && (
         <Card title="Hafta-üzeri-hafta hareket" description="Pipeline toplamı">
           <div className="mt-4 flex items-center gap-4">
-            <div className="text-heading-3 tabular-nums">
-              {formatCurrency(wow.current_total)}
-            </div>
+            <div className="text-heading-3 tabular-nums">{formatCurrency(wow.current_total)}</div>
             <Badge variant={wow.delta >= 0 ? 'success' : 'danger'}>
               {wow.delta >= 0 ? '+' : ''}
               {formatCurrency(wow.delta)} ({wow.delta_pct.toFixed(1)}%)
@@ -199,10 +189,7 @@ export default function ForecastPage() {
       )}
 
       {hybrid && hybrid.by_stage.length > 0 && (
-        <Card
-          title="Stage-üzeri kırılım"
-          description="Legacy ağırlıklı vs. predictive ağırlıklı"
-        >
+        <Card title="Stage-üzeri kırılım" description="Legacy ağırlıklı vs. predictive ağırlıklı">
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={hybrid.by_stage}>
@@ -211,7 +198,11 @@ export default function ForecastPage() {
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatCurrency(v as number)} />
                 <Tooltip formatter={(v) => formatCurrency(Number(v ?? 0))} />
                 <Bar dataKey="legacy_weighted" fill="var(--color-honeywell-light)" name="Legacy" />
-                <Bar dataKey="hybrid_weighted" fill="var(--color-honeywell-red)" name="Predictive" />
+                <Bar
+                  dataKey="hybrid_weighted"
+                  fill="var(--color-honeywell-red)"
+                  name="Predictive"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -238,7 +229,9 @@ export default function ForecastPage() {
               <tbody>
                 {accuracy.per_rep.map((row) => (
                   <tr key={row.user_id} className="border-b border-slate-100">
-                    <td className="px-3 py-2 text-slate-700">{row.user_name || `User ${row.user_id}`}</td>
+                    <td className="px-3 py-2 text-slate-700">
+                      {row.user_name || `User ${row.user_id}`}
+                    </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {formatCurrency(row.forecast)}
                     </td>
@@ -246,7 +239,11 @@ export default function ForecastPage() {
                       {formatCurrency(row.actual)}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <Badge variant={row.accuracy >= 80 ? 'success' : row.accuracy >= 60 ? 'warning' : 'danger'}>
+                      <Badge
+                        variant={
+                          row.accuracy >= 80 ? 'success' : row.accuracy >= 60 ? 'warning' : 'danger'
+                        }
+                      >
                         {row.accuracy.toFixed(1)}%
                       </Badge>
                     </td>
@@ -272,8 +269,12 @@ export default function ForecastPage() {
               {team.reps.map((row) => (
                 <tr key={row.rep_id} className="border-b border-slate-100">
                   <td className="px-3 py-2 text-slate-700">{row.rep_name}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(row.pipeline)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(row.weighted)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {formatCurrency(row.pipeline)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {formatCurrency(row.weighted)}
+                  </td>
                 </tr>
               ))}
             </tbody>

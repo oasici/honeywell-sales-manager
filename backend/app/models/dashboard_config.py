@@ -25,3 +25,11 @@ class DashboardConfig(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    # Round-8 R8-CAST-2 — exposed in the dashboard list UI; column was
+    # missing pre-audit and the frontend was reading it via `as unknown as`.
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=True,
+    )

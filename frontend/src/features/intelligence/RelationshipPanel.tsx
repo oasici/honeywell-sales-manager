@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { relationshipsApi } from '../../lib/api';
+import { onRelationshipsRebuilt } from '../../lib/cacheInvalidation';
 
 /**
  * S-B — relationship panel.
@@ -51,8 +52,13 @@ export function RelationshipPanel({
     mutationFn: () => relationshipsApi.rebuildOpportunity(entityId),
     onSuccess: (data) => {
       toast.success(`${data.edges_touched} ilişki güncellendi`);
-      qc.invalidateQueries({ queryKey: ['relationship-score', kind, entityId] });
-      qc.invalidateQueries({ queryKey: ['relationship-strongest', kind, entityId] });
+      // Round-8 R8-CACHE-7 — fan out to coverage-driven cards.
+      if (kind === 'opportunity') {
+        onRelationshipsRebuilt(qc, entityId);
+      } else {
+        qc.invalidateQueries({ queryKey: ['relationship-score', kind, entityId] });
+        qc.invalidateQueries({ queryKey: ['relationship-strongest', kind, entityId] });
+      }
     },
     onError: () => toast.error('İlişki grafı yeniden oluşturulamadı'),
   });

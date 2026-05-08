@@ -86,6 +86,8 @@ class Stakeholder(Base):
     __tablename__ = "stakeholders"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-8 R8-PII-1 — tenant_id backfilled from opportunity_id/customer_id chain.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     opportunity_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=True, index=True
     )

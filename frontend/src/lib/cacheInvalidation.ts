@@ -24,6 +24,8 @@ import type { QueryClient } from '@tanstack/react-query';
 export function onOpportunityChanged(qc: QueryClient, opportunityId: number): void {
   qc.invalidateQueries({ queryKey: ['opportunity', opportunityId] });
   qc.invalidateQueries({ queryKey: ['opportunities'] });
+  // Round-8 R8-CACHE-4 — OpportunitiesHomePage uses its own list key.
+  qc.invalidateQueries({ queryKey: ['opportunities-home'] });
   qc.invalidateQueries({ queryKey: ['board'] });
   qc.invalidateQueries({ queryKey: ['kanban'] });
   qc.invalidateQueries({ queryKey: ['opportunity-timeline', opportunityId] });
@@ -32,8 +34,13 @@ export function onOpportunityChanged(qc: QueryClient, opportunityId: number): vo
   qc.invalidateQueries({ queryKey: ['ai-opp-summary', opportunityId] });
   qc.invalidateQueries({ queryKey: ['v4-opp-features-latest', opportunityId] });
   qc.invalidateQueries({ queryKey: ['decision-gaps', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['decision-graph', opportunityId] });
   qc.invalidateQueries({ queryKey: ['benchmarks-gap', opportunityId] });
   qc.invalidateQueries({ queryKey: ['forecast-adjustments', opportunityId] });
+  // Round-8 R8-CACHE-4 — week-over-week pipeline rollup keyed off active deals.
+  qc.invalidateQueries({ queryKey: ['forecast-wow'] });
+  // Round-8 — NBA tray reads task list keyed by opportunity id.
+  qc.invalidateQueries({ queryKey: ['nba', opportunityId] });
   qc.invalidateQueries({ queryKey: ['cockpit'] });
   qc.invalidateQueries({ queryKey: ['dashboard'] });
 }
@@ -250,4 +257,49 @@ export function onCampaignChanged(qc: QueryClient, campaignId: number | null): v
     qc.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
   }
   qc.invalidateQueries({ queryKey: ['dashboard'] });
+}
+
+/**
+ * Round-8 — AI attribute definition created/toggled/updated. Invalidates
+ * the definition list (filtered + unfiltered variants via prefix match).
+ */
+export function onAiAttributeDefinitionChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['ai-attributes', 'definitions'] });
+}
+
+/**
+ * Round-8 — AI attribute value generated/updated for a given entity.
+ * Invalidates the values list keyed by ``(entity_type, entity_id)``.
+ */
+export function onAiAttributeValueChanged(
+  qc: QueryClient,
+  entityType: string,
+  entityId: number,
+): void {
+  qc.invalidateQueries({ queryKey: ['ai-attributes', 'values', entityType, entityId] });
+}
+
+/**
+ * Round-8 — Decision graph mutated (initialize/patch). The graph itself
+ * re-renders via the dedicated key; downstream cards consuming process
+ * completion (gaps, deal-risk) also refresh.
+ */
+export function onDecisionGraphChanged(qc: QueryClient, opportunityId: number): void {
+  qc.invalidateQueries({ queryKey: ['decision-graph', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['decision-gaps', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['ai-deal-risk', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['opportunity-intelligence', opportunityId] });
+}
+
+/**
+ * Round-8 — Relationship graph rebuilt for an opportunity. Cascades into
+ * coverage-driven cards (decision gaps, stakeholder alerts, deal risk).
+ */
+export function onRelationshipsRebuilt(qc: QueryClient, opportunityId: number): void {
+  qc.invalidateQueries({ queryKey: ['relationship-score', 'opportunity', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['relationship-strongest', 'opportunity', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['relationship-edges', 'opportunity', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['decision-gaps', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['stakeholder-alerts', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['ai-deal-risk', opportunityId] });
 }

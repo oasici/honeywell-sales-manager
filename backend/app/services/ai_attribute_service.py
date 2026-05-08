@@ -258,12 +258,20 @@ async def _run_generation(
     context: dict[str, Any],
 ) -> str:
     """Hand the prompt to Claude. Falls back to a placeholder when the
-    API key is unset (development / CI / offline)."""
+    API key is unset (development / CI / offline).
+
+    Round-8 R8-SEC-1 — context values pass through PII redaction before
+    they reach the LLM. The patterns mask emails and phone-shaped strings
+    so accidental customer PII does not leak across the trust boundary.
+    """
+    from app.services.pii_utils import redact_context
+
     rendered_prompt = definition.prompt_template
     rendered_prompt = rendered_prompt.replace("{{entity_id}}", str(entity_id))
     if context:
+        safe_context = redact_context(context)
         rendered_prompt += "\n\nKullanılabilir bağlam:\n" + json.dumps(
-            context, ensure_ascii=False
+            safe_context, ensure_ascii=False
         )
 
     if not settings.ANTHROPIC_API_KEY:

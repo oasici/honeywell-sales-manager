@@ -3058,9 +3058,7 @@ export const nbaApi = {
     return data as { generated_at: string; items: Array<Record<string, unknown>> };
   },
   dismiss: async (opportunityId: number, taskId: number) => {
-    const { data } = await api.post(
-      `/next-best-actions/${opportunityId}/${taskId}/dismiss`,
-    );
+    const { data } = await api.post(`/next-best-actions/${opportunityId}/${taskId}/dismiss`);
     return data;
   },
 };
@@ -3068,7 +3066,9 @@ export const nbaApi = {
 export const networkIntelligenceApi = {
   segments: async () => {
     const { data } = await api.get('/network-intelligence/segments');
-    return data as { items: Array<{ segment_key: string; name: string; tenant_id: number | null }> };
+    return data as {
+      items: Array<{ segment_key: string; name: string; tenant_id: number | null }>;
+    };
   },
   overview: async (segmentKey?: string) => {
     const { data } = await api.get('/network-intelligence/overview', {
@@ -3132,10 +3132,7 @@ export const decisionGraphApi = {
     nodeId: number,
     body: { state: string; blocker_reason?: string | null },
   ) => {
-    const { data } = await api.patch(
-      `/decision-graph/${opportunityId}/nodes/${nodeId}`,
-      body,
-    );
+    const { data } = await api.patch(`/decision-graph/${opportunityId}/nodes/${nodeId}`, body);
     return data;
   },
 };
@@ -3205,10 +3202,7 @@ export const aiAttributesApi = {
     definitionId: number,
     body: { entity_id: number; context?: Record<string, string> },
   ) => {
-    const { data } = await api.post(
-      `/ai-attributes/definitions/${definitionId}/generate`,
-      body,
-    );
+    const { data } = await api.post(`/ai-attributes/definitions/${definitionId}/generate`, body);
     return data;
   },
 };
@@ -3260,9 +3254,7 @@ export const relationshipsApi = {
     };
   },
   rebuildOpportunity: async (opportunityId: number) => {
-    const { data } = await api.post(
-      `/relationships/rebuild/opportunity/${opportunityId}`,
-    );
+    const { data } = await api.post(`/relationships/rebuild/opportunity/${opportunityId}`);
     return data as { opportunity_id: number; edges_touched: number; stakeholders: number };
   },
 };

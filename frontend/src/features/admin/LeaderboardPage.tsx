@@ -6,6 +6,7 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { leaderboardApi } from '../../lib/api';
+import { formatDate } from '../../lib/formatters';
 
 import type { LeaderboardEntry, Achievement } from '../../lib/types';
 
@@ -214,7 +215,7 @@ export default function LeaderboardPage() {
                     {ach.title}
                   </p>
                   <p className="mt-0.5 text-[10px] tabular-nums text-slate-400 dark:text-slate-500">
-                    {ach.earned_at ? new Date(ach.earned_at).toLocaleDateString('tr-TR') : ''}
+                    {ach.earned_at ? formatDate(ach.earned_at) : ''}
                   </p>
                 </div>
               ))}

@@ -301,8 +301,8 @@ export default function DashboardListPage() {
                         Son Güncelleme
                       </dt>
                       <dd className="mt-0.5 text-slate-700 tabular-nums dark:text-slate-200">
-                        {(d as unknown as { updated_at?: string }).updated_at
-                          ? formatDateTime((d as unknown as { updated_at: string }).updated_at)
+                        {d.updated_at
+                          ? formatDateTime(d.updated_at)
                           : d.created_at
                             ? formatDateTime(d.created_at)
                             : '—'}

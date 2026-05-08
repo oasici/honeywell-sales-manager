@@ -145,9 +145,7 @@ const LandingPage = lazy(() => import('../features/landing/LandingPage'));
 
 // v1.13 plan-adoption pages
 const ForecastPage = lazy(() => import('../features/forecast/ForecastPage'));
-const NetworkInsightPage = lazy(
-  () => import('../features/intelligence/NetworkInsightPage'),
-);
+const NetworkInsightPage = lazy(() => import('../features/intelligence/NetworkInsightPage'));
 const AiAttributesPage = lazy(() => import('../features/admin/AiAttributesPage'));
 
 export default function App() {
@@ -352,35 +350,41 @@ export default function App() {
             </Suspense>
           }
         />
-        {/* v1.13 plan-adoption routes */}
+        {/* v1.13 plan-adoption routes — Round-8 R8-FLAG-1..3 paired gates. */}
         <Route
           path="forecast"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <ForecastPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_V2_BOARD">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <ForecastPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="network-intelligence"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <NetworkInsightPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_NETWORK_INTELLIGENCE">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <NetworkInsightPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="admin/ai-attributes"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <AiAttributesPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_AI_ATTRIBUTES">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <AiAttributesPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route

@@ -22,6 +22,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { reportsApi } from '../../lib/api';
+import { formatDateTime } from '../../lib/formatters';
 import type { ReportTemplate } from '../../lib/types';
 import { useState } from 'react';
 
@@ -58,9 +59,7 @@ export default function SavedReportsPage() {
   // Round-5 Phase 7 — backend canonicalized to ``items``; legacy
   // ``data`` retained server-side as additive bridge.
   const templates: ReportTemplate[] =
-    data?.items ??
-    data?.data ??
-    (Array.isArray(data) ? (data as ReportTemplate[]) : []);
+    data?.items ?? data?.data ?? (Array.isArray(data) ? (data as ReportTemplate[]) : []);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => reportsApi.deleteTemplate(id),
@@ -193,13 +192,11 @@ export default function SavedReportsPage() {
                     )}
                   </div>
 
-                  {(template as unknown as { last_run_at?: string }).last_run_at && (
+                  {template.last_run_at && (
                     <p className="text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
                       Son çalıştırma:{' '}
                       <span className="text-slate-600 dark:text-slate-300">
-                        {new Date(
-                          (template as unknown as { last_run_at: string }).last_run_at,
-                        ).toLocaleString('tr-TR')}
+                        {formatDateTime(template.last_run_at)}
                       </span>
                     </p>
                   )}

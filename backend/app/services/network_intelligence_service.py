@@ -152,10 +152,19 @@ async def list_federated(
     benchmark_key: str,
     include_suppressed: bool = False,
 ) -> list[dict[str, Any]]:
-    """Federated cross-tenant benchmark series for a given key."""
+    """Federated cross-tenant benchmark series for a given key.
+
+    Round-8 R8-TEN-2 — only the caller's own tenant rows + globally-shared
+    rows (``tenant_id IS NULL``) are returned. Cross-tenant rows are
+    filtered out at the query layer.
+    """
     stmt = (
         select(FederatedBenchmark)
         .where(FederatedBenchmark.benchmark_key == benchmark_key)
+        .where(
+            (FederatedBenchmark.tenant_id == current_user.tenant_id)
+            | (FederatedBenchmark.tenant_id.is_(None))
+        )
         .order_by(desc(FederatedBenchmark.snapshot_date))
         .limit(60)
     )

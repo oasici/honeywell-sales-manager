@@ -37,6 +37,9 @@ class RevenueSignal(Base):
     __tablename__ = "revenue_signals"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-8 R8-PII-1 — tenant_id added; backfilled from owner_id → users.tenant_id
+    # (with fallback to opportunity_id → opportunities.tenant_id).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     signal_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
 

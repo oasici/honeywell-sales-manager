@@ -10,7 +10,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { invoicesApi, customersApi } from '../../lib/api';
-import { formatCurrency, currentLocale } from '../../lib/formatters';
+import { formatCurrency, formatDate } from '../../lib/formatters';
 import { Modal } from '../../components/ui/Modal';
 import { useT } from '../../hooks/useT';
 import { translateInvoiceStatus } from '../../lib/labelTranslations';
@@ -160,8 +160,6 @@ export default function InvoiceListPage() {
   }, [form, createMutation, createFromQuoteMutation, t]);
 
   const isPending = createMutation.isPending || createFromQuoteMutation.isPending;
-
-  const locale = currentLocale();
 
   if (isError) {
     return (
@@ -343,14 +341,10 @@ export default function InvoiceListPage() {
                       </Badge>
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 sm:table-cell dark:text-slate-400">
-                      {invoice.issue_date
-                        ? new Date(invoice.issue_date).toLocaleDateString(locale)
-                        : '—'}
+                      {invoice.issue_date ? formatDate(invoice.issue_date) : '—'}
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-3 text-[12px] tabular-nums text-slate-500 sm:table-cell dark:text-slate-400">
-                      {invoice.due_date
-                        ? new Date(invoice.due_date).toLocaleDateString(locale)
-                        : '—'}
+                      {invoice.due_date ? formatDate(invoice.due_date) : '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right text-[13px] font-semibold tabular-nums text-slate-900 dark:text-white">
                       {formatCurrency(invoice.grand_total, invoice.currency)}

@@ -75,16 +75,6 @@ CREATE TABLE IF NOT EXISTS domain_events (
 	PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS feature_usage (
-	id SERIAL NOT NULL, 
-	user_id INTEGER, 
-	feature_name VARCHAR(100) NOT NULL, 
-	action VARCHAR(50) NOT NULL, 
-	metadata_json TEXT, 
-	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
-	PRIMARY KEY (id)
-);
-
 CREATE TABLE IF NOT EXISTS federated_benchmarks (
 	id SERIAL NOT NULL, 
 	tenant_id INTEGER, 
@@ -219,10 +209,10 @@ CREATE TABLE IF NOT EXISTS relationship_edges (
 	to_kind VARCHAR(20) NOT NULL, 
 	to_id INTEGER NOT NULL, 
 	relation_type VARCHAR(40), 
-	strength FLOAT NOT NULL, 
-	interaction_count INTEGER NOT NULL, 
+	strength FLOAT DEFAULT '0' NOT NULL, 
+	interaction_count INTEGER DEFAULT '0' NOT NULL, 
 	last_interaction_at TIMESTAMP WITH TIME ZONE, 
-	source VARCHAR(20) NOT NULL, 
+	source VARCHAR(20) DEFAULT 'derived' NOT NULL, 
 	metadata_json TEXT, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
@@ -377,10 +367,10 @@ CREATE TABLE IF NOT EXISTS ai_attribute_definitions (
 	key VARCHAR(80) NOT NULL, 
 	label VARCHAR(200) NOT NULL, 
 	description TEXT, 
-	data_type VARCHAR(20) NOT NULL, 
+	data_type VARCHAR(20) DEFAULT 'text' NOT NULL, 
 	prompt_template TEXT NOT NULL, 
-	is_active BOOLEAN NOT NULL, 
-	refresh_hours INTEGER NOT NULL, 
+	is_active BOOLEAN DEFAULT 'true' NOT NULL, 
+	refresh_hours INTEGER DEFAULT '24' NOT NULL, 
 	created_by INTEGER, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
@@ -600,6 +590,7 @@ CREATE TABLE IF NOT EXISTS dashboard_configs (
 	widgets_json TEXT NOT NULL, 
 	is_default BOOLEAN NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_at TIMESTAMP WITH TIME ZONE, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(owner_id) REFERENCES users (id)
 );
@@ -644,6 +635,18 @@ CREATE TABLE IF NOT EXISTS email_templates (
 	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(created_by) REFERENCES users (id)
+);
+
+CREATE TABLE IF NOT EXISTS feature_usage (
+	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
+	user_id INTEGER, 
+	feature_name VARCHAR(100) NOT NULL, 
+	action VARCHAR(50) NOT NULL, 
+	metadata_json TEXT, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS lead_assignment_rules (
@@ -760,10 +763,10 @@ CREATE TABLE IF NOT EXISTS relationship_scores (
 	tenant_id INTEGER, 
 	target_kind VARCHAR(20) NOT NULL, 
 	target_id INTEGER NOT NULL, 
-	edge_count INTEGER NOT NULL, 
-	strongest_strength FLOAT NOT NULL, 
-	avg_strength FLOAT NOT NULL, 
-	coverage_score FLOAT NOT NULL, 
+	edge_count INTEGER DEFAULT '0' NOT NULL, 
+	strongest_strength FLOAT DEFAULT '0' NOT NULL, 
+	avg_strength FLOAT DEFAULT '0' NOT NULL, 
+	coverage_score FLOAT DEFAULT '0' NOT NULL, 
 	strongest_edge_id INTEGER, 
 	snapshot_date TIMESTAMP WITH TIME ZONE NOT NULL, 
 	PRIMARY KEY (id), 
@@ -815,6 +818,7 @@ CREATE TABLE IF NOT EXISTS report_folders (
 
 CREATE TABLE IF NOT EXISTS saved_views (
 	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
 	user_id INTEGER NOT NULL, 
 	name VARCHAR(100) NOT NULL, 
 	route VARCHAR(255) NOT NULL, 
@@ -920,6 +924,7 @@ CREATE TABLE IF NOT EXISTS territories (
 
 CREATE TABLE IF NOT EXISTS user_sessions (
 	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
 	user_id INTEGER NOT NULL, 
 	jti VARCHAR(64) NOT NULL, 
 	device_info VARCHAR(200), 
@@ -1170,6 +1175,7 @@ CREATE TABLE IF NOT EXISTS report_templates (
 	email_recipients TEXT, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	updated_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	last_run_at TIMESTAMP WITH TIME ZONE, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(created_by) REFERENCES users (id), 
 	FOREIGN KEY(folder_id) REFERENCES report_folders (id)
@@ -1342,6 +1348,7 @@ CREATE TABLE IF NOT EXISTS action_experiments (
 
 CREATE TABLE IF NOT EXISTS activity_logs (
 	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
 	activity_type VARCHAR(30) NOT NULL, 
 	entity_type VARCHAR(30) NOT NULL, 
 	entity_id INTEGER NOT NULL, 
@@ -1375,6 +1382,7 @@ CREATE TABLE IF NOT EXISTS buyer_state_history (
 
 CREATE TABLE IF NOT EXISTS competitor_mentions (
 	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
 	competitor_name VARCHAR(200) NOT NULL, 
 	source_entity_type VARCHAR(30) NOT NULL, 
 	source_entity_id INTEGER NOT NULL, 
@@ -1629,6 +1637,7 @@ CREATE TABLE IF NOT EXISTS opportunity_features_daily (
 
 CREATE TABLE IF NOT EXISTS opportunity_signals (
 	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
 	opportunity_id INTEGER NOT NULL, 
 	signal_type VARCHAR(30) NOT NULL, 
 	severity VARCHAR(10) NOT NULL, 
@@ -1712,6 +1721,7 @@ CREATE TABLE IF NOT EXISTS recommended_action_windows (
 
 CREATE TABLE IF NOT EXISTS revenue_signals (
 	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
 	signal_type VARCHAR(50) NOT NULL, 
 	source_entity_type VARCHAR(30) NOT NULL, 
 	source_entity_id INTEGER, 
@@ -1735,6 +1745,7 @@ CREATE TABLE IF NOT EXISTS revenue_signals (
 
 CREATE TABLE IF NOT EXISTS stakeholders (
 	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
 	opportunity_id INTEGER, 
 	customer_id INTEGER, 
 	name VARCHAR(200) NOT NULL, 
@@ -1757,6 +1768,7 @@ CREATE TABLE IF NOT EXISTS stakeholders (
 
 CREATE TABLE IF NOT EXISTS tasks (
 	id SERIAL NOT NULL, 
+	tenant_id INTEGER, 
 	owner_id INTEGER NOT NULL, 
 	opportunity_id INTEGER, 
 	title VARCHAR(255) NOT NULL, 
@@ -1857,7 +1869,7 @@ CREATE TABLE IF NOT EXISTS decision_nodes (
 	opportunity_id INTEGER NOT NULL, 
 	node_type VARCHAR(40) NOT NULL, 
 	label VARCHAR(200) NOT NULL, 
-	state VARCHAR(20) NOT NULL, 
+	state VARCHAR(20) DEFAULT 'not_started' NOT NULL, 
 	owner_stakeholder_id INTEGER, 
 	blocker_reason TEXT, 
 	last_progress_at TIMESTAMP WITH TIME ZONE, 
@@ -2036,8 +2048,8 @@ CREATE TABLE IF NOT EXISTS decision_edges (
 	opportunity_id INTEGER NOT NULL, 
 	from_node_id INTEGER NOT NULL, 
 	to_node_id INTEGER NOT NULL, 
-	edge_type VARCHAR(20) NOT NULL, 
-	is_satisfied BOOLEAN NOT NULL, 
+	edge_type VARCHAR(20) DEFAULT 'sequential' NOT NULL, 
+	is_satisfied BOOLEAN DEFAULT 'false' NOT NULL, 
 	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
 	PRIMARY KEY (id), 
 	CONSTRAINT uq_decision_edges_triple UNIQUE (opportunity_id, from_node_id, to_node_id), 
@@ -2206,17 +2218,13 @@ CREATE TABLE IF NOT EXISTS revenue_schedule_entries (
 
 -- Indexes
 
-CREATE INDEX IF NOT EXISTS ix_dna_patterns_tenant_id ON dna_patterns (tenant_id);
-
 CREATE INDEX IF NOT EXISTS ix_dna_patterns_segment_key ON dna_patterns (segment_key);
 
-CREATE INDEX IF NOT EXISTS ix_domain_events_created_at ON domain_events (created_at);
+CREATE INDEX IF NOT EXISTS ix_dna_patterns_tenant_id ON dna_patterns (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_domain_events_event_type ON domain_events (event_type);
 
-CREATE INDEX IF NOT EXISTS ix_feature_usage_feature_name ON feature_usage (feature_name);
-
-CREATE INDEX IF NOT EXISTS ix_feature_usage_name_created ON feature_usage (feature_name, created_at);
+CREATE INDEX IF NOT EXISTS ix_domain_events_created_at ON domain_events (created_at);
 
 CREATE INDEX IF NOT EXISTS ix_federated_benchmarks_key_date ON federated_benchmarks (benchmark_key, snapshot_date);
 
@@ -2232,9 +2240,9 @@ CREATE INDEX IF NOT EXISTS ix_network_patterns_tenant_id ON network_patterns (te
 
 CREATE INDEX IF NOT EXISTS ix_network_segments_tenant_id ON network_segments (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_objection_patterns_segment_key ON objection_patterns (segment_key);
-
 CREATE INDEX IF NOT EXISTS ix_objection_patterns_tenant_id ON objection_patterns (tenant_id);
+
+CREATE INDEX IF NOT EXISTS ix_objection_patterns_segment_key ON objection_patterns (segment_key);
 
 CREATE INDEX IF NOT EXISTS ix_pipeline_snapshot_date ON pipeline_snapshots (snapshot_date);
 
@@ -2242,11 +2250,11 @@ CREATE INDEX IF NOT EXISTS ix_pb_tenant ON product_bundles (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_relationship_edges_tenant_id ON relationship_edges (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_rel_edge_to ON relationship_edges (to_kind, to_id);
+CREATE INDEX IF NOT EXISTS ix_rel_edge_strength ON relationship_edges (strength);
 
 CREATE INDEX IF NOT EXISTS ix_rel_edge_from ON relationship_edges (from_kind, from_id);
 
-CREATE INDEX IF NOT EXISTS ix_rel_edge_strength ON relationship_edges (strength);
+CREATE INDEX IF NOT EXISTS ix_rel_edge_to ON relationship_edges (to_kind, to_id);
 
 CREATE INDEX IF NOT EXISTS ix_sbd_snapshot_date ON segment_benchmarks_daily (snapshot_date);
 
@@ -2264,9 +2272,9 @@ CREATE INDEX IF NOT EXISTS ix_v4_sales_events_shadow_opportunity_id ON v4_sales_
 
 CREATE INDEX IF NOT EXISTS ix_v4_sales_shadow_opp_ts ON v4_sales_events_shadow (opportunity_id, event_ts);
 
-CREATE INDEX IF NOT EXISTS ix_v4_sales_events_shadow_account_id ON v4_sales_events_shadow (account_id);
-
 CREATE INDEX IF NOT EXISTS ix_v4_sales_events_shadow_event_ts ON v4_sales_events_shadow (event_ts);
+
+CREATE INDEX IF NOT EXISTS ix_v4_sales_events_shadow_account_id ON v4_sales_events_shadow (account_id);
 
 CREATE INDEX IF NOT EXISTS ix_achievements_user_id ON achievements (user_id);
 
@@ -2290,9 +2298,9 @@ CREATE INDEX IF NOT EXISTS ix_campaign_created_by ON campaigns (created_by);
 
 CREATE INDEX IF NOT EXISTS ix_campaign_tenant ON campaigns (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_chat_sessions_tenant_id ON chat_sessions (tenant_id);
-
 CREATE INDEX IF NOT EXISTS ix_chat_visitor ON chat_sessions (visitor_id);
+
+CREATE INDEX IF NOT EXISTS ix_chat_sessions_tenant_id ON chat_sessions (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_coaching_plans_user_id ON coaching_plans (user_id);
 
@@ -2300,27 +2308,33 @@ CREATE INDEX IF NOT EXISTS ix_coaching_snapshots_user_id ON coaching_snapshots (
 
 CREATE INDEX IF NOT EXISTS ix_coaching_snapshot_user_created ON coaching_snapshots (user_id, created_at);
 
-CREATE INDEX IF NOT EXISTS ix_comments_tenant_id ON comments (tenant_id);
-
 CREATE INDEX IF NOT EXISTS ix_comments_entity_id ON comments (entity_id);
+
+CREATE INDEX IF NOT EXISTS ix_comments_tenant_id ON comments (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_crm_connections_tenant_active ON crm_connections (tenant_id, is_active);
 
 CREATE INDEX IF NOT EXISTS ix_crm_connections_tenant_id ON crm_connections (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_dle_event_type ON dead_letter_events (event_type);
-
-CREATE INDEX IF NOT EXISTS ix_dle_handler_name ON dead_letter_events (handler_name);
-
 CREATE INDEX IF NOT EXISTS ix_dle_replayed_at ON dead_letter_events (replayed_at);
+
+CREATE INDEX IF NOT EXISTS ix_dle_event_type ON dead_letter_events (event_type);
 
 CREATE INDEX IF NOT EXISTS ix_dle_created_at ON dead_letter_events (created_at);
 
-CREATE INDEX IF NOT EXISTS ix_dna_recommendations_segment_key ON dna_recommendations (segment_key);
+CREATE INDEX IF NOT EXISTS ix_dle_handler_name ON dead_letter_events (handler_name);
 
 CREATE INDEX IF NOT EXISTS ix_dna_recommendations_tenant_id ON dna_recommendations (tenant_id);
 
+CREATE INDEX IF NOT EXISTS ix_dna_recommendations_segment_key ON dna_recommendations (segment_key);
+
 CREATE INDEX IF NOT EXISTS ix_email_templates_created_by ON email_templates (created_by);
+
+CREATE INDEX IF NOT EXISTS ix_feature_usage_tenant_id ON feature_usage (tenant_id);
+
+CREATE INDEX IF NOT EXISTS ix_feature_usage_name_created ON feature_usage (feature_name, created_at);
+
+CREATE INDEX IF NOT EXISTS ix_feature_usage_feature_name ON feature_usage (feature_name);
 
 CREATE INDEX IF NOT EXISTS ix_meeting_links_user_id ON meeting_links (user_id);
 
@@ -2334,9 +2348,9 @@ CREATE INDEX IF NOT EXISTS ix_product_rules_spare_part_id ON product_rules (spar
 
 CREATE INDEX IF NOT EXISTS ix_push_subscriptions_user_id ON push_subscriptions (user_id);
 
-CREATE INDEX IF NOT EXISTS ix_relationship_scores_tenant_id ON relationship_scores (tenant_id);
-
 CREATE INDEX IF NOT EXISTS ix_rel_score_kind ON relationship_scores (target_kind);
+
+CREATE INDEX IF NOT EXISTS ix_relationship_scores_tenant_id ON relationship_scores (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_rfd_snapshot_date ON rep_features_daily (snapshot_date);
 
@@ -2344,19 +2358,23 @@ CREATE INDEX IF NOT EXISTS ix_report_folder_tenant ON report_folders (tenant_id)
 
 CREATE INDEX IF NOT EXISTS ix_saved_views_user_id ON saved_views (user_id);
 
+CREATE INDEX IF NOT EXISTS ix_saved_views_tenant_id ON saved_views (tenant_id);
+
 CREATE INDEX IF NOT EXISTS ix_segments_tenant_id ON segments (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_sequences_tenant_id ON sequences (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_sharing_rule_tenant ON sharing_rules (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_sig_document ON signature_requests (document_type, document_id);
-
 CREATE INDEX IF NOT EXISTS ix_sig_tenant ON signature_requests (tenant_id);
+
+CREATE INDEX IF NOT EXISTS ix_sig_document ON signature_requests (document_type, document_id);
 
 CREATE INDEX IF NOT EXISTS ix_territory_tenant ON territories (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_territory_parent ON territories (parent_id);
+
+CREATE INDEX IF NOT EXISTS ix_user_sessions_tenant_id ON user_sessions (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_user_sessions_user_id ON user_sessions (user_id);
 
@@ -2364,15 +2382,15 @@ CREATE INDEX IF NOT EXISTS ix_webhook_subscriptions_tenant_id ON webhook_subscri
 
 CREATE INDEX IF NOT EXISTS ix_workflow_rules_tenant_id ON workflow_rules (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_ai_attr_value_entity ON ai_attribute_values (entity_type, entity_id);
-
 CREATE INDEX IF NOT EXISTS ix_ai_attribute_values_tenant_id ON ai_attribute_values (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_ai_attribute_values_definition_id ON ai_attribute_values (definition_id);
 
-CREATE INDEX IF NOT EXISTS ix_approval_entity ON approval_requests (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS ix_ai_attr_value_entity ON ai_attribute_values (entity_type, entity_id);
 
 CREATE INDEX IF NOT EXISTS ix_approval_assigned_status ON approval_requests (assigned_to, status);
+
+CREATE INDEX IF NOT EXISTS ix_approval_entity ON approval_requests (entity_type, entity_id);
 
 CREATE INDEX IF NOT EXISTS ix_cm_session ON chat_messages (session_id);
 
@@ -2382,13 +2400,13 @@ CREATE INDEX IF NOT EXISTS ix_crm_record_links_external ON crm_record_links (con
 
 CREATE INDEX IF NOT EXISTS ix_crm_sync_jobs_conn_started ON crm_sync_jobs (connection_id, started_at);
 
-CREATE INDEX IF NOT EXISTS ix_custom_field_value_entity ON custom_field_values (entity_type, entity_id);
-
 CREATE INDEX IF NOT EXISTS ix_custom_field_values_custom_field_id ON custom_field_values (custom_field_id);
 
-CREATE INDEX IF NOT EXISTS ix_customers_territory_id ON customers (territory_id);
+CREATE INDEX IF NOT EXISTS ix_custom_field_value_entity ON custom_field_values (entity_type, entity_id);
 
 CREATE INDEX IF NOT EXISTS ix_customers_tenant_id ON customers (tenant_id);
+
+CREATE INDEX IF NOT EXISTS ix_customers_territory_id ON customers (territory_id);
 
 CREATE INDEX IF NOT EXISTS ix_customers_parent_id ON customers (parent_id);
 
@@ -2398,13 +2416,13 @@ CREATE INDEX IF NOT EXISTS ix_pt_price_entry ON price_tiers (price_entry_id);
 
 CREATE INDEX IF NOT EXISTS ix_report_templates_tenant_id ON report_templates (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_ta_territory ON territory_assignments (territory_id);
-
 CREATE INDEX IF NOT EXISTS ix_ta_user ON territory_assignments (user_id);
 
-CREATE INDEX IF NOT EXISTS ix_delivery_sub_delivered ON webhook_deliveries (subscription_id, delivered_at);
+CREATE INDEX IF NOT EXISTS ix_ta_territory ON territory_assignments (territory_id);
 
 CREATE INDEX IF NOT EXISTS ix_delivery_tenant ON webhook_deliveries (tenant_id);
+
+CREATE INDEX IF NOT EXISTS ix_delivery_sub_delivered ON webhook_deliveries (subscription_id, delivered_at);
 
 CREATE INDEX IF NOT EXISTS ix_afd_snapshot_date ON account_features_daily (snapshot_date);
 
@@ -2414,25 +2432,25 @@ CREATE INDEX IF NOT EXISTS ix_account_team_tenant ON account_teams (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_account_teams_customer_id ON account_teams (customer_id);
 
-CREATE INDEX IF NOT EXISTS ix_contacts_email ON contacts (email);
-
 CREATE INDEX IF NOT EXISTS ix_contacts_account_id ON contacts (account_id);
+
+CREATE INDEX IF NOT EXISTS ix_contacts_email ON contacts (email);
 
 CREATE INDEX IF NOT EXISTS ix_cp_customer ON customer_pricing (customer_id);
 
 CREATE INDEX IF NOT EXISTS ix_cp_tenant ON customer_pricing (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_opportunities_territory_id ON opportunities (territory_id);
+CREATE INDEX IF NOT EXISTS ix_opp_customer ON opportunities (customer_id);
+
+CREATE INDEX IF NOT EXISTS ix_opp_owner_stage ON opportunities (owner_id, stage);
 
 CREATE INDEX IF NOT EXISTS ix_opportunities_pipeline_id ON opportunities (pipeline_id);
+
+CREATE INDEX IF NOT EXISTS ix_opportunities_territory_id ON opportunities (territory_id);
 
 CREATE INDEX IF NOT EXISTS ix_opportunities_tenant_id ON opportunities (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_opp_close_date ON opportunities (close_date);
-
-CREATE INDEX IF NOT EXISTS ix_opp_customer ON opportunities (customer_id);
-
-CREATE INDEX IF NOT EXISTS ix_opp_owner_stage ON opportunities (owner_id, stage);
 
 CREATE INDEX IF NOT EXISTS ix_user_customer_pins_user_id ON user_customer_pins (user_id);
 
@@ -2440,13 +2458,15 @@ CREATE INDEX IF NOT EXISTS ix_action_experiments_opportunity_id ON action_experi
 
 CREATE INDEX IF NOT EXISTS ix_activity_log_entity ON activity_logs (entity_type, entity_id);
 
-CREATE INDEX IF NOT EXISTS ix_activity_log_created ON activity_logs (created_at);
-
-CREATE INDEX IF NOT EXISTS ix_activity_logs_customer_id ON activity_logs (customer_id);
+CREATE INDEX IF NOT EXISTS ix_activity_logs_tenant_id ON activity_logs (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_activity_logs_source_ref ON activity_logs (source_ref);
 
+CREATE INDEX IF NOT EXISTS ix_activity_log_created ON activity_logs (created_at);
+
 CREATE INDEX IF NOT EXISTS ix_activity_logs_opportunity_id ON activity_logs (opportunity_id);
+
+CREATE INDEX IF NOT EXISTS ix_activity_logs_customer_id ON activity_logs (customer_id);
 
 CREATE INDEX IF NOT EXISTS ix_buyer_state_snapshot_date ON buyer_state_history (snapshot_date);
 
@@ -2454,33 +2474,35 @@ CREATE INDEX IF NOT EXISTS ix_competitor_mentions_competitor_name ON competitor_
 
 CREATE INDEX IF NOT EXISTS ix_competitor_mentions_opportunity_id ON competitor_mentions (opportunity_id);
 
+CREATE INDEX IF NOT EXISTS ix_competitor_mentions_tenant_id ON competitor_mentions (tenant_id);
+
 CREATE INDEX IF NOT EXISTS ix_deal_replay_deltas_opp_to_ts ON deal_replay_deltas (opportunity_id, to_ts);
 
 CREATE INDEX IF NOT EXISTS ix_deal_room_opportunity ON deal_rooms (opportunity_id);
 
 CREATE INDEX IF NOT EXISTS ix_deal_similarity_links_opportunity_id ON deal_similarity_links (opportunity_id);
 
-CREATE INDEX IF NOT EXISTS ix_decision_gaps_opportunity_id ON decision_gaps (opportunity_id);
-
 CREATE INDEX IF NOT EXISTS ix_decision_gaps_opp_type ON decision_gaps (opportunity_id, gap_type);
 
-CREATE INDEX IF NOT EXISTS ix_email_requests_tenant_id ON email_requests (tenant_id);
-
-CREATE INDEX IF NOT EXISTS ix_email_requests_customer_id ON email_requests (customer_id);
-
-CREATE INDEX IF NOT EXISTS ix_email_requests_opportunity_id ON email_requests (opportunity_id);
+CREATE INDEX IF NOT EXISTS ix_decision_gaps_opportunity_id ON decision_gaps (opportunity_id);
 
 CREATE INDEX IF NOT EXISTS ix_email_requests_status ON email_requests (status);
 
 CREATE INDEX IF NOT EXISTS ix_email_requests_thread_id ON email_requests (thread_id);
 
+CREATE INDEX IF NOT EXISTS ix_email_requests_opportunity_id ON email_requests (opportunity_id);
+
+CREATE INDEX IF NOT EXISTS ix_email_requests_tenant_id ON email_requests (tenant_id);
+
+CREATE INDEX IF NOT EXISTS ix_email_requests_customer_id ON email_requests (customer_id);
+
 CREATE INDEX IF NOT EXISTS ix_forecast_adj_opportunity ON forecast_adjustments (opportunity_id);
 
 CREATE INDEX IF NOT EXISTS ix_fsd_snapshot ON forecast_snapshot_details (snapshot_id);
 
-CREATE INDEX IF NOT EXISTS ix_fsd_created ON forecast_snapshot_details (created_at);
-
 CREATE INDEX IF NOT EXISTS ix_fsd_opportunity ON forecast_snapshot_details (opportunity_id);
+
+CREATE INDEX IF NOT EXISTS ix_fsd_created ON forecast_snapshot_details (created_at);
 
 CREATE INDEX IF NOT EXISTS ix_leads_tenant_id ON leads (tenant_id);
 
@@ -2490,11 +2512,11 @@ CREATE INDEX IF NOT EXISTS ix_lead_status ON leads (status);
 
 CREATE INDEX IF NOT EXISTS ix_lead_score ON leads (lead_score);
 
+CREATE INDEX IF NOT EXISTS ix_meeting_bookings_opportunity_id ON meeting_bookings (opportunity_id);
+
 CREATE INDEX IF NOT EXISTS ix_meeting_bookings_customer_id ON meeting_bookings (customer_id);
 
 CREATE INDEX IF NOT EXISTS ix_meeting_bookings_meeting_link_id ON meeting_bookings (meeting_link_id);
-
-CREATE INDEX IF NOT EXISTS ix_meeting_bookings_opportunity_id ON meeting_bookings (opportunity_id);
 
 CREATE INDEX IF NOT EXISTS ix_objections_opportunity_id ON objections (opportunity_id);
 
@@ -2504,33 +2526,41 @@ CREATE INDEX IF NOT EXISTS ix_ofd_snapshot_date ON opportunity_features_daily (s
 
 CREATE INDEX IF NOT EXISTS ix_opportunity_signals_opportunity_id ON opportunity_signals (opportunity_id);
 
+CREATE INDEX IF NOT EXISTS ix_opportunity_signals_tenant_id ON opportunity_signals (tenant_id);
+
 CREATE INDEX IF NOT EXISTS ix_pipeline_review_queue_decided_opp ON pipeline_review_queue (decided_at, opportunity_id);
 
 CREATE INDEX IF NOT EXISTS ix_playbook_adherence_opportunity_id ON playbook_adherence (opportunity_id);
 
 CREATE INDEX IF NOT EXISTS ix_recommended_action_windows_opportunity_id ON recommended_action_windows (opportunity_id);
 
-CREATE INDEX IF NOT EXISTS ix_rs_owner_created ON revenue_signals (owner_id, created_at);
+CREATE INDEX IF NOT EXISTS ix_revenue_signals_tenant_id ON revenue_signals (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_rs_customer ON revenue_signals (customer_id);
 
-CREATE INDEX IF NOT EXISTS ix_rs_opp_created ON revenue_signals (opportunity_id, created_at);
-
 CREATE INDEX IF NOT EXISTS ix_revenue_signals_signal_type ON revenue_signals (signal_type);
+
+CREATE INDEX IF NOT EXISTS ix_rs_opp_created ON revenue_signals (opportunity_id, created_at);
 
 CREATE INDEX IF NOT EXISTS ix_rs_type_severity ON revenue_signals (signal_type, severity);
 
-CREATE INDEX IF NOT EXISTS ix_stakeholders_opportunity_id ON stakeholders (opportunity_id);
+CREATE INDEX IF NOT EXISTS ix_rs_owner_created ON revenue_signals (owner_id, created_at);
+
+CREATE INDEX IF NOT EXISTS ix_stakeholders_tenant_id ON stakeholders (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_stakeholders_customer_id ON stakeholders (customer_id);
 
+CREATE INDEX IF NOT EXISTS ix_stakeholders_opportunity_id ON stakeholders (opportunity_id);
+
 CREATE INDEX IF NOT EXISTS ix_tasks_opportunity_id ON tasks (opportunity_id);
+
+CREATE INDEX IF NOT EXISTS ix_tasks_tenant_id ON tasks (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_tasks_owner_id ON tasks (owner_id);
 
-CREATE INDEX IF NOT EXISTS ix_transcripts_customer_id ON transcripts (customer_id);
-
 CREATE INDEX IF NOT EXISTS ix_transcripts_opportunity_id ON transcripts (opportunity_id);
+
+CREATE INDEX IF NOT EXISTS ix_transcripts_customer_id ON transcripts (customer_id);
 
 CREATE INDEX IF NOT EXISTS ix_v4_deal_replay_opp_date ON v4_deal_replay_snapshots (opportunity_id, snapshot_date);
 
@@ -2538,9 +2568,9 @@ CREATE INDEX IF NOT EXISTS ix_v4_sales_dna_opp_date ON v4_sales_dna_snapshots (o
 
 CREATE INDEX IF NOT EXISTS ix_ai_training_data_email_id ON ai_training_data (email_id);
 
-CREATE INDEX IF NOT EXISTS ix_campaign_member_tenant ON campaign_members (tenant_id);
-
 CREATE INDEX IF NOT EXISTS ix_campaign_member_campaign ON campaign_members (campaign_id);
+
+CREATE INDEX IF NOT EXISTS ix_campaign_member_tenant ON campaign_members (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_decision_nodes_opportunity_id ON decision_nodes (opportunity_id);
 
@@ -2552,11 +2582,11 @@ CREATE INDEX IF NOT EXISTS ix_meeting_auto_links_opp ON meeting_auto_links (oppo
 
 CREATE INDEX IF NOT EXISTS ix_objection_resolution_actions_objection_id ON objection_resolution_actions (objection_id);
 
-CREATE INDEX IF NOT EXISTS ix_exec_opp_playbook ON playbook_executions (opportunity_id, playbook_id);
+CREATE INDEX IF NOT EXISTS ix_playbook_executions_opportunity_id ON playbook_executions (opportunity_id);
 
 CREATE INDEX IF NOT EXISTS ix_playbook_executions_playbook_id ON playbook_executions (playbook_id);
 
-CREATE INDEX IF NOT EXISTS ix_playbook_executions_opportunity_id ON playbook_executions (opportunity_id);
+CREATE INDEX IF NOT EXISTS ix_exec_opp_playbook ON playbook_executions (opportunity_id, playbook_id);
 
 CREATE INDEX IF NOT EXISTS ix_quotes_customer_id ON quotes (customer_id);
 
@@ -2568,19 +2598,19 @@ CREATE INDEX IF NOT EXISTS ix_quotes_status ON quotes (status);
 
 CREATE INDEX IF NOT EXISTS ix_quotes_email_request_id ON quotes (email_request_id);
 
+CREATE INDEX IF NOT EXISTS ix_sequence_enrollments_opportunity_id ON sequence_enrollments (opportunity_id);
+
 CREATE INDEX IF NOT EXISTS ix_sequence_enrollments_tenant_id ON sequence_enrollments (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_sequence_enrollments_lead_id ON sequence_enrollments (lead_id);
 
 CREATE INDEX IF NOT EXISTS ix_sequence_enrollments_sequence_id ON sequence_enrollments (sequence_id);
 
-CREATE INDEX IF NOT EXISTS ix_sequence_enrollments_opportunity_id ON sequence_enrollments (opportunity_id);
+CREATE INDEX IF NOT EXISTS ix_stakeholder_roles_stakeholder_id ON stakeholder_roles (stakeholder_id);
 
 CREATE INDEX IF NOT EXISTS ix_stakeholder_roles_opportunity_id ON stakeholder_roles (opportunity_id);
 
 CREATE INDEX IF NOT EXISTS ix_stakeholder_roles_opp_role ON stakeholder_roles (opportunity_id, role_key);
-
-CREATE INDEX IF NOT EXISTS ix_stakeholder_roles_stakeholder_id ON stakeholder_roles (stakeholder_id);
 
 CREATE INDEX IF NOT EXISTS ix_contracts_tenant_id ON contracts (tenant_id);
 
@@ -2590,9 +2620,9 @@ CREATE INDEX IF NOT EXISTS ix_contracts_customer_id ON contracts (customer_id);
 
 CREATE INDEX IF NOT EXISTS ix_contracts_quote_id ON contracts (quote_id);
 
-CREATE INDEX IF NOT EXISTS ix_decision_edges_to_node_id ON decision_edges (to_node_id);
-
 CREATE INDEX IF NOT EXISTS ix_decision_edges_opportunity_id ON decision_edges (opportunity_id);
+
+CREATE INDEX IF NOT EXISTS ix_decision_edges_to_node_id ON decision_edges (to_node_id);
 
 CREATE INDEX IF NOT EXISTS ix_decision_edges_tenant_id ON decision_edges (tenant_id);
 
@@ -2600,9 +2630,9 @@ CREATE INDEX IF NOT EXISTS ix_decision_edges_from_node_id ON decision_edges (fro
 
 CREATE INDEX IF NOT EXISTS ix_quote_items_quote_id ON quote_items (quote_id);
 
-CREATE INDEX IF NOT EXISTS ix_sequence_step_runs_sequence_id ON sequence_step_runs (sequence_id);
-
 CREATE INDEX IF NOT EXISTS ix_sequence_step_runs_enrollment_id ON sequence_step_runs (enrollment_id);
+
+CREATE INDEX IF NOT EXISTS ix_sequence_step_runs_sequence_id ON sequence_step_runs (sequence_id);
 
 CREATE INDEX IF NOT EXISTS ix_shared_documents_quote_id ON shared_documents (quote_id);
 
@@ -2618,9 +2648,9 @@ CREATE INDEX IF NOT EXISTS ix_invoice_customer ON invoices (customer_id);
 
 CREATE INDEX IF NOT EXISTS ix_invoice_tenant ON invoices (tenant_id);
 
-CREATE INDEX IF NOT EXISTS ix_rs_tenant ON revenue_schedules (tenant_id);
-
 CREATE INDEX IF NOT EXISTS ix_rs_contract ON revenue_schedules (contract_id);
+
+CREATE INDEX IF NOT EXISTS ix_rs_tenant ON revenue_schedules (tenant_id);
 
 CREATE INDEX IF NOT EXISTS ix_rse_tenant ON revenue_schedule_entries (tenant_id);
 

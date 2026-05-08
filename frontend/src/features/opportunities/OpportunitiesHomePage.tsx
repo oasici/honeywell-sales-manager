@@ -15,7 +15,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { customersApi, dealHealthApi, opportunitiesApi } from '../../lib/api';
 import { onOpportunityChanged } from '../../lib/cacheInvalidation';
-import { formatCurrency } from '../../lib/formatters';
+import { formatCurrency, formatDate } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 
 import type { Customer, Opportunity, PaginatedResponse } from '../../lib/types';
@@ -393,13 +393,7 @@ export default function OpportunitiesHomePage() {
                         audit F-15. Critical "this deal closes Friday"
                         signal. */}
                     {o.close_date && (
-                      <span className="text-slate-500">
-                        ⏱{' '}
-                        {new Date(o.close_date).toLocaleDateString('tr-TR', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </span>
+                      <span className="text-slate-500">⏱ {formatDate(o.close_date)}</span>
                     )}
                     {/* Rotting indicator — shows in red when the deal
                         has been stale for more than a week.
@@ -426,7 +420,8 @@ export default function OpportunitiesHomePage() {
                     {/* Closed-lost reason badge — surfaces the manual
                         loss reason when the opportunity is closed_lost
                         so reps can see "neden kaybedildi" at a glance. */}
-                    {o.status === 'closed' && o.stage === 'closed_lost' && o.loss_reason && (
+                    {/* Round-8 R8-COND-1 — backend uses status='closed_lost', not 'closed'. */}
+                    {o.status === 'closed_lost' && o.loss_reason && (
                       <span className="truncate text-rose-600 dark:text-rose-400">
                         Kayıp: {o.loss_reason}
                       </span>

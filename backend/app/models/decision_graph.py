@@ -65,7 +65,11 @@ class DecisionNode(Base):
     )
     node_type: Mapped[str] = mapped_column(String(40), nullable=False)
     label: Mapped[str] = mapped_column(String(200), nullable=False)
-    state: Mapped[str] = mapped_column(String(20), nullable=False, default="not_started")
+    # Round-8 R8-DB-2 — server_default ensures bootstrap/create_all() emits
+    # the DDL DEFAULT clause so raw INSERTs without ``state`` work.
+    state: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="not_started", server_default="not_started"
+    )
     owner_stakeholder_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("stakeholders.id"), nullable=True
     )
@@ -110,8 +114,12 @@ class DecisionEdge(Base):
     to_node_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("decision_nodes.id"), nullable=False, index=True
     )
-    edge_type: Mapped[str] = mapped_column(String(20), nullable=False, default="sequential")
-    is_satisfied: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    edge_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="sequential", server_default="sequential"
+    )
+    is_satisfied: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

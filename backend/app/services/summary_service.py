@@ -8,7 +8,6 @@ Provides grounded summaries for opportunities, quotes, and customers with:
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
@@ -21,15 +20,9 @@ from app.models.opportunity import Opportunity, OpportunityEvent
 from app.models.quote import Quote
 
 
-_EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
-_PHONE_RE = re.compile(r"(\+?\d[\d\s().-]{7,}\d)")
-
-
-def redact_pii(text: str) -> str:
-    """Best-effort PII redaction (email + phone-like patterns)."""
-    text = _EMAIL_RE.sub("[REDACTED_EMAIL]", text)
-    text = _PHONE_RE.sub("[REDACTED_PHONE]", text)
-    return text
+# Round-8 R8-SEC-1 — patterns moved to ``app.services.pii_utils``.
+# Re-exported here so existing import sites keep working.
+from app.services.pii_utils import redact_pii  # noqa: F401
 
 
 @dataclass(frozen=True)

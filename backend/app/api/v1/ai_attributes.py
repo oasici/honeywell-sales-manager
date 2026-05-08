@@ -6,10 +6,11 @@ an LLM; values cached and surfaced alongside human-edited custom fields.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
 from app.models.enums import UserRole
@@ -17,6 +18,12 @@ from app.models.user import User
 from app.services import ai_attribute_service
 
 router = APIRouter(prefix="/ai-attributes", tags=["AI Attributes"])
+
+
+def _require_ai_attributes() -> None:
+    """Round-8 R8-FLAG-3 — paired feature gate."""
+    if not settings.FEATURE_AI_ATTRIBUTES:
+        raise HTTPException(status_code=404, detail="Not found")
 
 
 class DefinitionCreate(BaseModel):
@@ -48,6 +55,7 @@ async def list_definitions(
     active_only: bool = Query(True),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_ai_attributes),
 ):
     items = await ai_attribute_service.list_definitions(
         db, current_user, entity_type=entity_type, active_only=active_only
@@ -60,6 +68,7 @@ async def create_definition(
     body: DefinitionCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_ai_attributes),
 ):
     return await ai_attribute_service.create_definition(
         db,
@@ -80,6 +89,7 @@ async def update_definition(
     body: DefinitionPatch,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_ai_attributes),
 ):
     return await ai_attribute_service.update_definition(
         db, current_user, definition_id, **body.model_dump(exclude_unset=True)
@@ -92,6 +102,7 @@ async def list_values(
     entity_id: int = Query(..., ge=1),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_ai_attributes),
 ):
     items = await ai_attribute_service.list_values(
         db, current_user, entity_type=entity_type, entity_id=entity_id
@@ -105,6 +116,7 @@ async def generate(
     body: GenerateBody,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _flag=Depends(_require_ai_attributes),
 ):
     return await ai_attribute_service.generate_value(
         db,

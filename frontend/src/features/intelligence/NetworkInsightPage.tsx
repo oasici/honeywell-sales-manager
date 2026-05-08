@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Globe } from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { networkIntelligenceApi } from '../../lib/api';
+import { formatDate } from '../../lib/formatters';
 
 /**
  * S-F — network intelligence page (manager view).
@@ -117,9 +118,7 @@ export default function NetworkInsightPage() {
                   <div className="mt-2 text-caption text-slate-500">
                     Fark:{' '}
                     <span
-                      className={`tabular-nums ${
-                        m.gap_pct >= 0 ? 'text-success' : 'text-warning'
-                      }`}
+                      className={`tabular-nums ${m.gap_pct >= 0 ? 'text-success' : 'text-warning'}`}
                     >
                       {m.gap_pct >= 0 ? '+' : ''}
                       {m.gap_pct.toFixed(1)}%
@@ -138,6 +137,96 @@ export default function NetworkInsightPage() {
           {overview.sample_size != null && ` · n=${overview.sample_size}`}
         </p>
       )}
+
+      {/* Round-8 R8-DEAD-3 — federated benchmark series for the active segment. */}
+      {overview && <FederatedSection benchmarkKey={overview.segment_key} />}
     </div>
+  );
+}
+
+interface FederatedSectionProps {
+  benchmarkKey: string;
+}
+
+function FederatedSection({ benchmarkKey }: FederatedSectionProps) {
+  const federatedQuery = useQuery({
+    queryKey: ['network-intelligence', 'federated', benchmarkKey],
+    queryFn: () => networkIntelligenceApi.federated(benchmarkKey, false),
+    enabled: !!benchmarkKey,
+  });
+
+  const items = (federatedQuery.data?.items ?? []) as Array<{
+    benchmark_key: string;
+    snapshot_date: string | null;
+    metric_name: string;
+    metric_value: number | null;
+    sample_size: number;
+    tenant_count: number;
+    suppressed: boolean;
+  }>;
+
+  if (federatedQuery.isLoading) {
+    return (
+      <Card
+        title="Federated benchmark"
+        description="Anonimleştirilmiş çoklu kiracı karşılaştırması"
+      >
+        <Skeleton className="h-24" />
+      </Card>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <Card
+        title="Federated benchmark"
+        description="Anonimleştirilmiş çoklu kiracı karşılaştırması"
+      >
+        <EmptyState
+          title="Henüz federated veri yok"
+          description="k-anonimite eşiği yeterli kiracı sayısı toplanınca görünür."
+          variant="compact"
+          icon={<Globe className="h-8 w-8 text-slate-400" />}
+        />
+      </Card>
+    );
+  }
+
+  return (
+    <Card
+      title="Federated benchmark"
+      description={`Anonimleştirilmiş çoklu kiracı karşılaştırması (${items.length} satır)`}
+    >
+      <table className="mt-3 w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-100 text-overline text-slate-500">
+            <th className="px-3 py-2 text-left">Tarih</th>
+            <th className="px-3 py-2 text-left">Metrik</th>
+            <th className="px-3 py-2 text-right">Değer</th>
+            <th className="px-3 py-2 text-right">Örneklem</th>
+            <th className="px-3 py-2 text-right">Kiracı</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.slice(0, 30).map((row, idx) => (
+            <tr key={idx} className="border-b border-slate-100">
+              <td className="px-3 py-2 text-slate-600">
+                {row.snapshot_date ? formatDate(row.snapshot_date) : '—'}
+              </td>
+              <td className="px-3 py-2 text-slate-700">{row.metric_name}</td>
+              <td className="px-3 py-2 text-right tabular-nums">
+                {row.metric_value != null ? row.metric_value.toFixed(2) : '—'}
+              </td>
+              <td className="px-3 py-2 text-right tabular-nums text-slate-500">
+                {row.sample_size}
+              </td>
+              <td className="px-3 py-2 text-right tabular-nums text-slate-500">
+                {row.tenant_count}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
   );
 }
