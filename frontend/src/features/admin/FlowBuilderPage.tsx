@@ -47,6 +47,21 @@ function validateFlow(nodes: Node[], edges: Edge[]): string[] {
     issues.push(`Tam olarak 1 Tetikleyici dugumu olmali (su an: ${triggerNodes.length})`);
   }
 
+  // Round-9 fix #4 — trigger MUST have entity_type + trigger_event set.
+  // Previously the save path silently defaulted to 'opportunity'/'stage_changed'
+  // so users could end up with a rule that fires on the wrong entity.
+  for (const trigger of triggerNodes) {
+    const entity = (trigger.data.entity_type as string) || '';
+    const event = (trigger.data.trigger_event as string) || '';
+    const label = (trigger.data.label as string) || trigger.id;
+    if (!entity) {
+      issues.push(`"${label}" tetikleyicisinde varlık tipi seçilmemiş`);
+    }
+    if (!event) {
+      issues.push(`"${label}" tetikleyicisinde tetikleyici olay seçilmemiş`);
+    }
+  }
+
   const decisionAndConditionNodes = nodes.filter(
     (n) => n.type === 'condition' || n.type === 'decision',
   );
@@ -55,6 +70,22 @@ function validateFlow(nodes: Node[], edges: Edge[]): string[] {
     if (!hasOutgoing) {
       const label = (node.data.label as string) || node.id;
       issues.push(`"${label}" dugumunun giden baglantisi yok`);
+    }
+  }
+
+  // Round-9 fix #4 — decision nodes have a "yes" and "no" handle. A decision
+  // with only one branch wired up is meaningless; both must connect.
+  for (const node of nodes.filter((n) => n.type === 'decision')) {
+    const outgoing = edges.filter((e) => e.source === node.id);
+    const branches = new Set(outgoing.map((e) => e.sourceHandle ?? null));
+    const hasYes = branches.has('yes');
+    const hasNo = branches.has('no');
+    const label = (node.data.label as string) || node.id;
+    if (!hasYes) {
+      issues.push(`"${label}" karar dugumunun "Evet" cikisi bagli degil`);
+    }
+    if (!hasNo) {
+      issues.push(`"${label}" karar dugumunun "Hayir" cikisi bagli degil`);
     }
   }
 
@@ -291,21 +322,37 @@ export default function FlowBuilderPage() {
       setRuleName(rule.name);
       setIsActive(rule.is_active);
 
+      let initialNodes: Node[] = [];
+      let initialEdges: Edge[] = [];
       if (rule.flow_json) {
         try {
           const flowData = JSON.parse(rule.flow_json);
-          setNodes(flowData.nodes || []);
-          setEdges(flowData.edges || []);
+          initialNodes = flowData.nodes || [];
+          initialEdges = flowData.edges || [];
         } catch {
           const defaultLayout = buildDefaultNodes(rule);
-          setNodes(defaultLayout.nodes);
-          setEdges(defaultLayout.edges);
+          initialNodes = defaultLayout.nodes;
+          initialEdges = defaultLayout.edges;
+          // Round-9 fix #4 — surface the silent fallback so admins know
+          // their flow_json was unparseable (previously it just
+          // disappeared into thin air).
+          toast.error('Akış JSON ayrıştırılamadı; varsayılan düzen kullanılıyor');
         }
       } else {
         const defaultLayout = buildDefaultNodes(rule);
-        setNodes(defaultLayout.nodes);
-        setEdges(defaultLayout.edges);
+        initialNodes = defaultLayout.nodes;
+        initialEdges = defaultLayout.edges;
       }
+      setNodes(initialNodes);
+      setEdges(initialEdges);
+
+      // Round-9 fix #4 — seed history with the loaded state so the
+      // first action's undo restores the load-time baseline (was a
+      // no-op before because ``historyIndexRef.current`` started at -1).
+      historyRef.current = [
+        { nodes: initialNodes.map((n) => ({ ...n })), edges: initialEdges.map((e) => ({ ...e })) },
+      ];
+      historyIndexRef.current = 0;
     });
   }, [rule, isNew, setNodes, setEdges]);
 
@@ -413,6 +460,14 @@ export default function FlowBuilderPage() {
       event.preventDefault();
       const type = event.dataTransfer.getData('application/reactflow');
       if (!type || !reactFlowInstance) return;
+      // Round-9 fix #4 — a malformed dataTransfer payload (eg. a stray
+      // drag from elsewhere) used to create a node with an unknown
+      // ``type``, which then crashed the React Flow renderer because
+      // there is no entry in ``nodeTypes`` for it. Validate against
+      // the palette set up front.
+      if (!Object.prototype.hasOwnProperty.call(nodeTypes, type)) {
+        return;
+      }
 
       const position = reactFlowInstance.screenToFlowPosition({
         x: event.clientX,
@@ -446,7 +501,19 @@ export default function FlowBuilderPage() {
     (key: string, value: string) => {
       if (!selectedNodeId) return;
       setNodes((nds) =>
-        nds.map((n) => (n.id === selectedNodeId ? { ...n, data: { ...n.data, [key]: value } } : n)),
+        nds.map((n) => {
+          if (n.id !== selectedNodeId) return n;
+          // Round-9 fix #4 — when a trigger node's entity_type changes
+          // the previously selected trigger_event becomes orphaned (e.g.
+          // entity:opportunity / event:stage_changed → entity:quote
+          // doesn't expose stage_changed, so the field silently retains
+          // an invalid value). Reset trigger_event so the user picks a
+          // valid one for the new entity type.
+          if (n.type === 'trigger' && key === 'entity_type') {
+            return { ...n, data: { ...n.data, entity_type: value, trigger_event: '' } };
+          }
+          return { ...n, data: { ...n.data, [key]: value } };
+        }),
       );
     },
     [selectedNodeId, setNodes],
@@ -497,10 +564,29 @@ export default function FlowBuilderPage() {
         for (const issue of validationIssues) {
           toast.error(issue);
         }
-        throw new Error('Validasyon hatasi');
+        // Round-9 fix #4 — tag the error so onError can suppress its
+        // generic toast (otherwise users see two toasts on every
+        // validation fail).
+        const err = new Error('Validasyon hatasi') as Error & { isValidation?: boolean };
+        err.isValidation = true;
+        throw err;
       }
 
-      const flowData = { nodes, edges };
+      // Round-9 fix #4 — strip ``selected`` state before persisting.
+      // Without this, reloading a saved flow shows nodes pre-selected
+      // from the user's last interaction and pollutes copy/paste.
+      const cleanNodes = nodes.map((n) => {
+        const { selected: _selected, dragging: _dragging, ...rest } = n as Node & {
+          selected?: boolean;
+          dragging?: boolean;
+        };
+        return rest as Node;
+      });
+      const cleanEdges = edges.map((e) => {
+        const { selected: _selected, ...rest } = e as Edge & { selected?: boolean };
+        return rest as Edge;
+      });
+      const flowData = { nodes: cleanNodes, edges: cleanEdges };
 
       const conditionNodes = nodes.filter((n) => n.type === 'condition');
       const conditions = conditionNodes.map((n) => ({
@@ -540,7 +626,12 @@ export default function FlowBuilderPage() {
         navigate('/admin/workflow-rules');
       }
     },
-    onError: () => toast.error('Kaydetme başarısız oldu'),
+    onError: (err: unknown) => {
+      // Round-9 fix #4 — validation errors already produced their own
+      // detailed toasts in mutationFn; suppress the generic one.
+      if ((err as { isValidation?: boolean })?.isValidation) return;
+      toast.error('Kaydetme başarısız oldu');
+    },
   });
 
   const currentTriggerOptions =

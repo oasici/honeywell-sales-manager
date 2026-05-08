@@ -432,11 +432,15 @@ class PlaybookService:
         await self._db.flush()
         return playbook
 
-    async def list_playbooks(self) -> list[dict]:
-        """List all playbooks."""
-        result = await self._db.execute(
-            select(Playbook).order_by(Playbook.created_at.desc())
-        )
+    async def list_playbooks(self, include_inactive: bool = False) -> list[dict]:
+        """List playbooks. Soft-deleted (``is_active=False``) rows are
+        excluded by default — the SPA delete flow expects them to drop
+        out of the list immediately after a delete mutation.
+        """
+        stmt = select(Playbook).order_by(Playbook.created_at.desc())
+        if not include_inactive:
+            stmt = stmt.where(Playbook.is_active.is_(True))
+        result = await self._db.execute(stmt)
         playbooks = result.scalars().all()
         return [_playbook_to_dict(p) for p in playbooks]
 

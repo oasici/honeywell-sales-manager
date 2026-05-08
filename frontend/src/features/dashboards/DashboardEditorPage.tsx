@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Save, Play, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Save, Play, Plus, Trash2, ArrowLeft, Eye } from 'lucide-react';
 
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip } from 'recharts';
 
@@ -351,6 +351,10 @@ export default function DashboardEditorPage() {
         <div className="flex gap-2">
           <Button variant="ghost" onClick={() => navigate('/dashboards')}>
             <ArrowLeft size={16} className="mr-1" /> Geri
+          </Button>
+          {/* Round-9 — quick switch from edit → run/view. */}
+          <Button variant="ghost" onClick={() => navigate(`/dashboards/${dashboardId}`)}>
+            <Eye size={16} className="mr-1" /> Görüntüle
           </Button>
           <Button
             variant="secondary"

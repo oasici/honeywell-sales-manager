@@ -62,6 +62,8 @@ const InsightsPage = lazy(() => import('../features/insights/InsightsPage'));
 // Dashboard Builder
 const DashboardListPage = lazy(() => import('../features/dashboards/DashboardListPage'));
 const DashboardEditorPage = lazy(() => import('../features/dashboards/DashboardEditorPage'));
+// Round-9 — split viewer (run + download) from editor.
+const DashboardViewerPage = lazy(() => import('../features/dashboards/DashboardViewerPage'));
 
 // Playbooks
 const PlaybookListPage = lazy(() => import('../features/playbooks/PlaybookListPage'));
@@ -633,8 +635,22 @@ export default function App() {
             </FeatureFlagGate>
           }
         />
+        {/* Round-9 — card click runs the dashboard (viewer);
+            pencil button on card routes to /:id/edit (editor). */}
         <Route
           path="dashboards/:id"
+          element={
+            <FeatureFlagGate flag="FEATURE_DASHBOARD_BUILDER">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <DashboardViewerPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
+          }
+        />
+        <Route
+          path="dashboards/:id/edit"
           element={
             <FeatureFlagGate flag="FEATURE_DASHBOARD_BUILDER">
               <Suspense fallback={<LoadingSpinner />}>

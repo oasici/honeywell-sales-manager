@@ -52,60 +52,46 @@ import {
   LineChart,
   Network as NetworkIcon,
   Sparkles,
+  Briefcase,
+  HandCoins,
+  Wallet,
+  Globe2,
 } from 'lucide-react';
 import { approvalsApi } from '../../lib/api';
+import type { TranslationKey } from '../../lib/i18n';
 
-const COLLAPSE_KEY = 'sidebar-yedek-parca-collapsed';
+// Round-9 — sidebar groups are collapsible like the original "Yedek Parça"
+// section. Per-section state is persisted in localStorage so user
+// preferences survive reloads. The original single-key was kept around
+// for backwards compatibility.
+const COLLAPSE_STATE_KEY = 'sidebar-section-collapsed-v2';
+const LEGACY_COLLAPSE_KEY = 'sidebar-yedek-parca-collapsed';
 
 interface NavItem {
-  label: string;
+  label: TranslationKey | string;
   to: string;
   icon: ReactNode;
   roles?: string[];
+  /** Optional badge renderer (e.g. pending approvals count). */
+  badge?: number;
 }
 
-const yedekParcaItems: NavItem[] = [
-  {
-    label: 'nav.emails',
-    to: '/emails',
-    icon: <Mail size={18} className="shrink-0" />,
-    roles: ['sales_rep', 'sales_manager'],
-  },
-  { label: 'nav.parts', to: '/parts', icon: <Cog size={18} className="shrink-0" /> },
-  {
-    label: 'nav.parts_intel',
-    to: '/parts-intel',
-    icon: <Cog size={18} className="shrink-0" />,
-    roles: ['sales_manager', 'operations'],
-  },
-  {
-    label: 'nav.quotes',
-    to: '/quotes',
-    icon: <FileText size={18} className="shrink-0" />,
-    roles: ['sales_rep', 'sales_manager'],
-  },
-  {
-    label: 'nav.customers',
-    to: '/customers',
-    icon: <Users size={18} className="shrink-0" />,
-    roles: ['sales_rep', 'sales_manager'],
-  },
-  {
-    label: 'nav.high_intent',
-    to: '/customers/high-intent',
-    icon: <Target size={18} className="shrink-0" />,
-    roles: ['sales_rep', 'sales_manager'],
-  },
-];
+interface NavGroup {
+  id: string;
+  label: TranslationKey | string;
+  icon: ReactNode;
+  roles?: string[];
+  items: NavItem[];
+  /** Default collapsed state when nothing is in localStorage. */
+  defaultCollapsed?: boolean;
+}
 
-function filterByRole(items: NavItem[], role: string | undefined): NavItem[] {
+function filterByRole<T extends { roles?: string[] }>(items: T[], role: string | undefined): T[] {
   if (!role) return items;
   return items.filter((item) => !item.roles || item.roles.includes(role));
 }
 
 function navLinkClass({ isActive }: { isActive: boolean }): string {
-  // Linear-style sidebar items: 8px radius, calmer hover (white/5 not gray-800),
-  // active state uses brand red tint at 12% with red text + 1px ring for definition.
   return [
     'flex items-center gap-3 h-9 rounded-[10px] px-3 text-[13px] font-medium',
     'transition-[background-color,color] duration-150',
@@ -115,35 +101,91 @@ function navLinkClass({ isActive }: { isActive: boolean }): string {
   ].join(' ');
 }
 
+interface CollapsibleSectionProps {
+  group: NavGroup;
+  expanded: boolean;
+  onToggle: () => void;
+  onNavigate?: () => void;
+  pendingApprovals?: number;
+}
+
+function CollapsibleSection({
+  group,
+  expanded,
+  onToggle,
+  onNavigate,
+  pendingApprovals,
+}: CollapsibleSectionProps) {
+  const t = useT();
+  const label =
+    typeof group.label === 'string' && group.label.startsWith('nav.')
+      ? t(group.label as TranslationKey)
+      : (group.label as string);
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between rounded-[10px] px-3 py-2 text-[13px] font-medium text-slate-300 hover:bg-white/4 hover:text-slate-100 transition-colors cursor-pointer"
+      >
+        <span className="flex items-center gap-3">
+          {group.icon}
+          {label}
+        </span>
+        <ChevronRight
+          size={14}
+          className={`shrink-0 text-slate-500 transition-transform duration-150 ${
+            expanded ? 'rotate-90' : ''
+          }`}
+        />
+      </button>
+      {expanded && (
+        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-white/6 pl-2">
+          {group.items.map((item) => {
+            const itemLabel =
+              typeof item.label === 'string' && item.label.startsWith('nav.')
+                ? t(item.label as TranslationKey)
+                : (item.label as string);
+            const showBadge = item.badge != null && item.badge > 0;
+            const computedBadge =
+              item.to === '/approvals' && pendingApprovals && pendingApprovals > 0
+                ? pendingApprovals
+                : showBadge
+                  ? item.badge
+                  : undefined;
+            return (
+              <NavLink key={item.to} to={item.to} className={navLinkClass} onClick={onNavigate}>
+                {item.icon}
+                <span className="flex-1 truncate">{itemLabel}</span>
+                {computedBadge != null && (
+                  <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-honeywell-red px-1.5 text-[10px] font-bold text-white">
+                    {computedBadge}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const t = useT();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const [collapsed, setCollapsed] = useState(() => {
-    const saved = localStorage.getItem(COLLAPSE_KEY);
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed));
-  }, [collapsed]);
-
   const userRole = user?.role;
-  const visibleYedekParcaItems = filterByRole(yedekParcaItems, userRole);
   const canSeeSettings = !userRole || ['sales_manager', 'operations'].includes(userRole);
-  const canSeeReports = userRole === 'sales_manager';
   const canSeeApprovals = userRole === 'sales_rep' || userRole === 'sales_manager';
-  // Audit + KVKK export gate. The backend endpoints require
-  // SALES_MANAGER specifically (operations gets 403), so showing
-  // these links to operations users used to surface a confusing
-  // "Beklenmeyen bir hata oluştu" toast when they clicked through.
   const canSeeAudit = userRole === 'sales_manager';
 
   const { data: pendingData } = useQuery({
@@ -154,21 +196,413 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   });
   const pendingCount = pendingData?.items?.length ?? 0;
 
-  // Auto-expand if user navigates to a yedek parça route
-  useEffect(() => {
-    const isYedekParcaRoute = visibleYedekParcaItems.some((item) =>
-      location.pathname.startsWith(item.to),
-    );
-    if (isYedekParcaRoute && collapsed) {
-      queueMicrotask(() => setCollapsed(false));
-    }
-  }, [location.pathname, collapsed, visibleYedekParcaItems]);
+  // ── Group definitions ───────────────────────────────────────────────
+  const groups: NavGroup[] = [
+    {
+      id: 'sales',
+      label: 'nav.section_sales',
+      icon: <Radar size={18} className="shrink-0" />,
+      roles: ['sales_rep', 'sales_manager'],
+      items: [
+        { label: 'nav.cockpit', to: '/cockpit', icon: <Radar size={16} className="shrink-0" /> },
+        {
+          label: 'nav.forecast',
+          to: '/forecast',
+          icon: <LineChart size={16} className="shrink-0" />,
+          roles: ['sales_manager'],
+        },
+        {
+          label: 'nav.network_intelligence',
+          to: '/network-intelligence',
+          icon: <NetworkIcon size={16} className="shrink-0" />,
+          roles: ['sales_manager'],
+        },
+        { label: 'nav.board', to: '/board', icon: <Kanban size={16} className="shrink-0" /> },
+        {
+          label: 'nav.opportunities',
+          to: '/opportunities',
+          icon: <Layers size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.planning_studio',
+          to: '/planning-studio',
+          icon: <ListFilter size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.sales_analytics',
+          to: '/sales-analytics',
+          icon: <TrendingUp size={16} className="shrink-0" />,
+          roles: ['sales_manager'],
+        },
+        {
+          label: 'nav.at_risk',
+          to: '/at-risk',
+          icon: <AlertTriangle size={16} className="shrink-0" />,
+        },
+      ],
+    },
+    {
+      id: 'customers',
+      label: 'nav.section_customers',
+      icon: <Users size={18} className="shrink-0" />,
+      roles: ['sales_rep', 'sales_manager'],
+      items: [
+        { label: 'nav.customers', to: '/customers', icon: <Users size={16} className="shrink-0" /> },
+        {
+          label: 'nav.high_intent',
+          to: '/customers/high-intent',
+          icon: <Target size={16} className="shrink-0" />,
+        },
+        { label: 'nav.leads', to: '/leads', icon: <Target size={16} className="shrink-0" /> },
+      ],
+    },
+    {
+      id: 'spare_parts',
+      label: 'nav.spare_parts',
+      icon: <Wrench size={18} className="shrink-0" />,
+      items: [
+        {
+          label: 'nav.emails',
+          to: '/emails',
+          icon: <Mail size={16} className="shrink-0" />,
+          roles: ['sales_rep', 'sales_manager'],
+        },
+        { label: 'nav.parts', to: '/parts', icon: <Cog size={16} className="shrink-0" /> },
+        {
+          label: 'nav.parts_intel',
+          to: '/parts-intel',
+          icon: <Cog size={16} className="shrink-0" />,
+          roles: ['sales_manager', 'operations'],
+        },
+        {
+          label: 'nav.quotes',
+          to: '/quotes',
+          icon: <FileText size={16} className="shrink-0" />,
+          roles: ['sales_rep', 'sales_manager'],
+        },
+      ],
+    },
+    {
+      id: 'revenue',
+      label: 'nav.section_revenue',
+      icon: <Wallet size={18} className="shrink-0" />,
+      roles: ['sales_rep', 'sales_manager'],
+      items: [
+        {
+          label: 'nav.subscriptions',
+          to: '/subscriptions',
+          icon: <RefreshCw size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.contracts',
+          to: '/contracts',
+          icon: <FileCheck size={16} className="shrink-0" />,
+        },
+        { label: 'nav.invoices', to: '/invoices', icon: <ReceiptText size={16} className="shrink-0" /> },
+        {
+          label: 'nav.revenue_recognition',
+          to: '/revenue-recognition',
+          icon: <TrendingUp size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.campaigns',
+          to: '/campaigns',
+          icon: <Megaphone size={16} className="shrink-0" />,
+        },
+      ],
+    },
+    {
+      id: 'approvals',
+      label: 'nav.section_approvals',
+      icon: <ClipboardCheck size={18} className="shrink-0" />,
+      roles: ['sales_rep', 'sales_manager'],
+      items: [
+        {
+          label: 'nav.leaderboard',
+          to: '/leaderboard',
+          icon: <Trophy size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.approvals',
+          to: '/approvals',
+          icon: <ClipboardCheck size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.approval_rules',
+          to: '/approvals/rules',
+          icon: <Workflow size={16} className="shrink-0" />,
+          roles: ['sales_manager'],
+        },
+      ],
+    },
+    {
+      id: 'tools',
+      label: 'nav.section_tools',
+      icon: <Brain size={18} className="shrink-0" />,
+      roles: ['sales_rep', 'sales_manager'],
+      items: [
+        {
+          label: 'nav.ai_assistant',
+          to: '/ai/insights',
+          icon: <Brain size={16} className="shrink-0" />,
+        },
+        { label: 'nav.ai_tasks', to: '/ai/tasks', icon: <ListChecks size={16} className="shrink-0" /> },
+        {
+          label: 'nav.insights',
+          to: '/insights',
+          icon: <TrendingUp size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.report_builder',
+          to: '/reports/builder',
+          icon: <BarChart3 size={16} className="shrink-0" />,
+          roles: ['sales_manager'],
+        },
+        {
+          label: 'nav.email_templates',
+          to: '/email-templates',
+          icon: <FilePenLine size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.dashboards',
+          to: '/dashboards',
+          icon: <LayoutGrid size={16} className="shrink-0" />,
+        },
+      ],
+    },
+    {
+      id: 'playbooks',
+      label: 'nav.section_playbooks',
+      icon: <BookOpen size={18} className="shrink-0" />,
+      roles: ['sales_manager'],
+      items: [
+        {
+          label: 'nav.playbooks',
+          to: '/playbooks',
+          icon: <BookOpen size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.playbook_templates',
+          to: '/playbooks/templates',
+          icon: <FileText size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.playbook_analytics',
+          to: '/playbooks/analytics',
+          icon: <BarChart2 size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.coaching',
+          to: '/coaching',
+          icon: <GraduationCap size={16} className="shrink-0" />,
+        },
+      ],
+    },
+    {
+      id: 'engagement',
+      label: 'nav.section_engagement',
+      icon: <MessageSquare size={18} className="shrink-0" />,
+      roles: ['sales_rep', 'sales_manager'],
+      items: [
+        {
+          label: 'nav.transcripts',
+          to: '/engagement/transcripts',
+          icon: <MessageSquare size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.keywords',
+          to: '/engagement/keywords',
+          icon: <Tag size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.sequences',
+          to: '/engagement/sequences',
+          icon: <ListChecks size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.segments',
+          to: '/engagement/segments',
+          icon: <UsersRound size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.scorecards',
+          to: '/engagement/scorecards',
+          icon: <Trophy size={16} className="shrink-0" />,
+        },
+      ],
+    },
+    {
+      id: 'compliance',
+      label: 'nav.section_compliance',
+      icon: <Shield size={18} className="shrink-0" />,
+      roles: ['sales_manager', 'operations'],
+      items: [
+        {
+          label: 'nav.compliance',
+          to: '/compliance',
+          icon: <Shield size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.retention',
+          to: '/compliance/retention',
+          icon: <Database size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.breaches',
+          to: '/compliance/breaches',
+          icon: <AlertTriangle size={16} className="shrink-0" />,
+        },
+      ],
+    },
+    {
+      id: 'admin',
+      label: 'nav.section_admin',
+      icon: <Briefcase size={18} className="shrink-0" />,
+      roles: ['sales_manager'],
+      items: [
+        {
+          label: 'nav.custom_fields',
+          to: '/admin/custom-fields',
+          icon: <FormInput size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.ai_attributes',
+          to: '/admin/ai-attributes',
+          icon: <Sparkles size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.field_permissions',
+          to: '/admin/field-permissions',
+          icon: <KeyRound size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.product_rules',
+          to: '/admin/product-rules',
+          icon: <Scale size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.workflow_rules',
+          to: '/admin/workflow-rules',
+          icon: <Workflow size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.data_quality',
+          to: '/admin/data-quality',
+          icon: <BarChart2 size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.territories',
+          to: '/admin/territories',
+          icon: <Map size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.pricing_admin',
+          to: '/admin/pricing',
+          icon: <HandCoins size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.live_chat',
+          to: '/admin/chat',
+          icon: <MessageSquare size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.user_management',
+          to: '/users',
+          icon: <UsersRound size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.reports_legacy',
+          to: '/reports',
+          icon: <FileText size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.integrations',
+          to: '/integrations',
+          icon: <Plug size={16} className="shrink-0" />,
+        },
+      ],
+      defaultCollapsed: true,
+    },
+    {
+      id: 'audit',
+      label: 'nav.section_audit',
+      icon: <History size={18} className="shrink-0" />,
+      roles: ['sales_manager'],
+      items: [
+        { label: 'nav.audit_log', to: '/audit', icon: <History size={16} className="shrink-0" /> },
+        {
+          label: 'nav.kvkk_export',
+          to: '/kvkk-export',
+          icon: <Database size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.system_health',
+          to: '/admin/system-health',
+          icon: <Activity size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.event_audit',
+          to: '/admin/event-audit',
+          icon: <ListTree size={16} className="shrink-0" />,
+        },
+      ],
+      defaultCollapsed: true,
+    },
+  ];
 
-  const t = useT();
+  // Filter groups + their items by role.
+  const visibleGroups = filterByRole(groups, userRole)
+    .map((g) => ({ ...g, items: filterByRole(g.items, userRole) }))
+    .filter((g) => g.items.length > 0);
+
+  // Per-section expand state.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem(COLLAPSE_STATE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved) as Record<string, boolean>;
+      } catch {
+        /* fall through */
+      }
+    }
+    // First load: legacy single-key was for spare_parts only.
+    const legacy = localStorage.getItem(LEGACY_COLLAPSE_KEY);
+    const legacyCollapsed = legacy ? JSON.parse(legacy) === true : false;
+    return groups.reduce<Record<string, boolean>>((acc, g) => {
+      if (g.id === 'spare_parts') {
+        acc[g.id] = !legacyCollapsed;
+      } else {
+        acc[g.id] = !g.defaultCollapsed;
+      }
+      return acc;
+    }, {});
+  });
+
+  useEffect(() => {
+    localStorage.setItem(COLLAPSE_STATE_KEY, JSON.stringify(expanded));
+  }, [expanded]);
+
+  // Auto-expand the section that contains the active route.
+  useEffect(() => {
+    for (const g of visibleGroups) {
+      const hit = g.items.some((item) => location.pathname.startsWith(item.to));
+      if (hit && !expanded[g.id]) {
+        setExpanded((prev) => ({ ...prev, [g.id]: true }));
+        break;
+      }
+    }
+    // visibleGroups is recomputed each render but its identity is stable
+    // enough for effect dep purposes; we deliberately omit it here to
+    // avoid an infinite render loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  const toggleSection = (id: string) =>
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <aside className="flex h-screen w-[260px] flex-col bg-slate-950 border-r border-white/6">
-      {/* Brand block — calmer; the H mark gets a softer red wash */}
+      {/* Brand block */}
       <div className="flex h-[60px] items-center gap-2.5 px-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-honeywell-red/12 ring-1 ring-honeywell-red/20">
           <span className="text-sm font-bold text-honeywell-red leading-none">H</span>
@@ -182,403 +616,57 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {/* ── GENEL ── */}
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        {/* Top-level Anasayfa link — the only flat entry */}
         <NavLink to="/" end className={navLinkClass} onClick={onNavigate}>
           <LayoutDashboard size={18} className="shrink-0" />
           {t('nav.home')}
         </NavLink>
 
-        {/* ── SATIS ── */}
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <>
-            <div className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                {t('nav.section_sales')}
-              </span>
-            </div>
-            <NavLink to="/cockpit" className={navLinkClass} onClick={onNavigate}>
-              <Radar size={18} className="shrink-0" />
-              {t('nav.cockpit')}
-            </NavLink>
-            {/* Round-8 R8-NAV-1/2 — manager-only views. Forecast endpoints
-                require SALES_MANAGER role; network intelligence is restricted
-                to managers per the page docstring. */}
-            {userRole === 'sales_manager' && (
-              <>
-                <NavLink to="/forecast" className={navLinkClass} onClick={onNavigate}>
-                  <LineChart size={18} className="shrink-0" />
-                  {t('nav.forecast')}
-                </NavLink>
-                <NavLink to="/network-intelligence" className={navLinkClass} onClick={onNavigate}>
-                  <NetworkIcon size={18} className="shrink-0" />
-                  {t('nav.network_intelligence')}
-                </NavLink>
-              </>
-            )}
-            <NavLink to="/board" className={navLinkClass} onClick={onNavigate}>
-              <Kanban size={18} className="shrink-0" />
-              {t('nav.board')}
-            </NavLink>
-            <NavLink to="/opportunities" className={navLinkClass} onClick={onNavigate}>
-              <Layers size={18} className="shrink-0" />
-              {t('nav.opportunities')}
-            </NavLink>
-            <NavLink to="/planning-studio" className={navLinkClass} onClick={onNavigate}>
-              <ListFilter size={18} className="shrink-0" />
-              {t('nav.planning_studio')}
-            </NavLink>
-          </>
-        )}
-
-        {userRole === 'sales_manager' && (
-          <NavLink to="/sales-analytics" className={navLinkClass} onClick={onNavigate}>
-            <TrendingUp size={18} className="shrink-0" />
-            {t('nav.sales_analytics')}
-          </NavLink>
-        )}
-
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <NavLink to="/leads" className={navLinkClass} onClick={onNavigate}>
-            <Target size={18} className="shrink-0" />
-            {t('nav.leads')}
-          </NavLink>
-        )}
-
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <NavLink to="/subscriptions" className={navLinkClass} onClick={onNavigate}>
-            <RefreshCw size={18} className="shrink-0" />
-            {t('nav.subscriptions')}
-          </NavLink>
-        )}
-
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <NavLink to="/contracts" className={navLinkClass} onClick={onNavigate}>
-            <FileCheck size={18} className="shrink-0" />
-            {t('nav.contracts')}
-          </NavLink>
-        )}
-
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <NavLink to="/campaigns" className={navLinkClass} onClick={onNavigate}>
-            <Megaphone size={18} className="shrink-0" />
-            {t('nav.campaigns')}
-          </NavLink>
-        )}
-
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <NavLink to="/invoices" className={navLinkClass} onClick={onNavigate}>
-            <ReceiptText size={18} className="shrink-0" />
-            {t('nav.invoices')}
-          </NavLink>
-        )}
-
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <NavLink to="/revenue-recognition" className={navLinkClass} onClick={onNavigate}>
-            <TrendingUp size={18} className="shrink-0" />
-            {t('nav.revenue_recognition')}
-          </NavLink>
-        )}
-
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <NavLink to="/at-risk" className={navLinkClass} onClick={onNavigate}>
-            <AlertTriangle size={18} className="shrink-0" />
-            {t('nav.at_risk')}
-          </NavLink>
-        )}
-
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <NavLink to="/leaderboard" className={navLinkClass} onClick={onNavigate}>
-            <Trophy size={18} className="shrink-0" />
-            {t('nav.leaderboard')}
-          </NavLink>
-        )}
-
-        {canSeeApprovals && (
-          <NavLink to="/approvals" className={navLinkClass} onClick={onNavigate}>
-            <ClipboardCheck size={18} className="shrink-0" />
-            <span className="flex-1">{t('nav.approvals')}</span>
-            {pendingCount > 0 && (
-              <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-honeywell-red px-1.5 text-[10px] font-bold text-white">
-                {pendingCount}
-              </span>
-            )}
-          </NavLink>
-        )}
-        {/* R6-NAV-1 — /approvals/rules was routed but never linked.
-            R7-I18N-2 — i18n key now wired. */}
-        {userRole === 'sales_manager' && (
-          <NavLink to="/approvals/rules" className={navLinkClass} onClick={onNavigate}>
-            <Workflow size={18} className="shrink-0" />
-            {t('nav.approval_rules')}
-          </NavLink>
-        )}
-
-        {/* Yedek Parça collapsible section */}
-        <div>
-          <button
-            onClick={() => setCollapsed((c: boolean) => !c)}
-            aria-expanded={!collapsed}
-            className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-gray-800 hover:text-white transition-colors cursor-pointer"
-          >
-            <span className="flex items-center gap-3">
-              <Wrench size={18} className="shrink-0" />
-              {t('nav.spare_parts')}
-            </span>
-            <ChevronRight
-              size={16}
-              className={`shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+        <div className="pt-3 space-y-0.5">
+          {visibleGroups.map((g) => (
+            <CollapsibleSection
+              key={g.id}
+              group={g}
+              expanded={expanded[g.id] ?? !g.defaultCollapsed}
+              onToggle={() => toggleSection(g.id)}
+              onNavigate={onNavigate}
+              pendingApprovals={pendingCount}
             />
-          </button>
-
-          {!collapsed && (
-            <div className="ml-4 mt-1 space-y-1">
-              {visibleYedekParcaItems.map((item) => (
-                <NavLink key={item.to} to={item.to} className={navLinkClass} onClick={onNavigate}>
-                  {item.icon}
-                  {t(item.label as Parameters<typeof t>[0])}
-                </NavLink>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
 
-        {/* ── ARACLAR ── */}
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <>
-            <div className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                {t('nav.section_tools')}
-              </span>
-            </div>
-            <NavLink to="/ai/insights" className={navLinkClass} onClick={onNavigate}>
-              <Brain size={18} className="shrink-0" />
-              {t('nav.ai_assistant')}
+        {/* Settings always available at the bottom of nav, kept flat */}
+        {canSeeSettings && (
+          <div className="pt-3 space-y-0.5">
+            <NavLink to="/settings" className={navLinkClass} onClick={onNavigate}>
+              <Settings size={18} className="shrink-0" />
+              {t('nav.settings')}
             </NavLink>
-            {/* R6-NAV-1 — /ai/tasks routed but absent from sidebar.
-                R7-I18N-2 — i18n key now wired. */}
-            <NavLink to="/ai/tasks" className={navLinkClass} onClick={onNavigate}>
-              <ListChecks size={18} className="shrink-0" />
-              {t('nav.ai_tasks')}
+            <NavLink to="/settings/pipelines" className={navLinkClass} onClick={onNavigate}>
+              <GitBranch size={18} className="shrink-0" />
+              {t('nav.pipeline_settings')}
             </NavLink>
-            <NavLink to="/insights" className={navLinkClass} onClick={onNavigate}>
-              <TrendingUp size={18} className="shrink-0" />
-              {t('nav.insights')}
-            </NavLink>
-            {/* R6-NAV-1 — Report Builder routed but never surfaced.
-                R7-I18N-2 — i18n key now wired. */}
             {userRole === 'sales_manager' && (
-              <NavLink to="/reports/builder" className={navLinkClass} onClick={onNavigate}>
+              <NavLink to="/reports/saved" className={navLinkClass} onClick={onNavigate}>
                 <BarChart3 size={18} className="shrink-0" />
-                {t('nav.report_builder')}
+                {t('nav.reports')}
               </NavLink>
             )}
-            <NavLink to="/email-templates" className={navLinkClass} onClick={onNavigate}>
-              <FilePenLine size={18} className="shrink-0" />
-              {t('nav.email_templates')}
-            </NavLink>
-            <NavLink to="/dashboards" className={navLinkClass} onClick={onNavigate}>
-              <LayoutGrid size={18} className="shrink-0" />
-              {t('nav.dashboards')}
-            </NavLink>
-          </>
+          </div>
         )}
 
-        {/* Oyun Planlari - manager only */}
-        {userRole === 'sales_manager' && (
-          <>
-            <NavLink to="/playbooks" className={navLinkClass} onClick={onNavigate}>
-              <BookOpen size={18} className="shrink-0" />
-              {t('nav.playbooks')}
-            </NavLink>
-            {/* R6-NAV-1 — /playbooks/templates and /playbooks/analytics
-                were routed but never linked. */}
-            <NavLink to="/playbooks/templates" className={navLinkClass} onClick={onNavigate}>
-              <FileText size={18} className="shrink-0" />
-              {t('nav.playbook_templates')}
-            </NavLink>
-            <NavLink to="/playbooks/analytics" className={navLinkClass} onClick={onNavigate}>
-              <BarChart2 size={18} className="shrink-0" />
-              {t('nav.playbook_analytics')}
-            </NavLink>
-          </>
-        )}
-
-        {/* Koçluk - manager only */}
-        {userRole === 'sales_manager' && (
-          <NavLink to="/coaching" className={navLinkClass} onClick={onNavigate}>
-            <GraduationCap size={18} className="shrink-0" />
-            {t('nav.coaching')}
-          </NavLink>
-        )}
-
-        {/* Etkileşim - sales roles */}
-        {(userRole === 'sales_rep' || userRole === 'sales_manager') && (
-          <>
-            <NavLink to="/engagement/transcripts" className={navLinkClass} onClick={onNavigate}>
-              <MessageSquare size={18} className="shrink-0" />
-              {t('nav.transcripts')}
-            </NavLink>
-            <NavLink to="/engagement/keywords" className={navLinkClass} onClick={onNavigate}>
-              <Tag size={18} className="shrink-0" />
-              {t('nav.keywords')}
-            </NavLink>
-            <NavLink to="/engagement/sequences" className={navLinkClass} onClick={onNavigate}>
-              <ListChecks size={18} className="shrink-0" />
-              {t('nav.sequences')}
-            </NavLink>
-            <NavLink to="/engagement/segments" className={navLinkClass} onClick={onNavigate}>
-              <UsersRound size={18} className="shrink-0" />
-              {t('nav.segments')}
-            </NavLink>
-            {/* R6-NAV-1 — /engagement/scorecards routed but never linked. */}
-            <NavLink to="/engagement/scorecards" className={navLinkClass} onClick={onNavigate}>
-              <Trophy size={18} className="shrink-0" />
-              {t('nav.scorecards')}
-            </NavLink>
-          </>
-        )}
-
-        {/* Settings */}
-        {canSeeSettings && (
-          <NavLink to="/settings" className={navLinkClass} onClick={onNavigate}>
-            <Settings size={18} className="shrink-0" />
-            {t('nav.settings')}
-          </NavLink>
-        )}
-
-        {/* Pipeline Settings */}
-        {canSeeSettings && (
-          <NavLink to="/settings/pipelines" className={navLinkClass} onClick={onNavigate}>
-            <GitBranch size={18} className="shrink-0" />
-            {t('nav.pipeline_settings')}
-          </NavLink>
-        )}
-
-        {/* Reports - sales_manager only */}
-        {canSeeReports && (
-          <NavLink to="/reports/saved" className={navLinkClass} onClick={onNavigate}>
-            <BarChart3 size={18} className="shrink-0" />
-            {t('nav.reports')}
-          </NavLink>
-        )}
-
-        {/* KVKK Uyum - manager & operations */}
-        {(userRole === 'sales_manager' || userRole === 'operations') && (
-          <NavLink to="/compliance" className={navLinkClass} onClick={onNavigate}>
-            <Shield size={18} className="shrink-0" />
-            {t('nav.compliance')}
-          </NavLink>
-        )}
-        {/* R6-NAV-1 — /compliance/retention and /compliance/breaches
-            were routed but never linked. Both are KVKK-mandated tools
-            that need first-class navigation. */}
-        {(userRole === 'sales_manager' || userRole === 'operations') && (
-          <>
-            <NavLink to="/compliance/retention" className={navLinkClass} onClick={onNavigate}>
-              <Database size={18} className="shrink-0" />
-              {t('nav.retention')}
-            </NavLink>
-            <NavLink to="/compliance/breaches" className={navLinkClass} onClick={onNavigate}>
-              <AlertTriangle size={18} className="shrink-0" />
-              {t('nav.breaches')}
-            </NavLink>
-          </>
-        )}
-
-        {/* Entegrasyonlar - manager only */}
-        {userRole === 'sales_manager' && (
-          <NavLink to="/integrations" className={navLinkClass} onClick={onNavigate}>
-            <Plug size={18} className="shrink-0" />
-            {t('nav.integrations')}
-          </NavLink>
-        )}
-
-        {/* ── YONETIM ── */}
-        {userRole === 'sales_manager' && (
-          <>
-            <div className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                {t('nav.section_admin')}
-              </span>
-            </div>
-            <NavLink to="/admin/custom-fields" className={navLinkClass} onClick={onNavigate}>
-              <FormInput size={18} className="shrink-0" />
-              {t('nav.custom_fields')}
-            </NavLink>
-            <NavLink to="/admin/ai-attributes" className={navLinkClass} onClick={onNavigate}>
-              <Sparkles size={18} className="shrink-0" />
-              {t('nav.ai_attributes')}
-            </NavLink>
-            <NavLink to="/admin/field-permissions" className={navLinkClass} onClick={onNavigate}>
-              <KeyRound size={18} className="shrink-0" />
-              {t('nav.field_permissions')}
-            </NavLink>
-            <NavLink to="/admin/product-rules" className={navLinkClass} onClick={onNavigate}>
-              <Scale size={18} className="shrink-0" />
-              {t('nav.product_rules')}
-            </NavLink>
-            <NavLink to="/admin/workflow-rules" className={navLinkClass} onClick={onNavigate}>
-              <Workflow size={18} className="shrink-0" />
-              {t('nav.workflow_rules')}
-            </NavLink>
-            <NavLink to="/admin/data-quality" className={navLinkClass} onClick={onNavigate}>
-              <BarChart2 size={18} className="shrink-0" />
-              {t('nav.data_quality')}
-            </NavLink>
-            <NavLink to="/admin/territories" className={navLinkClass} onClick={onNavigate}>
-              <Map size={18} className="shrink-0" />
-              {t('nav.territories')}
-            </NavLink>
-            <NavLink to="/admin/pricing" className={navLinkClass} onClick={onNavigate}>
-              <Layers size={18} className="shrink-0" />
-              {t('nav.pricing_admin')}
-            </NavLink>
-            <NavLink to="/admin/chat" className={navLinkClass} onClick={onNavigate}>
-              <MessageSquare size={18} className="shrink-0" />
-              {t('nav.live_chat')}
-            </NavLink>
-            {/* R7-NAV-1 — /users was orphaned (managers had to type the
-                URL). Manager-only entry into the user-management surface. */}
-            {userRole === 'sales_manager' && (
-              <NavLink to="/users" className={navLinkClass} onClick={onNavigate}>
-                <UsersRound size={18} className="shrink-0" />
-                {t('nav.user_management')}
-              </NavLink>
-            )}
-            {/* R7-NAV-2 — /reports legacy ReportsPage lived without a
-                NavLink, only reachable by URL guess. */}
-            {userRole === 'sales_manager' && (
-              <NavLink to="/reports" className={navLinkClass} onClick={onNavigate}>
-                <FileText size={18} className="shrink-0" />
-                {t('nav.reports_legacy')}
-              </NavLink>
-            )}
-            {canSeeAudit && (
-              <>
-                <NavLink to="/audit" className={navLinkClass} onClick={onNavigate}>
-                  <History size={18} className="shrink-0" />
-                  Denetim Kayıtları
-                </NavLink>
-                <NavLink to="/kvkk-export" className={navLinkClass} onClick={onNavigate}>
-                  <Database size={18} className="shrink-0" />
-                  KVKK Veri Aktarma
-                </NavLink>
-                <NavLink to="/admin/system-health" className={navLinkClass} onClick={onNavigate}>
-                  <Activity size={18} className="shrink-0" />
-                  Sistem Sağlığı
-                </NavLink>
-                <NavLink to="/admin/event-audit" className={navLinkClass} onClick={onNavigate}>
-                  <ListTree size={18} className="shrink-0" />
-                  Olay Denetim Kaydı
-                </NavLink>
-              </>
-            )}
-          </>
+        {/* Suppress unused-import warnings for legacy locals (kept for
+            potential ad-hoc top-level entries before next cleanup). */}
+        {false && (
+          <span className="hidden">
+            {canSeeAudit ? '' : ''}
+            <Globe2 size={1} />
+          </span>
         )}
       </nav>
 
-      {/* User info at bottom — avatar + name + logout, calmer divider */}
+      {/* User info at bottom */}
       <div className="border-t border-white/6 px-4 py-3.5">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-honeywell-red/12 ring-1 ring-honeywell-red/20">

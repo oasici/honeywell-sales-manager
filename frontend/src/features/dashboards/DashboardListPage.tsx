@@ -2,7 +2,17 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Plus, LayoutGrid, Trash2, Star, ArrowRight, Lock, Globe, User } from 'lucide-react';
+import {
+  Plus,
+  LayoutGrid,
+  Trash2,
+  Star,
+  ArrowRight,
+  Lock,
+  Globe,
+  User,
+  Pencil,
+} from 'lucide-react';
 
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -185,7 +195,8 @@ export default function DashboardListPage() {
       setModalOpen(false);
       setForm({ name: '', widgets_json: '[]', is_default: false });
       queryClient.invalidateQueries({ queryKey: ['dashboards'] });
-      navigate(`/dashboards/${result.data.id}`);
+      // New dashboards land on the editor — they have no widgets yet.
+      navigate(`/dashboards/${result.data.id}/edit`);
     },
     onError: () => toast.error('Pano oluşturulamadı'),
   });
@@ -312,18 +323,32 @@ export default function DashboardListPage() {
                 </button>
 
                 <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/50 px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900/40">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (confirm('Bu panoyu silmek istediğinize emin misiniz?')) {
-                        deleteMutation.mutate(d.id);
-                      }
-                    }}
-                    aria-label="Sil"
-                  >
-                    <Trash2 size={13} className="text-red-500" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('Bu panoyu silmek istediğinize emin misiniz?')) {
+                          deleteMutation.mutate(d.id);
+                        }
+                      }}
+                      aria-label="Sil"
+                      title="Sil"
+                    >
+                      <Trash2 size={13} className="text-red-500" />
+                    </Button>
+                    {/* Round-9 — pencil routes to editor; the rest of the
+                        card is the run/view experience. */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/dashboards/${d.id}/edit`)}
+                      aria-label="Düzenle"
+                      title="Düzenle"
+                    >
+                      <Pencil size={13} className="text-slate-500" />
+                    </Button>
+                  </div>
                   <Button
                     variant="primary"
                     size="sm"
