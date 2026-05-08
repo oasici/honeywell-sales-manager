@@ -52,6 +52,14 @@ class UatUser:
 
 # Single source of truth — change here, re-run script, accounts converge.
 UAT_USERS: tuple[UatUser, ...] = (
+    # Pre-existing demo admin elevated to sales_manager so UAT credentials
+    # work even on environments seeded by ``seed_demo_data.py``.
+    UatUser(
+        email="admin@honeywell.com",
+        full_name="UAT Admin",
+        role="sales_manager",
+        password="Admin123!",
+    ),
     UatUser(
         email="uat-admin@honeywell.com",
         full_name="UAT Admin",
