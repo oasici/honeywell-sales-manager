@@ -83,40 +83,46 @@ class QuoteResponse(BaseModel):
     schema would only mislead codegen consumers.
     R5-API-3 — ``revision_no`` and ``superseded_by`` exposed so the
     V9 revision tree UI can render the v1→v2→v3 chain.
+
+    Round-10 R10-API-6 — Sprint 11 wires this as the response_model
+    item type for PaginatedResponse on /quotes/. Same four realities
+    as CustomerResponse (see customer.py): masking can strip/mask,
+    callers add extras, legacy rows have NULL columns. Schema is
+    therefore extras-tolerant and every field is nullable.
     """
 
     id: int
     tenant_id: int | None = None
-    quote_number: str
+    quote_number: str | None = None
     customer_id: int | None = None
     email_request_id: int | None = None
     opportunity_id: int | None = None
     created_by: int | None = None
     approved_by: int | None = None
-    status: str
-    language: str
-    currency: str
-    subtotal: float
-    discount_total: float
-    tax_rate: float
-    tax_amount: float
-    grand_total: float
-    valid_days: int
+    status: str | None = None
+    language: str | None = None
+    currency: str | None = None
+    subtotal: float | None = None
+    discount_total: float | None = None
+    tax_rate: float | None = None
+    tax_amount: float | None = None
+    grand_total: float | None = None
+    valid_days: int | None = None
     notes: str | None = None
     has_pdf: bool | None = None
-    version: int
+    version: int | None = None
     parent_quote_id: int | None = None
     revision_no: int | None = None
     superseded_by: int | None = None
     closed_at: datetime | None = None
     close_reason: str | None = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     items: list[QuoteItemResponse] = []
     customer: CustomerResponse | None = None
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "allow"}
 
 
 # Aliases for service-layer consumers

@@ -50,10 +50,15 @@ def test_list_endpoint_declares_paginated_envelope(
         .get("schema", {})
         .get("$ref", "")
     )
-    # Pydantic 2 names the generic instance `PaginatedResponse_dict_`.
-    assert "PaginatedResponse_dict_" in schema_ref, (
-        f"{method.upper()} {path} no longer declares PaginatedResponse[dict]; "
-        f"actual schema ref: {schema_ref!r}"
+    # Pydantic 2 names the generic instance ``PaginatedResponse_<arg>_``.
+    # Round-10 Sprint 11 turned the dict generic into typed per-item
+    # generics on the Customer / Quote / Opportunity surfaces
+    # (PaginatedResponse_CustomerResponse_, _QuoteResponse_,
+    # _OpportunityResponse_). Accept any PaginatedResponse_X_ form
+    # so future typing upgrades don't break the gate.
+    assert "PaginatedResponse_" in schema_ref, (
+        f"{method.upper()} {path} no longer declares any PaginatedResponse[…] "
+        f"generic; actual schema ref: {schema_ref!r}"
     )
 
 
@@ -81,8 +86,10 @@ MIN_TYPED_ENVELOPE_ENDPOINTS = 55
 
 def test_paginated_envelope_coverage_meets_minimum(openapi_schema: dict) -> None:
     """At least MIN_TYPED_ENVELOPE_ENDPOINTS endpoints must declare
-    PaginatedResponse[dict]. Catches regressions where a router-level
-    refactor strips response_model from many endpoints at once.
+    any PaginatedResponse[…] generic. Catches regressions where a
+    router-level refactor strips response_model from many endpoints
+    at once. Accepts both ``PaginatedResponse_dict_`` (lazy generic)
+    and per-item typed forms like ``PaginatedResponse_CustomerResponse_``.
     """
     count = 0
     for ops in openapi_schema["paths"].values():
@@ -97,9 +104,9 @@ def test_paginated_envelope_coverage_meets_minimum(openapi_schema: dict) -> None
                 .get("schema", {})
                 .get("$ref", "")
             )
-            if "PaginatedResponse_dict_" in ref:
+            if "PaginatedResponse_" in ref:
                 count += 1
     assert count >= MIN_TYPED_ENVELOPE_ENDPOINTS, (
-        f"Only {count} endpoints declare PaginatedResponse[dict]; "
+        f"Only {count} endpoints declare PaginatedResponse[…]; "
         f"expected at least {MIN_TYPED_ENVELOPE_ENDPOINTS}."
     )

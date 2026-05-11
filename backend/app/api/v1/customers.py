@@ -16,7 +16,7 @@ from app.models.customer import Customer
 from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
-from app.schemas.customer import CustomerCreate, CustomerUpdate
+from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services.enrichment_service import EnrichmentService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/customers", tags=["Customers"])
 # every dict field. The items themselves remain `dict[str, Any]` so
 # the existing serializers (which carry computed/joined fields like
 # `pinned`, `stats`, `health_score`) work unchanged.
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[CustomerResponse])
 async def list_customers(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
