@@ -1,12 +1,15 @@
 import React, { useId } from 'react';
 import { PieChart, Pie, Cell } from 'recharts';
 
+// Round-10 R10-FE-13 — `as const` produces tuple types so PALETTE[0]
+// narrows to readonly [string, string] (non-undefined entries) once
+// the modulo guard pins the index in-range.
 const PALETTE = [
   ['#D32F2F', '#fce4ec'],
   ['#1976D2', '#e3f2fd'],
   ['#388E3C', '#e8f5e9'],
   ['#F57C00', '#fff3e0'],
-];
+] as const;
 
 interface DoughnutChartProps {
   title: string;
@@ -30,7 +33,10 @@ export const DoughnutChart = React.memo(function DoughnutChart({
     { name: 'Tamamlanan', value: filled || 0.001 },
     { name: 'Kalan', value: remaining || 0.001 },
   ];
-  const colors = PALETTE[colorIndex % PALETTE.length];
+  // PALETTE.length is 4 and `colorIndex % 4` is always in-range, but
+  // noUncheckedIndexedAccess still types the access as possibly
+  // undefined; the `!` is safe and lets downstream code dereference.
+  const colors = PALETTE[colorIndex % PALETTE.length]!;
   const gradId = `doughnutGrad-${uid}`;
 
   return (

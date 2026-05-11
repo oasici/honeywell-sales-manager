@@ -644,7 +644,11 @@ function StageConfigSection() {
   const updateStage = (index: number, field: keyof StageConfig, value: string | number) => {
     setStages((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
+      // Round-10 R10-FE-13 — bail when the index is out-of-range
+      // rather than constructing a partial StageConfig.
+      const current = updated[index];
+      if (!current) return prev;
+      updated[index] = { ...current, [field]: value };
       return updated;
     });
   };

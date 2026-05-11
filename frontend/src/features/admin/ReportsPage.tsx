@@ -28,12 +28,15 @@ interface PeriodOption {
   months: number;
 }
 
-const PERIOD_OPTIONS: PeriodOption[] = [
+// Round-10 R10-FE-13 — `as const` lets noUncheckedIndexedAccess narrow
+// PERIOD_OPTIONS[0] to the first literal entry (non-undefined) instead
+// of `PeriodOption | undefined`.
+const PERIOD_OPTIONS = [
   { label: 'Son 30 Gün', days: 30, months: 1 },
   { label: 'Son 90 Gün', days: 90, months: 3 },
   { label: 'Son 6 Ay', days: 180, months: 6 },
   { label: 'Son 1 Yıl', days: 365, months: 12 },
-];
+] as const satisfies readonly PeriodOption[];
 
 const TOP_PARTS_LIMIT = 20;
 

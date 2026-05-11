@@ -489,7 +489,12 @@ export default function QuoteEditorPage() {
                   setCustomerSelectedIndex((prev) => Math.max(prev - 1, 0));
                 } else if (e.key === 'Enter' && customerSelectedIndex >= 0) {
                   e.preventDefault();
-                  selectCustomer(items[customerSelectedIndex]);
+                  // Round-10 R10-FE-13 — the >=0 guard + dropdown bound
+                  // ensures the index resolves to a Customer.
+                  const picked = items[customerSelectedIndex];
+                  if (picked) {
+                    selectCustomer(picked);
+                  }
                   setCustomerSelectedIndex(-1);
                 } else if (e.key === 'Escape') {
                   setShowCustomerDropdown(false);
@@ -590,7 +595,10 @@ export default function QuoteEditorPage() {
                       setPartSelectedIndex((prev) => Math.max(prev - 1, 0));
                     } else if (e.key === 'Enter' && partSelectedIndex >= 0) {
                       e.preventDefault();
-                      addPartToItems(parts[partSelectedIndex]);
+                      const picked = parts[partSelectedIndex];
+                      if (picked) {
+                        addPartToItems(picked);
+                      }
                       setPartSelectedIndex(-1);
                     } else if (e.key === 'Escape') {
                       setShowPartDropdown(false);

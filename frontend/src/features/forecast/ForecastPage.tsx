@@ -108,8 +108,7 @@ export default function ForecastPage() {
   // `high?.amount ?? medium?.amount ?? 0` and the medium bucket never
   // contributed to best-case. Sales managers saw a depressed forecast.
   const bestCase =
-    (hybrid?.by_confidence?.high?.amount ?? 0) +
-    (hybrid?.by_confidence?.medium?.amount ?? 0);
+    (hybrid?.by_confidence?.high?.amount ?? 0) + (hybrid?.by_confidence?.medium?.amount ?? 0);
   const worstCase = hybrid?.by_confidence?.high?.hybrid_weighted ?? 0;
 
   return (
@@ -135,9 +134,7 @@ export default function ForecastPage() {
               <Target className="h-4 w-4 text-honeywell-red" />
             </div>
             <div className="mt-2 text-heading-2 tabular-nums">{formatCurrency(commit)}</div>
-            <div className="mt-1 text-caption text-slate-400">
-              {t('forecast.hybrid_subtitle')}
-            </div>
+            <div className="mt-1 text-caption text-slate-400">{t('forecast.hybrid_subtitle')}</div>
           </Card>
           <Card>
             <div className="flex items-center justify-between">
@@ -189,7 +186,9 @@ export default function ForecastPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-caption text-slate-500">{label}</span>
                     <Badge
-                      variant={tier === 'high' ? 'success' : tier === 'medium' ? 'warning' : 'default'}
+                      variant={
+                        tier === 'high' ? 'success' : tier === 'medium' ? 'warning' : 'default'
+                      }
                     >
                       {bucket?.count ?? 0}
                     </Badge>

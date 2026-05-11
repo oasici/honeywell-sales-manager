@@ -356,7 +356,9 @@ function PipelineCard({ pipeline, onEdit, onDelete, onSetDefault }: PipelineCard
         {stages.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-1.5">
             {visibleStages.map((stage, idx) => {
-              const tone = STAGE_TONES[idx % STAGE_TONES.length];
+              // Round-10 R10-FE-13 — modulo keeps the index in-range;
+              // `!` is safe and lets `tone` stay non-undefined.
+              const tone = STAGE_TONES[idx % STAGE_TONES.length]!;
               return (
                 <span
                   key={stage.key + idx}

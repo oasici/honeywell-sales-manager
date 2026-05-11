@@ -33,14 +33,21 @@ function extractWidgetItems(data: unknown): { label: string; value: number }[] {
       value: rd.chart_data?.values[i] ?? 0,
     }));
   }
-  // Fall back to rows: first column as label, second numeric as value
+  // Fall back to rows: first column as label, second numeric as value.
+  // Round-10 R10-FE-13 — every indexed access in this block is guarded
+  // by `rd.rows?.length`, but the type checker still flags cols[0]/cols[1]
+  // and row[labelCol] under noUncheckedIndexedAccess. Bail when the row
+  // shape is empty so each branch keeps a concrete type.
   if (rd.rows?.length) {
-    const cols = rd.columns ?? Object.keys(rd.rows[0]);
+    const firstRow = rd.rows[0];
+    if (!firstRow) return [];
+    const cols = rd.columns ?? Object.keys(firstRow);
     const labelCol = cols[0];
     const valueCol =
       cols.find(
         (c) => c === 'count' || c.startsWith('sum_') || c === 'amount' || c === 'grand_total',
       ) ?? cols[1];
+    if (!labelCol || !valueCol) return [];
     return rd.rows.map((row) => ({
       label: String(row[labelCol] ?? ''),
       value: Number(row[valueCol] ?? 0),
@@ -139,7 +146,11 @@ function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: str
   if (!reportData) return <p className="text-xs text-slate-400">Veri yok</p>;
 
   const rows = reportData.rows ?? [];
-  const columns = reportData.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+  // Round-10 R10-FE-13 — guarded; `rows[0]` is non-undefined inside the
+  // `rows.length > 0` branch but the type checker still narrows to
+  // `Record<string, unknown> | undefined`.
+  const columns =
+    reportData.columns ?? (rows.length > 0 && rows[0] ? Object.keys(rows[0]) : []);
   const chartData = reportData.chart_data;
 
   // KPI: show summary numbers

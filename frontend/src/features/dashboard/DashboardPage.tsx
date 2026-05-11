@@ -27,7 +27,17 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { SafeChart } from '../../components/ui/SafeChart';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { Phone, Handshake, Mail, FileText, Zap, AlertCircle, FileWarning, CheckCircle2, Sparkles } from 'lucide-react';
+import {
+  Phone,
+  Handshake,
+  Mail,
+  FileText,
+  Zap,
+  AlertCircle,
+  FileWarning,
+  CheckCircle2,
+  Sparkles,
+} from 'lucide-react';
 import { dashboardApi, analyticsApi, subscriptionsApi, activitiesApi } from '../../lib/api';
 import { formatCurrency, formatRelativeTime } from '../../lib/formatters';
 import type {
@@ -583,9 +593,7 @@ export default function DashboardPage() {
 
     action_required: (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="mb-4 text-overline text-slate-500 dark:text-slate-400">
-          İşlem Bekleyen
-        </h3>
+        <h3 className="mb-4 text-overline text-slate-500 dark:text-slate-400">İşlem Bekleyen</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button
             type="button"
@@ -596,9 +604,7 @@ export default function DashboardPage() {
               <FileWarning size={16} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-overline text-amber-700 dark:text-amber-400">
-                İnceleme Bekleyen
-              </p>
+              <p className="text-overline text-amber-700 dark:text-amber-400">İnceleme Bekleyen</p>
               <p className="mt-1 text-[24px] font-bold leading-none tabular-nums text-amber-900 dark:text-amber-200">
                 {s.pending_review_count}
               </p>

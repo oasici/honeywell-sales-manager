@@ -135,9 +135,7 @@ export default function UserManagementPage() {
               <p className="truncate text-[13px] font-semibold text-slate-900 dark:text-white">
                 {row.full_name}
               </p>
-              <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
-                {row.email}
-              </p>
+              <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">{row.email}</p>
             </div>
           </div>
         ),
@@ -179,9 +177,7 @@ export default function UserManagementPage() {
             className={[
               'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
               'focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20',
-              row.is_active
-                ? 'bg-honeywell-red'
-                : 'bg-slate-200 dark:bg-slate-700',
+              row.is_active ? 'bg-honeywell-red' : 'bg-slate-200 dark:bg-slate-700',
             ].join(' ')}
           >
             <span

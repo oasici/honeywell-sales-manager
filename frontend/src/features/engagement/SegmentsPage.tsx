@@ -509,8 +509,11 @@ export default function SegmentsPage() {
             {ruleMode === 'structured' ? (
               <div className="space-y-2">
                 {form.rules.map((rule, idx) => {
+                  // Round-10 R10-FE-13 — FIELD_OPTIONS is a static
+                  // non-empty array; `!` lets `fieldDef.valueType` stay
+                  // a concrete string instead of `string | undefined`.
                   const fieldDef =
-                    FIELD_OPTIONS.find((f) => f.value === rule.field) ?? FIELD_OPTIONS[0];
+                    FIELD_OPTIONS.find((f) => f.value === rule.field) ?? FIELD_OPTIONS[0]!;
                   const isCustom = rule.field === '__custom__';
                   return (
                     <div

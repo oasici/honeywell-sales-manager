@@ -109,8 +109,10 @@ function TrendChart({ snapshots }: { snapshots: CoachingSnapshot[] }) {
     score: snap.score,
   }));
 
-  const firstScore = snapshots[0].score;
-  const lastScore = snapshots[snapshots.length - 1].score;
+  // Round-10 R10-FE-13 — guarded by the length === 0 check above so
+  // both bracket accesses are non-undefined.
+  const firstScore = snapshots[0]!.score;
+  const lastScore = snapshots[snapshots.length - 1]!.score;
   const isUptrend = lastScore >= firstScore;
   const lineColor = isUptrend ? '#22c55e' : '#ef4444';
 

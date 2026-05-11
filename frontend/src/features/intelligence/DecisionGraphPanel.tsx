@@ -130,7 +130,8 @@ export function DecisionGraphPanel({ opportunityId }: DecisionGraphPanelProps) {
     >
       <ul className="divide-y divide-slate-100">
         {graph.nodes.map((node) => {
-          const badge = STATE_BADGE[node.state] ?? STATE_BADGE.not_started;
+          // Round-10 R10-FE-13 — `not_started` always defined.
+          const badge = STATE_BADGE[node.state] ?? STATE_BADGE.not_started!;
           return (
             <li key={node.id} className="flex items-start justify-between gap-3 py-3">
               <div className="flex items-start gap-2 min-w-0">

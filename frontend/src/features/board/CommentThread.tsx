@@ -35,7 +35,9 @@ function getAvatarColor(name: string): string {
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return colors[Math.abs(hash) % colors.length];
+  // Round-10 R10-FE-13 — guard the modulo index against the (impossible
+  // in practice) empty-colors edge case so the return type stays `string`.
+  return colors[Math.abs(hash) % colors.length] ?? colors[0]!;
 }
 
 function highlightMentions(text: string): React.ReactNode[] {
@@ -151,7 +153,7 @@ function MentionDropdown({ users, filter, onSelect }: MentionDropdownProps) {
         <button
           key={u.id}
           type="button"
-          onClick={() => onSelect(u.full_name.split(' ')[0])}
+          onClick={() => onSelect(u.full_name.split(' ')[0] ?? u.full_name)}
           className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           <div

@@ -60,7 +60,10 @@ function getCookie(name: string): string | null {
   const match = document.cookie.match(
     new RegExp('(^|; )' + name.replace(/[-.]/g, '\\$&') + '=([^;]*)'),
   );
-  return match ? decodeURIComponent(match[2]) : null;
+  // Round-10 R10-FE-13 — the regex always emits group 2 when it
+  // matches, but TS doesn't model that; guard explicitly.
+  if (!match || match[2] == null) return null;
+  return decodeURIComponent(match[2]);
 }
 
 // Request interceptor — attach Authorization header (backward-compat) AND

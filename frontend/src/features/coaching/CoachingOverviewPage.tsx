@@ -68,7 +68,7 @@ const RISK_TONE: Record<string, { chip: string; bar: string }> = {
 
 /** Fallback uses amber/needs_improvement so unknown values don't
  * silently render as "healthy" green (UAT #2 root cause). */
-const RISK_TONE_FALLBACK = RISK_TONE.needs_improvement;
+const RISK_TONE_FALLBACK = RISK_TONE.needs_improvement!;
 
 /**
  * Score-driven progress bar. Color tier comes from the score itself so
@@ -78,7 +78,8 @@ const RISK_TONE_FALLBACK = RISK_TONE.needs_improvement;
 function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
   const pct = Math.min((value / max) * 100, 100);
   const tier = pct >= 70 ? 'healthy' : pct >= 40 ? 'needs_improvement' : 'at_risk';
-  const bar = RISK_TONE[tier].bar;
+  // Round-10 R10-FE-13 — RISK_TONE keys cover all three tiers above.
+  const bar = RISK_TONE[tier]!.bar;
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
       <div
@@ -100,9 +101,13 @@ function pickStrongAndWeak(indicators: { name: string; label: string; score: num
 } {
   if (indicators.length === 0) return {};
   const sorted = [...indicators].sort((a, b) => b.score - a.score);
+  // Round-10 R10-FE-13 — guarded by the length === 0 check above so
+  // sorted[0] and sorted[length-1] are non-undefined.
+  const first = sorted[0]!;
+  const last = sorted[sorted.length - 1]!;
   return {
-    strong: { label: sorted[0].label, score: sorted[0].score },
-    weak: { label: sorted[sorted.length - 1].label, score: sorted[sorted.length - 1].score },
+    strong: { label: first.label, score: first.score },
+    weak: { label: last.label, score: last.score },
   };
 }
 

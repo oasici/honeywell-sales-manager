@@ -179,7 +179,11 @@ export default function WorkflowRulesPage() {
 
   function updateCondition(idx: number, key: keyof ConditionRow, value: string) {
     const updated = [...conditions];
-    updated[idx] = { ...updated[idx], [key]: value };
+    // Round-10 R10-FE-13 — guard the indexed access; the spread of the
+    // possibly-undefined row collapses to `{}` so the new row still
+    // satisfies ConditionRow.
+    const current = updated[idx] ?? EMPTY_CONDITION;
+    updated[idx] = { ...current, [key]: value };
     setConditions(updated);
   }
 
@@ -193,7 +197,8 @@ export default function WorkflowRulesPage() {
 
   function updateAction(idx: number, key: keyof ActionRow, value: string) {
     const updated = [...actions];
-    updated[idx] = { ...updated[idx], [key]: value };
+    const current = updated[idx] ?? EMPTY_ACTION;
+    updated[idx] = { ...current, [key]: value };
     setActions(updated);
   }
 

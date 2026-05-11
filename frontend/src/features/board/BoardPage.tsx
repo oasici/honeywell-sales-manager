@@ -68,7 +68,10 @@ const STAGE_TONE: Record<string, { dot: string; chip: string }> = {
   },
 };
 
-const FALLBACK_TONE = STAGE_TONE.prospecting;
+// Round-10 R10-FE-13 — explicit type narrowing: the prospecting key is
+// always present in STAGE_TONE so `!` is safe and lets downstream code
+// treat FALLBACK_TONE as a non-undefined value.
+const FALLBACK_TONE = STAGE_TONE.prospecting!;
 
 /* ─────────────────────── KanbanCard ─────────────────────── */
 

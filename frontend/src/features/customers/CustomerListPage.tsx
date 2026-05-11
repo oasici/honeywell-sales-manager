@@ -42,7 +42,10 @@ function getAvatarColor(name: string): string {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   const index = Math.abs(hash) % AVATAR_COLORS.length;
-  return AVATAR_COLORS[index];
+  // Round-10 R10-FE-13 — AVATAR_COLORS has 7 entries so the modulo is
+  // always in-bounds, but the type checker can't prove that; fall back
+  // to the first entry rather than asserting.
+  return AVATAR_COLORS[index] ?? AVATAR_COLORS[0]!;
 }
 
 function getInitials(name: string): string {

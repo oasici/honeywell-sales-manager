@@ -133,7 +133,9 @@ export default function ReportViewPage() {
     }
   }
   if (columns.length === 0 && rows.length > 0) {
-    columns = Object.keys(rows[0]);
+    // Round-10 R10-FE-13 — guarded by rows.length > 0.
+    const first = rows[0];
+    columns = first ? Object.keys(first) : [];
   }
 
   const chartType = templateData?.chart_type || 'table';

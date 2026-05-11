@@ -65,7 +65,9 @@ export function LeaderboardCard() {
       ) : (
         <ul className="divide-y divide-slate-100 px-2 dark:divide-slate-800">
           {topThree.map((entry, idx) => {
-            const tone = PODIUM_TONE[idx];
+            // Round-10 R10-FE-13 — topThree is sliced to TOP_COUNT (3) and
+            // PODIUM_TONE has 3 entries, so this index is always in-range.
+            const tone = PODIUM_TONE[idx] ?? PODIUM_TONE[0]!;
             const initials = entry.user_name
               .split(' ')
               .map((n) => n[0])

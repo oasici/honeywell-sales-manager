@@ -93,7 +93,9 @@ function ViewerWidget({ widget }: ViewerWidgetProps) {
 
   const widgetType = widget.type ?? 'report';
   const rows = data.rows ?? [];
-  const columns = data.columns ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+  // Round-10 R10-FE-13.
+  const columns =
+    data.columns ?? (rows.length > 0 && rows[0] ? Object.keys(rows[0]) : []);
   const chartData = data.chart_data;
 
   // KPI block
@@ -252,6 +254,8 @@ export default function DashboardViewerPage() {
       .replace(/[^a-z0-9]+/g, '-');
     if (tabular.length === 1) {
       const w = tabular[0];
+      // Round-10 R10-FE-13 — guarded by `tabular.length === 1` above.
+      if (!w) return;
       const d = w.data as { rows: Record<string, unknown>[]; columns: string[] };
       downloadBlob(
         new Blob([rowsToCsv(d.columns, d.rows)], { type: 'text/csv;charset=utf-8' }),

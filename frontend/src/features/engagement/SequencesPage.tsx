@@ -378,7 +378,8 @@ export default function SequencesPage() {
                       </p>
                       <div className="space-y-2">
                         {enrollments.map((enrollment) => {
-                          const sc = STATUS_CONFIG[enrollment.status] || STATUS_CONFIG.active;
+                          // Round-10 R10-FE-13 — `active` always present.
+                          const sc = STATUS_CONFIG[enrollment.status] ?? STATUS_CONFIG.active!;
                           const StatusIcon = sc.icon;
                           return (
                             <div

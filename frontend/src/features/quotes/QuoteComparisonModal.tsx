@@ -34,11 +34,14 @@ export default function QuoteComparisonModal({
 
   const versions = versionsData?.versions ?? [];
 
-  // Auto-select last two versions for comparison
+  // Auto-select last two versions for comparison.
+  // Round-10 R10-FE-13 — the `versions.length >= 2` guard makes both
+  // indexed accesses safe; `!` lets the type stay as `number` instead
+  // of `number | undefined` in the `id` lookups downstream.
   const compPrev =
-    selectedPair?.prev ?? (versions.length >= 2 ? versions[versions.length - 2].id : null);
+    selectedPair?.prev ?? (versions.length >= 2 ? versions[versions.length - 2]!.id : null);
   const compCurr =
-    selectedPair?.curr ?? (versions.length >= 2 ? versions[versions.length - 1].id : null);
+    selectedPair?.curr ?? (versions.length >= 2 ? versions[versions.length - 1]!.id : null);
 
   const { data: comparison, isLoading: compLoading } = useQuery<QuoteComparisonResult>({
     queryKey: ['quote-comparison', compPrev, compCurr],

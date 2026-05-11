@@ -14,7 +14,10 @@ function getScoreColor(score: number): string {
 }
 
 export function HealthScoreCard({ health }: { health: CustomerHealthReport }) {
-  const risk = RISK_CONFIG[health.risk_level] || RISK_CONFIG.churning;
+  // Round-10 R10-FE-13 — `churning` is always defined in RISK_CONFIG so
+  // the asserted non-null fallback keeps the type as a non-undefined
+  // record entry.
+  const risk = RISK_CONFIG[health.risk_level] ?? RISK_CONFIG.churning!;
   const scoreColor = getScoreColor(health.score);
   const circumference = 2 * Math.PI * 40;
   const offset = circumference - (health.score / 100) * circumference;

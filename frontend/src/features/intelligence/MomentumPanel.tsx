@@ -80,7 +80,9 @@ export function MomentumPanel({ opportunityId }: MomentumPanelProps) {
     );
   }
 
-  const badge = BAND_BADGE[current.band] ?? BAND_BADGE.stable;
+  // Round-10 R10-FE-13 — `stable` is always defined in BAND_BADGE; `!`
+  // is the narrow form that lets the type drop the | undefined branch.
+  const badge = BAND_BADGE[current.band] ?? BAND_BADGE.stable!;
 
   return (
     <Card

@@ -285,10 +285,7 @@ export default function SalesAnalyticsPage() {
             {sla?.median_first_action_minutes || 0} {t('common.minutes_short')}
           </p>
           <p className="mt-1.5 text-[11px] tabular-nums text-slate-400 dark:text-slate-500">
-            {t('sales_analytics.sla_breaches').replace(
-              '{count}',
-              String(sla?.breaches_count || 0),
-            )}
+            {t('sales_analytics.sla_breaches').replace('{count}', String(sla?.breaches_count || 0))}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
@@ -322,14 +319,13 @@ export default function SalesAnalyticsPage() {
                       : 'text-red-600 dark:text-red-400',
                   ].join(' ')}
                 >
-                  {wow.delta >= 0 ? '\u2191' : '\u2193'} {formatCurrency(Math.abs(wow.delta), 'TRY')}
+                  {wow.delta >= 0 ? '\u2191' : '\u2193'}{' '}
+                  {formatCurrency(Math.abs(wow.delta), 'TRY')}
                 </span>
                 <span
                   className={[
                     'text-[11px] tabular-nums',
-                    wow.delta >= 0
-                      ? 'text-emerald-500/80'
-                      : 'text-red-500/80',
+                    wow.delta >= 0 ? 'text-emerald-500/80' : 'text-red-500/80',
                   ].join(' ')}
                 >
                   ({wow.delta_pct >= 0 ? '+' : ''}
@@ -610,7 +606,9 @@ export default function SalesAnalyticsPage() {
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-slate-400">{t('sales_analytics.no_data')}</p>
+            <p className="py-8 text-center text-sm text-slate-400">
+              {t('sales_analytics.no_data')}
+            </p>
           )}
         </Card>
 
@@ -984,7 +982,9 @@ export default function SalesAnalyticsPage() {
                     {formatCurrency(item.amount, 'TRY')}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-500">{t('sales_analytics.leak_score')}</span>
+                    <span className="text-xs text-slate-500">
+                      {t('sales_analytics.leak_score')}
+                    </span>
                     <span
                       className={`text-sm font-bold ${item.leak_score >= 50 ? 'text-red-600' : 'text-amber-600'}`}
                     >
