@@ -16,6 +16,7 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.contract import Contract, ContractAmendment
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 
@@ -108,7 +109,8 @@ def _serialize_contract(c: Contract) -> dict:
     return apply_request_perms(data, "contract")
 
 
-@router.get("/contracts/")
+# Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
+@router.get("/contracts/", response_model=PaginatedResponse[dict])
 async def list_contracts(
     customer_id: int | None = Query(None),
     status: str | None = Query(None),

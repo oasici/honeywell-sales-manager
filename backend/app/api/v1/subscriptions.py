@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.services.subscription_service import SubscriptionService
 
 
@@ -140,7 +141,8 @@ async def upcoming_renewals(
     }
 
 
-@router.get("/")
+# Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_subscriptions(
     customer_id: int | None = Query(None),
     status: str | None = Query(None),

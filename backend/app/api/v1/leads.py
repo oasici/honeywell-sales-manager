@@ -21,6 +21,7 @@ from app.core.rate_limit import enforce_bulk_rate_limit
 from app.models.enums import UserRole
 from app.models.lead import Lead
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.core.event_bus import event_bus
 from app.services.lead_service import LeadService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
@@ -252,7 +253,8 @@ async def web_lead_form(
     return {"message": "Lead kaydedildi", "lead_id": lead.id}
 
 
-@router.get("/")
+# Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_leads(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),

@@ -15,6 +15,7 @@ from app.core.dependencies import get_current_user
 from app.models.activity_log import ActivityLog
 from app.models.opportunity import OpportunityEvent
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.services.tenant_context import scoped_for_user
 
 router = APIRouter(prefix="/activities", tags=["Activities"])
@@ -195,7 +196,8 @@ async def activity_metrics(
 
 # ── GET /activities/feed ──
 
-@router.get("/feed")
+# Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
+@router.get("/feed", response_model=PaginatedResponse[dict])
 async def get_activity_feed(
     since: str | None = None,
     limit: int = Query(default=50, ge=1, le=200),

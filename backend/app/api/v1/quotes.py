@@ -14,6 +14,7 @@ from app.core.rate_limit import enforce_upload_rate_limit
 from app.models.enums import UserRole
 from app.models.quote import Quote
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.schemas.quote import QuoteCreate, QuoteUpdate
 from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
@@ -24,7 +25,8 @@ from app.services.tenant_context import assert_same_tenant, scoped_for_user
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
 
 
-@router.get("/")
+# Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_quotes(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),

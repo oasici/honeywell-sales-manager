@@ -22,6 +22,7 @@ from app.models.enums import UserRole
 from app.models.invoice import Invoice
 from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
+from app.schemas.common import PaginatedResponse
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
@@ -158,7 +159,8 @@ async def _generate_invoice_number(
 # ── Endpoints ──
 
 
-@router.get("/")
+# Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_invoices(
     page: int = 1,
     page_size: int = 20,

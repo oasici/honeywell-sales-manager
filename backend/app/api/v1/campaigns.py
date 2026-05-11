@@ -16,6 +16,7 @@ from app.core.exceptions import NotFoundException
 from app.models.campaign import Campaign, CampaignMember
 from app.models.enums import UserRole
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
@@ -130,7 +131,8 @@ def _member_to_dict(member: CampaignMember) -> dict:
 # ── Endpoints ──
 
 
-@router.get("/")
+# Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_campaigns(
     page: int = 1,
     page_size: int = 20,

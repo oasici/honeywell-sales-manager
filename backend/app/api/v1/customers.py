@@ -15,6 +15,7 @@ from app.core.rate_limit import enforce_bulk_rate_limit
 from app.models.customer import Customer
 from app.models.quote import Quote
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.schemas.customer import CustomerCreate, CustomerUpdate
 from app.services.enrichment_service import EnrichmentService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
@@ -22,7 +23,13 @@ from app.services.tenant_context import assert_same_tenant, scoped_for_user
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
 
-@router.get("/")
+# Round-10 R10-API-5 — `response_model=PaginatedResponse` documents the
+# canonical {items, total, page, page_size, pages} envelope in the
+# generated OpenAPI schema without forcing a full Pydantic model for
+# every dict field. The items themselves remain `dict[str, Any]` so
+# the existing serializers (which carry computed/joined fields like
+# `pinned`, `stats`, `health_score`) work unchanged.
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_customers(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
