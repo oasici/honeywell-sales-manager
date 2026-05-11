@@ -59,9 +59,7 @@ function rowsToCsv(columns: string[], rows: Record<string, unknown>[]): string {
     return str;
   };
   const header = columns.join(',');
-  const body = rows
-    .map((row) => columns.map((c) => escape(row[c])).join(','))
-    .join('\n');
+  const body = rows.map((row) => columns.map((c) => escape(row[c])).join(',')).join('\n');
   return `${header}\n${body}`;
 }
 
@@ -70,14 +68,12 @@ interface ViewerWidgetProps {
 }
 
 function ViewerWidget({ widget }: ViewerWidgetProps) {
-  const data = widget.data as
-    | {
-        columns?: string[];
-        rows?: Record<string, unknown>[];
-        chart_data?: { labels: string[]; values: number[] } | null;
-        total?: number;
-      }
-    | null;
+  const data = widget.data as {
+    columns?: string[];
+    rows?: Record<string, unknown>[];
+    chart_data?: { labels: string[]; values: number[] } | null;
+    total?: number;
+  } | null;
 
   if (widget.error) {
     return (
@@ -220,8 +216,9 @@ export default function DashboardViewerPage() {
 
   const dashboard = dashboardQuery.data?.data;
   const result =
-    (executeQuery.data && 'data' in executeQuery.data ? executeQuery.data.data : executeQuery.data) ??
-    null;
+    (executeQuery.data && 'data' in executeQuery.data
+      ? executeQuery.data.data
+      : executeQuery.data) ?? null;
   const widgets = (result?.widgets ?? []) as ExecutedWidget[];
 
   const handleDownloadJson = () => {
@@ -324,22 +321,12 @@ export default function DashboardViewerPage() {
           <RefreshCw className={`mr-1 h-3 w-3 ${executeQuery.isFetching ? 'animate-spin' : ''}`} />
           Yenile
         </Button>
-        <Button
-          variant="tertiary"
-          size="sm"
-          onClick={handleDownloadJson}
-          disabled={!result}
-        >
+        <Button variant="tertiary" size="sm" onClick={handleDownloadJson} disabled={!result}>
           <Download className="mr-1 h-3 w-3" />
           JSON indir
         </Button>
         {hasTabular && (
-          <Button
-            variant="tertiary"
-            size="sm"
-            onClick={handleDownloadCsv}
-            disabled={!result}
-          >
+          <Button variant="tertiary" size="sm" onClick={handleDownloadCsv} disabled={!result}>
             <Download className="mr-1 h-3 w-3" />
             CSV indir
           </Button>
@@ -356,7 +343,8 @@ export default function DashboardViewerPage() {
 
       {executedAt && (
         <p className="text-caption text-slate-500">
-          Son çalıştırma: <span className="tabular-nums">{formatDateTime(executedAt.toISOString())}</span>
+          Son çalıştırma:{' '}
+          <span className="tabular-nums">{formatDateTime(executedAt.toISOString())}</span>
           {dashboard.is_default && (
             <Badge variant="warning" className="ml-2">
               Varsayılan

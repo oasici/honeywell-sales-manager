@@ -48,12 +48,15 @@ export default function UserManagementPage() {
   const [search, setSearch] = useState('');
   const [roleConfirm, setRoleConfirm] = useState<{ userId: number; newRole: string } | null>(null);
 
+  // Round-10 R10-FE-4 — narrowed to the 3 values defined in backend
+  // `UserRole`. The previous 'admin' / 'viewer' options would round-trip
+  // values the API would either reject or silently store as unknown
+  // strings, breaking every server-side role check.
   const roleOptions = useMemo(
     () => [
-      { value: 'admin', label: t('admin.role_admin') },
+      { value: 'operations', label: t('admin.role_admin') },
       { value: 'sales_manager', label: t('admin.role_sales_manager') },
       { value: 'sales_rep', label: t('admin.role_sales_rep') },
-      { value: 'viewer', label: t('admin.role_viewer') },
     ],
     [t],
   );

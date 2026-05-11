@@ -736,9 +736,13 @@ def _quote_to_dict(quote: Quote, include_items: bool = False) -> dict:
         "opportunity_id": quote.opportunity_id,
         "created_by": quote.created_by,
         "approved_by": quote.approved_by,
-        # tenant_id round-tripped so the frontend can verify isolation
-        # and multi-tenant analytics can group correctly (audit Q-2).
-        "tenant_id": quote.tenant_id,
+        # Round-10 R10-API-2 — tenant_id removed from the response. The
+        # original Q-2 rationale (FE-side isolation verification) was an
+        # anti-pattern: tenant scoping is enforced server-side via
+        # scoped_for_user + assert_same_tenant; surfacing the column only
+        # taught client code to depend on a column that should never be
+        # observable. Multi-tenant analytics that grouped by it now read
+        # the value via the dedicated /admin/* analytics endpoints.
         "status": quote.status,
         "language": quote.language,
         "currency": quote.currency,

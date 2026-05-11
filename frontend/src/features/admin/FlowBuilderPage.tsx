@@ -576,7 +576,11 @@ export default function FlowBuilderPage() {
       // Without this, reloading a saved flow shows nodes pre-selected
       // from the user's last interaction and pollutes copy/paste.
       const cleanNodes = nodes.map((n) => {
-        const { selected: _selected, dragging: _dragging, ...rest } = n as Node & {
+        const {
+          selected: _selected,
+          dragging: _dragging,
+          ...rest
+        } = n as Node & {
           selected?: boolean;
           dragging?: boolean;
         };

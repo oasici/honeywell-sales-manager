@@ -108,9 +108,7 @@ export function RelationshipPanel({
           </div>
           <div>
             <div className="text-caption text-slate-500">Ortalama</div>
-            <div className="text-body-strong tabular-nums">
-              {score.avg_strength.toFixed(0)}
-            </div>
+            <div className="text-body-strong tabular-nums">{score.avg_strength.toFixed(0)}</div>
           </div>
           <div>
             <div className="text-caption text-slate-500">Bağlantı</div>
@@ -134,12 +132,10 @@ export function RelationshipPanel({
       {!strongestQuery.isLoading && items.length > 0 && (
         <ul className="mt-3 divide-y divide-slate-100">
           {items.map((edge, idx) => {
-            const otherKind = edge.from_id === entityId && edge.from_kind === kind
-              ? edge.to_kind
-              : edge.from_kind;
-            const otherId = edge.from_id === entityId && edge.from_kind === kind
-              ? edge.to_id
-              : edge.from_id;
+            const otherKind =
+              edge.from_id === entityId && edge.from_kind === kind ? edge.to_kind : edge.from_kind;
+            const otherId =
+              edge.from_id === entityId && edge.from_kind === kind ? edge.to_id : edge.from_id;
             return (
               <li key={idx} className="flex items-center justify-between py-2.5">
                 <div className="flex items-center gap-2">
@@ -147,11 +143,13 @@ export function RelationshipPanel({
                   <span className="text-body text-slate-700">
                     {otherKind} #{otherId}
                   </span>
-                  {edge.relation_type && (
-                    <Badge variant="info">{edge.relation_type}</Badge>
-                  )}
+                  {edge.relation_type && <Badge variant="info">{edge.relation_type}</Badge>}
                 </div>
-                <Badge variant={edge.strength >= 60 ? 'success' : edge.strength >= 30 ? 'info' : 'default'}>
+                <Badge
+                  variant={
+                    edge.strength >= 60 ? 'success' : edge.strength >= 30 ? 'info' : 'default'
+                  }
+                >
                   {edge.strength.toFixed(0)}
                 </Badge>
               </li>

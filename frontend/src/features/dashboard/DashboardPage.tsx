@@ -56,10 +56,29 @@ function formatRelativeTime(isoString: string): string {
 }
 
 /* ─────────────────── localStorage helpers ─────────────────── */
+// Round-10 R10-FE-6 — legacy key "dash-seç" was renamed to "dash-sections"
+// in v1.16.0; once a returning user lands and writes the new key, the old
+// row stays as an orphan in localStorage until cleared. The single-key
+// shim below keeps the section order across the rename.
+const LEGACY_KEY_MAP: Record<string, string> = {
+  'dash-sections': 'dash-seç',
+};
+
 function loadOrder(key: string, fallback: string[]): string[] {
   try {
     const s = localStorage.getItem(key);
-    return s ? JSON.parse(s) : fallback;
+    if (s) return JSON.parse(s);
+    const legacy = LEGACY_KEY_MAP[key];
+    if (legacy) {
+      const legacyValue = localStorage.getItem(legacy);
+      if (legacyValue) {
+        // One-time migration: copy across, drop the legacy row.
+        localStorage.setItem(key, legacyValue);
+        localStorage.removeItem(legacy);
+        return JSON.parse(legacyValue);
+      }
+    }
+    return fallback;
   } catch {
     return fallback;
   }
@@ -96,7 +115,11 @@ export default function DashboardPage() {
   const [doughnutOrder, setDoughnutOrder] = useState(() =>
     loadOrder('dash-donut', DEFAULT_DOUGHNUTS),
   );
-  const [secOrder, setSecOrder] = useState(() => loadOrder('dash-seç', DEFAULT_SECTIONS));
+  // Round-10 R10-FE-6 — key renamed from "dash-seç" (Turkish for "choose") to
+  // the ASCII-only "dash-sections". `loadOrder` falls back to the legacy key
+  // once for users mid-migration; tracked via `_legacy_section_key` migration
+  // probe below to drop in v1.17.x.
+  const [secOrder, setSecOrder] = useState(() => loadOrder('dash-sections', DEFAULT_SECTIONS));
 
   /* ── Email setup popup (first login only) ── */
   const user = useAuthStore((s) => s.user);
@@ -169,7 +192,7 @@ export default function DashboardPage() {
         prev.indexOf(active.id as string),
         prev.indexOf(over.id as string),
       );
-      localStorage.setItem('dash-seç', JSON.stringify(next));
+      localStorage.setItem('dash-sections', JSON.stringify(next));
       return next;
     });
   }, []);

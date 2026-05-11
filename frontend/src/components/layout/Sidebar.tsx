@@ -247,7 +247,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
       icon: <Users size={18} className="shrink-0" />,
       roles: ['sales_rep', 'sales_manager'],
       items: [
-        { label: 'nav.customers', to: '/customers', icon: <Users size={16} className="shrink-0" /> },
+        {
+          label: 'nav.customers',
+          to: '/customers',
+          icon: <Users size={16} className="shrink-0" />,
+        },
         {
           label: 'nav.high_intent',
           to: '/customers/high-intent',
@@ -298,7 +302,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           to: '/contracts',
           icon: <FileCheck size={16} className="shrink-0" />,
         },
-        { label: 'nav.invoices', to: '/invoices', icon: <ReceiptText size={16} className="shrink-0" /> },
+        {
+          label: 'nav.invoices',
+          to: '/invoices',
+          icon: <ReceiptText size={16} className="shrink-0" />,
+        },
         {
           label: 'nav.revenue_recognition',
           to: '/revenue-recognition',
@@ -346,7 +354,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           to: '/ai/insights',
           icon: <Brain size={16} className="shrink-0" />,
         },
-        { label: 'nav.ai_tasks', to: '/ai/tasks', icon: <ListChecks size={16} className="shrink-0" /> },
+        {
+          label: 'nav.ai_tasks',
+          to: '/ai/tasks',
+          icon: <ListChecks size={16} className="shrink-0" />,
+        },
         {
           label: 'nav.insights',
           to: '/insights',
@@ -597,8 +609,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  const toggleSection = (id: string) =>
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleSection = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <aside className="flex h-screen w-[260px] flex-col bg-slate-950 border-r border-white/6">

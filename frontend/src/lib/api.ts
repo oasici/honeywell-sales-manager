@@ -2168,8 +2168,13 @@ export const workflowRulesApi = {
 // ── Activities ──────────────────────────────────────
 export const activitiesApi = {
   getFeed: async (params?: { since?: string; limit?: number }) => {
+    // Round-10 R10-API-1 — backend was switched from a bare array to the
+    // canonical {items, total, page, page_size, pages} envelope. The legacy
+    // array form is detected and unwrapped so older deploys keep working
+    // during a rolling release; remove once the SPA + API are co-deployed.
     const { data } = await api.get('/activities/feed', { params });
-    return data;
+    if (Array.isArray(data)) return data;
+    return data?.items ?? [];
   },
   log: async (payload: Record<string, unknown>) => {
     const { data } = await api.post('/activities/', payload);

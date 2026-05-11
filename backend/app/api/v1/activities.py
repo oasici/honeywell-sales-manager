@@ -15,6 +15,7 @@ from app.core.dependencies import get_current_user
 from app.models.activity_log import ActivityLog
 from app.models.opportunity import OpportunityEvent
 from app.models.user import User
+from app.services.tenant_context import scoped_for_user
 
 router = APIRouter(prefix="/activities", tags=["Activities"])
 
@@ -210,6 +211,11 @@ async def get_activity_feed(
     (Sentry HONEYWELL-BACKEND-2/7/8/9). Skipping it from the default
     column list keeps the feed healthy regardless of schema drift, and
     it can still be loaded explicitly in code paths that need it.
+
+    Round-10 R10-API-1 — wrapped in canonical {items, total, page,
+    page_size, pages} envelope and scoped to current_user.tenant_id.
+    The previous bare-array shape silently leaked cross-tenant activity
+    once a second tenant lands; single-tenant prod was masking the bug.
     """
     query = (
         select(ActivityLog)
@@ -217,6 +223,7 @@ async def get_activity_feed(
         .order_by(ActivityLog.created_at.desc())
         .limit(limit)
     )
+    query = scoped_for_user(query, _current_user, column=ActivityLog.tenant_id)
     if since:
         since_dt = datetime.fromisoformat(since)
         query = query.where(ActivityLog.created_at > since_dt)
@@ -224,7 +231,14 @@ async def get_activity_feed(
     result = await db.execute(query)
     activities = result.scalars().all()
 
-    return [_serialize_activity(a) for a in activities]
+    items = [_serialize_activity(a) for a in activities]
+    return {
+        "items": items,
+        "total": len(items),
+        "page": 1,
+        "page_size": limit,
+        "pages": 1 if items else 0,
+    }
 
 
 # ── Helpers ──

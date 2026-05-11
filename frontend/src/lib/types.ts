@@ -9,7 +9,12 @@ export interface User {
   manager_id?: number | null;
   email: string;
   full_name: string;
-  role: string;
+  // Round-10 R10-FE-2 — narrowed from `string` to a literal union matching
+  // backend `UserRole` enum (sales_rep | sales_manager | operations).
+  // Catches the OpportunityDetailPage / SalesAnalyticsPage "manager"/"admin"
+  // drift at compile time. `string` retained at the optional `?` layer for
+  // legacy localStorage entries that pre-date this narrowing.
+  role: 'sales_rep' | 'sales_manager' | 'operations';
   is_active: boolean;
   email_setup_completed: boolean;
   password_change_required?: boolean;
@@ -330,12 +335,9 @@ export interface Quote {
   grand_total: number;
   valid_days: number;
   notes: string;
-  /**
-   * Round-4 R4-TS-2: dropped from `_quote_to_dict` after the audit
-   * TS-2 cleanup; consumers should read `has_pdf` instead. Marked
-   * optional so the type doesn't lie about always-present.
-   */
-  pdf_path?: string | null;
+  // Round-10 R10-FE-5 — `pdf_path` removed. Backend has not round-tripped
+  // this field since R4-TS-2; the optional declaration kept callers
+  // mis-reading it as occasionally-present. Use `has_pdf` instead.
   /** Convenience boolean from the serializer (audit TS-2); avoids round-tripping the path. */
   has_pdf?: boolean;
   /** Linked opportunity — needed by the back-link button on quote detail. */

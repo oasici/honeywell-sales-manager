@@ -114,7 +114,8 @@ export default function SalesAnalyticsPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const t = useT();
-  const isManager = user?.role === 'manager' || user?.role === 'admin';
+  // Round-10 R10-FE-3 — see OpportunityDetailPage:233 for the rationale.
+  const isManager = user?.role === 'sales_manager' || user?.role === 'operations';
 
   const stageLabel = useCallback(
     (stage: string) => {

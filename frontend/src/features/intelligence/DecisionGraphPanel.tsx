@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  CheckCircle2,
-  CircleDot,
-  AlertTriangle,
-  Circle,
-  PlayCircle,
-  Sparkles,
-} from 'lucide-react';
+import { CheckCircle2, CircleDot, AlertTriangle, Circle, PlayCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Card } from '../../components/ui/Card';
@@ -26,7 +19,10 @@ interface DecisionGraphPanelProps {
   opportunityId: number;
 }
 
-const STATE_BADGE: Record<string, { variant: 'success' | 'warning' | 'info' | 'default' | 'danger'; label: string }> = {
+const STATE_BADGE: Record<
+  string,
+  { variant: 'success' | 'warning' | 'info' | 'default' | 'danger'; label: string }
+> = {
   complete: { variant: 'success', label: 'Tamamlandı' },
   in_progress: { variant: 'info', label: 'Sürüyor' },
   blocked: { variant: 'danger', label: 'Engelli' },
@@ -126,7 +122,11 @@ export function DecisionGraphPanel({ opportunityId }: DecisionGraphPanelProps) {
     <Card
       title="Karar süreci"
       description={`${graph.progress.complete}/${graph.progress.total} adım tamamlandı`}
-      action={<Badge variant={progressPct >= 75 ? 'success' : progressPct >= 30 ? 'info' : 'warning'}>{progressPct}%</Badge>}
+      action={
+        <Badge variant={progressPct >= 75 ? 'success' : progressPct >= 30 ? 'info' : 'warning'}>
+          {progressPct}%
+        </Badge>
+      }
     >
       <ul className="divide-y divide-slate-100">
         {graph.nodes.map((node) => {

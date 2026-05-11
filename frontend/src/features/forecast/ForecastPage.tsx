@@ -101,8 +101,13 @@ export default function ForecastPage() {
 
   const commit = hybrid?.hybrid_weighted_total ?? 0;
   const legacy = hybrid?.legacy_weighted_total ?? 0;
+  // Round-10 R10-FE-1 — operator precedence bug. `??` binds looser than
+  // `+`, so the unparenthesised form silently collapsed to
+  // `high?.amount ?? medium?.amount ?? 0` and the medium bucket never
+  // contributed to best-case. Sales managers saw a depressed forecast.
   const bestCase =
-    hybrid?.by_confidence?.high?.amount ?? 0 + (hybrid?.by_confidence?.medium?.amount ?? 0);
+    (hybrid?.by_confidence?.high?.amount ?? 0) +
+    (hybrid?.by_confidence?.medium?.amount ?? 0);
   const worstCase = hybrid?.by_confidence?.high?.hybrid_weighted ?? 0;
 
   return (

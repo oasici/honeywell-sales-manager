@@ -230,7 +230,11 @@ export default function OpportunityDetailPage() {
 
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
-  const isManager = user?.role === 'manager' || user?.role === 'admin';
+  // Round-10 R10-FE-3 — backend `UserRole` enum is sales_rep | sales_manager
+  // | operations. The previous 'manager' || 'admin' check matched neither, so
+  // real managers saw the rep view and seed UAT 'admin' users couldn't be
+  // identified. Operations is the admin-equivalent role.
+  const isManager = user?.role === 'sales_manager' || user?.role === 'operations';
 
   const meetingPlaceholderMutation = useMutation({
     mutationFn: async () => {

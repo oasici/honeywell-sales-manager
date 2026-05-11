@@ -43,11 +43,33 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
 
   const dismissMutation = useMutation({
     mutationFn: (taskId: number) => nbaApi.dismiss(opportunityId, taskId),
-    onSuccess: () => {
+    // Round-10 R10-FE-7 — optimistic dismiss. Without this, clicking "X"
+    // does nothing visible until the server round-trip resolves (200-500ms)
+    // and then the whole list re-fetches. We snapshot, drop the row from
+    // the local cache, and roll back on error.
+    onMutate: async (taskId: number) => {
+      await qc.cancelQueries({ queryKey: ['nba', opportunityId] });
+      const previous = qc.getQueryData<{
+        items: Array<{ id: number }>;
+      }>(['nba', opportunityId]);
+      if (previous?.items) {
+        qc.setQueryData(['nba', opportunityId], {
+          ...previous,
+          items: previous.items.filter((t) => t.id !== taskId),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) {
+        qc.setQueryData(['nba', opportunityId], ctx.previous);
+      }
+      // Round-8 R8-CACHE-5 — surface failures so silent dismisses don't pile up.
+      toast.error('Aksiyon kapatılamadı');
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['nba', opportunityId] });
     },
-    // Round-8 R8-CACHE-5 — surface failures so silent dismisses don't pile up.
-    onError: () => toast.error('Aksiyon kapatılamadı'),
   });
 
   const items = listQuery.data?.items ?? [];
@@ -88,10 +110,7 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
       {!listQuery.isLoading && items.length > 0 && (
         <ul className="divide-y divide-slate-100">
           {items.map((task) => (
-            <li
-              key={task.id}
-              className="flex items-start justify-between gap-3 py-3"
-            >
+            <li key={task.id} className="flex items-start justify-between gap-3 py-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <Badge
@@ -105,9 +124,7 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
                   >
                     {task.priority}
                   </Badge>
-                  <span className="text-body-strong text-slate-800 truncate">
-                    {task.title}
-                  </span>
+                  <span className="text-body-strong text-slate-800 truncate">{task.title}</span>
                 </div>
                 {task.description && (
                   <p className="mt-1 text-caption text-slate-500 line-clamp-2">
