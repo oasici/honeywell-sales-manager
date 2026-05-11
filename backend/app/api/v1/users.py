@@ -17,6 +17,7 @@ from app.core.security import hash_password, validate_password_strength
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -38,7 +39,7 @@ class _CsvRow(BaseModel):
     full_name: str = Field(min_length=1)
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_users(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),

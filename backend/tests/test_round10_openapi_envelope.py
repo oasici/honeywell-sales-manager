@@ -67,3 +67,37 @@ def test_paginated_response_model_declares_canonical_keys(openapi_schema: dict) 
     properties = paginated.get("properties", {})
     for key in ("items", "total", "page", "page_size", "pages"):
         assert key in properties, f"PaginatedResponse missing canonical key '{key}'"
+
+
+# Round-10 R10-API-5 (Sprint 10) — expansion gate. Started at 9 endpoints
+# in Sprint 7, expanded to 68 in Sprint 10 via the bulk-add script.
+# Threshold set conservatively to 60 so an accidental revert of a chunk
+# of routers still trips this assertion; intentional removal can lower
+# the floor in the same PR.
+MIN_TYPED_ENVELOPE_ENDPOINTS = 60
+
+
+def test_paginated_envelope_coverage_meets_minimum(openapi_schema: dict) -> None:
+    """At least MIN_TYPED_ENVELOPE_ENDPOINTS endpoints must declare
+    PaginatedResponse[dict]. Catches regressions where a router-level
+    refactor strips response_model from many endpoints at once.
+    """
+    count = 0
+    for ops in openapi_schema["paths"].values():
+        for op in ops.values():
+            if not isinstance(op, dict):
+                continue
+            ref = (
+                op.get("responses", {})
+                .get("200", {})
+                .get("content", {})
+                .get("application/json", {})
+                .get("schema", {})
+                .get("$ref", "")
+            )
+            if "PaginatedResponse_dict_" in ref:
+                count += 1
+    assert count >= MIN_TYPED_ENVELOPE_ENDPOINTS, (
+        f"Only {count} endpoints declare PaginatedResponse[dict]; "
+        f"expected at least {MIN_TYPED_ENVELOPE_ENDPOINTS}."
+    )

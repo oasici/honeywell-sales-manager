@@ -17,6 +17,7 @@ from app.models.chat import AutoResponseRule, ChatMessage, ChatSession
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/chat", tags=["Live Chat"])
 
@@ -371,7 +372,7 @@ async def _try_auto_response(
 # ── Auto-Response Rule Endpoints (admin only) ──
 
 
-@router.get("/auto-response-rules/")
+@router.get("/auto-response-rules/", response_model=PaginatedResponse[dict])
 async def list_auto_rules(
     _: None = Depends(_require_live_chat),
     current_user: User = Depends(require_role(*ADMIN_ROLES)),

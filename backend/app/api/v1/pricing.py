@@ -18,6 +18,7 @@ from app.models.pricing import CustomerPricing, PriceTier
 from app.models.spare_part import SparePart
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/pricing", tags=["Pricing (Advanced)"])
 
@@ -88,7 +89,7 @@ def _serialize_customer_pricing(cp: CustomerPricing) -> dict:
 # TIERED PRICING
 # ══════════════════════════════════════════
 
-@router.get("/tiers/{price_entry_id}")
+@router.get("/tiers/{price_entry_id}", response_model=PaginatedResponse[dict])
 async def list_tiers(
     price_entry_id: int,
     current_user: User = Depends(get_current_user),

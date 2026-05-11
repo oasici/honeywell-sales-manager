@@ -20,6 +20,7 @@ from app.services.activity_logger import log_activity
 from app.services.email_processing_service import EmailProcessingService
 from app.services.notification_service import create_notification
 from app.services.tenant_context import assert_same_tenant
+from app.schemas.common import PaginatedResponse
 
 
 def _assert_email_same_tenant(email: EmailRequest, user: User) -> None:
@@ -57,7 +58,7 @@ def _check_email_ownership(email: EmailRequest, user: User) -> None:
         raise ForbiddenException("Bu e-postaya erisim yetkiniz yok")
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_emails(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
@@ -387,7 +388,7 @@ async def poll_emails(
     }
 
 
-@router.get("/{email_id}/thread")
+@router.get("/{email_id}/thread", response_model=PaginatedResponse[dict])
 async def get_email_thread(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),

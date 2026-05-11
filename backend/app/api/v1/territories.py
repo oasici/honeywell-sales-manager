@@ -20,6 +20,7 @@ from app.models.opportunity import Opportunity
 from app.models.territory import Territory, TerritoryAssignment
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/territories", tags=["Territories"])
 
@@ -143,7 +144,7 @@ def _customer_matches_territory(customer: Customer, territory: Territory) -> boo
 # ── Endpoints ──
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_territories(
     _: None = Depends(_require_territories),
     current_user: User = Depends(get_current_user),

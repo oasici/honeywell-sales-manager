@@ -325,7 +325,7 @@ class ScoringConfigUpdate(BaseModel):
     description: str | None = None
 
 
-@router.get("/scoring-config")
+@router.get("/scoring-config", response_model=PaginatedResponse[dict])
 async def list_scoring_configs(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),

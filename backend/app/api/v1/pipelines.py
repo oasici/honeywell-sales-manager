@@ -18,6 +18,7 @@ from app.models.opportunity import Opportunity
 from app.models.pipeline import Pipeline
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/pipelines", tags=["Pipelines"])
 
@@ -67,7 +68,7 @@ def _serialize_pipeline(p: Pipeline) -> dict:
 # ── Endpoints ──
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_pipelines(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),

@@ -15,6 +15,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services import network_intelligence_service
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/network-intelligence", tags=["Network Intelligence"])
 
@@ -25,7 +26,7 @@ def _require_network_intelligence() -> None:
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/segments")
+@router.get("/segments", response_model=PaginatedResponse[dict])
 async def list_segments(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -35,7 +36,7 @@ async def list_segments(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.get("/overview")
+@router.get("/overview", response_model=PaginatedResponse[dict])
 async def get_overview(
     segment_key: str | None = Query(None, description="Segment key (e.g. 'stage:qualified')"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -48,7 +49,7 @@ async def get_overview(
     )
 
 
-@router.get("/federated/{benchmark_key}")
+@router.get("/federated/{benchmark_key}", response_model=PaginatedResponse[dict])
 async def get_federated(
     benchmark_key: str,
     include_suppressed: bool = Query(False),

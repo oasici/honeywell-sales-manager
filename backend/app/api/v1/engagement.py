@@ -29,6 +29,7 @@ from app.models.opportunity import Opportunity, OpportunitySignal
 from app.models.quote import Quote
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Engagement"])
@@ -136,7 +137,7 @@ async def create_transcript(
     }
 
 
-@router.get("/transcripts/")
+@router.get("/transcripts/", response_model=PaginatedResponse[dict])
 async def list_transcripts(
     opportunity_id: int | None = None,
     customer_id: int | None = None,
@@ -276,7 +277,7 @@ class KeywordPackCreate(BaseModel):
     keywords: list[str]
 
 
-@router.get("/keyword-packs/")
+@router.get("/keyword-packs/", response_model=PaginatedResponse[dict])
 async def list_keyword_packs(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -320,7 +321,7 @@ class SequenceCreate(BaseModel):
     steps: list[dict]  # [{"step":1,"action":"email|task","delay_days":0,"template":"..."}]
 
 
-@router.get("/sequences/")
+@router.get("/sequences/", response_model=PaginatedResponse[dict])
 async def list_sequences(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

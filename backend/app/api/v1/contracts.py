@@ -184,7 +184,7 @@ async def create_contract(
     return _serialize_contract(contract)
 
 
-@router.get("/contracts/expiring")
+@router.get("/contracts/expiring", response_model=PaginatedResponse[dict])
 async def expiring_contracts(
     days: int = Query(30, ge=1, le=365),
     page: int = Query(1, ge=1),

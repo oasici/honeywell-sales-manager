@@ -8,6 +8,7 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
 from app.models.user import User
 from app.services.customer_health_service import CustomerHealthService
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/customers/health", tags=["Customer Health"])
 
@@ -52,7 +53,7 @@ def _report_to_dict(report, include_explanations: bool = False) -> dict:
     return data
 
 
-@router.get("/overview")
+@router.get("/overview", response_model=PaginatedResponse[dict])
 async def get_health_overview(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -92,7 +93,7 @@ async def get_health_overview(
     }
 
 
-@router.get("/at-risk")
+@router.get("/at-risk", response_model=PaginatedResponse[dict])
 async def get_at_risk_customers(
     limit: int = Query(10, ge=1, le=50),
     current_user: User = Depends(get_current_user),

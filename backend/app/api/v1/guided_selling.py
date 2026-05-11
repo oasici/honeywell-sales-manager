@@ -15,6 +15,7 @@ from app.models.enums import UserRole
 from app.models.selling_guide import SellingGuide
 from app.models.user import User
 from app.services.guided_selling_service import GuidedSellingService
+from app.schemas.common import PaginatedResponse
 
 
 def _require_guided_selling() -> None:
@@ -51,7 +52,7 @@ class EvaluateBody(BaseModel):
     answers: dict
 
 
-@router.get("/guided-selling/")
+@router.get("/guided-selling/", response_model=PaginatedResponse[dict])
 async def list_guides(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

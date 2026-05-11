@@ -101,7 +101,7 @@ async def list_customers(
     }
 
 
-@router.get("/high-intent")
+@router.get("/high-intent", response_model=PaginatedResponse[dict])
 async def list_high_intent_accounts(
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),

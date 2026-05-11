@@ -19,6 +19,7 @@ from app.core.exceptions import BadRequestException, ForbiddenException, NotFoun
 from app.models.report import ReportTemplate
 from app.models.report_folder import ReportFolder
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.services.report_engine import (
     ALLOWED_COLUMNS,
     ENTITY_JOINS,
@@ -111,7 +112,7 @@ class InlineReportRequest(BaseModel):
 # ── Folder CRUD ──
 
 
-@router.get("/folders")
+@router.get("/folders", response_model=PaginatedResponse[dict])
 async def list_folders(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=100, ge=1, le=200),
@@ -292,7 +293,7 @@ async def delete_folder(
 # ── Template CRUD ──
 
 
-@router.get("/templates")
+@router.get("/templates", response_model=PaginatedResponse[dict])
 async def list_templates(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=100, ge=1, le=200),

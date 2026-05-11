@@ -9,11 +9,12 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.services.leaderboard_service import LeaderboardService
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def get_leaderboard(
     period: str = Query("month", pattern="^(week|month|quarter|year)$"),
     metric: str = Query("revenue", pattern="^(revenue|deals_won|activities|response_time)$"),
@@ -35,7 +36,7 @@ async def get_leaderboard(
     }
 
 
-@router.get("/achievements")
+@router.get("/achievements", response_model=PaginatedResponse[dict])
 async def get_my_achievements(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -58,7 +59,7 @@ async def get_my_achievements(
     }
 
 
-@router.get("/achievements/{user_id}")
+@router.get("/achievements/{user_id}", response_model=PaginatedResponse[dict])
 async def get_user_achievements(
     user_id: int,
     current_user: User = Depends(get_current_user),

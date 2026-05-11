@@ -28,6 +28,7 @@ from app.models.quote import Quote
 from app.models.retention_policy import RetentionPolicy
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 logger = logging.getLogger(__name__)
 
@@ -381,7 +382,7 @@ async def anonymize_customer_data(
     }
 
 
-@router.get("/retention-report")
+@router.get("/retention-report", response_model=PaginatedResponse[dict])
 async def retention_report(
     current_user: User = Depends(
         require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS)
@@ -469,7 +470,7 @@ async def customer_audit_trail(
 # ══════════════════════════════════════════
 
 
-@router.get("/retention-policies")
+@router.get("/retention-policies", response_model=PaginatedResponse[dict])
 async def list_retention_policies(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
@@ -722,7 +723,7 @@ async def update_breach_notification(
     }
 
 
-@router.get("/breaches")
+@router.get("/breaches", response_model=PaginatedResponse[dict])
 async def list_breach_notifications(
     status: str | None = None,
     page: int = Query(1, ge=1),

@@ -343,7 +343,7 @@
       "Body_bulk_import_users_api_v1_users_bulk_import_post": {
         "properties": {
           "file": {
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "File",
             "type": "string"
           }
@@ -357,7 +357,7 @@
       "Body_create_quote_from_pdf_api_v1_quotes_from_pdf_post": {
         "properties": {
           "file": {
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "File",
             "type": "string"
           }
@@ -371,7 +371,7 @@
       "Body_import_catalog_api_v1_parts_import_post": {
         "properties": {
           "file": {
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "File",
             "type": "string"
           }
@@ -385,7 +385,7 @@
       "Body_import_customers_api_v1_customers_import_post": {
         "properties": {
           "file": {
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "File",
             "type": "string"
           }
@@ -399,7 +399,7 @@
       "Body_import_prices_api_v1_prices_import_post": {
         "properties": {
           "file": {
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "File",
             "type": "string"
           }
@@ -618,6 +618,7 @@
           },
           "items": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "title": "Items",
@@ -658,6 +659,7 @@
       "CalendarConnectRequest": {
         "properties": {
           "config": {
+            "additionalProperties": true,
             "default": {},
             "title": "Config",
             "type": "object"
@@ -1335,6 +1337,7 @@
       "CorrectParseRequest": {
         "properties": {
           "parsed_data": {
+            "additionalProperties": true,
             "title": "Parsed Data",
             "type": "object"
           }
@@ -1379,6 +1382,7 @@
           "credentials": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -2088,6 +2092,7 @@
           "filters": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -2394,6 +2399,7 @@
           "template_context": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -2658,6 +2664,7 @@
       "EsignConnectRequest": {
         "properties": {
           "config": {
+            "additionalProperties": true,
             "default": {},
             "title": "Config",
             "type": "object"
@@ -2711,6 +2718,7 @@
       "EvaluateBody": {
         "properties": {
           "answers": {
+            "additionalProperties": true,
             "title": "Answers",
             "type": "object"
           }
@@ -2909,6 +2917,7 @@
           },
           "product_rules": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "title": "Product Rules",
@@ -2916,6 +2925,7 @@
           },
           "steps": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "title": "Steps",
@@ -2959,6 +2969,7 @@
             "anyOf": [
               {
                 "items": {
+                  "additionalProperties": true,
                   "type": "object"
                 },
                 "type": "array"
@@ -3844,6 +3855,7 @@
         "properties": {
           "items": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "title": "Items",
@@ -4851,6 +4863,7 @@
           "payload": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5336,6 +5349,7 @@
           },
           "rules": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "title": "Rules",
@@ -5434,6 +5448,7 @@
           },
           "steps": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "title": "Steps",
@@ -5452,6 +5467,7 @@
           "auto_enroll_rules": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5486,6 +5502,7 @@
             "anyOf": [
               {
                 "items": {
+                  "additionalProperties": true,
                   "type": "object"
                 },
                 "type": "array"
@@ -7081,6 +7098,13 @@
       },
       "ValidationError": {
         "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
           "loc": {
             "items": {
               "anyOf": [
@@ -7753,7 +7777,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -7962,7 +7988,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -8083,7 +8111,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -8333,7 +8363,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -8606,7 +8638,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -11300,7 +11334,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -11353,7 +11389,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -11468,7 +11506,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -12019,7 +12059,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -14011,7 +14053,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -15640,7 +15684,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -16052,7 +16098,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -16384,7 +16432,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -16625,7 +16675,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -16679,6 +16731,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Get Feature Flags Api V1 Config Feature Flags Get",
                   "type": "object"
                 }
@@ -16956,7 +17009,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -17769,6 +17824,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": true,
                 "title": "Body",
                 "type": "object"
               }
@@ -17845,7 +17901,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -17898,7 +17956,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -18037,7 +18097,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -19791,7 +19853,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -21409,7 +21473,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -22173,7 +22239,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -22294,7 +22362,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -22594,7 +22664,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -23623,7 +23695,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -24207,7 +24281,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -24479,7 +24555,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -24668,7 +24746,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -26466,7 +26546,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -26602,7 +26684,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -26655,7 +26739,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -26717,7 +26803,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -27043,6 +27131,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": true,
                 "title": "Body",
                 "type": "object"
               }
@@ -27107,7 +27196,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -27919,7 +28010,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -27981,7 +28074,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -28055,7 +28150,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -28126,7 +28223,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -28197,7 +28296,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -28249,7 +28350,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -28323,7 +28426,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -28543,7 +28648,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -29094,6 +29201,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": true,
                 "title": "Body",
                 "type": "object"
               }
@@ -29901,7 +30009,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -30346,7 +30456,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -31312,7 +31424,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -31363,6 +31477,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": true,
                 "title": "Data",
                 "type": "object"
               }
@@ -31992,7 +32107,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -33590,7 +33707,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -33721,7 +33840,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -33803,7 +33924,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -33942,7 +34065,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -34269,7 +34394,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -34894,7 +35021,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -35555,7 +35684,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -37025,6 +37156,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": true,
                 "title": "Body",
                 "type": "object"
               }
@@ -37328,7 +37460,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -37960,7 +38094,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -38022,7 +38158,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -38433,7 +38571,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -38521,7 +38661,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -38827,7 +38969,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -39575,7 +39719,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"
@@ -39879,7 +40025,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
+                }
               }
             },
             "description": "Successful Response"

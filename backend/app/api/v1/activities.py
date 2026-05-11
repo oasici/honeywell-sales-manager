@@ -82,7 +82,7 @@ async def log_activity(
 
 # ── GET /activities/ ──
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_activities(
     entity_type: str | None = None,
     entity_id: int | None = None,
@@ -143,7 +143,7 @@ async def list_activities(
 
 # ── GET /activities/metrics ──
 
-@router.get("/metrics")
+@router.get("/metrics", response_model=PaginatedResponse[dict])
 async def activity_metrics(
     window: int = Query(default=30, ge=1, le=365),
     db: AsyncSession = Depends(get_db),

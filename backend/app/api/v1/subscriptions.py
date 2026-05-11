@@ -98,7 +98,7 @@ def _serialize(sub) -> dict:
     return apply_request_perms(data, "subscription")
 
 
-@router.get("/mrr-dashboard")
+@router.get("/mrr-dashboard", response_model=PaginatedResponse[dict])
 async def mrr_dashboard(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -110,7 +110,7 @@ async def mrr_dashboard(
     return await service.get_mrr_dashboard(current_user)
 
 
-@router.get("/renewals")
+@router.get("/renewals", response_model=PaginatedResponse[dict])
 async def upcoming_renewals(
     days: int = Query(30, ge=1, le=365),
     page: int = Query(1, ge=1),

@@ -14,11 +14,12 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.price_entry import PriceEntry
 from app.models.spare_part import SparePart
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/prices", tags=["Prices"])
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_prices(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),

@@ -21,6 +21,7 @@ from app.models.notification import Notification
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 
@@ -84,7 +85,7 @@ def _serialize_comment(comment: Comment) -> dict:
     }
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_comments(
     entity_type: str = Query(...),
     entity_id: int = Query(...),

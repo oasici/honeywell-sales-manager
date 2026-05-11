@@ -16,6 +16,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services import ai_attribute_service
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/ai-attributes", tags=["AI Attributes"])
 
@@ -49,7 +50,7 @@ class GenerateBody(BaseModel):
     context: dict[str, str] | None = None
 
 
-@router.get("/definitions")
+@router.get("/definitions", response_model=PaginatedResponse[dict])
 async def list_definitions(
     entity_type: str | None = Query(None),
     active_only: bool = Query(True),
@@ -96,7 +97,7 @@ async def update_definition(
     )
 
 
-@router.get("/values")
+@router.get("/values", response_model=PaginatedResponse[dict])
 async def list_values(
     entity_type: str = Query(...),
     entity_id: int = Query(..., ge=1),

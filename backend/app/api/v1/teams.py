@@ -18,6 +18,7 @@ from app.models.team import SharingRule
 from app.models.user import User
 from app.services.access_service import AccessService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(tags=["Teams"])
 
@@ -184,7 +185,7 @@ async def remove_team_member(
 # ── Sharing Rule Endpoints ──
 
 
-@router.get("/sharing-rules/")
+@router.get("/sharing-rules/", response_model=PaginatedResponse[dict])
 async def list_sharing_rules(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
