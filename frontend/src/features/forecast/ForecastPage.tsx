@@ -166,6 +166,47 @@ export default function ForecastPage() {
         </div>
       )}
 
+      {/* Round-10 R10-FE-11 — confidence-tier breakdown. The hybrid
+          endpoint always returns counts + amounts grouped by
+          high / medium / low confidence, but the page used to discard
+          everything except the top-line aggregates. Surfaces the split
+          so sales managers can see where the commit is coming from. */}
+      {!isLoading && hybrid?.by_confidence && (
+        <Card
+          title="Güven seviyesine göre kırılım"
+          description="Hibrit modelin commit + best-case bileşenleri"
+        >
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {(['high', 'medium', 'low'] as const).map((tier) => {
+              const bucket = hybrid.by_confidence?.[tier];
+              const label =
+                tier === 'high' ? 'Yüksek güven' : tier === 'medium' ? 'Orta güven' : 'Düşük güven';
+              return (
+                <div
+                  key={tier}
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/40"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-caption text-slate-500">{label}</span>
+                    <Badge
+                      variant={tier === 'high' ? 'success' : tier === 'medium' ? 'warning' : 'default'}
+                    >
+                      {bucket?.count ?? 0}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 text-heading-3 tabular-nums">
+                    {formatCurrency(bucket?.amount ?? 0)}
+                  </div>
+                  <div className="mt-1 text-caption text-slate-400">
+                    Ağırlıklı {formatCurrency(bucket?.hybrid_weighted ?? 0)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {wow && wow.weeks.length > 0 && (
         <Card title="Hafta-üzeri-hafta hareket" description="Pipeline toplamı">
           <div className="mt-4 flex items-center gap-4">

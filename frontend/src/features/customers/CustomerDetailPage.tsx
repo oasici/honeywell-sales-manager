@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -97,6 +98,12 @@ export default function CustomerDetailPage() {
     annual_revenue: '',
     parent_id: '',
     territory_id: '',
+    // Round-10 R10-FE-12 — KVKK / GDPR data classification.
+    // The column exists server-side (customers.data_classification),
+    // is returned in /customers/{id}, but the edit form never let
+    // reps update it — so admin masking rules tied to this tier had
+    // no surface to flow from. '' = inherit/unspecified.
+    data_classification: '',
   });
 
   const { data: customer, isLoading } = useQuery<Customer>({
@@ -259,6 +266,7 @@ export default function CustomerDetailPage() {
           annual_revenue: customer.annual_revenue != null ? String(customer.annual_revenue) : '',
           parent_id: customer.parent_id != null ? String(customer.parent_id) : '',
           territory_id: customer.territory_id != null ? String(customer.territory_id) : '',
+          data_classification: customer.data_classification ?? '',
         }),
       );
     }
@@ -283,6 +291,16 @@ export default function CustomerDetailPage() {
         annual_revenue: payload.annual_revenue || null,
         parent_id: toNumberOrNull(payload.parent_id),
         territory_id: toNumberOrNull(payload.territory_id),
+        // Round-10 R10-FE-12 — '' (unspecified) is mapped to null so
+        // the backend resets the column; otherwise pass the literal.
+        data_classification:
+          payload.data_classification === ''
+            ? null
+            : (payload.data_classification as
+                | 'public'
+                | 'internal'
+                | 'confidential'
+                | 'restricted'),
       };
       return customersApi.updateCustomer(customerId, wire);
     },
@@ -472,6 +490,7 @@ export default function CustomerDetailPage() {
                     parent_id: customer.parent_id != null ? String(customer.parent_id) : '',
                     territory_id:
                       customer.territory_id != null ? String(customer.territory_id) : '',
+                    data_classification: customer.data_classification ?? '',
                   });
                 }
               }}
@@ -594,6 +613,21 @@ export default function CustomerDetailPage() {
                 value={form.territory_id}
                 onChange={(e) => updateField('territory_id', e.target.value)}
                 placeholder="—"
+              />
+              {/* Round-10 R10-FE-12 — KVKK data classification.
+                  Drives admin field-mask rules; rep needs to set it
+                  during onboarding. */}
+              <Select
+                label="KVKK veri sınıfı"
+                value={form.data_classification}
+                onChange={(e) => updateField('data_classification', e.target.value)}
+                placeholder="— Belirtilmedi"
+                options={[
+                  { value: 'public', label: 'Genel (public)' },
+                  { value: 'internal', label: 'Şirket içi (internal)' },
+                  { value: 'confidential', label: 'Gizli (confidential)' },
+                  { value: 'restricted', label: 'Kısıtlı (restricted)' },
+                ]}
               />
             </div>
           ) : (
