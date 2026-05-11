@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -28,7 +28,8 @@ class ForecastSnapshotDetail(Base):
         Integer, ForeignKey("opportunities.id"), nullable=False,
     )
     forecast_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    amount: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2).
+    amount: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=False, default=0.0)
     stage: Mapped[str] = mapped_column(String(30), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),

@@ -14,7 +14,18 @@ interface PreferencesState {
 
 const STORAGE_KEY = 'honeywell-preferences';
 
+// Round-11 R11-FE-3 — SSR guard. The store is initialised at module
+// load time, before any React tree exists; on a Node-side render
+// `localStorage` and `document` are undefined and would throw, which
+// would block first-paint hydration. Guarding lets the same module
+// boot cleanly on the server (where preferences are just defaults).
+const HAS_DOM = typeof document !== 'undefined';
+const HAS_STORAGE = typeof localStorage !== 'undefined';
+
 function loadPreferences(): { theme: Theme; language: Language; fontSizeOffset: number } {
+  if (!HAS_STORAGE) {
+    return { theme: 'light', language: 'tr', fontSizeOffset: 0 };
+  }
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -30,10 +41,12 @@ function loadPreferences(): { theme: Theme; language: Language; fontSizeOffset: 
 }
 
 function savePreferences(state: { theme: Theme; language: Language; fontSizeOffset: number }) {
+  if (!HAS_STORAGE) return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 function applyTheme(theme: Theme) {
+  if (!HAS_DOM) return;
   if (theme === 'dark') {
     document.documentElement.classList.add('dark');
   } else {
@@ -42,6 +55,7 @@ function applyTheme(theme: Theme) {
 }
 
 function applyFontSize(offset: number) {
+  if (!HAS_DOM) return;
   const root = document.getElementById('root');
   if (!root) return;
   // Remove all previous scale classes

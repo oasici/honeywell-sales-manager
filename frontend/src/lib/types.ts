@@ -304,6 +304,12 @@ export interface QuoteItem {
   id: number;
   quote_id: number;
   spare_part_id: number | null;
+  // Round-11 R11-TS-1 — backend Pydantic schema (`schemas/quote.py`)
+  // declares these `str | None` for extras-tolerance, but the runtime
+  // flow always assigns each field (PDF extraction populates them on
+  // create, manual entry requires them in QuoteEditorPage). Kept as
+  // required to keep `<Input value={item.honeywell_code} />` typing
+  // sound; if a legitimate NULL surfaces we coalesce at the boundary.
   original_text: string;
   honeywell_code: string;
   description: string;
@@ -316,12 +322,24 @@ export interface QuoteItem {
   is_confirmed: boolean;
   sort_order: number;
   spare_part?: SparePart;
+  // R11-TS-1 — the quote serializer emits spare_part_name + category
+  // when a spare_part is linked. Optional because legacy unsaved rows
+  // have no part linked yet, and SparePart-less line items legitimately
+  // have neither name nor category.
+  spare_part_name?: string | null;
+  spare_part_category?: string | null;
 }
 
 export interface Quote {
   id: number;
+  // Round-11 R11-TS-2 — backend Pydantic schema (`schemas/quote.py`)
+  // marks quote_number/customer_id/created_by/status as Optional for
+  // extras-tolerance, but the QuoteService always assigns these on
+  // create (`generate_quote_number()`, role-gated current_user.id,
+  // QuoteStatus.DRAFT). Only `customer_id` legitimately survives as
+  // NULL — quote-from-PDF imports may land before customer match.
   quote_number: string;
-  customer_id: number;
+  customer_id: number | null;
   email_request_id: number | null;
   created_by: number;
   approved_by: number | null;

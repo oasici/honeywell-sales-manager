@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -25,8 +25,9 @@ class AccountEnrichment(Base):
         Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, unique=True
     )
 
-    pipeline_open_amount: Mapped[float] = mapped_column(Float, default=0.0)
-    closed_won_revenue: Mapped[float] = mapped_column(Float, default=0.0)
+    # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2).
+    pipeline_open_amount: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
+    closed_won_revenue: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
     active_deal_count: Mapped[int] = mapped_column(Integer, default=0)
     won_deal_count: Mapped[int] = mapped_column(Integer, default=0)
     lost_deal_count: Mapped[int] = mapped_column(Integer, default=0)

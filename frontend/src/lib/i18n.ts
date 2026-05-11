@@ -241,6 +241,9 @@ const translations = {
     'common.back': 'Geri Dön',
     'common.loading': 'Yükleniyor...',
     'common.error': 'Bir hata oluştu',
+    // Round-11 R11-FE-1 — error UI helpers used across list pages.
+    'common.error_load_failed': 'Veriler yüklenemedi. Tekrar deneyin.',
+    'common.retry': 'Tekrar dene',
     'common.success': 'Başarılı',
     'common.confirm': 'Onayla',
     'common.no_subject': '(Konu yok)',
@@ -2579,6 +2582,9 @@ const translations = {
     'common.back': 'Back',
     'common.loading': 'Loading...',
     'common.error': 'An error occurred',
+    // Round-11 R11-FE-1 — error UI helpers used across list pages.
+    'common.error_load_failed': 'Failed to load data. Please try again.',
+    'common.retry': 'Retry',
     'common.success': 'Success',
     'common.confirm': 'Confirm',
     'common.no_subject': '(No subject)',

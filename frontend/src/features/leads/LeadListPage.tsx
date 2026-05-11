@@ -85,7 +85,7 @@ export default function LeadListPage() {
     source: 'manual',
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['leads', page, search, statusFilter],
     queryFn: () =>
       leadsApi.list({ page, page_size: 20, q: search || undefined, status: statusFilter }),
@@ -363,6 +363,18 @@ export default function LeadListPage() {
           </label>
         )}
       </div>
+
+      {/* Round-11 R11-FE-1 — surface load failure. */}
+      {isError && (
+        <div className="mb-3 flex items-center justify-between rounded-[8px] border border-(--danger)/30 bg-(--danger-bg) px-3 py-2 text-[13px] text-(--danger)">
+          <span>
+            {(error as Error | undefined)?.message ?? t('common.error_load_failed')}
+          </span>
+          <Button variant="ghost" onClick={() => refetch()}>
+            {t('common.retry')}
+          </Button>
+        </div>
+      )}
 
       <DataTable
         columns={columns}

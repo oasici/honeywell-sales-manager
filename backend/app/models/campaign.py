@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -33,10 +33,12 @@ class Campaign(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     end_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    budget: Mapped[float | None] = mapped_column(Float, nullable=True)
-    actual_cost: Mapped[float] = mapped_column(Float, default=0.0)
-    expected_revenue: Mapped[float | None] = mapped_column(Float, nullable=True)
-    actual_revenue: Mapped[float] = mapped_column(Float, default=0.0)
+    # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2). asdecimal=False
+    # keeps the Python-side type as float; the DB enforces 2-decimal precision.
+    budget: Mapped[float | None] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=True)
+    actual_cost: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
+    expected_revenue: Mapped[float | None] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=True)
+    actual_revenue: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

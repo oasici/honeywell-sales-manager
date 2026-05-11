@@ -57,14 +57,15 @@ async def get_unread_count(
     db: AsyncSession = Depends(get_db),
 ):
     """Get the number of unread notifications for badge display."""
-    stmt = (
-        select(func.count())
-        .select_from(Notification)
-        .where(
-            Notification.user_id == current_user.id,
-            Notification.is_read.is_(False),
-        )
-    )
+    # Round-11 R11-AUTH-3 — tenant scope alongside user_id.
+    conditions = [
+        Notification.user_id == current_user.id,
+        Notification.is_read.is_(False),
+    ]
+    tenant_id = getattr(current_user, "tenant_id", None)
+    if tenant_id is not None:
+        conditions.append(Notification.tenant_id == tenant_id)
+    stmt = select(func.count()).select_from(Notification).where(*conditions)
     result = await db.execute(stmt)
     count = result.scalar() or 0
     return {"unread_count": count}
@@ -77,7 +78,12 @@ async def mark_notification_read(
     db: AsyncSession = Depends(get_db),
 ):
     """Mark a single notification as read."""
-    await mark_as_read(db, notification_id=notification_id, user_id=current_user.id)
+    await mark_as_read(
+        db,
+        notification_id=notification_id,
+        user_id=current_user.id,
+        tenant_id=getattr(current_user, "tenant_id", None),
+    )
     await db.flush()
     return {"message": "Notification marked as read"}
 
@@ -149,14 +155,15 @@ async def mark_all_notifications_read(
     """Mark all notifications as read for the current user."""
     from sqlalchemy import update
 
-    stmt = (
-        update(Notification)
-        .where(
-            Notification.user_id == current_user.id,
-            Notification.is_read.is_(False),
-        )
-        .values(is_read=True)
-    )
+    # Round-11 R11-AUTH-3 — tenant scope alongside user_id.
+    conditions = [
+        Notification.user_id == current_user.id,
+        Notification.is_read.is_(False),
+    ]
+    tenant_id = getattr(current_user, "tenant_id", None)
+    if tenant_id is not None:
+        conditions.append(Notification.tenant_id == tenant_id)
+    stmt = update(Notification).where(*conditions).values(is_read=True)
     result = await db.execute(stmt)
     await db.flush()
     return {"message": f"{result.rowcount} notification(s) marked as read"}

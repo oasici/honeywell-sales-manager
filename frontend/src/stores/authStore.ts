@@ -133,15 +133,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Ignore logout API errors – clear local state regardless
     }
 
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    storage.remove('user');
-
-    // R5-CACHE-1 — wipe TanStack cache so the next user on this
-    // browser tab cannot see the previous user's PII for the
-    // 30s staleTime window.
-    queryClient.clear();
-    // Round-10 R10-OBS-1 — clear Sentry user + tenant tags.
+    // Round-11 R11-FE-2 — reorder cleanup to close the PII-leak race.
+    // Pre-fix: storage was cleared, queryClient.clear() ran, THEN state
+    // was set to null. A concurrent mutation that fired between
+    // `queryClient.clear()` and `set({ user: null })` saw the still-
+    // populated zustand state and queued a new request keyed to the
+    // previous user. Now we (1) tag Sentry first so the next event
+    // doesn't attribute to the wrong user, (2) zero the auth state so
+    // every reactive consumer immediately re-renders as logged-out,
+    // (3) drop localStorage / storage entries, (4) finally clear the
+    // TanStack cache as the last step so any in-flight query that
+    // settles after state-flip has nothing to write back into.
     tagSentryUser(null);
 
     set({
@@ -150,6 +152,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: null,
       isAuthenticated: false,
     });
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    storage.remove('user');
+
+    // R5-CACHE-1 — wipe TanStack cache so the next user on this
+    // browser tab cannot see the previous user's PII for the
+    // 30s staleTime window.
+    queryClient.clear();
   },
 
   clearError: () => set({ error: null }),

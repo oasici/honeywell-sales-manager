@@ -67,6 +67,25 @@ export function MomentumPanel({ opportunityId }: MomentumPanelProps) {
     );
   }
 
+  // Round-11 R11-FE-1 — surface error instead of silently rendering
+  // the empty/'no data' state when the request actually failed.
+  if (currentQuery.isError) {
+    return (
+      <Card title="Momentum" description="Veri yüklenemedi">
+        <div className="rounded-[8px] border border-(--danger)/30 bg-(--danger-bg) p-3 text-[13px] text-(--danger)">
+          {(currentQuery.error as Error | undefined)?.message ?? 'Momentum verisi yüklenemedi.'}
+          <button
+            type="button"
+            className="ml-3 underline-offset-2 hover:underline"
+            onClick={() => currentQuery.refetch()}
+          >
+            Tekrar dene
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
   if (!current || current.score === null) {
     return (
       <Card title="Momentum" description="Henüz momentum skoru hesaplanmadı">

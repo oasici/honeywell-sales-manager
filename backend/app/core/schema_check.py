@@ -57,6 +57,11 @@ class TableDrift:
     # Round-10 R10-DB-GATE — extend the gate beyond column shape.
     fk_missing_in_db: tuple[tuple[str, str, str], ...] = ()  # (column, ref_table, ref_col)
     index_missing_in_db: tuple[str, ...] = ()  # column names declared index=True or Index(...) but not present in DB
+    # Round-11 R11-DB-IDX — FK columns that lack a single-column btree
+    # index in the DB. Advisory only: a missing FK index is a query
+    # planner concern, not a correctness bug, so this list is populated
+    # but does NOT cause is_clean=False unless SCHEMA_DRIFT_STRICT_FK_INDEX=1.
+    fk_columns_without_index: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -316,6 +321,37 @@ def check_schema(
                 continue
             index_missing_in_db.append(col.name)
 
+        # ── Round-11 R11-DB-IDX — FK columns without an index (advisory) ──
+        # A foreign key with no covering index forces a sequential scan
+        # on JOIN/WHERE. Track FK columns that have neither a single-
+        # column index (db_indexed_columns) nor are covered as the
+        # leading column of a composite index, nor are PK/unique.
+        leading_index_columns: set[str] = set(db_indexed_columns)
+        for idx in db_indexes:
+            cols = idx.get("column_names") or []
+            if cols and cols[0]:
+                leading_index_columns.add(cols[0])
+        fk_columns_without_index: list[str] = []
+        for col in table.columns:
+            if not col.foreign_keys:
+                continue
+            if (
+                col.name in leading_index_columns
+                or col.name in pk_cols
+                or col.name in unique_cols
+            ):
+                continue
+            fk_columns_without_index.append(col.name)
+
+        # `fk_columns_without_index` is advisory by default: only treat
+        # it as drift when SCHEMA_DRIFT_STRICT_FK_INDEX=1. This lets
+        # operators surface a single per-table report without breaking
+        # existing CI runs that haven't backfilled every FK index.
+        strict_fk_index = (
+            os.environ.get("SCHEMA_DRIFT_STRICT_FK_INDEX", "").strip().lower()
+            in {"1", "true", "yes"}
+        )
+
         if (
             missing_in_db
             or missing_in_model
@@ -323,6 +359,7 @@ def check_schema(
             or nullability_mismatch
             or fk_missing_in_db
             or index_missing_in_db
+            or (strict_fk_index and fk_columns_without_index)
         ):
             drifts.append(
                 TableDrift(
@@ -333,6 +370,7 @@ def check_schema(
                     nullability_mismatch=tuple(nullability_mismatch),
                     fk_missing_in_db=tuple(fk_missing_in_db),
                     index_missing_in_db=tuple(index_missing_in_db),
+                    fk_columns_without_index=tuple(fk_columns_without_index),
                 )
             )
 
@@ -442,6 +480,8 @@ def _cli() -> int:
             print(f"     fk missing in DB: {col} → {ref_table}.{ref_col}")
         for col in t.index_missing_in_db:
             print(f"     index missing in DB: {col} (model declared index=True)")
+        for col in t.fk_columns_without_index:
+            print(f"     fk has no covering index: {col} (advisory)")
     return 1
 
 

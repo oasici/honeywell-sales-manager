@@ -77,6 +77,25 @@ export function DecisionGraphPanel({ opportunityId }: DecisionGraphPanelProps) {
     );
   }
 
+  // Round-11 R11-FE-1 — surface load failure instead of silently
+  // rendering the "graph not created yet" CTA when the request failed.
+  if (graphQuery.isError) {
+    return (
+      <Card title="Karar süreci" description="Graf yüklenemedi">
+        <div className="rounded-[8px] border border-(--danger)/30 bg-(--danger-bg) p-3 text-[13px] text-(--danger)">
+          {(graphQuery.error as Error | undefined)?.message ?? 'Karar grafı yüklenemedi.'}
+          <button
+            type="button"
+            className="ml-3 underline-offset-2 hover:underline"
+            onClick={() => graphQuery.refetch()}
+          >
+            Tekrar dene
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
   // Round-8 R8-EMPTY-1 — distinguish "graph never created" from
   // "graph exists but is mid-initialization".
   if (!graph) {

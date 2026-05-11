@@ -42,7 +42,10 @@ class QuoteService:
     ) -> Quote:
         """Create a new quote with optional line items."""
         if customer_id:
-            await self._validate_customer(customer_id)
+            # Round-11 R11-AUTH-2 — verify customer belongs to caller's
+            # tenant. Pre-fix, a rep could link quotes to other tenants'
+            # customers by guessing the ID.
+            await self._validate_customer(customer_id, tenant_id=tenant_id)
 
         quote_number = self.generate_quote_number()
 
@@ -422,9 +425,25 @@ class QuoteService:
 
         await self._create_quote_items(quote_id, items_data)
 
-    async def _validate_customer(self, customer_id: int) -> Customer:
-        """Raise NotFoundException if customer does not exist."""
-        return await self._get_or_raise(Customer, customer_id, "Customer")
+    async def _validate_customer(
+        self, customer_id: int, tenant_id: int | None = None
+    ) -> Customer:
+        """Raise NotFoundException if customer does not exist or belongs to another tenant.
+
+        Round-11 R11-AUTH-2 — cross-tenant access maps to 404 (not 403)
+        to avoid leaking the existence of foreign-tenant customer rows.
+        """
+        customer = await self._get_or_raise(Customer, customer_id, "Customer")
+        if tenant_id is not None:
+            cust_tenant = getattr(customer, "tenant_id", None)
+            # NULL tenant rows are legacy single-tenant data — allow them
+            # so existing deployments don't break. Mismatched non-NULL
+            # tenant is a cross-tenant probe.
+            if cust_tenant is not None and cust_tenant != tenant_id:
+                raise NotFoundException(
+                    f"{customer_id} numarali Customer bulunamadi"
+                )
+        return customer
 
     async def _get_quote_or_raise(self, quote_id: int) -> Quote:
         return await self._get_or_raise(Quote, quote_id, "Quote")

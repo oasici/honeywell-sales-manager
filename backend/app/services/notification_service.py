@@ -110,7 +110,10 @@ async def get_notifications(
 
 
 async def mark_as_read(
-    db: AsyncSession, notification_id: int, user_id: int
+    db: AsyncSession,
+    notification_id: int,
+    user_id: int,
+    tenant_id: int | None = None,
 ) -> None:
     """Mark a notification as read.
 
@@ -118,12 +121,15 @@ async def mark_as_read(
         db: Database session.
         notification_id: Notification ID to mark.
         user_id: User ID (for ownership verification).
+        tenant_id: Caller tenant (Round-11 R11-AUTH-3). When provided,
+            the update is additionally scoped to ``Notification.tenant_id``
+            so a user_id collision across tenants cannot tamper with
+            foreign notifications.
     """
-    stmt = (
-        update(Notification)
-        .where(Notification.id == notification_id, Notification.user_id == user_id)
-        .values(is_read=True)
-    )
+    conditions = [Notification.id == notification_id, Notification.user_id == user_id]
+    if tenant_id is not None:
+        conditions.append(Notification.tenant_id == tenant_id)
+    stmt = update(Notification).where(*conditions).values(is_read=True)
     await db.execute(stmt)
     await db.flush()
     logger.debug("Notification %d marked as read for user %d", notification_id, user_id)

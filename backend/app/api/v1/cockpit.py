@@ -441,7 +441,18 @@ async def get_risky_accounts(
             "last_activity_at": last_ts.isoformat() if last_ts else None,
         })
 
-    return {"items": items, "total": len(items)}
+    # Round-11 R11-API-1 — canonical pagination envelope. These cockpit
+    # endpoints all return a single bounded slice (limit-only), so page=1
+    # and pages=ceil(total/page_size). Adding the keys lets the SPA reuse
+    # its generic pagination components without per-endpoint branches.
+    total = len(items)
+    return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.get("/momentum")
@@ -460,7 +471,14 @@ async def get_momentum_declining(
         await db.execute(select(func.max(OpportunityFeaturesDaily.snapshot_date)))
     ).scalar_one_or_none()
     if not latest_date:
-        return {"snapshot_date": None, "items": [], "total": 0}
+        return {
+            "snapshot_date": None,
+            "items": [],
+            "total": 0,
+            "page": 1,
+            "page_size": 0,
+            "pages": 0,
+        }
 
     conditions = [
         OpportunityFeaturesDaily.snapshot_date == latest_date,
@@ -514,6 +532,10 @@ async def get_momentum_declining(
             for r in rows
         ],
         "total": len(rows),
+        # Round-11 R11-API-1 — canonical pagination envelope.
+        "page": 1,
+        "page_size": len(rows),
+        "pages": 1 if rows else 0,
     }
 
 
@@ -533,7 +555,14 @@ async def get_stalling_deals(
         await db.execute(select(func.max(OpportunityFeaturesDaily.snapshot_date)))
     ).scalar_one_or_none()
     if not latest_date:
-        return {"snapshot_date": None, "items": [], "total": 0}
+        return {
+            "snapshot_date": None,
+            "items": [],
+            "total": 0,
+            "page": 1,
+            "page_size": 0,
+            "pages": 0,
+        }
 
     conditions = [
         OpportunityFeaturesDaily.snapshot_date == latest_date,
@@ -593,6 +622,10 @@ async def get_stalling_deals(
             for r in rows
         ],
         "total": len(rows),
+        # Round-11 R11-API-1 — canonical pagination envelope.
+        "page": 1,
+        "page_size": len(rows),
+        "pages": 1 if rows else 0,
     }
 
 
@@ -604,6 +637,18 @@ async def resolve_signal(
     _flag=Depends(_require_cockpit),
 ):
     """Mark a signal as resolved."""
+    # Round-11 R11-AUTH-1 — tenant boundary check before write. Pre-fix,
+    # any authenticated user could resolve any signal across tenants.
+    from app.services.tenant_context import assert_same_tenant
+    from app.core.exceptions import NotFoundException
+
+    signal = (
+        await db.execute(select(RevenueSignal).where(RevenueSignal.id == signal_id))
+    ).scalar_one_or_none()
+    if signal is None:
+        raise HTTPException(status_code=404, detail="Sinyal bulunamadi")
+    assert_same_tenant(signal, current_user, exception_cls=NotFoundException)
+
     found = await revenue_signal_service.resolve_signal(db, signal_id)
     if not found:
         raise HTTPException(status_code=404, detail="Sinyal bulunamadi")

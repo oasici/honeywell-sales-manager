@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -26,8 +26,10 @@ class SparePart(Base):
     model_number: Mapped[str | None] = mapped_column(
         String(200), nullable=True, index=True
     )
-    transfer_price: Mapped[float | None] = mapped_column(Float, nullable=True)
-    supplier_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2). min_margin_pct
+    # stays Float because it is a percentage, not money.
+    transfer_price: Mapped[float | None] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=True)
+    supplier_price: Mapped[float | None] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=True)
     price_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
     min_margin_pct: Mapped[float] = mapped_column(Float, default=0.0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

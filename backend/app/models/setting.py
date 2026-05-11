@@ -13,8 +13,17 @@ class Setting(Base):
     # R7-DB-1 — UNIQUE auto-creates a btree index.
     key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Round-11 R11-DB-TS — created_at added so admin-edited config rows
+    # carry full audit history alongside the existing updated_at. DB
+    # column is backfilled by 20260516_phase11_audit_timestamps.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )

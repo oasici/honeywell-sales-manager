@@ -26,10 +26,13 @@ async def list_saved_views(
     db: AsyncSession = Depends(get_db),
 ):
     """List current user's saved views."""
+    # Round-11 R11-AUTH-4 — tenant scope alongside user_id.
+    conditions = [SavedView.user_id == current_user.id]
+    tenant_id = getattr(current_user, "tenant_id", None)
+    if tenant_id is not None:
+        conditions.append(SavedView.tenant_id == tenant_id)
     result = await db.execute(
-        select(SavedView)
-        .where(SavedView.user_id == current_user.id)
-        .order_by(SavedView.created_at.desc())
+        select(SavedView).where(*conditions).order_by(SavedView.created_at.desc())
     )
     views = result.scalars().all()
     return {
@@ -55,6 +58,9 @@ async def create_saved_view(
     """Save a new view/filter."""
     view = SavedView(
         user_id=current_user.id,
+        # Round-11 R11-AUTH-4 — persist caller tenant on insert so the
+        # delete/list paths can filter on it.
+        tenant_id=getattr(current_user, "tenant_id", None),
         name=body.name,
         route=body.route,
         query_json=body.query_json,
@@ -77,10 +83,18 @@ async def delete_saved_view(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a saved view (own only)."""
-    result = await db.execute(
-        select(SavedView).where(SavedView.id == view_id, SavedView.user_id == current_user.id)
-    )
+    """Delete a saved view (own only).
+
+    Round-11 R11-AUTH-4 — additionally scope by ``tenant_id`` so that a
+    user_id collision across tenants cannot delete foreign-tenant views.
+    Missing/foreign-tenant views return 404 (never 403) to avoid leaking
+    existence per the project convention.
+    """
+    conditions = [SavedView.id == view_id, SavedView.user_id == current_user.id]
+    tenant_id = getattr(current_user, "tenant_id", None)
+    if tenant_id is not None:
+        conditions.append(SavedView.tenant_id == tenant_id)
+    result = await db.execute(select(SavedView).where(*conditions))
     view = result.scalar_one_or_none()
     if not view:
         raise NotFoundException("Gorunum bulunamadi")

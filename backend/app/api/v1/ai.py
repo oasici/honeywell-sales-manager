@@ -793,20 +793,32 @@ async def get_signals(
         .order_by(OpportunitySignal.created_at.desc())
     )).scalars().all()
 
+    # Round-11 R11-API-1 — canonical pagination envelope. Previous
+    # `{opportunity_id, signals: [...]}` shape forced the SPA into a
+    # per-endpoint branch. Legacy keys preserved until callers migrate.
+    items = [
+        {
+            "id": s.id,
+            "opportunity_id": s.opportunity_id,
+            "signal_type": s.signal_type,
+            "severity": s.severity,
+            "evidence": s.evidence,
+            "source_type": s.source_type,
+            "is_resolved": s.is_resolved,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        }
+        for s in signals
+    ]
+    total = len(items)
     return {
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        # Legacy aliases — kept until SPA callers migrate.
         "opportunity_id": opportunity_id,
-        "signals": [
-            {
-                "id": s.id,
-                "signal_type": s.signal_type,
-                "severity": s.severity,
-                "evidence": s.evidence,
-                "source_type": s.source_type,
-                "is_resolved": s.is_resolved,
-                "created_at": s.created_at.isoformat() if s.created_at else None,
-            }
-            for s in signals
-        ],
+        "signals": items,
     }
 
 
@@ -841,21 +853,31 @@ async def list_tasks(
     query = query.order_by(Task.due_at.asc().nullslast(), Task.created_at.desc())
 
     tasks = (await db.execute(query)).scalars().all()
+    # Round-11 R11-API-1 — canonical pagination envelope. Legacy
+    # `tasks` key preserved until SPA callers migrate.
+    items = [
+        {
+            "id": t.id,
+            "title": t.title,
+            "description": t.description,
+            "opportunity_id": t.opportunity_id,
+            "due_at": t.due_at.isoformat() if t.due_at else None,
+            "status": t.status,
+            "source": t.source,
+            "priority": t.priority,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+        }
+        for t in tasks
+    ]
+    total = len(items)
     return {
-        "tasks": [
-            {
-                "id": t.id,
-                "title": t.title,
-                "description": t.description,
-                "opportunity_id": t.opportunity_id,
-                "due_at": t.due_at.isoformat() if t.due_at else None,
-                "status": t.status,
-                "source": t.source,
-                "priority": t.priority,
-                "created_at": t.created_at.isoformat() if t.created_at else None,
-            }
-            for t in tasks
-        ],
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        # Legacy alias.
+        "tasks": items,
     }
 
 

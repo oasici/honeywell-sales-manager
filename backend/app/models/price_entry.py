@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -13,9 +13,11 @@ class PriceEntry(Base):
     spare_part_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("spare_parts.id"), nullable=False, index=True
     )
-    list_price: Mapped[float] = mapped_column(Float, nullable=False)
+    # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2). discount_pct
+    # stays Float because it is a percentage, not money.
+    list_price: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=False)
     discount_pct: Mapped[float] = mapped_column(Float, default=0.0)
-    net_price: Mapped[float] = mapped_column(Float, nullable=False)
+    net_price: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=False)
     currency: Mapped[str] = mapped_column(String(10), default="USD")
     valid_from: Mapped[date | None] = mapped_column(Date, nullable=True)
     valid_until: Mapped[date | None] = mapped_column(Date, nullable=True)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -19,7 +19,8 @@ class PipelineReviewQueueEntry(Base):
     )
     suggested_stage: Mapped[str | None] = mapped_column(String(30), nullable=True)
     suggested_close_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    suggested_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2).
+    suggested_amount: Mapped[float | None] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=True)
     suggestion_source: Mapped[str] = mapped_column(String(40), default="rule")
     evidence_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     suggested_at: Mapped[datetime] = mapped_column(

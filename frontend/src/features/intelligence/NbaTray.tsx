@@ -35,7 +35,13 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
     onMutate: () => setGenerating(true),
     onSuccess: () => {
       toast.success('Yeni öneriler hazırlandı');
+      // Round-11 R11-FE-4 — fan out cache invalidation. Pre-fix only
+      // ['nba', oppId] refreshed; the broader ai/tasks list (used by
+      // the dashboard's task widget) and the opportunity detail header
+      // (which shows open-task counts) stayed stale until next tick.
       qc.invalidateQueries({ queryKey: ['nba', opportunityId] });
+      qc.invalidateQueries({ queryKey: ['ai-tasks'] });
+      qc.invalidateQueries({ queryKey: ['opportunity', opportunityId] });
     },
     onError: () => toast.error('Öneri üretilemedi'),
     onSettled: () => setGenerating(false),

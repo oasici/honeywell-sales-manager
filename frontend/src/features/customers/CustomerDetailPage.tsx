@@ -373,6 +373,13 @@ export default function CustomerDetailPage() {
 
   const quotes = quotesData?.items || [];
   const totalValue = quotes.reduce((sum, q) => sum + q.grand_total, 0);
+  // Round-11 R11-FE-5 — display total in the currency of the most
+  // recent quote rather than hardcoded USD. Mixed-currency customers
+  // are rare (single-tenant deployments) but rendering USD on a TRY
+  // quote book was a real visual bug. Falls back to the customer's
+  // configured currency, then to TRY as a project-sane default.
+  const displayCurrency =
+    quotes[0]?.currency ?? (customer as { currency?: string }).currency ?? 'TRY';
 
   const quoteColumns = [
     {
@@ -1372,7 +1379,7 @@ export default function CustomerDetailPage() {
               <TrendingUp size={16} className="text-red-400" />
             </div>
             <p className="mt-2 text-2xl font-bold text-honeywell-red">
-              {formatCurrency(totalValue, 'USD')}
+              {formatCurrency(totalValue, displayCurrency)}
             </p>
           </div>
         </div>

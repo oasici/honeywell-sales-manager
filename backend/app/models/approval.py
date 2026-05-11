@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -24,7 +24,10 @@ class ApprovalRule(Base):
     condition_type: Mapped[str] = mapped_column(
         String(30), nullable=False
     )  # discount_pct, deal_amount, grand_total
-    threshold_value: Mapped[float] = mapped_column(Float, nullable=False)
+    # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2) where the
+    # condition_type stores a money amount. Percentage conditions
+    # (discount_pct) round-trip the same NUMERIC column without loss.
+    threshold_value: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=False)
     threshold_operator: Mapped[str] = mapped_column(
         String(10), nullable=False
     )  # gt, gte, lt, lte
