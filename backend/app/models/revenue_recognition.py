@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -27,8 +27,13 @@ class RevenueSchedule(Base):
     # immediate | straight_line | milestone | usage
     start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    total_amount: Mapped[float] = mapped_column(Float, nullable=False)
-    recognized_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    # Round-10 R10-DB-CCY — schedule totals moved to NUMERIC(19, 2).
+    total_amount: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=False
+    )
+    recognized_amount: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), default=0.0
+    )
     currency: Mapped[str] = mapped_column(String(10), default="TRY")
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -57,8 +62,10 @@ class RevenueScheduleEntry(Base):
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("revenue_schedules.id"), nullable=False)
     period: Mapped[str] = mapped_column(String(7), nullable=False)  # "2026-04" (YYYY-MM)
-    amount: Mapped[float] = mapped_column(Float, nullable=False)
-    recognized_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    amount: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=False)
+    recognized_amount: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), default=0.0
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     # pending | recognized | adjusted
     recognized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

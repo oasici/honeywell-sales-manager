@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -33,10 +33,11 @@ class Invoice(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
     # draft | sent | paid | overdue | voided
     currency: Mapped[str] = mapped_column(String(10), default="TRY")
-    subtotal: Mapped[float] = mapped_column(Float, default=0.0)
+    # Round-10 R10-DB-CCY — currency columns moved to NUMERIC(19, 2).
+    subtotal: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
     tax_rate: Mapped[float] = mapped_column(Float, default=18.0)
-    tax_amount: Mapped[float] = mapped_column(Float, default=0.0)
-    grand_total: Mapped[float] = mapped_column(Float, default=0.0)
+    tax_amount: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
+    grand_total: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
     items_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     pdf_path: Mapped[str | None] = mapped_column(String(500), nullable=True)

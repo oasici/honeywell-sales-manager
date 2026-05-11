@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -26,9 +26,15 @@ class QuoteItem(Base):
     honeywell_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     quantity: Mapped[int] = mapped_column(Integer, default=1)
-    unit_price: Mapped[float] = mapped_column(Float, default=0.0)
+    # Round-10 R10-DB-CCY — unit_price + line_total moved to NUMERIC(19, 2).
+    # discount_pct is a percentage; stays Float.
+    unit_price: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), default=0.0
+    )
     discount_pct: Mapped[float] = mapped_column(Float, default=0.0)
-    line_total: Mapped[float] = mapped_column(Float, default=0.0)
+    line_total: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), default=0.0
+    )
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     match_strategy: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)

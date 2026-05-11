@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -21,7 +21,10 @@ class Opportunity(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     stage: Mapped[str] = mapped_column(String(30), nullable=False, default="prospecting")
-    amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Round-10 R10-DB-CCY — deal amount moved to NUMERIC(19, 2).
+    amount: Mapped[float | None] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=True
+    )
     currency: Mapped[str] = mapped_column(String(10), default="TRY")
     close_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
@@ -42,7 +45,9 @@ class Opportunity(Base):
     # Revenue leak tracking — previous values before last update
     previous_stage: Mapped[str | None] = mapped_column(String(30), nullable=True)
     previous_close_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    previous_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    previous_amount: Mapped[float | None] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=True
+    )
 
     pipeline_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("pipelines.id"), nullable=True, index=True

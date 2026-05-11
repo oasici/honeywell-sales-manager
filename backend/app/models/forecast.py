@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -25,8 +25,13 @@ class ForecastAdjustment(Base):
     adjusted_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
     )
-    original_amount: Mapped[float] = mapped_column(Float, nullable=False)
-    adjusted_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    # Round-10 R10-DB-CCY — adjustment deltas moved to NUMERIC(19, 2).
+    original_amount: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=False
+    )
+    adjusted_amount: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=False
+    )
     original_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
     adjusted_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -53,8 +58,12 @@ class PipelineSnapshot(Base):
     snapshot_date: Mapped[date] = mapped_column(Date, nullable=False)
     stage: Mapped[str] = mapped_column(String(30), nullable=False)
     opportunity_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    total_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    weighted_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    total_amount: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=False, default=0.0
+    )
+    weighted_amount: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=False, default=0.0
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

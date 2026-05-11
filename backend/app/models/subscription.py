@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -26,7 +26,8 @@ class Subscription(Base):
     billing_cycle: Mapped[str] = mapped_column(String(20), default="monthly")
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    mrr: Mapped[float] = mapped_column(Float, default=0.0)
+    # Round-10 R10-DB-CCY — MRR moved to NUMERIC(19, 2).
+    mrr: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
     next_renewal_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     auto_renew: Mapped[bool] = mapped_column(Boolean, default=True)
     items_json: Mapped[str | None] = mapped_column(Text, nullable=True)

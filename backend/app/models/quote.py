@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -31,11 +31,23 @@ class Quote(Base):
     currency: Mapped[str] = mapped_column(String(10), default="TRY")
 
     # Financials
-    subtotal: Mapped[float] = mapped_column(Float, default=0.0)
-    discount_total: Mapped[float] = mapped_column(Float, default=0.0)
+    # Round-10 R10-DB-CCY — currency columns moved from Float (binary
+    # IEEE 754) to NUMERIC(19, 2) (decimal). `asdecimal=False` keeps
+    # the Python-side type as `float` so serializers + callers don't
+    # change. NUMERIC eliminates the accumulating-rounding-error class
+    # of bugs that hits revenue reconciliation as line items grow.
+    # `tax_rate` is a percentage, not currency, so stays Float.
+    subtotal: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)
+    discount_total: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), default=0.0
+    )
     tax_rate: Mapped[float] = mapped_column(Float, default=20.0)
-    tax_amount: Mapped[float] = mapped_column(Float, default=0.0)
-    grand_total: Mapped[float] = mapped_column(Float, default=0.0)
+    tax_amount: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), default=0.0
+    )
+    grand_total: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), default=0.0
+    )
 
     valid_days: Mapped[int] = mapped_column(Integer, default=30)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

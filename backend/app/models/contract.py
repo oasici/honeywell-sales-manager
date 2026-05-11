@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -27,7 +27,10 @@ class Contract(Base):
     status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
     start_date = mapped_column(Date, nullable=True)
     end_date = mapped_column(Date, nullable=True)
-    value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Round-10 R10-DB-CCY — contract value moved to NUMERIC(19, 2).
+    value: Mapped[float | None] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=True
+    )
     terms_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     signed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True,

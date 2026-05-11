@@ -4,7 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -22,7 +32,8 @@ class PriceTier(Base):
     )
     min_qty: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     max_qty: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    unit_price: Mapped[float] = mapped_column(Float, nullable=False)
+    # Round-10 R10-DB-CCY — unit_price moved to NUMERIC(19, 2); discount_pct stays Float.
+    unit_price: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=False)
     discount_pct: Mapped[float] = mapped_column(Float, default=0.0)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -46,7 +57,9 @@ class CustomerPricing(Base):
     tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     customer_id: Mapped[int] = mapped_column(Integer, ForeignKey("customers.id"), nullable=False)
     spare_part_id: Mapped[int] = mapped_column(Integer, ForeignKey("spare_parts.id"), nullable=False)
-    contracted_price: Mapped[float] = mapped_column(Float, nullable=False)
+    contracted_price: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), nullable=False
+    )
     currency: Mapped[str] = mapped_column(String(10), default="TRY")
     discount_pct: Mapped[float] = mapped_column(Float, default=0.0)
     valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

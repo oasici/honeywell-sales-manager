@@ -116,6 +116,19 @@ def _normalise_type(type_repr: str) -> str:
     # starts with ``ASTEXT_TYPE=`` so we strip the whole metadata
     # blob rather than leaving an unbalanced trailing ``)``.
     s = re.sub(r"\(\s*ASTEXT_TYPE\s*=.*?\)\s*\)", "", s)
+    # Round-10 R10-DB-CCY — Numeric(19, 2, asdecimal=False) reprs as
+    # ``NUMERIC(PRECISION=19, SCALE=2, ASDECIMAL=FALSE)`` on the model
+    # side; the DB inspector returns the canonical ``NUMERIC(19, 2)``.
+    # `asdecimal` is a Python-side hint with no DB representation, and
+    # PRECISION / SCALE are positional in PG DDL. Strip the kwarg
+    # block entirely and re-emit the positional form so the two sides
+    # compare cleanly.
+    m = re.match(
+        r"NUMERIC\(\s*PRECISION\s*=\s*(\d+)\s*,\s*SCALE\s*=\s*(\d+)(?:\s*,\s*ASDECIMAL\s*=\s*(?:TRUE|FALSE))?\s*\)",
+        s,
+    )
+    if m:
+        s = f"NUMERIC({m.group(1)}, {m.group(2)})"
     # Common synonyms.
     replacements = (
         ("VARCHAR", "STRING"),
