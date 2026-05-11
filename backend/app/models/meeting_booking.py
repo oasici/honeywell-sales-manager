@@ -9,9 +9,16 @@ from app.core.database import Base
 
 
 class MeetingBooking(Base):
+    """Round-10 R10-DB-2 — `tenant_id` added; backfilled from
+    ``opportunities.tenant_id`` (via opportunity_id), falling back to
+    ``customers.tenant_id`` (via customer_id). Nullable until the
+    phase-9 backfill migration promotes it to NOT NULL.
+    """
+
     __tablename__ = "meeting_bookings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     meeting_link_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("meeting_links.id"), nullable=False, index=True
     )

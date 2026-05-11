@@ -1,10 +1,18 @@
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
 
 class QuoteItem(Base):
+    """Round-10 R10-DB-7 — canonical audit timestamps added. The parent
+    ``quotes`` row has them, but per-line provenance was previously
+    impossible to reconstruct (e.g. when an item is rolled into an
+    existing quote). Defaults to NOW() so the column never has to be NULL.
+    """
+
     __tablename__ = "quote_items"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -25,6 +33,15 @@ class QuoteItem(Base):
     match_strategy: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     quote = relationship("Quote", back_populates="items")
     spare_part = relationship("SparePart", lazy="selectin")

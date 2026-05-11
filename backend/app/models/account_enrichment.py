@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON
@@ -36,5 +36,19 @@ class AccountEnrichment(Base):
     last_touch_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     computed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     extra: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
+    # Round-10 R10-DB-6 — canonical audit timestamps. The enrichment row
+    # used to rely on ``computed_at`` for staleness checks, but services
+    # that didn't know about that field had no creation timestamp to
+    # rely on. Defaults to NOW() so the column never has to be NULL.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     customer: Mapped["Customer"] = relationship("Customer", back_populates="account_enrichment", lazy="selectin")

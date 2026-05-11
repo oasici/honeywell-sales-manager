@@ -9,11 +9,18 @@ from app.core.database import Base
 
 
 class SellingGuide(Base):
-    """Guided selling / CPQ wizard configuration."""
+    """Guided selling / CPQ wizard configuration.
+
+    Round-10 R10-DB-4 — `tenant_id` added; backfilled from
+    ``users.tenant_id`` via ``created_by``. Without it, one tenant's
+    custom wizard could surface as another tenant's. Nullable until
+    the phase-9 backfill migration promotes it to NOT NULL.
+    """
 
     __tablename__ = "selling_guides"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     steps_json: Mapped[str | None] = mapped_column(Text, nullable=True)

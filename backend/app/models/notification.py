@@ -7,9 +7,16 @@ from app.core.database import Base
 
 
 class Notification(Base):
+    """Round-10 R10-DB-5 — `tenant_id` added; backfilled from
+    ``users.tenant_id`` via ``user_id``. Notifications were previously
+    scoped only via `user_id`, but tenant-aware filtering at the
+    boundary protects against bugs that bypass the user filter.
+    """
+
     __tablename__ = "notifications"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, index=True
     )

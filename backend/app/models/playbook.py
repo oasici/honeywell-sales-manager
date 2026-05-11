@@ -11,9 +11,17 @@ from app.core.database import Base
 
 
 class Playbook(Base):
+    """Round-10 R10-DB-3 — `tenant_id` added; backfilled from
+    ``users.tenant_id`` via ``created_by``. Without this column, two
+    tenants sharing an instance would see each other's automation
+    rules. Nullable until the phase-9 backfill migration promotes it
+    to NOT NULL.
+    """
+
     __tablename__ = "playbooks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -39,9 +47,14 @@ class Playbook(Base):
 
 
 class PlaybookExecution(Base):
+    """Round-10 R10-DB-3 — `tenant_id` mirrored from parent playbook +
+    opportunity so per-row scoping doesn't depend on a join.
+    """
+
     __tablename__ = "playbook_executions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     playbook_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("playbooks.id"), nullable=False, index=True

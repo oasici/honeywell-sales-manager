@@ -31,6 +31,11 @@ class Contact(Base):
     __tablename__ = "contacts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-10 R10-DB-1 — tenant_id added; backfilled from
+    # ``customers.tenant_id`` via account_id. Nullable until the
+    # phase-9 backfill migration finishes promoting the column to
+    # NOT NULL (see 20260512_phase9_tenant_sweep.py).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     account_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True
     )
