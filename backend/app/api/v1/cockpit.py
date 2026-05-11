@@ -641,3 +641,61 @@ async def get_trends(
     return {
         "signal_volume": signal_weeks,
     }
+
+
+# ── GET /cockpit/stream — Round-10 R10-SSE-1 ─────────────────────────
+#
+# SSE foundation. The CockpitPage previously fired 16 independent
+# refetchInterval timers (30s + 60s × 5 + 120s × 9 + 300s × 1). On a
+# 10-user instance with cockpit open 8 h/day that produced ~1200
+# polling hits and 16 wakeups/minute per tab. This endpoint emits one
+# `tick` event every 60 s as the source-of-truth heartbeat; the SPA
+# consumes it via a single EventSource and calls
+# `queryClient.invalidateQueries(['cockpit'])` once per tick, replacing
+# all 16 inline timers with one shared connection.
+#
+# Future iterations can move real data deltas onto this stream (the
+# current `data` payload only carries the tick number + ISO timestamp).
+# The endpoint deliberately avoids long-lived DB connections and any
+# stateful per-user buffering — it's a heartbeat, not a transport.
+
+
+@router.get("/stream")
+async def cockpit_stream(
+    _: None = Depends(_require_cockpit),
+    current_user: User = Depends(get_current_user),
+):
+    """Server-Sent Events heartbeat that drives FE cache invalidation.
+
+    Emits one ``tick`` event per 60 s. The connection is closed by the
+    FE when the user navigates away; the backend has no persistent
+    state to clean up.
+    """
+    from fastapi.responses import StreamingResponse
+    import asyncio
+
+    async def _gen():
+        # Initial hello so the FE knows the connection is healthy.
+        yield (
+            "event: hello\n"
+            f"data: {{\"user_id\":{current_user.id},\"ts\":\"{datetime.now(timezone.utc).isoformat()}\"}}\n\n"
+        )
+        tick = 0
+        while True:
+            await asyncio.sleep(60)
+            tick += 1
+            yield (
+                "event: tick\n"
+                f"data: {{\"tick\":{tick},\"ts\":\"{datetime.now(timezone.utc).isoformat()}\"}}\n\n"
+            )
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={
+            # Keep proxies + browser from buffering / coalescing events.
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )

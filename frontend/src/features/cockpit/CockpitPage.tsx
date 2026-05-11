@@ -35,6 +35,7 @@ import {
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
+import { useCockpitTick } from './useCockpitTick';
 
 import type {
   CockpitKpis,
@@ -213,7 +214,6 @@ function SignalStream() {
     queryKey: ['cockpit', 'signals', severityFilter],
     queryFn: () =>
       cockpitApi.getSignals(severityFilter !== 'all' ? { severity: severityFilter } : undefined),
-    refetchInterval: 30_000,
   });
 
   const resolveMutation = useMutation({
@@ -313,7 +313,6 @@ function ActionQueue() {
   const { data, isLoading } = useQuery({
     queryKey: ['cockpit', 'actions'],
     queryFn: cockpitApi.getActions,
-    refetchInterval: 60_000,
   });
 
   const actions: CockpitAction[] = data?.items ?? [];
@@ -447,7 +446,6 @@ function RiskyAccountsPanel() {
   const { data, isLoading } = useQuery<{ items: CockpitRiskyAccount[]; total: number }>({
     queryKey: ['cockpit', 'risky-accounts'],
     queryFn: () => cockpitApi.getRiskyAccounts({ limit: 12 }),
-    refetchInterval: 120_000,
   });
 
   const items = data?.items ?? [];
@@ -614,7 +612,6 @@ function PlaybookPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ['playbook', 'executions'],
     queryFn: () => playbookApi.getExecutions({ status: 'running' }),
-    refetchInterval: 60_000,
   });
 
   const cancelMutation = useMutation({
@@ -673,7 +670,6 @@ function CoachingPanel() {
   const { data, isLoading } = useQuery<CoachingOverview>({
     queryKey: ['coaching', 'overview'],
     queryFn: coachingApi.getOverview,
-    refetchInterval: 120_000,
   });
 
   // Track which rep rows are expanded so users can drill into the
@@ -892,7 +888,6 @@ function AtRiskDealsPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ['deal-health-at-risk-cockpit'],
     queryFn: () => dealHealthApi.getAtRisk(40),
-    refetchInterval: 120_000,
   });
 
   const deals = data?.opportunities ?? data?.deals ?? data?.items ?? [];
@@ -961,7 +956,6 @@ function ActivityDroughtPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ['activity-drought'],
     queryFn: () => analyticsApi.getActivityDrought(7),
-    refetchInterval: 120_000,
   });
 
   const items: ActivityDroughtItem[] = data?.items ?? [];
@@ -1025,7 +1019,6 @@ function RevenueLeakPanel() {
   const { data: leaksRaw, isLoading } = useQuery({
     queryKey: ['revenue-leaks-cockpit'],
     queryFn: () => analyticsApi.getRevenueLeaks(),
-    refetchInterval: 120_000,
   });
 
   const leaks: RevenueLeakResult | undefined = leaksRaw?.data;
@@ -1116,7 +1109,6 @@ function SequencesTab() {
       return sequenceV2Api.getAnalytics();
     },
     enabled: Boolean(isManager),
-    refetchInterval: 120_000,
   });
 
   const { data: perfData, isLoading: perfLoading } = useQuery({
@@ -1126,7 +1118,6 @@ function SequencesTab() {
       return sequenceV2Api.getPerformance();
     },
     enabled: Boolean(isManager),
-    refetchInterval: 120_000,
   });
 
   const { data: enrollments } = useQuery({
@@ -1135,7 +1126,6 @@ function SequencesTab() {
       const { engagementApi } = await import('../../lib/api');
       return engagementApi.listEnrollments();
     },
-    refetchInterval: 60_000,
   });
 
   if (isManager && (isLoading || perfLoading)) return <Skeleton className="h-48 rounded-xl" />;
@@ -1321,7 +1311,6 @@ function MomentumDeclinePanel() {
   }>({
     queryKey: ['cockpit', 'momentum'],
     queryFn: () => cockpitApi.getMomentum({ limit: 10 }),
-    refetchInterval: 120_000,
   });
 
   const items = data?.items ?? [];
@@ -1394,7 +1383,6 @@ function StallingDealsPanel() {
   }>({
     queryKey: ['cockpit', 'buyer-state', 'stalling'],
     queryFn: () => cockpitApi.getStallingDeals({ limit: 10 }),
-    refetchInterval: 120_000,
   });
 
   const items = data?.items ?? [];
@@ -1456,7 +1444,6 @@ function DecisionGapsPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ['cockpit', 'decision-gaps'],
     queryFn: () => decisionGapsApi.cockpitList({ limit: 10 }),
-    refetchInterval: 120_000,
   });
 
   const items = data?.items ?? [];
@@ -1538,7 +1525,6 @@ function SegmentBenchmarksPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ['benchmarks', 'segments', 'latest'],
     queryFn: () => networkBenchmarksApi.getLatestSegments(8),
-    refetchInterval: 300_000,
   });
 
   const items = data?.items ?? [];
@@ -1583,6 +1569,13 @@ export default function CockpitPage() {
   const isManager = user?.role === 'sales_manager';
   const [activeTab, setActiveTab] = useState<WorkHubTab>('feed');
 
+  // Round-10 R10-SSE-1 — single SSE tick replaces the per-component
+  // refetchInterval timers. One EventSource per tab, not 16. The
+  // hook calls qc.invalidateQueries(['cockpit']) every 60 s; each
+  // useQuery below subscribes via the shared 'cockpit' query-key
+  // prefix so a single tick refreshes the whole page.
+  useCockpitTick();
+
   const workHubTabs = useMemo(
     () =>
       [
@@ -1600,7 +1593,6 @@ export default function CockpitPage() {
   } = useQuery<CockpitKpis>({
     queryKey: ['cockpit', 'kpis'],
     queryFn: cockpitApi.getKpis,
-    refetchInterval: 60_000,
   });
 
   return (
