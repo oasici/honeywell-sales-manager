@@ -442,25 +442,33 @@ export default function App() {
           }
         />
 
-        {/* Lead Lifecycle (feature-flag controlled at API level) */}
+        {/* Lead Lifecycle — Round-10 R10-FE-10: wrapped in
+            FeatureFlagGate so a flag-off tenant lands on the disabled
+            panel instead of an empty list backed by silent 404s from
+            the API. Backend gate is `_require_lead_lifecycle` in
+            leads.py. */}
         <Route
           path="leads"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <LeadListPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_LEAD_LIFECYCLE">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <LeadListPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="leads/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <LeadDetailPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_LEAD_LIFECYCLE">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <LeadDetailPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
@@ -590,15 +598,19 @@ export default function App() {
           }
         />
 
-        {/* AI Engine */}
+        {/* AI Engine — Round-10 R10-FE-10: backend `_require_tasks`
+            gates every task endpoint; wrap so a flag-off tenant sees
+            the disabled panel instead of an empty AI-tasks page. */}
         <Route
           path="ai/tasks"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <AiTasksPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_TASKS">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <AiTasksPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
@@ -662,45 +674,57 @@ export default function App() {
           }
         />
 
-        {/* Playbooks */}
+        {/* Playbooks — Round-10 R10-FE-10: backend playbooks router
+            is gated by `_require_cockpit` (FEATURE_REVENUE_COCKPIT)
+            because playbook execution is part of the revenue-cockpit
+            automation surface. Wrap so a flag-off tenant lands on the
+            disabled panel. */}
         <Route
           path="playbooks"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <PlaybookListPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REVENUE_COCKPIT">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <PlaybookListPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="playbooks/templates"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <PlaybookTemplatesPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REVENUE_COCKPIT">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <PlaybookTemplatesPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="playbooks/analytics"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <PlaybookAnalyticsPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REVENUE_COCKPIT">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <PlaybookAnalyticsPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
         <Route
           path="playbooks/:id"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <PlaybookDetailPage />
-              </ErrorBoundary>
-            </Suspense>
+            <FeatureFlagGate flag="FEATURE_REVENUE_COCKPIT">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <PlaybookDetailPage />
+                </ErrorBoundary>
+              </Suspense>
+            </FeatureFlagGate>
           }
         />
 
