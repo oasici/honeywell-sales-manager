@@ -93,6 +93,15 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
     "FEATURE_SEQUENCES_V2",
     "FEATURE_BEHAVIORAL_SCORING",
     "FEATURE_PWA",
+    # Round-8 plan-adoption flags. Allowlisted so the SPA's
+    # ``<FeatureFlagGate>`` can read them — without this entry the
+    # flag is omitted from the public response, ``isEnabled`` returns
+    # ``Boolean(undefined) === false`` and the page surfaces the
+    # generic "Bu özellik bu hesap için kapalı" panel even when the
+    # backend has the feature on.
+    "FEATURE_NETWORK_INTELLIGENCE",
+    "FEATURE_AI_ATTRIBUTES",
+    "FEATURE_DECISION_GRAPH",
 }
 
 
