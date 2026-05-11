@@ -63,12 +63,20 @@ async def get_current_user(
 
     # Bind logging + Sentry context so downstream logs/errors carry user
     # identity. Kept id-only (no email) to keep Sentry's PII surface minimal.
-    from app.core.logging_config import user_id_var
+    # Round-10 R10-OBS-1 — also bind tenant_id so log aggregators and
+    # Sentry can filter by tenant. Without this the SaaS deployment had
+    # no way to scope an incident query to one customer.
+    from app.core.logging_config import user_id_var, tenant_id_var
     user_id_var.set(user.id)
+    tenant_id = getattr(user, "tenant_id", None)
+    if tenant_id is not None:
+        tenant_id_var.set(tenant_id)
     try:
         import sentry_sdk
         sentry_sdk.set_user({"id": str(user.id)})
         sentry_sdk.set_tag("user_role", user.role)
+        if tenant_id is not None:
+            sentry_sdk.set_tag("tenant_id", str(tenant_id))
     except ImportError:
         pass
 

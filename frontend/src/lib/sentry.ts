@@ -48,4 +48,29 @@ export function initSentry(): void {
   });
 }
 
+/**
+ * Tag the active Sentry scope with the signed-in user's tenant + role.
+ *
+ * Round-10 R10-OBS-1 — without these tags an incident query can't be
+ * scoped to one tenant (multi-tenant SaaS). Called by authStore on
+ * login / refresh and cleared on logout.
+ */
+export function tagSentryUser(user: {
+  id: number;
+  role: string;
+  tenant_id?: number | null;
+} | null): void {
+  if (!user) {
+    Sentry.setUser(null);
+    Sentry.setTag('tenant_id', undefined as unknown as string);
+    Sentry.setTag('user_role', undefined as unknown as string);
+    return;
+  }
+  Sentry.setUser({ id: String(user.id) });
+  Sentry.setTag('user_role', user.role);
+  if (user.tenant_id != null) {
+    Sentry.setTag('tenant_id', String(user.tenant_id));
+  }
+}
+
 export { Sentry };

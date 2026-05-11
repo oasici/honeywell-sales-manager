@@ -7,6 +7,12 @@ from contextvars import ContextVar
 
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 user_id_var: ContextVar[int | None] = ContextVar("user_id", default=None)
+# Round-10 R10-OBS-1 — tenant_id propagation. Set by the auth
+# middleware after resolving current_user, read by JSONFormatter so
+# every log line carries the tenant boundary. Without this the SaaS
+# deployment can't correlate logs by tenant in the aggregator and
+# Sentry events can't be filtered to a single org's incidents.
+tenant_id_var: ContextVar[int | None] = ContextVar("tenant_id", default=None)
 
 SENSITIVE_KEYS = {
     "password",
@@ -46,6 +52,9 @@ class JSONFormatter(logging.Formatter):
         uid = user_id_var.get(None)
         if uid:
             log_data["user_id"] = uid
+        tid = tenant_id_var.get(None)
+        if tid:
+            log_data["tenant_id"] = tid
         for key, value in record.__dict__.items():
             if key in _STANDARD_LOG_ATTRS or key.startswith("_"):
                 continue

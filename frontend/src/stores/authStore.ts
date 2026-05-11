@@ -5,6 +5,7 @@ import type { User } from '../lib/types';
 import { authApi } from '../lib/api';
 import { queryClient } from '../lib/queryClient';
 import { storage } from '../lib/storage';
+import { tagSentryUser } from '../lib/sentry';
 
 const COOKIE_AUTH_ONLY = import.meta.env.VITE_COOKIE_AUTH_ONLY === 'true';
 
@@ -100,6 +101,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const me = await authApi.getMe();
       storage.set('user', me);
+      // Round-10 R10-OBS-1 — propagate user + tenant tags to Sentry.
+      tagSentryUser(me);
       set({
         user: me,
         isAuthenticated: true,
@@ -110,6 +113,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       storage.remove('user');
+      tagSentryUser(null);
       set({
         token: null,
         refreshToken: null,
@@ -137,6 +141,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // browser tab cannot see the previous user's PII for the
     // 30s staleTime window.
     queryClient.clear();
+    // Round-10 R10-OBS-1 — clear Sentry user + tenant tags.
+    tagSentryUser(null);
 
     set({
       token: null,
@@ -154,6 +160,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.setItem('refreshToken', refreshToken);
     }
     storage.set('user', user);
+    // Round-10 R10-OBS-1 — Sentry tag set on every auth update so a
+    // refresh-after-tenant-switch also re-tags the scope.
+    tagSentryUser(user);
 
     set({
       token: COOKIE_AUTH_ONLY ? null : token,

@@ -455,6 +455,13 @@ async def get_opportunity_intelligence(
 
     last_by_opp = await _last_activity_max_by_opportunity_ids(db, [int(opp.id)])
 
+    # Round-10 R10-API-4 — apply field-permission masking to every
+    # nested entity dict, not just the top-level opportunity. Previously
+    # masking rules like "hide signal.evidence" or "mask task.description"
+    # were dead code on this endpoint because the nested signal/task
+    # dicts were emitted without consulting the permission ruleset.
+    from app.services.field_permission_service import apply_request_perms
+
     return {
         "opportunity": _opp_to_dict(
             opp,
@@ -480,29 +487,35 @@ async def get_opportunity_intelligence(
         } if health else None,
         "probability": probability,
         "signals": [
-            {
-                "id": s.id,
-                "signal_type": s.signal_type,
-                "severity": s.severity,
-                "evidence": s.evidence,
-                "source_type": s.source_type,
-                "source_id": s.source_id,
-                "is_resolved": s.is_resolved,
-                "created_at": s.created_at.isoformat() if s.created_at else None,
-            }
+            apply_request_perms(
+                {
+                    "id": s.id,
+                    "signal_type": s.signal_type,
+                    "severity": s.severity,
+                    "evidence": s.evidence,
+                    "source_type": s.source_type,
+                    "source_id": s.source_id,
+                    "is_resolved": s.is_resolved,
+                    "created_at": s.created_at.isoformat() if s.created_at else None,
+                },
+                "opportunity",
+            )
             for s in signals
         ],
         "tasks": [
-            {
-                "id": t.id,
-                "title": t.title,
-                "description": t.description,
-                "due_at": t.due_at.isoformat() if t.due_at else None,
-                "status": t.status,
-                "source": t.source,
-                "priority": t.priority,
-                "created_at": t.created_at.isoformat() if t.created_at else None,
-            }
+            apply_request_perms(
+                {
+                    "id": t.id,
+                    "title": t.title,
+                    "description": t.description,
+                    "due_at": t.due_at.isoformat() if t.due_at else None,
+                    "status": t.status,
+                    "source": t.source,
+                    "priority": t.priority,
+                    "created_at": t.created_at.isoformat() if t.created_at else None,
+                },
+                "opportunity",
+            )
             for t in tasks
         ],
         "open_tasks_count": open_tasks_count,
