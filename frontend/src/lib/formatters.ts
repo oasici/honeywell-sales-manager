@@ -31,8 +31,27 @@ export function currentLocale(): string {
   }
 }
 
+/**
+ * Coerce a value that may be number, string, null, or undefined into a
+ * number. Round-10 R10-FE-14 — backend currency columns were
+ * migrated from Float to NUMERIC(19, 2). With `asdecimal=False` the
+ * wire format stays as a JSON number, but the boundary is now one
+ * accidental dependency change away from serialising Decimal as a
+ * string. Every numeric helper accepts both shapes so a future
+ * Pydantic `from_attributes` tweak that flips Decimal → string does
+ * not break the UI.
+ */
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
 export function formatCurrency(
-  amount: number | null | undefined,
+  amount: number | string | null | undefined,
   currency: string = 'USD',
   locale: string = currentLocale(),
 ): string {
@@ -41,7 +60,7 @@ export function formatCurrency(
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount ?? 0);
+  }).format(toNumber(amount));
 }
 
 // R5-TS-9..16 — many ``created_at`` / ``received_at`` fields became
@@ -75,16 +94,22 @@ export function formatDateTime(
 }
 
 /** Format a decimal as percentage string */
-export function formatPercent(value: number, locale: string = currentLocale()): string {
+export function formatPercent(
+  value: number | string | null | undefined,
+  locale: string = currentLocale(),
+): string {
   return new Intl.NumberFormat(locale, {
     style: 'percent',
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
-  }).format(value / 100);
+  }).format(toNumber(value) / 100);
 }
 
-export function formatNumber(value: number, locale: string = currentLocale()): string {
-  return new Intl.NumberFormat(locale).format(value);
+export function formatNumber(
+  value: number | string | null | undefined,
+  locale: string = currentLocale(),
+): string {
+  return new Intl.NumberFormat(locale).format(toNumber(value));
 }
 
 export function getCollator(locale: string = currentLocale()): Intl.Collator {
