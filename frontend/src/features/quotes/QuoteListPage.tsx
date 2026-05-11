@@ -244,9 +244,7 @@ export default function QuoteListPage() {
           returning an empty table. */}
       {isError && (
         <div className="mb-3 flex items-center justify-between rounded-[8px] border border-(--danger)/30 bg-(--danger-bg) px-3 py-2 text-[13px] text-(--danger)">
-          <span>
-            {(error as Error | undefined)?.message ?? t('common.error_load_failed')}
-          </span>
+          <span>{(error as Error | undefined)?.message ?? t('common.error_load_failed')}</span>
           <Button variant="ghost" onClick={() => refetch()}>
             {t('common.retry')}
           </Button>

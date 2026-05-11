@@ -2369,8 +2369,7 @@ const translations = {
     'forecast.hybrid_subtitle': 'Hibrit close-probability ağırlıklandırılmış',
 
     // Round-10 R10-FE-9 — cockpit loading/error states.
-    'cockpit.error_metrics_failed':
-      'Cockpit metrikleri yüklenemedi. Sayfayı yenilemeyi deneyin.',
+    'cockpit.error_metrics_failed': 'Cockpit metrikleri yüklenemedi. Sayfayı yenilemeyi deneyin.',
     'cockpit.empty_no_data': 'Veri yok.',
 
     'auth.footer': '© 2026 Honeywell Sales Suite. Tüm hakları saklıdır.',
@@ -4654,8 +4653,7 @@ const translations = {
     'sales_analytics.stage_expired': 'Expired',
 
     // Round-10 R10-FE-9 — network intelligence labels.
-    'network_intelligence.page_description':
-      'How your tenant performs against the segment median',
+    'network_intelligence.page_description': 'How your tenant performs against the segment median',
     'network_intelligence.segment_label': 'Segment:',
     'network_intelligence.empty_title': 'No benchmark data yet',
     'network_intelligence.empty_description':
@@ -4672,8 +4670,7 @@ const translations = {
 
     'forecast.hybrid_subtitle': 'Hybrid close-probability weighted',
 
-    'cockpit.error_metrics_failed':
-      'Cockpit metrics failed to load. Try refreshing the page.',
+    'cockpit.error_metrics_failed': 'Cockpit metrics failed to load. Try refreshing the page.',
     'cockpit.empty_no_data': 'No data.',
 
     'auth.footer': '© 2026 Honeywell Sales Suite. All rights reserved.',

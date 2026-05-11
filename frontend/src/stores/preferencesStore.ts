@@ -36,7 +36,9 @@ function loadPreferences(): { theme: Theme; language: Language; fontSizeOffset: 
         fontSizeOffset: parsed.fontSizeOffset ?? 0,
       };
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return { theme: 'light', language: 'tr', fontSizeOffset: 0 };
 }
 

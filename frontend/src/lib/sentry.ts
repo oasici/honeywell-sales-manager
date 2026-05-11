@@ -55,11 +55,13 @@ export function initSentry(): void {
  * scoped to one tenant (multi-tenant SaaS). Called by authStore on
  * login / refresh and cleared on logout.
  */
-export function tagSentryUser(user: {
-  id: number;
-  role: string;
-  tenant_id?: number | null;
-} | null): void {
+export function tagSentryUser(
+  user: {
+    id: number;
+    role: string;
+    tenant_id?: number | null;
+  } | null,
+): void {
   if (!user) {
     Sentry.setUser(null);
     Sentry.setTag('tenant_id', undefined as unknown as string);

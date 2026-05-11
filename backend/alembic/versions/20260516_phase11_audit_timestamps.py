@@ -12,6 +12,12 @@ nullable on disk to keep the migration light; the ORM model declares
 
 Idempotent via ``IF NOT EXISTS`` (Postgres ≥ 9.6).
 
+Round-11 follow-up (CI green-up): each ``op.execute()`` carries exactly
+one statement. The original revision packed two-to-four DDL/DML
+statements per call, but the asyncpg driver that alembic uses in this
+project rejects multi-statement strings (`cannot insert multiple
+commands into a prepared statement`). Splitting is the documented fix.
+
 Revision ID: 20260516_phase11_audit_timestamps
 Revises: 20260515_phase11_currency_sweep
 Create Date: 2026-05-11
@@ -29,35 +35,39 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # settings.created_at
+    # ── settings.created_at ──
     op.execute(
-        """
-        ALTER TABLE settings
-        ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE
-            DEFAULT NOW();
-        UPDATE settings SET created_at = COALESCE(created_at, updated_at, NOW())
-            WHERE created_at IS NULL;
-        """
+        "ALTER TABLE settings "
+        "ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"
+    )
+    op.execute(
+        "UPDATE settings "
+        "SET created_at = COALESCE(created_at, updated_at, NOW()) "
+        "WHERE created_at IS NULL"
     )
 
-    # stage_configs.created_at + updated_at
+    # ── stage_configs.created_at + updated_at ──
     op.execute(
-        """
-        ALTER TABLE stage_configs
-        ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE
-            DEFAULT NOW();
-        ALTER TABLE stage_configs
-        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE
-            DEFAULT NOW();
-        UPDATE stage_configs SET created_at = COALESCE(created_at, NOW())
-            WHERE created_at IS NULL;
-        UPDATE stage_configs SET updated_at = COALESCE(updated_at, NOW())
-            WHERE updated_at IS NULL;
-        """
+        "ALTER TABLE stage_configs "
+        "ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"
+    )
+    op.execute(
+        "ALTER TABLE stage_configs "
+        "ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"
+    )
+    op.execute(
+        "UPDATE stage_configs "
+        "SET created_at = COALESCE(created_at, NOW()) "
+        "WHERE created_at IS NULL"
+    )
+    op.execute(
+        "UPDATE stage_configs "
+        "SET updated_at = COALESCE(updated_at, NOW()) "
+        "WHERE updated_at IS NULL"
     )
 
 
 def downgrade() -> None:
-    op.execute("ALTER TABLE settings DROP COLUMN IF EXISTS created_at;")
-    op.execute("ALTER TABLE stage_configs DROP COLUMN IF EXISTS created_at;")
-    op.execute("ALTER TABLE stage_configs DROP COLUMN IF EXISTS updated_at;")
+    op.execute("ALTER TABLE settings DROP COLUMN IF EXISTS created_at")
+    op.execute("ALTER TABLE stage_configs DROP COLUMN IF EXISTS created_at")
+    op.execute("ALTER TABLE stage_configs DROP COLUMN IF EXISTS updated_at")
