@@ -42,7 +42,7 @@ async def list_edges(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.get("/score/{kind}/{entity_id}", response_model=PaginatedResponse[dict])
+@router.get("/score/{kind}/{entity_id}")
 async def get_score(
     kind: str,
     entity_id: int,

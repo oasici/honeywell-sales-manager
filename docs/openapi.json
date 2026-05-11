@@ -7988,9 +7988,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -16675,9 +16673,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -22362,9 +22358,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -26546,9 +26540,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -28010,9 +28002,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -28074,9 +28064,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -28296,9 +28284,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -33840,9 +33826,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -38571,9 +38555,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedResponse_dict_"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"

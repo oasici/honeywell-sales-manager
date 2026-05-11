@@ -277,7 +277,7 @@ class KeywordPackCreate(BaseModel):
     keywords: list[str]
 
 
-@router.get("/keyword-packs/", response_model=PaginatedResponse[dict])
+@router.get("/keyword-packs/")
 async def list_keyword_packs(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

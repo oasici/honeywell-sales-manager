@@ -69,12 +69,14 @@ def test_paginated_response_model_declares_canonical_keys(openapi_schema: dict) 
         assert key in properties, f"PaginatedResponse missing canonical key '{key}'"
 
 
-# Round-10 R10-API-5 (Sprint 10) — expansion gate. Started at 9 endpoints
-# in Sprint 7, expanded to 68 in Sprint 10 via the bulk-add script.
-# Threshold set conservatively to 60 so an accidental revert of a chunk
-# of routers still trips this assertion; intentional removal can lower
-# the floor in the same PR.
-MIN_TYPED_ENVELOPE_ENDPOINTS = 60
+# Round-10 R10-API-5 (Sprint 10) — expansion gate. Started at 9
+# endpoints in Sprint 7, expanded to 68 in Sprint 10 via the bulk-add
+# script, then dropped to 59 after reverting 8 false-positives (the
+# script's body-window regex over-matched into adjacent functions).
+# Threshold set to 55 so an accidental router-level revert still
+# trips this assertion; an intentional removal lowers the floor in
+# the same PR.
+MIN_TYPED_ENVELOPE_ENDPOINTS = 55
 
 
 def test_paginated_envelope_coverage_meets_minimum(openapi_schema: dict) -> None:

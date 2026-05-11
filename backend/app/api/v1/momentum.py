@@ -19,7 +19,7 @@ from app.schemas.common import PaginatedResponse
 router = APIRouter(prefix="/momentum", tags=["Momentum"])
 
 
-@router.get("/distribution", response_model=PaginatedResponse[dict])
+@router.get("/distribution")
 async def get_distribution(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -28,7 +28,7 @@ async def get_distribution(
     return await momentum_service.get_momentum_distribution(db, current_user)
 
 
-@router.get("/{opportunity_id}", response_model=PaginatedResponse[dict])
+@router.get("/{opportunity_id}")
 async def get_current(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),

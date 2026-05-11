@@ -366,6 +366,11 @@ async def test_dna_promote_creates_playbook_with_steps(db: AsyncSession):
 
     db.add(
         DnaPattern(
+            # Round-10 R10-DB-3 — the playbook promoter mirrors the
+            # pattern's tenant_id onto the auto-created Playbook
+            # (which is NOT NULL). Patterns with tenant_id=None are
+            # treated as global / training artifacts and skipped.
+            tenant_id=1,
             segment_key="manufacturing_mid_200k_1m_general",
             pattern_name="meeting_first_then_quote",
             pattern_type="event_sequence",

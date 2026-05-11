@@ -290,9 +290,13 @@ async def test_retention_report(
     # bug surfaced.
     from .conftest import TestSession  # type: ignore
 
+    # Round-10 R10-DB-1..5 — auth_headers seeds admin_user with
+    # tenant_id=1; scoped_for_user filters the retention report by
+    # that tenant, so seed customers also need tenant_id=1 to appear.
     async with TestSession() as seed_session:
         seed_session.add(
             Customer(
+                tenant_id=1,
                 name="Expired User",
                 email="expired@example.com",
                 data_retention_until=datetime.now(timezone.utc) - timedelta(days=1),
@@ -300,6 +304,7 @@ async def test_retention_report(
         )
         seed_session.add(
             Customer(
+                tenant_id=1,
                 name="Active User",
                 email="active@example.com",
                 data_retention_until=datetime.now(timezone.utc) + timedelta(days=365),

@@ -382,7 +382,7 @@ async def anonymize_customer_data(
     }
 
 
-@router.get("/retention-report", response_model=PaginatedResponse[dict])
+@router.get("/retention-report")
 async def retention_report(
     current_user: User = Depends(
         require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS)

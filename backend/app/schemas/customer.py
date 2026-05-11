@@ -60,22 +60,38 @@ class CustomerResponse(BaseModel):
     fields while the schema declared 7, leaving 11 fields invisible to
     OpenAPI / SDK codegen consumers. Mirrors R5-FORM-3/4 which widened
     the input side; this brings the output side back in sync.
+
+    Round-10 R10-API-6 — Sprint 11 turned this from a documentation-
+    only schema into the runtime response_model for /customers/ and
+    /customers/high-intent. To stay non-breaking against the four
+    realities of the live serializer:
+
+      1. ``apply_request_perms`` can strip any field (``hidden`` rule).
+      2. ``apply_request_perms`` can mask any field to ``"***"``
+         (``masked`` rule).
+      3. Callers add caller-specific extras (``pinned``, ``stats``,
+         ``health_score``, …) on top of the dict.
+      4. Pre-bootstrap rows still exist with ``created_at`` / ``email``
+         /etc. set to None.
+
+    The schema is therefore extras-tolerant (``extra='allow'``) and
+    every field nullable.
     """
 
     id: int
     # R6-API-9 — round-trip tenant_id, mirroring R4-CLOSE-1 for
     # opportunity/quote/etc.
     tenant_id: int | None = None
-    name: str
+    name: str | None = None
     company: str | None = None
-    email: str
+    email: str | None = None
     phone: str | None = None
     address: str | None = None
     tax_id: str | None = None
-    preferred_lang: str
+    preferred_lang: str | None = None
     created_by: int | None = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     quote_count: int | None = None
     total_quote_value: float | None = None
@@ -99,4 +115,4 @@ class CustomerResponse(BaseModel):
     data_classification: str | None = None
     deletion_requested_at: datetime | None = None
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "allow"}

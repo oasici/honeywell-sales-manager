@@ -14,6 +14,11 @@ from app.models.user import User
 
 async def _create_user(db: AsyncSession, email: str, role: str) -> User:
     user = User(
+        # Round-10 R10-DB-5 — Notification.tenant_id is NOT NULL and
+        # create_notification looks it up from the target user. The
+        # seed needs a non-null tenant_id so the notification path
+        # doesn't early-out.
+        tenant_id=1,
         email=email,
         full_name=f"Test {role}",
         hashed_password=hash_password("Test1234"),

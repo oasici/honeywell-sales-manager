@@ -98,7 +98,7 @@ def _serialize(sub) -> dict:
     return apply_request_perms(data, "subscription")
 
 
-@router.get("/mrr-dashboard", response_model=PaginatedResponse[dict])
+@router.get("/mrr-dashboard")
 async def mrr_dashboard(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
