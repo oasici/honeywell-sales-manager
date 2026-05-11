@@ -60,7 +60,7 @@ pgvector==0.3.6
 qdrant-client==1.13.3
 
 # Background jobs
-apscheduler==3.10.4
+apscheduler==3.11.2
 # arq removed alongside Redis — job_queue.py runs jobs inline now.
 # WorkerSettings registry kept so a future Redis-equivalent (arq,
 # dramatiq, RQ on Upstash, etc.) can re-attach without re-touching
