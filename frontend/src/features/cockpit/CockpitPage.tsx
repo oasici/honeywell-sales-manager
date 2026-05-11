@@ -138,7 +138,7 @@ function KpiStrip({
   if (isError) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
-        Cockpit metrikleri yüklenemedi. Sayfayı yenilemeyi deneyin.
+        {t('cockpit.error_metrics_failed')}
       </div>
     );
   }
@@ -149,7 +149,7 @@ function KpiStrip({
     // cache eviction). Show a calm empty surface instead.
     return (
       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
-        Veri yok.
+        {t('cockpit.empty_no_data')}
       </div>
     );
   }

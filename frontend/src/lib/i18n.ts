@@ -2345,6 +2345,31 @@ const translations = {
     'sales_analytics.stage_rejected': 'Reddedildi',
     'sales_analytics.stage_expired': 'Süresi Doldü',
 
+    // Round-10 R10-FE-9 — network intelligence labels moved out of JSX.
+    'network_intelligence.page_description':
+      "Senin tenant'ın segment medyanına göre nasıl performans gösteriyor",
+    'network_intelligence.segment_label': 'Segment:',
+    'network_intelligence.empty_title': 'Henüz benchmark verisi yok',
+    'network_intelligence.empty_description':
+      'Nightly batch yeterli veri toplayınca burada görünecek.',
+    'network_intelligence.col_us': 'Bizim',
+    'network_intelligence.col_segment': 'Segment',
+    'network_intelligence.gap_label': 'Fark',
+    'network_intelligence.last_updated': 'Son güncelleme',
+    'network_intelligence.verdict_leading': 'Önde',
+    'network_intelligence.verdict_on_par': 'Eşit',
+    'network_intelligence.verdict_lagging': 'Geride',
+    'network_intelligence.verdict_critical': 'Kritik',
+    'network_intelligence.verdict_unknown': 'Veri yok',
+
+    // Round-10 R10-FE-9 — forecast page subtitles.
+    'forecast.hybrid_subtitle': 'Hibrit close-probability ağırlıklandırılmış',
+
+    // Round-10 R10-FE-9 — cockpit loading/error states.
+    'cockpit.error_metrics_failed':
+      'Cockpit metrikleri yüklenemedi. Sayfayı yenilemeyi deneyin.',
+    'cockpit.empty_no_data': 'Veri yok.',
+
     'auth.footer': '© 2026 Honeywell Sales Suite. Tüm hakları saklıdır.',
   },
   en: {
@@ -4621,6 +4646,29 @@ const translations = {
     'sales_analytics.stage_accepted': 'Accepted',
     'sales_analytics.stage_rejected': 'Rejected',
     'sales_analytics.stage_expired': 'Expired',
+
+    // Round-10 R10-FE-9 — network intelligence labels.
+    'network_intelligence.page_description':
+      'How your tenant performs against the segment median',
+    'network_intelligence.segment_label': 'Segment:',
+    'network_intelligence.empty_title': 'No benchmark data yet',
+    'network_intelligence.empty_description':
+      'It will appear here once the nightly batch has collected enough data.',
+    'network_intelligence.col_us': 'You',
+    'network_intelligence.col_segment': 'Segment',
+    'network_intelligence.gap_label': 'Gap',
+    'network_intelligence.last_updated': 'Last updated',
+    'network_intelligence.verdict_leading': 'Leading',
+    'network_intelligence.verdict_on_par': 'On par',
+    'network_intelligence.verdict_lagging': 'Lagging',
+    'network_intelligence.verdict_critical': 'Critical',
+    'network_intelligence.verdict_unknown': 'No data',
+
+    'forecast.hybrid_subtitle': 'Hybrid close-probability weighted',
+
+    'cockpit.error_metrics_failed':
+      'Cockpit metrics failed to load. Try refreshing the page.',
+    'cockpit.empty_no_data': 'No data.',
 
     'auth.footer': '© 2026 Honeywell Sales Suite. All rights reserved.',
   },

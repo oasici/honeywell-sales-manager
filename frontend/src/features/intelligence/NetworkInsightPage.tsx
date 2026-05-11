@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, Minus, Globe } from 'lucide-react';
 
@@ -9,27 +9,67 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { networkIntelligenceApi } from '../../lib/api';
 import { formatDate } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 /**
  * S-F — network intelligence page (manager view).
  *
  * Composes the existing benchmark services into a single
  * "tenant vs. segment" insight rollup.
+ *
+ * Round-10 R10-FE-9 — labels routed through useT() so non-Turkish
+ * locales no longer surface "Önde/Eşit/Geride" verbatim.
  */
 
-const VERDICT_BADGE: Record<
-  string,
-  { variant: 'success' | 'info' | 'warning' | 'danger'; label: string; icon: React.ReactNode }
+type VerdictKey = 'leading' | 'on_par' | 'lagging' | 'critical' | 'unknown';
+type VerdictVariant = 'success' | 'info' | 'warning' | 'danger';
+
+const VERDICT_META: Record<
+  VerdictKey,
+  { variant: VerdictVariant; icon: React.ReactNode; labelKey: import('../../lib/i18n').TranslationKey }
 > = {
-  leading: { variant: 'success', label: 'Önde', icon: <TrendingUp className="h-3 w-3" /> },
-  on_par: { variant: 'info', label: 'Eşit', icon: <Minus className="h-3 w-3" /> },
-  lagging: { variant: 'warning', label: 'Geride', icon: <TrendingDown className="h-3 w-3" /> },
-  critical: { variant: 'danger', label: 'Kritik', icon: <TrendingDown className="h-3 w-3" /> },
-  unknown: { variant: 'info', label: 'Veri yok', icon: <Minus className="h-3 w-3" /> },
+  leading: {
+    variant: 'success',
+    icon: <TrendingUp className="h-3 w-3" />,
+    labelKey: 'network_intelligence.verdict_leading',
+  },
+  on_par: {
+    variant: 'info',
+    icon: <Minus className="h-3 w-3" />,
+    labelKey: 'network_intelligence.verdict_on_par',
+  },
+  lagging: {
+    variant: 'warning',
+    icon: <TrendingDown className="h-3 w-3" />,
+    labelKey: 'network_intelligence.verdict_lagging',
+  },
+  critical: {
+    variant: 'danger',
+    icon: <TrendingDown className="h-3 w-3" />,
+    labelKey: 'network_intelligence.verdict_critical',
+  },
+  unknown: {
+    variant: 'info',
+    icon: <Minus className="h-3 w-3" />,
+    labelKey: 'network_intelligence.verdict_unknown',
+  },
 };
 
 export default function NetworkInsightPage() {
+  const t = useT();
   const [segmentKey, setSegmentKey] = useState<string | undefined>(undefined);
+
+  const verdictBadge = useMemo(
+    () =>
+      (Object.entries(VERDICT_META) as Array<[VerdictKey, typeof VERDICT_META[VerdictKey]]>).reduce(
+        (acc, [k, meta]) => {
+          acc[k] = { variant: meta.variant, icon: meta.icon, label: t(meta.labelKey) };
+          return acc;
+        },
+        {} as Record<VerdictKey, { variant: VerdictVariant; label: string; icon: React.ReactNode }>,
+      ),
+    [t],
+  );
 
   const segmentsQuery = useQuery({
     queryKey: ['network-intelligence', 'segments'],
@@ -47,13 +87,13 @@ export default function NetworkInsightPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Network Intelligence"
-        description="Senin tenant'ın segment medyanına göre nasıl performans gösteriyor"
+        title={t('nav.network_intelligence')}
+        description={t('network_intelligence.page_description')}
       />
 
       {segments.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-caption text-slate-500">Segment:</span>
+          <span className="text-caption text-slate-500">{t('network_intelligence.segment_label')}</span>
           {segments.slice(0, 8).map((seg) => (
             <button
               key={seg.segment_key}
@@ -80,15 +120,15 @@ export default function NetworkInsightPage() {
 
       {!overviewQuery.isLoading && overview && overview.metrics.length === 0 && (
         <EmptyState
-          title="Henüz benchmark verisi yok"
-          description="Nightly batch yeterli veri toplayınca burada görünecek."
+          title={t('network_intelligence.empty_title')}
+          description={t('network_intelligence.empty_description')}
         />
       )}
 
       {!overviewQuery.isLoading && overview && overview.metrics.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {overview.metrics.map((m) => {
-            const verdict = VERDICT_BADGE[m.verdict] ?? VERDICT_BADGE.unknown;
+            const verdict = verdictBadge[(m.verdict as VerdictKey)] ?? verdictBadge.unknown;
             return (
               <Card key={m.key}>
                 <div className="flex items-center justify-between">
@@ -102,13 +142,17 @@ export default function NetworkInsightPage() {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <div>
-                    <div className="text-caption text-slate-500">Bizim</div>
+                    <div className="text-caption text-slate-500">
+                      {t('network_intelligence.col_us')}
+                    </div>
                     <div className="text-heading-3 tabular-nums">
                       {m.tenant_value !== null ? m.tenant_value.toFixed(2) : '—'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-caption text-slate-500">Segment</div>
+                    <div className="text-caption text-slate-500">
+                      {t('network_intelligence.col_segment')}
+                    </div>
                     <div className="text-heading-3 tabular-nums text-slate-500">
                       {m.segment_value !== null ? m.segment_value.toFixed(2) : '—'}
                     </div>
@@ -116,7 +160,7 @@ export default function NetworkInsightPage() {
                 </div>
                 {m.gap_pct !== null && (
                   <div className="mt-2 text-caption text-slate-500">
-                    Fark:{' '}
+                    {t('network_intelligence.gap_label')}:{' '}
                     <span
                       className={`tabular-nums ${m.gap_pct >= 0 ? 'text-success' : 'text-warning'}`}
                     >
@@ -133,7 +177,7 @@ export default function NetworkInsightPage() {
 
       {overview && overview.snapshot_date && (
         <p className="text-caption text-slate-400">
-          Son güncelleme: {overview.snapshot_date}
+          {t('network_intelligence.last_updated')}: {overview.snapshot_date}
           {overview.sample_size != null && ` · n=${overview.sample_size}`}
         </p>
       )}

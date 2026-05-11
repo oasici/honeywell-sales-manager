@@ -103,3 +103,34 @@ export function toLowerTR(str: string): string {
 export function toUpperTR(str: string): string {
   return str.toLocaleUpperCase('tr');
 }
+
+/**
+ * Locale-aware relative time. Uses Intl.RelativeTimeFormat so the
+ * units (second / minute / hour / day) and pluralisation match the
+ * user's selected language. Round-10 R10-FE-8 — previously every
+ * caller wrote its own Turkish-only `formatRelativeTime` that
+ * leaked "az önce" / "d once" into every locale.
+ */
+export function formatRelativeTime(
+  iso: string | null | undefined,
+  locale: string = currentLocale(),
+): string {
+  if (!iso) return '—';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (Number.isNaN(ms)) return '—';
+  const seconds = Math.round(ms / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  if (seconds < 60) return rtf.format(-seconds, 'second');
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return rtf.format(-minutes, 'minute');
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return rtf.format(-hours, 'hour');
+  const days = Math.round(hours / 24);
+  if (days < 7) return rtf.format(-days, 'day');
+  const weeks = Math.round(days / 7);
+  if (weeks < 5) return rtf.format(-weeks, 'week');
+  const months = Math.round(days / 30);
+  if (months < 12) return rtf.format(-months, 'month');
+  const years = Math.round(days / 365);
+  return rtf.format(-years, 'year');
+}

@@ -20,6 +20,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { forecastApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 /**
  * S-A — Forecasting standalone page.
@@ -29,6 +30,7 @@ import { formatCurrency } from '../../lib/formatters';
  * worst, by-stage breakdown, week-over-week movement, and accuracy.
  */
 export default function ForecastPage() {
+  const t = useT();
   const [period] = useState<'this_quarter'>('this_quarter');
 
   const hybridQuery = useQuery({
@@ -134,7 +136,7 @@ export default function ForecastPage() {
             </div>
             <div className="mt-2 text-heading-2 tabular-nums">{formatCurrency(commit)}</div>
             <div className="mt-1 text-caption text-slate-400">
-              Hibrit close-probability ağırlıklandırılmış
+              {t('forecast.hybrid_subtitle')}
             </div>
           </Card>
           <Card>

@@ -29,7 +29,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Phone, Handshake, Mail, FileText, Zap, AlertCircle, FileWarning, CheckCircle2, Sparkles } from 'lucide-react';
 import { dashboardApi, analyticsApi, subscriptionsApi, activitiesApi } from '../../lib/api';
-import { formatCurrency } from '../../lib/formatters';
+import { formatCurrency, formatRelativeTime } from '../../lib/formatters';
 import type {
   DashboardStats,
   TopPart,
@@ -43,17 +43,9 @@ import { DoughnutChart } from './DoughnutChart';
 import { SortableItem } from './SortableItem';
 import { LeaderboardCard } from './LeaderboardCard';
 
-/* ─────────────────── relative time helper ─────────────────── */
-function formatRelativeTime(isoString: string): string {
-  const diffMs = Date.now() - new Date(isoString).getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 1) return 'az önce';
-  if (diffMins < 60) return `${diffMins}d once`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}s once`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}g once`;
-}
+// Round-10 R10-FE-8 — local Turkish-only formatter replaced by the
+// locale-aware `formatRelativeTime` in lib/formatters.ts (uses
+// Intl.RelativeTimeFormat against the active preferences locale).
 
 /* ─────────────────── localStorage helpers ─────────────────── */
 // Round-10 R10-FE-6 — legacy key "dash-seç" was renamed to "dash-sections"

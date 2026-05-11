@@ -5,26 +5,19 @@ import { Send, Reply, Trash2 } from 'lucide-react';
 import { commentsApi, usersApi } from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { Card } from '../../components/ui/Card';
+import { currentLocale, formatRelativeTime } from '../../lib/formatters';
 import type { Comment, User } from '../../lib/types';
 
 const REFETCH_INTERVAL_MS = 30_000;
 
+// Round-10 R10-FE-8 — replaced the Turkish-only `formatTimestamp` with
+// the locale-aware helper. Falls back to a localised date string once
+// the entry crosses the one-week threshold.
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60_000);
-
-  if (diffMin < 1) return 'az önce';
-  if (diffMin < 60) return `${diffMin} dk once`;
-
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours} sa once`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays} gun once`;
-
-  return date.toLocaleDateString('tr-TR');
+  const diffDays = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  if (diffDays >= 7) return date.toLocaleDateString(currentLocale());
+  return formatRelativeTime(iso);
 }
 
 function getAvatarColor(name: string): string {
