@@ -9,6 +9,34 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.16.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.15.0...v1.16.0) (2026-05-11)
+
+
+### Added
+
+* **round-10:** sprint 1.1+1.2 — frontend role drift, forecast bug, activities envelope, quote tenant_id leak ([b6037ba](https://github.com/oasici/honeywell-sales-manager/commit/b6037bafb5d0b8f5c3217e35be907852785d06fe))
+* **round-10:** sprint 1.3 — phase-9 tenant_id sweep + audit timestamps (R10-DB-1..7) ([f77526b](https://github.com/oasici/honeywell-sales-manager/commit/f77526ba750048e9edc400eb459e7c0de911678f))
+* **round-10:** sprint 1.5 — hardcoded Turkish → i18n catalog (R10-FE-8, R10-FE-9) ([9d141f3](https://github.com/oasici/honeywell-sales-manager/commit/9d141f30f79609bd76f449e2aa221c939056f9ae))
+* **round-10:** sprint 2.1 — wrap 3 backend-gated route families in FeatureFlagGate (R10-FE-10) ([ef7c5b9](https://github.com/oasici/honeywell-sales-manager/commit/ef7c5b99e90dc9f364d93d923910391b1f0e30fe))
+* **round-10:** sprint 2.2+2.3 — nested-payload masking + tenant_id observability (R10-API-4, R10-OBS-1) ([7c06949](https://github.com/oasici/honeywell-sales-manager/commit/7c069493361a9cdf3ee1815bba02a66de25b7a68))
+* **round-10:** sprint 3 — surface fetched-but-hidden fields (R10-FE-11, R10-FE-12) ([d091b46](https://github.com/oasici/honeywell-sales-manager/commit/d091b46b68657482486a588bdf8e33a91bcb1ec3))
+* **round-10:** sprint 4.1 — schema_check gate covers FK + index drift (R10-DB-GATE) ([730d5a0](https://github.com/oasici/honeywell-sales-manager/commit/730d5a0477cc6b6792183ed2ff1e4692207bd03b))
+* **round-10:** sprint 4.2 — currency Float → NUMERIC(19, 2) (R10-DB-CCY) ([7b6059d](https://github.com/oasici/honeywell-sales-manager/commit/7b6059d69c76434f1b204c86341537b834d4fc81))
+* **round-10:** sprint 4.3 — SSE foundation replaces 16 cockpit polling timers (R10-SSE-1) ([e696c54](https://github.com/oasici/honeywell-sales-manager/commit/e696c547990fdfc45a513c46de10522d4afd107f))
+* **round-10:** sprint 6 — enable noUncheckedIndexedAccess (R10-FE-13) ([a5c8cbb](https://github.com/oasici/honeywell-sales-manager/commit/a5c8cbb4b45494eec0b85a3f3d600f8f9bc91ead))
+* **round-10:** sprint 7 — typed PaginatedResponse on 9 core list endpoints (R10-API-5) ([8e1ec8a](https://github.com/oasici/honeywell-sales-manager/commit/8e1ec8a99f29b443cd4907c9909091977a6cd071))
+* **round-10:** sprint 8 — promote phase-9 tenant_id columns to NOT NULL (R10-DB-1..5) ([55a0271](https://github.com/oasici/honeywell-sales-manager/commit/55a0271b62ba5360e13195d04b58b92ac5565d59))
+* **round-10:** sprint 9 — currency boundary accepts string|number (R10-FE-14) ([bc2933d](https://github.com/oasici/honeywell-sales-manager/commit/bc2933da1070293e1c687ee009f2d198dfd6c708))
+* **seed:** add UAT user seed script with full role coverage ([a7261c4](https://github.com/oasici/honeywell-sales-manager/commit/a7261c4fd99909f2871b282d843a6c9adac487ea))
+* **seed:** elevate admin@honeywell.com + UAT users in single seed ([295a7ae](https://github.com/oasici/honeywell-sales-manager/commit/295a7ae2cb20f9775c2a200e646b3726b9f30d4c))
+
+
+### Fixed
+
+* **db:** detect docker-compose db-* hostnames as local in SSL gate ([d9bc89a](https://github.com/oasici/honeywell-sales-manager/commit/d9bc89a97a3fe485570eceed7e5d6f0a0ea61fa7))
+* **flags:** allowlist v1.13 plan-adoption flags so SPA can read them ([e842c95](https://github.com/oasici/honeywell-sales-manager/commit/e842c95a5427193dd937200d8cbefe492e134533))
+* **round-10:** sprint 1.4 — close 6 cross-tenant probe paths in customers.py (R10-API-3) ([d8e623b](https://github.com/oasici/honeywell-sales-manager/commit/d8e623bfcceec324c87b10578029108fda01d158))
+
 ## [1.4.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.3.0...v1.4.0) (2026-05-06)
 
 
