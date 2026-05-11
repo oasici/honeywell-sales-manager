@@ -171,6 +171,10 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture
 async def admin_user(db: AsyncSession) -> User:
     user = User(
+        # Round-10 R10-DB-1..5 — phase-9 NOT NULL constraints depend on
+        # the user having a tenant_id; default to 1 (the implicit
+        # single-tenant prod tenant) so derived rows can inherit.
+        tenant_id=1,
         email="admin@test.com",
         full_name="Test Admin",
         hashed_password=hash_password("admin123"),

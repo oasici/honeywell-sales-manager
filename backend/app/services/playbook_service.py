@@ -94,6 +94,10 @@ class PlaybookService:
                 continue
 
             execution = PlaybookExecution(
+                # Round-10 R10-DB-3 — tenant_id now NOT NULL. Inherit
+                # from the parent playbook so the execution shares the
+                # automation rule's tenancy regardless of the opp join.
+                tenant_id=playbook.tenant_id,
                 playbook_id=playbook.id,
                 opportunity_id=signal.opportunity_id,
                 triggered_by_signal_id=signal.id,

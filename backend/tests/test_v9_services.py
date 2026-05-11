@@ -43,8 +43,15 @@ from app.services.crm_sync.salesforce_adapter import SalesforceAdapter
 # ─────────────────────── shared fixtures (DB-backed) ─────────────────
 
 
+# Round-10 R10-DB-1..5 — every seed row now carries a non-null tenant_id
+# so downstream models with NOT NULL tenant_id (meeting_bookings,
+# playbooks, …) can inherit it without tripping the constraint.
+_TENANT_ID = 1
+
+
 async def _seed_user(db: AsyncSession, email: str = "v9_rep@test.com", role: str = "sales_rep") -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name="V9 Rep",
         hashed_password=hash_password("Test1234"),
@@ -59,6 +66,7 @@ async def _seed_user(db: AsyncSession, email: str = "v9_rep@test.com", role: str
 
 async def _seed_customer(db: AsyncSession, email: str = "v9cust@test.com") -> Customer:
     c = Customer(
+        tenant_id=_TENANT_ID,
         name="V9 Cust",
         company="V9 Cust Co",
         email=email,
@@ -76,6 +84,7 @@ async def _seed_opp(db: AsyncSession) -> tuple[User, Customer, Opportunity]:
     user = await _seed_user(db)
     cust = await _seed_customer(db)
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=user.id,
         title="V9 Deal",
@@ -195,6 +204,9 @@ async def test_calendar_auto_log_matches_by_attendee_email(db: AsyncSession):
     await db.commit()
     await db.refresh(link)
     booking = MeetingBooking(
+        # Round-10 R10-DB-2 — tenant_id now NOT NULL; mirror the opp's
+        # tenant the same way the live booking service does.
+        tenant_id=opp.tenant_id,
         meeting_link_id=link.id,
         booker_email=cust.email,
         booker_name="V9 Booker",
@@ -227,6 +239,8 @@ async def test_calendar_auto_log_no_match_returns_link_with_null_opp(
     await db.commit()
     await db.refresh(link)
     booking = MeetingBooking(
+        # Round-10 R10-DB-2 — tenant_id NOT NULL; user-owned booking.
+        tenant_id=user.tenant_id,
         meeting_link_id=link.id,
         booker_email="stranger@nowhere.example",
         booker_name="Stranger",
@@ -255,6 +269,8 @@ async def test_calendar_link_meeting_to_opportunity_overrides(db: AsyncSession):
     await db.commit()
     await db.refresh(link)
     booking = MeetingBooking(
+        # Round-10 R10-DB-2 — tenant_id NOT NULL.
+        tenant_id=opp.tenant_id,
         meeting_link_id=link.id,
         booker_email="other@x.example",
         booker_name="Other",

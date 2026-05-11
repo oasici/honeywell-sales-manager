@@ -34,7 +34,10 @@ class GuidedSellingService:
         return self._serialize(guide)
 
     async def create_guide(self, data: dict) -> SellingGuide:
+        # Round-10 R10-DB-4 — tenant_id NOT NULL. Caller must pass it
+        # (looked up from the creating user's tenant at the API layer).
         guide = SellingGuide(
+            tenant_id=data["tenant_id"],
             name=data["name"],
             description=data.get("description"),
             steps_json=json.dumps(data.get("steps", []), ensure_ascii=False),

@@ -53,7 +53,11 @@ async def test_create_quote(client: AsyncClient, auth_headers, db: AsyncSession)
 
 @pytest.mark.asyncio
 async def test_list_quotes_with_data(client: AsyncClient, auth_headers, db: AsyncSession):
+    # Round-10 R10-DB-1..5 — the auth_headers fixture seeds the user
+    # with tenant_id=1; scoped_for_user filters list_quotes by that
+    # tenant, so the test Quote needs the same tenant_id to be visible.
     quote = Quote(
+        tenant_id=1,
         quote_number="HW-TEST-001",
         status="draft",
         language="tr",

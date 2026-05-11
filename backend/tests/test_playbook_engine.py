@@ -21,7 +21,10 @@ from app.services.playbook_service import PlaybookService
 
 @pytest_asyncio.fixture
 async def sales_user(db: AsyncSession) -> User:
+    # Round-10 R10-DB-1..5 — explicit tenant_id so derived rows
+    # (Opportunity, Task, Playbook, PlaybookExecution …) can inherit it.
     user = User(
+        tenant_id=1,
         email="rep@test.com",
         full_name="Test Rep",
         hashed_password=hash_password("pass123"),
@@ -36,6 +39,7 @@ async def sales_user(db: AsyncSession) -> User:
 @pytest_asyncio.fixture
 async def opportunity(db: AsyncSession, sales_user: User) -> Opportunity:
     opp = Opportunity(
+        tenant_id=sales_user.tenant_id,
         title="Test Firsat",
         stage="proposal",
         amount=50000.0,
@@ -49,6 +53,8 @@ async def opportunity(db: AsyncSession, sales_user: User) -> Opportunity:
 @pytest_asyncio.fixture
 async def playbook_no_touch(db: AsyncSession, admin_user: User) -> Playbook:
     pb = Playbook(
+        # Round-10 R10-DB-3 — tenant_id now NOT NULL; mirror admin_user's.
+        tenant_id=admin_user.tenant_id,
         name="Temas Edilmeyen Firsat",
         description="no_touch sinyali icin otomatik gorev",
         trigger_conditions_json='[{"field": "signal_type", "op": "eq", "value": "no_touch"}, {"field": "severity", "op": "gte", "value": "high"}]',
@@ -253,6 +259,7 @@ async def test_completion_sets_status_completed(
     """Completion: last step sets status=completed."""
     # Create a single-step playbook
     single_step_pb = Playbook(
+        tenant_id=admin_user.tenant_id,  # Round-10 R10-DB-3 — NOT NULL.
         name="Tek Adim Playbook",
         trigger_conditions_json='[{"field": "signal_type", "op": "eq", "value": "churn_risk"}]',
         steps_json='[{"step": 1, "action_type": "task", "template": "Acil gorusme planla", "delay_days": 0, "priority": "urgent"}]',

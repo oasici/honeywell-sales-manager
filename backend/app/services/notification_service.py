@@ -6,6 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification import Notification
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +30,20 @@ async def create_notification(
         message: Optional longer message body.
         entity_type: Optional related entity type.
         entity_id: Optional related entity ID.
+
+    Round-10 R10-DB-5 — Notification.tenant_id is NOT NULL; look it up
+    from the target user (single point of write so callers don't have
+    to pass tenant_id through every layer).
     """
     try:
+        target = (
+            await db.execute(select(User.tenant_id).where(User.id == user_id))
+        ).scalar_one_or_none()
+        if target is None:
+            logger.warning("create_notification: target user %d not found", user_id)
+            return
         notification = Notification(
+            tenant_id=target,
             user_id=user_id,
             type=type,
             title=title,

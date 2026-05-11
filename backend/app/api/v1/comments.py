@@ -181,9 +181,13 @@ async def create_comment(
     db.add(comment)
     await db.flush()
 
-    # Create notifications for mentioned users
+    # Create notifications for mentioned users. Round-10 R10-DB-5 —
+    # Notification.tenant_id is NOT NULL; mentions stay inside the
+    # current user's tenant (mention across tenants is impossible
+    # because the user-lookup is already tenant-scoped upstream).
     for uid in mentioned_user_ids:
         notification = Notification(
+            tenant_id=current_user.tenant_id,
             user_id=uid,
             type="mention",
             title=f"{current_user.full_name} sizi bir yorumda etiketledi",

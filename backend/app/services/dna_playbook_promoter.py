@@ -180,7 +180,14 @@ async def promote_top_patterns(
         ]
 
         if existing is None:
+            # Round-10 R10-DB-3 — Playbook.tenant_id is NOT NULL; the
+            # DNA pattern carries the tenancy, so mirror it onto the
+            # auto-promoted playbook. Patterns with no tenant are
+            # global / training artifacts and are skipped earlier.
+            if pattern.tenant_id is None:
+                continue
             playbook = Playbook(
+                tenant_id=pattern.tenant_id,
                 name=playbook_name,
                 description=(
                     f"Auto-promoted from DNA pattern (lift {pattern.lift_vs_baseline:.2f}, "

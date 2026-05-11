@@ -79,6 +79,8 @@ async def create_guide(
     """Create a selling guide (manager only)."""
     service = GuidedSellingService(db)
     guide = await service.create_guide({
+        # Round-10 R10-DB-4 — tenant_id from the creating manager.
+        "tenant_id": current_user.tenant_id,
         "name": body.name,
         "description": body.description,
         "steps": body.steps,

@@ -104,6 +104,8 @@ async def create_playbook(
     """Create a new playbook (manager only)."""
     service = PlaybookService(db)
     playbook = await service.create_playbook(
+        # Round-10 R10-DB-3 — tenant_id NOT NULL; bind to the creator.
+        tenant_id=current_user.tenant_id,
         name=body.name,
         description=body.description,
         trigger_conditions_json=body.trigger_conditions_json,
