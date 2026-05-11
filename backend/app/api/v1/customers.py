@@ -247,6 +247,11 @@ async def get_customer_intelligence(
     ).scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    # Round-10 R10-API-3 — assert tenant before exposing any customer
+    # intelligence. Without this, a cross-tenant probe of a known id
+    # returned 200 with the user's own (empty) opportunity rows,
+    # confirming the foreign-tenant customer existed.
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     from app.models.activity_log import ActivityLog
     from app.models.opportunity import Opportunity, OpportunitySignal, Task
@@ -356,6 +361,8 @@ async def get_account_360(
     ).scalar_one_or_none()
     if not customer:
         raise NotFoundException("Musteri bulunamadi")
+    # Round-10 R10-API-3 — see get_customer_intelligence for rationale.
+    assert_same_tenant(customer, current_user, exception_cls=NotFoundException)
 
     svc = AccountAggregateService(db)
     row = await svc.ensure_fresh(customer_id, current_user, refresh=refresh)
@@ -644,10 +651,15 @@ async def get_customer_timeline(
     """Feature-10: Customer 360 timeline — chronological emails + quotes."""
     from app.models.email_request import EmailRequest
 
-    # Verify customer exists
-    cust = await db.execute(select(Customer).where(Customer.id == customer_id))
-    if not cust.scalar_one_or_none():
+    # Verify customer exists + tenant scope.
+    # Round-10 R10-API-3 — promoted existence check to a tenant check so
+    # cross-tenant id probes return 404 instead of an empty timeline.
+    cust_row = (
+        await db.execute(select(Customer).where(Customer.id == customer_id))
+    ).scalar_one_or_none()
+    if not cust_row:
         raise NotFoundException(f"Musteri bulunamadi: {customer_id}")
+    assert_same_tenant(cust_row, current_user, exception_cls=NotFoundException)
 
     events = []
 
@@ -703,10 +715,13 @@ async def get_customer_activity_timeline(
     from app.models.activity_log import ActivityLog
     from sqlalchemy.orm import defer
 
-    # Verify customer exists
-    cust = await db.execute(select(Customer).where(Customer.id == customer_id))
-    if not cust.scalar_one_or_none():
+    # Verify customer exists + tenant scope. R10-API-3.
+    cust_row = (
+        await db.execute(select(Customer).where(Customer.id == customer_id))
+    ).scalar_one_or_none()
+    if not cust_row:
         raise NotFoundException("Musteri bulunamadi")
+    assert_same_tenant(cust_row, current_user, exception_cls=NotFoundException)
 
     # `source_ref` is excluded from the SELECT list — see the activity
     # feed endpoint (api/v1/activities.py) for the rationale; same
@@ -836,13 +851,23 @@ async def get_customer_hierarchy(
     customer = result.scalar_one_or_none()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
+    # Round-10 R10-API-3 — tenant gate. The parent-chain walk and the
+    # subsidiaries query both used to follow FKs across tenant
+    # boundaries, leaking the existence (and name/company) of foreign-
+    # tenant customers if a user planted a cross-tenant parent_id.
+    assert_same_tenant(customer, user, exception_cls=NotFoundException)
 
-    # Get parent chain
+    # Get parent chain — same-tenant only.
     parents = []
     current = customer
     depth = 0
     while current.parent_id and depth < 5:
-        p_result = await db.execute(select(Customer).where(Customer.id == current.parent_id))
+        p_result = await db.execute(
+            select(Customer).where(
+                Customer.id == current.parent_id,
+                Customer.tenant_id == customer.tenant_id,
+            )
+        )
         parent = p_result.scalar_one_or_none()
         if not parent:
             break
@@ -850,9 +875,12 @@ async def get_customer_hierarchy(
         current = parent
         depth += 1
 
-    # Get direct subsidiaries
+    # Get direct subsidiaries — same-tenant only.
     subs_result = await db.execute(
-        select(Customer).where(Customer.parent_id == customer_id)
+        select(Customer).where(
+            Customer.parent_id == customer_id,
+            Customer.tenant_id == customer.tenant_id,
+        )
     )
     subsidiaries = subs_result.scalars().all()
 
@@ -878,23 +906,37 @@ async def set_customer_parent(
     customer = result.scalar_one_or_none()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
+    # Round-10 R10-API-3 — gate child and parent on the same tenant so
+    # an attacker can't reparent their own customer onto another
+    # tenant's customer to discover its existence.
+    assert_same_tenant(customer, user, exception_cls=NotFoundException)
 
     if parent_id is not None:
         if parent_id == customer_id:
             raise HTTPException(status_code=400, detail="Cannot be parent of self")
 
-        # Check parent exists
-        p_result = await db.execute(select(Customer).where(Customer.id == parent_id))
+        # Check parent exists in the SAME tenant.
+        p_result = await db.execute(
+            select(Customer).where(
+                Customer.id == parent_id,
+                Customer.tenant_id == customer.tenant_id,
+            )
+        )
         if not p_result.scalar_one_or_none():
             raise HTTPException(status_code=404, detail="Parent customer not found")
 
-        # Check for circular reference
+        # Check for circular reference (same-tenant chain only).
         current_id = parent_id
         depth = 0
         while current_id and depth < 10:
             if current_id == customer_id:
                 raise HTTPException(status_code=400, detail="Circular reference detected")
-            r = await db.execute(select(Customer.parent_id).where(Customer.id == current_id))
+            r = await db.execute(
+                select(Customer.parent_id).where(
+                    Customer.id == current_id,
+                    Customer.tenant_id == customer.tenant_id,
+                )
+            )
             row = r.scalar_one_or_none()
             current_id = row
             depth += 1
