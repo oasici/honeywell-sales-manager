@@ -54,6 +54,9 @@ class TableDrift:
     missing_in_model: tuple[str, ...] = ()
     type_mismatch: tuple[tuple[str, str, str], ...] = ()  # (col, model_type, db_type)
     nullability_mismatch: tuple[tuple[str, bool, bool], ...] = ()  # (col, model, db)
+    # Round-10 R10-DB-GATE — extend the gate beyond column shape.
+    fk_missing_in_db: tuple[tuple[str, str, str], ...] = ()  # (column, ref_table, ref_col)
+    index_missing_in_db: tuple[str, ...] = ()  # column names declared index=True or Index(...) but not present in DB
 
 
 @dataclass(frozen=True)
@@ -78,6 +81,10 @@ class SchemaDriftReport:
                 counts.append(f"{len(t.type_mismatch)} type-mismatch")
             if t.nullability_mismatch:
                 counts.append(f"{len(t.nullability_mismatch)} nullability-mismatch")
+            if t.fk_missing_in_db:
+                counts.append(f"{len(t.fk_missing_in_db)} fk-missing")
+            if t.index_missing_in_db:
+                counts.append(f"{len(t.index_missing_in_db)} index-missing")
             parts.append(f"{t.table}: {', '.join(counts)}")
         return "schema drift detected — " + " | ".join(parts)
 
@@ -235,7 +242,75 @@ def check_schema(
                     (name, bool(model_col.nullable), bool(db_col.get("nullable", True)))
                 )
 
-        if missing_in_db or missing_in_model or type_mismatch or nullability_mismatch:
+        # ── Round-10 R10-DB-GATE — FK constraints ──
+        # Round-9 Inv F flagged that schema_check skips FK + index
+        # validation entirely, so a model change that drops/renames a
+        # ForeignKey would pass CI. Compare the model's declared FKs
+        # against PG's foreign_key catalogue.
+        fk_missing_in_db: list[tuple[str, str, str]] = []
+        try:
+            db_fks = inspector.get_foreign_keys(table_name, schema=schema_name)
+        except Exception:
+            db_fks = []
+        db_fk_pairs: set[tuple[str, str, str]] = set()
+        for fk in db_fks:
+            cols = fk.get("constrained_columns") or []
+            ref_table = fk.get("referred_table") or ""
+            ref_cols = fk.get("referred_columns") or []
+            for col, ref_col in zip(cols, ref_cols):
+                db_fk_pairs.add((col, ref_table, ref_col))
+        for col in table.columns:
+            for fk in col.foreign_keys:
+                ref = fk.column
+                pair = (col.name, ref.table.name, ref.name)
+                if pair not in db_fk_pairs:
+                    fk_missing_in_db.append(pair)
+
+        # ── Round-10 R10-DB-GATE — declared single-column indexes ──
+        # Only checks the simple `index=True` case + single-column
+        # Index() entries. Composite indexes vary too much between
+        # SQLAlchemy reflection and PG catalogue to compare reliably
+        # here; those are caught at migration-author time.
+        index_missing_in_db: list[str] = []
+        try:
+            db_indexes = inspector.get_indexes(table_name, schema=schema_name)
+        except Exception:
+            db_indexes = []
+        # Set of column lists already indexed by the DB.
+        db_indexed_columns: set[str] = set()
+        for idx in db_indexes:
+            cols = idx.get("column_names") or []
+            if len(cols) == 1 and cols[0]:
+                db_indexed_columns.add(cols[0])
+        # PK columns are implicitly indexed; do not flag.
+        try:
+            pk_cols = set((inspector.get_pk_constraint(table_name, schema=schema_name) or {}).get("constrained_columns") or [])
+        except Exception:
+            pk_cols = set()
+        # UNIQUE columns are implicitly indexed via the unique constraint.
+        try:
+            unique_cols = set()
+            for uc in inspector.get_unique_constraints(table_name, schema=schema_name) or []:
+                ucols = uc.get("column_names") or []
+                if len(ucols) == 1 and ucols[0]:
+                    unique_cols.add(ucols[0])
+        except Exception:
+            unique_cols = set()
+        for col in table.columns:
+            if not getattr(col, "index", False):
+                continue
+            if col.name in db_indexed_columns or col.name in pk_cols or col.name in unique_cols:
+                continue
+            index_missing_in_db.append(col.name)
+
+        if (
+            missing_in_db
+            or missing_in_model
+            or type_mismatch
+            or nullability_mismatch
+            or fk_missing_in_db
+            or index_missing_in_db
+        ):
             drifts.append(
                 TableDrift(
                     table=table_name,
@@ -243,6 +318,8 @@ def check_schema(
                     missing_in_model=missing_in_model,
                     type_mismatch=tuple(type_mismatch),
                     nullability_mismatch=tuple(nullability_mismatch),
+                    fk_missing_in_db=tuple(fk_missing_in_db),
+                    index_missing_in_db=tuple(index_missing_in_db),
                 )
             )
 
@@ -279,6 +356,8 @@ def run_schema_drift_check_on_startup(engine: Engine, base_metadata) -> None:
                 "missing_in_model": list(t.missing_in_model),
                 "type_mismatch": [list(x) for x in t.type_mismatch],
                 "nullability_mismatch": [list(x) for x in t.nullability_mismatch],
+                "fk_missing_in_db": [list(x) for x in t.fk_missing_in_db],
+                "index_missing_in_db": list(t.index_missing_in_db),
             },
         )
     # Sentry breadcrumb (not event) so the next captured exception
@@ -346,6 +425,10 @@ def _cli() -> int:
             print(f"     type mismatch: {col} model={mt} db={dt}")
         for col, mn, dn in t.nullability_mismatch:
             print(f"     nullability mismatch: {col} model_nullable={mn} db_nullable={dn}")
+        for col, ref_table, ref_col in t.fk_missing_in_db:
+            print(f"     fk missing in DB: {col} → {ref_table}.{ref_col}")
+        for col in t.index_missing_in_db:
+            print(f"     index missing in DB: {col} (model declared index=True)")
     return 1
 
 
