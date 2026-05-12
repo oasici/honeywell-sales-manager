@@ -9,6 +9,25 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.17.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.16.0...v1.17.0) (2026-05-12)
+
+
+### Added
+
+* **round-10:** sprint 10 — expand PaginatedResponse[dict] from 9 → 68 endpoints (R10-API-5) ([95594bf](https://github.com/oasici/honeywell-sales-manager/commit/95594bf5a3a7a29b870c8d94ebf9aa14591ea30b))
+* **round-10:** sprint 11 — per-item Pydantic on Customer/Quote/Opportunity (R10-API-6) ([6cac4b7](https://github.com/oasici/honeywell-sales-manager/commit/6cac4b7c6583e6db01a9a3b5af8034af4b2f3541))
+* **round-11:** apply cross-layer audit fix plan ([c8cf246](https://github.com/oasici/honeywell-sales-manager/commit/c8cf24600136559a1cd4170ad100d5c9b2b58a96))
+* **round-12:** apply cross-layer audit fix plan ([59adc81](https://github.com/oasici/honeywell-sales-manager/commit/59adc81d5d23ce03c61d2b0180134a95269ea8f5))
+
+
+### Fixed
+
+* **round-10:** green CI after sprint 10 expansion (R10-API-5 follow-up) ([ebec3da](https://github.com/oasici/honeywell-sales-manager/commit/ebec3da1e7a5996c15e473c0723c29126bc0bd76))
+* **round-11:** promote audit-timestamp columns to NOT NULL in migration ([6b7a8f1](https://github.com/oasici/honeywell-sales-manager/commit/6b7a8f1d89b6269fac2e72de58e4946a617d0bd4))
+* **round-11:** relax PaginatedResponse.page_size to ge=0 for empty result sets ([49ea3f8](https://github.com/oasici/honeywell-sales-manager/commit/49ea3f85d5db9f5b2fd75cacb44f3e3adaa8e6f6))
+* **round-11:** split multi-statement op.execute() in audit_timestamps migration ([0942064](https://github.com/oasici/honeywell-sales-manager/commit/09420646c54c8d58a37dfc58114331f815b2155b))
+* **round-11:** widen alembic_version.version_num on legacy Postgres ([3a60266](https://github.com/oasici/honeywell-sales-manager/commit/3a602662ce202cae906598c0ba417f8af3149da9))
+
 ## [1.16.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.15.0...v1.16.0) (2026-05-11)
 
 
