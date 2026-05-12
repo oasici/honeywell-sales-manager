@@ -378,8 +378,9 @@ export default function CustomerDetailPage() {
   // are rare (single-tenant deployments) but rendering USD on a TRY
   // quote book was a real visual bug. Falls back to the customer's
   // configured currency, then to TRY as a project-sane default.
-  const displayCurrency =
-    quotes[0]?.currency ?? (customer as { currency?: string }).currency ?? 'TRY';
+  // Round-12 R12-FE-3 — Customer.currency is now declared on the type
+  // (R12-TS-1); no more `as { currency?: string }` escape hatch needed.
+  const displayCurrency = quotes[0]?.currency ?? customer.currency ?? 'TRY';
 
   const quoteColumns = [
     {
@@ -1545,7 +1546,12 @@ export default function CustomerDetailPage() {
                       </div>
                       <div className="text-center">
                         <p className="text-lg font-bold text-slate-900 dark:text-white">
-                          {formatCurrency(rollup.total_quote_value)}
+                          {/* Round-12 R12-FE-3 — use the same
+                              displayCurrency the parent card already
+                              computes (R11-FE-5) so the hierarchy
+                              rollup matches the headline total
+                              instead of silently defaulting. */}
+                          {formatCurrency(rollup.total_quote_value, displayCurrency)}
                         </p>
                         <p className="text-[10px] text-slate-500">
                           {t('customer_detail.total_quotes')}

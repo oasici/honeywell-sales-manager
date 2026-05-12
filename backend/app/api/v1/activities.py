@@ -12,11 +12,13 @@ from sqlalchemy.orm import defer
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.exceptions import NotFoundException
 from app.models.activity_log import ActivityLog
-from app.models.opportunity import OpportunityEvent
+from app.models.customer import Customer
+from app.models.opportunity import Opportunity, OpportunityEvent
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
-from app.services.tenant_context import scoped_for_user
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/activities", tags=["Activities"])
 
@@ -44,7 +46,34 @@ async def log_activity(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Log a manual activity (call, meeting, or note)."""
+    """Log a manual activity (call, meeting, or note).
+
+    Round-12 R12-AUTH-3 — verify any ``opportunity_id`` or
+    ``customer_id`` link belongs to the caller's tenant before
+    persisting. Pre-fix a user could attach activity logs to
+    foreign-tenant opportunities/customers, polluting their timelines
+    and bypassing audit boundaries.
+    """
+    if payload.opportunity_id is not None:
+        opp = (
+            await db.execute(
+                select(Opportunity).where(Opportunity.id == payload.opportunity_id)
+            )
+        ).scalar_one_or_none()
+        if opp is None:
+            raise NotFoundException("Firsat bulunamadi")
+        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
+
+    if payload.customer_id is not None:
+        cust = (
+            await db.execute(
+                select(Customer).where(Customer.id == payload.customer_id)
+            )
+        ).scalar_one_or_none()
+        if cust is None:
+            raise NotFoundException("Musteri bulunamadi")
+        assert_same_tenant(cust, current_user, exception_cls=NotFoundException)
+
     activity = ActivityLog(
         activity_type=payload.activity_type,
         entity_type=payload.entity_type or payload.activity_type,

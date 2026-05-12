@@ -100,6 +100,20 @@ export default function ForecastPage() {
 
   const isLoading =
     hybridQuery.isLoading || wowQuery.isLoading || accuracyQuery.isLoading || teamQuery.isLoading;
+  // Round-12 R12-FE-6 — surface load failure instead of silently
+  // rendering zeros. Any of the 4 queries failing reduces the page
+  // to misleading "0" headline metrics, so the error banner gates
+  // the whole layout until at least one retry succeeds.
+  const isError =
+    hybridQuery.isError || wowQuery.isError || accuracyQuery.isError || teamQuery.isError;
+  const firstError =
+    hybridQuery.error || wowQuery.error || accuracyQuery.error || teamQuery.error;
+  const retryAll = () => {
+    hybridQuery.refetch();
+    wowQuery.refetch();
+    accuracyQuery.refetch();
+    teamQuery.refetch();
+  };
 
   const commit = hybrid?.hybrid_weighted_total ?? 0;
   const legacy = hybrid?.legacy_weighted_total ?? 0;
@@ -117,6 +131,23 @@ export default function ForecastPage() {
         title="Forecast"
         description="Commit / best-case / worst-case rollup across the active pipeline"
       />
+
+      {/* Round-12 R12-FE-6 — load-failure surface. Renders before
+          everything else so the user knows the metrics are stale. */}
+      {isError && (
+        <div className="flex items-center justify-between rounded-[8px] border border-(--danger)/30 bg-(--danger-bg) px-3 py-2 text-[13px] text-(--danger)">
+          <span>
+            {(firstError as Error | undefined)?.message ?? t('common.error_load_failed')}
+          </span>
+          <button
+            type="button"
+            className="underline-offset-2 hover:underline"
+            onClick={retryAll}
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      )}
 
       {isLoading && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

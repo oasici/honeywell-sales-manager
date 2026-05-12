@@ -35,24 +35,45 @@ class EmailTemplateService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def list_templates(self, user_id: int) -> list[EmailTemplate]:
-        """Return templates owned by user or shared."""
+    async def list_templates(
+        self, user_id: int, tenant_id: int | None = None
+    ) -> list[EmailTemplate]:
+        """Return templates owned by user or shared within the tenant.
+
+        Round-12 R12-AUTH-1 — ``is_shared=True`` templates were
+        globally readable pre-fix. The query now additionally filters
+        on ``EmailTemplate.tenant_id`` when the caller has one, so
+        is_shared is bounded to the caller's tenant rather than the
+        whole deployment.
+        """
+        conditions = [
+            or_(
+                EmailTemplate.created_by == user_id,
+                EmailTemplate.is_shared.is_(True),
+            )
+        ]
+        if tenant_id is not None:
+            conditions.append(EmailTemplate.tenant_id == tenant_id)
         result = await self.db.execute(
             select(EmailTemplate)
-            .where(
-                or_(
-                    EmailTemplate.created_by == user_id,
-                    EmailTemplate.is_shared.is_(True),
-                ),
-            )
+            .where(*conditions)
             .order_by(EmailTemplate.updated_at.desc())
         )
         return list(result.scalars().all())
 
-    async def get_template(self, template_id: int) -> EmailTemplate:
-        """Fetch a single template by id."""
+    async def get_template(
+        self, template_id: int, tenant_id: int | None = None
+    ) -> EmailTemplate:
+        """Fetch a single template by id, scoped to tenant.
+
+        Round-12 R12-AUTH-1 — pre-fix had no tenant filter at all.
+        Cross-tenant access maps to 404 (per CLAUDE.md convention).
+        """
+        conditions = [EmailTemplate.id == template_id]
+        if tenant_id is not None:
+            conditions.append(EmailTemplate.tenant_id == tenant_id)
         result = await self.db.execute(
-            select(EmailTemplate).where(EmailTemplate.id == template_id)
+            select(EmailTemplate).where(*conditions)
         )
         template = result.scalar_one_or_none()
         if not template:
@@ -68,8 +89,9 @@ class EmailTemplateService:
         variables_json: str | None = None,
         category: str | None = None,
         is_shared: bool = False,
+        tenant_id: int | None = None,
     ) -> EmailTemplate:
-        """Create a new email template."""
+        """Create a new email template scoped to the caller's tenant."""
         template = EmailTemplate(
             name=name,
             subject=subject,
@@ -78,6 +100,7 @@ class EmailTemplateService:
             category=category,
             is_shared=is_shared,
             created_by=user_id,
+            tenant_id=tenant_id,
         )
         self.db.add(template)
         await self.db.flush()
@@ -88,10 +111,11 @@ class EmailTemplateService:
         self,
         template_id: int,
         user_id: int,
+        tenant_id: int | None = None,
         **fields: object,
     ) -> EmailTemplate:
-        """Update template fields. Only the owner can update."""
-        template = await self.get_template(template_id)
+        """Update template fields. Only the owner can update; cross-tenant 404s."""
+        template = await self.get_template(template_id, tenant_id=tenant_id)
         if template.created_by != user_id:
             raise NotFoundException("Bu sablonu duzenleme yetkiniz yok")
 
@@ -107,9 +131,11 @@ class EmailTemplateService:
         await self.db.refresh(template)
         return template
 
-    async def delete_template(self, template_id: int, user_id: int) -> None:
-        """Delete template. Only the owner can delete."""
-        template = await self.get_template(template_id)
+    async def delete_template(
+        self, template_id: int, user_id: int, tenant_id: int | None = None
+    ) -> None:
+        """Delete template. Only the owner can delete; cross-tenant 404s."""
+        template = await self.get_template(template_id, tenant_id=tenant_id)
         if template.created_by != user_id:
             raise NotFoundException("Bu sablonu silme yetkiniz yok")
         await self.db.delete(template)

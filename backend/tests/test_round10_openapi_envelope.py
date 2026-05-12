@@ -81,7 +81,7 @@ def test_paginated_response_model_declares_canonical_keys(openapi_schema: dict) 
 # Threshold set to 55 so an accidental router-level revert still
 # trips this assertion; an intentional removal lowers the floor in
 # the same PR.
-MIN_TYPED_ENVELOPE_ENDPOINTS = 55
+MIN_TYPED_ENVELOPE_ENDPOINTS = 60  # Round-12 bumped 55 → 60 after R12-API-1 wired 4 more list endpoints
 
 
 def test_paginated_envelope_coverage_meets_minimum(openapi_schema: dict) -> None:

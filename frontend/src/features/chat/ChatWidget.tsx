@@ -9,7 +9,19 @@ const VISITOR_ID_KEY = 'chat-visitor-id';
 const SESSION_ID_KEY = 'chat-session-id';
 const POLL_INTERVAL_MS = 5_000;
 
+// Round-12 R12-FE-1 — SSR guard. ChatWidget is mounted in the app
+// shell, so any module-load or initial-render read of `localStorage`
+// crashes on Node-side renders. Each helper is a safe no-op (or
+// fallback) when no DOM is available; the real value is hydrated
+// client-side after mount.
+const HAS_STORAGE =
+  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
 function getOrCreateVisitorId(): string {
+  if (!HAS_STORAGE) {
+    // SSR placeholder — replaced client-side after hydration.
+    return 'visitor-ssr';
+  }
   const stored = localStorage.getItem(VISITOR_ID_KEY);
   if (stored) return stored;
   const generated = `visitor-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -18,11 +30,13 @@ function getOrCreateVisitorId(): string {
 }
 
 function getStoredSessionId(): number | null {
+  if (!HAS_STORAGE) return null;
   const stored = localStorage.getItem(SESSION_ID_KEY);
   return stored ? Number(stored) : null;
 }
 
 function storeSessionId(id: number) {
+  if (!HAS_STORAGE) return;
   localStorage.setItem(SESSION_ID_KEY, String(id));
 }
 

@@ -80,7 +80,11 @@ export default function SettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: (payload: SettingsData) =>
-      settingsApi.updateSettings(payload as unknown as Record<string, unknown>),
+      // Round-12 R12-FE-4 — drop the `as unknown as` escape hatch.
+      // SettingsData is a primitive-only struct and the spread
+      // satisfies Record<string, unknown> structurally; no type
+      // double-cast required.
+      settingsApi.updateSettings({ ...payload }),
     onSuccess: () => {
       toast.success(t('settings.toast_saved'));
       queryClient.invalidateQueries({ queryKey: ['settings'] });

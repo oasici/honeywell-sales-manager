@@ -12,6 +12,7 @@ from app.core.dependencies import require_role
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.product_rule_service import ProductRuleService
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/product-rules", tags=["Product Rules"])
 
@@ -43,7 +44,7 @@ class ProductRuleEvaluateItem(BaseModel):
 
 # ── Endpoints ──
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_product_rules(
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -52,8 +53,15 @@ async def list_product_rules(
     """List all product rules."""
     service = ProductRuleService(db)
     rules = await service.list_rules()
+    items = [_rule_to_dict(r) for r in rules]
+    total = len(items)
+    # Round-12 R12-API-1 — canonical pagination envelope.
     return {
-        "items": [_rule_to_dict(r) for r in rules],
+        "items": items,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
     }
 
 

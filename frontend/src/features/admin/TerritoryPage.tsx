@@ -133,6 +133,7 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<TerritoryFormData>({ resolver: zodResolver(territorySchema) });
 
@@ -147,6 +148,9 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
     onSuccess: () => {
       toast.success('Bölge oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['territories-tree'] });
+      // Round-12 R12-FE-5 — reset the form before close so re-opening
+      // the modal doesn't show stale state from the last submission.
+      reset();
       onClose();
     },
     onError: () => toast.error('Bölge oluşturulamadı'),

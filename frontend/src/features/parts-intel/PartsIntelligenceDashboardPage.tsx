@@ -10,6 +10,14 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { v10PartsIntelApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 
+// Round-12 R12-FE-3 — fix the hardcoded 'USD' calls scattered through
+// the dashboard. The parts-intel backend payloads don't carry an
+// explicit currency field; the deployment is single-currency TRY by
+// project convention. Centralising the constant here makes it
+// trivial to swap (or to thread through a settings hook later) when
+// multi-currency support lands.
+const DEPLOYMENT_CURRENCY = 'TRY';
+
 interface SummaryPayload {
   generated_at: string;
   tier_counts: { A: number; B: number; C: number };
@@ -165,7 +173,7 @@ function InflationTaxPanel() {
       ) : (
         <>
           <p className="text-3xl font-bold tabular-nums text-slate-900 dark:text-white">
-            {formatCurrency(q.data.value, 'USD')}
+            {formatCurrency(q.data.value, DEPLOYMENT_CURRENCY)}
           </p>
           <p className="mt-0.5 text-[11px] text-slate-500">
             12 aylık fiyat sürüklenmesinden kaynaklanan tahmini açık teklif maruziyeti.
@@ -179,7 +187,7 @@ function InflationTaxPanel() {
                   </span>
                   <span className="tabular-nums text-slate-500">
                     {d.drift_pct != null && `Δ %${d.drift_pct.toFixed(1)} · `}
-                    {d.exposure != null && formatCurrency(d.exposure, 'USD')}
+                    {d.exposure != null && formatCurrency(d.exposure, DEPLOYMENT_CURRENCY)}
                   </span>
                 </li>
               ))}
@@ -323,7 +331,7 @@ export default function PartsIntelligenceDashboardPage() {
           ) : (
             <>
               <p className="text-2xl font-bold text-honeywell-red">
-                {formatCurrency(summaryQuery.data?.frozen_capital_total ?? 0, 'USD')}
+                {formatCurrency(summaryQuery.data?.frozen_capital_total ?? 0, DEPLOYMENT_CURRENCY)}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 {summaryQuery.data?.dead_stock_count ?? 0} hareketsiz parça
@@ -404,7 +412,7 @@ export default function PartsIntelligenceDashboardPage() {
                         className="text-sm font-mono tabular-nums text-honeywell-red"
                         title="Birim başına tedarikçi fiyatı — V10 envanter sayısı tutmuyor, gerçek toplam donmuş sermaye için stok adediyle çarpın."
                       >
-                        {formatCurrency(r.frozen_capital_estimate, 'USD')}
+                        {formatCurrency(r.frozen_capital_estimate, DEPLOYMENT_CURRENCY)}
                       </span>
                     );
                   },

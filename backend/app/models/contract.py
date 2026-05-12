@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -25,8 +25,12 @@ class Contract(Base):
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
-    start_date = mapped_column(Date, nullable=True)
-    end_date = mapped_column(Date, nullable=True)
+    # Round-12 R12-DB-1 — explicit Mapped[] annotations to match the
+    # convention used everywhere else in this module. SQLAlchemy can't
+    # infer the Python type from `Date` alone for the generic side of
+    # SQLAlchemy 2.0, so without these the ORM-side type is `Any`.
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     # Round-10 R10-DB-CCY — contract value moved to NUMERIC(19, 2).
     value: Mapped[float | None] = mapped_column(
         Numeric(19, 2, asdecimal=False), nullable=True
@@ -71,7 +75,9 @@ class ContractAmendment(Base):
     )
     amendment_type: Mapped[str] = mapped_column(String(50), nullable=False)
     changes_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    effective_date = mapped_column(Date, nullable=True)
+    # Round-12 R12-DB-1 — explicit Mapped[] annotation, matches sibling
+    # date columns on the parent Contract model.
+    effective_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     approved_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True,
     )

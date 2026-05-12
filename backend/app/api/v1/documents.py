@@ -30,9 +30,27 @@ async def share_document(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a shared document with a unique tracking token."""
+    """Create a shared document with a unique tracking token.
+
+    Round-12 R12-AUTH-2 — when a ``quote_id`` is supplied, verify the
+    quote belongs to the caller's tenant before linking. Otherwise a
+    user could attach foreign-tenant quote links to public tracking
+    tokens. The document row inherits the caller's ``tenant_id``.
+    """
+    if body.quote_id is not None:
+        from app.models.quote import Quote
+        from app.services.tenant_context import assert_same_tenant
+
+        quote = (
+            await db.execute(select(Quote).where(Quote.id == body.quote_id))
+        ).scalar_one_or_none()
+        if quote is None:
+            raise NotFoundException("Teklif bulunamadi")
+        assert_same_tenant(quote, current_user, exception_cls=NotFoundException)
+
     tracking_token = uuid.uuid4().hex
     doc = SharedDocument(
+        tenant_id=getattr(current_user, "tenant_id", None),
         quote_id=body.quote_id,
         file_name=body.file_name,
         file_url=body.file_url,
@@ -80,10 +98,15 @@ async def list_documents(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List shared documents for the current user."""
+    """List shared documents for the current user, scoped by tenant."""
+    # Round-12 R12-AUTH-2 — tenant scope alongside user_id.
+    conditions = [SharedDocument.created_by == current_user.id]
+    tenant_id = getattr(current_user, "tenant_id", None)
+    if tenant_id is not None:
+        conditions.append(SharedDocument.tenant_id == tenant_id)
     result = await db.execute(
         select(SharedDocument)
-        .where(SharedDocument.created_by == current_user.id)
+        .where(*conditions)
         .order_by(SharedDocument.created_at.desc())
     )
     docs = result.scalars().all()
@@ -113,13 +136,16 @@ async def get_document_analytics(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return view analytics for a specific document."""
-    result = await db.execute(
-        select(SharedDocument).where(
-            SharedDocument.id == document_id,
-            SharedDocument.created_by == current_user.id,
-        )
-    )
+    """Return view analytics for a specific document, tenant-scoped."""
+    # Round-12 R12-AUTH-2 — tenant scope alongside user_id.
+    conditions = [
+        SharedDocument.id == document_id,
+        SharedDocument.created_by == current_user.id,
+    ]
+    tenant_id = getattr(current_user, "tenant_id", None)
+    if tenant_id is not None:
+        conditions.append(SharedDocument.tenant_id == tenant_id)
+    result = await db.execute(select(SharedDocument).where(*conditions))
     doc = result.scalar_one_or_none()
     if not doc:
         raise NotFoundException("Belge bulunamadi")

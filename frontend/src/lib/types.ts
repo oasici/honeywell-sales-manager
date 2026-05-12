@@ -65,6 +65,12 @@ export interface Customer {
   // R7-TS-5 — `_customer_to_dict` on the detail endpoint augments the
   // payload with a stats block (customers.py:222-227).
   stats?: { total_quotes: number; total_value: number; sent_quotes: number };
+  /** Round-12 R12-TS-1 — preferred quote currency for this customer.
+   * Used by CustomerDetailPage to pick a default `displayCurrency`
+   * before quotes load. Backend emits this on the detail handler;
+   * pre-fix consumers had to `as { currency?: string }` it.
+   */
+  currency?: string | null;
 }
 
 export interface CustomerIntelligenceOpportunityItem {

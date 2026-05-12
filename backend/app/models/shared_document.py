@@ -12,6 +12,12 @@ class SharedDocument(Base):
     __tablename__ = "shared_documents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-12 R12-AUTH-2 — tenant boundary. Pre-fix the only filter on
+    # list/analytics was ``created_by``; since user_id is globally unique
+    # the leak is theoretical today, but adding tenant_id is defense in
+    # depth and lines up with the project-wide convention. Backfilled
+    # from users.tenant_id by 20260518_phase12_tenant_columns.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     quote_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("quotes.id"), nullable=True, index=True
     )

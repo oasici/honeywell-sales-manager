@@ -12,6 +12,14 @@ class EmailTemplate(Base):
     __tablename__ = "email_templates"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Round-12 R12-AUTH-1 — tenant boundary. Pre-fix, `is_shared=True`
+    # templates were globally readable across tenants and detail/PUT/
+    # DELETE only checked `created_by == user_id`, leaving cross-tenant
+    # id-guessing trivial. Backfilled from creator's users.tenant_id by
+    # 20260518_phase12_tenant_columns. Nullable on disk for one deploy
+    # cycle (orphan-created_by safety); a follow-up revision promotes
+    # NOT NULL after stable observation.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     subject: Mapped[str] = mapped_column(String(500), nullable=False)
     body_html: Mapped[str] = mapped_column(Text, nullable=False)

@@ -66,7 +66,16 @@ const LEGACY_KEY_MAP: Record<string, string> = {
   'dash-sections': 'dash-seç',
 };
 
+// Round-12 R12-FE-2 — SSR guard. `loadOrder` is called inside
+// `useState` initializers at first render; without this guard the
+// page crashes during Node-side render (`localStorage is not
+// defined`). Returns the fallback during SSR; the real value
+// hydrates client-side on first effect.
+const HAS_STORAGE =
+  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
 function loadOrder(key: string, fallback: string[]): string[] {
+  if (!HAS_STORAGE) return fallback;
   try {
     const s = localStorage.getItem(key);
     if (s) return JSON.parse(s);
@@ -83,6 +92,15 @@ function loadOrder(key: string, fallback: string[]): string[] {
     return fallback;
   } catch {
     return fallback;
+  }
+}
+
+function safeSaveOrder(key: string, value: string[]): void {
+  if (!HAS_STORAGE) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* storage quota or disabled — drop silently */
   }
 }
 
@@ -166,7 +184,7 @@ export default function DashboardPage() {
         prev.indexOf(active.id as string),
         prev.indexOf(over.id as string),
       );
-      localStorage.setItem('dash-kpi', JSON.stringify(next));
+      safeSaveOrder('dash-kpi', next);
       return next;
     });
   }, []);
@@ -180,7 +198,7 @@ export default function DashboardPage() {
         prev.indexOf(active.id as string),
         prev.indexOf(over.id as string),
       );
-      localStorage.setItem('dash-donut', JSON.stringify(next));
+      safeSaveOrder('dash-donut', next);
       return next;
     });
   }, []);
@@ -194,7 +212,7 @@ export default function DashboardPage() {
         prev.indexOf(active.id as string),
         prev.indexOf(over.id as string),
       );
-      localStorage.setItem('dash-sections', JSON.stringify(next));
+      safeSaveOrder('dash-sections', next);
       return next;
     });
   }, []);

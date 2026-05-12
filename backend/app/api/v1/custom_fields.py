@@ -12,6 +12,7 @@ from app.core.dependencies import require_role
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.custom_field_service import CustomFieldService
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/custom-fields", tags=["Custom Fields"])
 
@@ -45,7 +46,7 @@ class CustomFieldValueSet(BaseModel):
 # ── Endpoints ──
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_custom_fields(
     entity_type: str = "customer",
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -61,7 +62,15 @@ async def list_custom_fields(
 
     service = CustomFieldService(db)
     fields = await service.get_fields(entity_type)
-    return {"items": fields, "total": len(fields)}
+    total = len(fields)
+    # Round-12 R12-API-1 — canonical pagination envelope.
+    return {
+        "items": fields,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/", status_code=201)

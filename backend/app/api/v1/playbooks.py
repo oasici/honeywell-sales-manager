@@ -15,6 +15,7 @@ from app.models.playbook import PlaybookExecution
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.playbook_service import PlaybookService
+from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/playbooks", tags=["Playbooks"])
 
@@ -82,7 +83,7 @@ SEED_TEMPLATES = [
 # ── Endpoints ──
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[dict])
 async def list_playbooks(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -91,7 +92,15 @@ async def list_playbooks(
     """List all playbooks (manager only)."""
     service = PlaybookService(db)
     playbooks = await service.list_playbooks()
-    return {"items": playbooks, "total": len(playbooks)}
+    total = len(playbooks)
+    # Round-12 R12-API-1 — canonical pagination envelope.
+    return {
+        "items": playbooks,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+    }
 
 
 @router.post("/", status_code=201)
