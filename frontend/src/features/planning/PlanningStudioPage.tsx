@@ -19,12 +19,18 @@ export default function PlanningStudioPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<{
+    items?: SavedView[];
+    views?: SavedView[];
+  }>({
     queryKey: ['saved-views'],
     queryFn: () => savedViewsApi.list(),
   });
 
-  const views = data?.views ?? [];
+  // Round-13 R13-API-1 — list endpoint now emits canonical `items`
+  // plus the legacy `views` alias; prefer items so we can drop the
+  // alias once all surfaces migrate.
+  const views = data?.items ?? data?.views ?? [];
 
   const createMutation = useMutation({
     mutationFn: savedViewsApi.create,

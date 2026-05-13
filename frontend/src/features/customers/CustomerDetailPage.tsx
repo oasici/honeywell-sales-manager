@@ -10,6 +10,7 @@ import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { customersApi, quotesApi, customerHealthApi, aiApi, opportunitiesApi } from '../../lib/api';
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
 import {
@@ -106,19 +107,37 @@ export default function CustomerDetailPage() {
     data_classification: '',
   });
 
-  const { data: customer, isLoading } = useQuery<Customer>({
+  // Round-13 R13-FE-2 — surface failure of the primary customer fetch so
+  // operators see a retry affordance instead of a blank "not found" page
+  // when the API errors out (which previously masked downtime).
+  const {
+    data: customer,
+    isLoading,
+    isError: customerIsError,
+    refetch: refetchCustomer,
+  } = useQuery<Customer>({
     queryKey: ['customer', customerId],
     queryFn: () => customersApi.getCustomer(customerId),
     enabled: !!customerId,
   });
 
-  const { data: quotesData, isLoading: quotesLoading } = useQuery<PaginatedResponse<Quote>>({
+  const {
+    data: quotesData,
+    isLoading: quotesLoading,
+    isError: quotesIsError,
+    refetch: refetchQuotes,
+  } = useQuery<PaginatedResponse<Quote>>({
     queryKey: ['customer-quotes', customerId],
     queryFn: () => quotesApi.getQuotes({ customer_id: customerId, page_size: 50 }),
     enabled: !!customerId,
   });
 
-  const { data: healthData, isLoading: healthLoading } = useQuery<CustomerHealthReport>({
+  const {
+    data: healthData,
+    isLoading: healthLoading,
+    isError: healthIsError,
+    refetch: refetchHealth,
+  } = useQuery<CustomerHealthReport>({
     queryKey: ['customer-health', customerId],
     queryFn: () => customerHealthApi.getCustomerHealth(customerId),
     enabled: !!customerId,
@@ -184,7 +203,12 @@ export default function CustomerDetailPage() {
     retry: false,
   });
 
-  const { data: aiChanges, isLoading: aiChangesLoading } = useQuery<AiSummarizeResponse>({
+  const {
+    data: aiChanges,
+    isLoading: aiChangesLoading,
+    isError: aiChangesIsError,
+    refetch: refetchAiChanges,
+  } = useQuery<AiSummarizeResponse>({
     queryKey: ['ai-customer-changes', customerId, 7],
     queryFn: () =>
       aiApi.summarizeChanges({ entity_type: 'customer', entity_id: customerId, days: 7 }),
@@ -232,7 +256,12 @@ export default function CustomerDetailPage() {
     staleTime: 60_000,
   });
 
-  const { data: account360, isLoading: account360Loading } = useQuery<Account360Response>({
+  const {
+    data: account360,
+    isLoading: account360Loading,
+    isError: account360IsError,
+    refetch: refetchAccount360,
+  } = useQuery<Account360Response>({
     queryKey: ['account-360', customerId],
     queryFn: () => customersApi.getAccount360(customerId),
     enabled: !!customerId,
@@ -354,6 +383,17 @@ export default function CustomerDetailPage() {
   }
 
   if (!customer) {
+    // Round-13 R13-FE-2 — distinguish "fetch failed" from "row missing".
+    // A bare not-found page on a backend outage looked like a deleted
+    // customer; the QueryErrorBanner gives the operator a retry button.
+    if (customerIsError) {
+      return (
+        <div>
+          <PageHeader title={t('customer_detail.title')} />
+          <QueryErrorBanner variant="block" onRetry={() => refetchCustomer()} />
+        </div>
+      );
+    }
     return (
       <div>
         <PageHeader title={t('customer_detail.not_found')} />
@@ -826,6 +866,8 @@ export default function CustomerDetailPage() {
         {/* Health Score — hero position */}
         {healthLoading ? (
           <Skeleton variant="card" />
+        ) : healthIsError ? (
+          <QueryErrorBanner onRetry={() => refetchHealth()} />
         ) : healthData ? (
           <HealthScoreCard health={healthData} />
         ) : null}
@@ -839,6 +881,8 @@ export default function CustomerDetailPage() {
         {/* Account 360 — Sprint 3 */}
         {account360Loading ? (
           <Skeleton variant="card" />
+        ) : account360IsError ? (
+          <QueryErrorBanner onRetry={() => refetchAccount360()} />
         ) : account360 ? (
           <Card title={t('account360.title')}>
             <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -1193,6 +1237,8 @@ export default function CustomerDetailPage() {
         >
           {aiChangesLoading ? (
             <Skeleton variant="line" count={3} />
+          ) : aiChangesIsError && changesOpen ? (
+            <QueryErrorBanner onRetry={() => refetchAiChanges()} />
           ) : aiChanges && changesOpen ? (
             <div className="space-y-2">
               <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
@@ -1387,13 +1433,19 @@ export default function CustomerDetailPage() {
 
         {/* Quote History */}
         <Card title={t('customer_detail.quote_history')}>
-          <DataTable
-            columns={quoteColumns}
-            data={quotes}
-            loading={quotesLoading}
-            emptyMessage={t('customer_detail.quotes_empty')}
-            onRowClick={(row) => navigate(`/quotes/${(row as Quote).id}`)}
-          />
+          {quotesIsError ? (
+            <div className="p-4">
+              <QueryErrorBanner onRetry={() => refetchQuotes()} />
+            </div>
+          ) : (
+            <DataTable
+              columns={quoteColumns}
+              data={quotes}
+              loading={quotesLoading}
+              emptyMessage={t('customer_detail.quotes_empty')}
+              onRowClick={(row) => navigate(`/quotes/${(row as Quote).id}`)}
+            />
+          )}
         </Card>
 
         {/* Customer 360 Timeline */}

@@ -196,10 +196,7 @@ function FeatureModulesSection() {
         <div className="max-h-96 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800">
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {entries.map(([name, on]) => (
-              <li
-                key={name}
-                className="flex items-center justify-between px-4 py-2.5"
-              >
+              <li key={name} className="flex items-center justify-between px-4 py-2.5">
                 <span className="font-mono text-[12px] text-slate-700 dark:text-slate-200">
                   {name}
                 </span>
@@ -253,11 +250,19 @@ function DisplaySettingsSection() {
             {t('settings.theme')}
           </label>
           <div className="inline-flex gap-1 rounded-[12px] border border-slate-200 bg-slate-50/80 p-1 dark:border-slate-800 dark:bg-slate-900/40">
-            <button type="button" onClick={() => setTheme('light')} className={segItem(theme === 'light')}>
+            <button
+              type="button"
+              onClick={() => setTheme('light')}
+              className={segItem(theme === 'light')}
+            >
               <Sun size={14} />
               {t('settings.theme_light')}
             </button>
-            <button type="button" onClick={() => setTheme('dark')} className={segItem(theme === 'dark')}>
+            <button
+              type="button"
+              onClick={() => setTheme('dark')}
+              className={segItem(theme === 'dark')}
+            >
               <Moon size={14} />
               {t('settings.theme_dark')}
             </button>
@@ -282,7 +287,6 @@ function DisplaySettingsSection() {
             ))}
           </div>
         </div>
-
       </div>
     </Card>
   );
@@ -775,7 +779,9 @@ function NotificationChannelsSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-slate-500" />
-              <span className="text-sm font-medium text-slate-700">{t('settings.slack_label')}</span>
+              <span className="text-sm font-medium text-slate-700">
+                {t('settings.slack_label')}
+              </span>
             </div>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -814,7 +820,9 @@ function NotificationChannelsSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-slate-500" />
-              <span className="text-sm font-medium text-slate-700">{t('settings.teams_label')}</span>
+              <span className="text-sm font-medium text-slate-700">
+                {t('settings.teams_label')}
+              </span>
             </div>
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${

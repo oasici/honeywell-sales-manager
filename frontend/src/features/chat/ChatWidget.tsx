@@ -14,8 +14,7 @@ const POLL_INTERVAL_MS = 5_000;
 // crashes on Node-side renders. Each helper is a safe no-op (or
 // fallback) when no DOM is available; the real value is hydrated
 // client-side after mount.
-const HAS_STORAGE =
-  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+const HAS_STORAGE = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
 function getOrCreateVisitorId(): string {
   if (!HAS_STORAGE) {
@@ -122,8 +121,7 @@ export function ChatWidget() {
   }
 
   const isLoadingSession = createSessionMutation.isPending;
-  const isEmpty =
-    messages.length === 0 && !isLoadingSession && !hasSessionError;
+  const isEmpty = messages.length === 0 && !isLoadingSession && !hasSessionError;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
@@ -169,9 +167,7 @@ export function ChatWidget() {
             )}
             {hasSessionError && !isLoadingSession && (
               <div className="flex flex-col items-center gap-3 pt-10">
-                <p className="text-center text-[12px] text-red-500">
-                  Bağlantı kurulamadı
-                </p>
+                <p className="text-center text-[12px] text-red-500">Bağlantı kurulamadı</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -200,10 +196,7 @@ export function ChatWidget() {
             {messages.map((msg) => {
               const isVisitor = msg.sender_type === 'visitor';
               return (
-                <div
-                  key={msg.id}
-                  className={`flex ${isVisitor ? 'justify-end' : 'justify-start'}`}
-                >
+                <div key={msg.id} className={`flex ${isVisitor ? 'justify-end' : 'justify-start'}`}>
                   <div
                     className={[
                       'max-w-[78%] rounded-2xl px-3 py-2 text-[13px] leading-5 shadow-(--shadow-xs)',

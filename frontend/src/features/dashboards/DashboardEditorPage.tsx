@@ -249,9 +249,14 @@ export default function DashboardEditorPage() {
   const { data: dashboardData, isLoading } = useQuery<{ data: DashboardConfig }>({
     queryKey: ['dashboards', dashboardId],
     queryFn: () =>
-      dashboardsApi.list().then((res: { data: DashboardConfig[] }) => ({
-        data: res.data.find((d) => d.id === dashboardId)!,
-      })),
+      // Round-13 R13-API-1 — list endpoint now ships canonical `items`
+      // plus legacy `data` alias. Prefer items.
+      dashboardsApi
+        .list()
+        .then((res: { items?: DashboardConfig[]; data?: DashboardConfig[] }) => {
+          const all = res.items ?? res.data ?? [];
+          return { data: all.find((d) => d.id === dashboardId)! };
+        }),
     enabled: !!dashboardId,
   });
 

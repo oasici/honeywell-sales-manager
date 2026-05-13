@@ -71,8 +71,7 @@ const LEGACY_KEY_MAP: Record<string, string> = {
 // page crashes during Node-side render (`localStorage is not
 // defined`). Returns the fallback during SSR; the real value
 // hydrates client-side on first effect.
-const HAS_STORAGE =
-  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+const HAS_STORAGE = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
 function loadOrder(key: string, fallback: string[]): string[] {
   if (!HAS_STORAGE) return fallback;

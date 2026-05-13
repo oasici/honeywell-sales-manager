@@ -98,7 +98,12 @@ async def list_documents(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List shared documents for the current user, scoped by tenant."""
+    """List shared documents for the current user, scoped by tenant.
+
+    Round-13 R13-API-1 — emit the canonical pagination envelope while
+    keeping the legacy ``data`` alias for transitional SPA consumers.
+    New code should consume ``items``.
+    """
     # Round-12 R12-AUTH-2 — tenant scope alongside user_id.
     conditions = [SharedDocument.created_by == current_user.id]
     tenant_id = getattr(current_user, "tenant_id", None)
@@ -110,23 +115,30 @@ async def list_documents(
         .order_by(SharedDocument.created_at.desc())
     )
     docs = result.scalars().all()
+    items = [
+        {
+            "id": d.id,
+            "quote_id": d.quote_id,
+            "file_name": d.file_name,
+            "file_url": d.file_url,
+            "shared_with_email": d.shared_with_email,
+            "tracking_token": d.tracking_token,
+            "views_count": d.views_count,
+            "first_viewed_at": d.first_viewed_at.isoformat() if d.first_viewed_at else None,
+            "last_viewed_at": d.last_viewed_at.isoformat() if d.last_viewed_at else None,
+            "total_view_seconds": d.total_view_seconds,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+        }
+        for d in docs
+    ]
     return {
-        "data": [
-            {
-                "id": d.id,
-                "quote_id": d.quote_id,
-                "file_name": d.file_name,
-                "file_url": d.file_url,
-                "shared_with_email": d.shared_with_email,
-                "tracking_token": d.tracking_token,
-                "views_count": d.views_count,
-                "first_viewed_at": d.first_viewed_at.isoformat() if d.first_viewed_at else None,
-                "last_viewed_at": d.last_viewed_at.isoformat() if d.last_viewed_at else None,
-                "total_view_seconds": d.total_view_seconds,
-                "created_at": d.created_at.isoformat() if d.created_at else None,
-            }
-            for d in docs
-        ]
+        "items": items,
+        "total": len(items),
+        "page": 1,
+        "page_size": len(items) if items else 0,
+        "pages": 1 if items else 0,
+        # Legacy alias.
+        "data": items,
     }
 
 

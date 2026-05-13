@@ -106,8 +106,7 @@ export default function ForecastPage() {
   // the whole layout until at least one retry succeeds.
   const isError =
     hybridQuery.isError || wowQuery.isError || accuracyQuery.isError || teamQuery.isError;
-  const firstError =
-    hybridQuery.error || wowQuery.error || accuracyQuery.error || teamQuery.error;
+  const firstError = hybridQuery.error || wowQuery.error || accuracyQuery.error || teamQuery.error;
   const retryAll = () => {
     hybridQuery.refetch();
     wowQuery.refetch();
@@ -136,14 +135,8 @@ export default function ForecastPage() {
           everything else so the user knows the metrics are stale. */}
       {isError && (
         <div className="flex items-center justify-between rounded-[8px] border border-(--danger)/30 bg-(--danger-bg) px-3 py-2 text-[13px] text-(--danger)">
-          <span>
-            {(firstError as Error | undefined)?.message ?? t('common.error_load_failed')}
-          </span>
-          <button
-            type="button"
-            className="underline-offset-2 hover:underline"
-            onClick={retryAll}
-          >
+          <span>{(firstError as Error | undefined)?.message ?? t('common.error_load_failed')}</span>
+          <button type="button" className="underline-offset-2 hover:underline" onClick={retryAll}>
             {t('common.retry')}
           </button>
         </div>

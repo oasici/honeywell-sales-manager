@@ -11,3 +11,4 @@ export { EmptyState } from './EmptyState';
 export { ErrorBoundary } from './ErrorBoundary';
 export { LoadingSpinner } from './LoadingSpinner';
 export { PageHeader } from './PageHeader';
+export { QueryErrorBanner } from './QueryErrorBanner';

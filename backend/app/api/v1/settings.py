@@ -403,21 +403,25 @@ async def list_api_keys(
         .order_by(ApiKey.created_at.desc())
     )
     keys = result.scalars().all()
-
+    items = [
+        {
+            "id": k.id,
+            "name": k.name,
+            "scopes_json": k.scopes_json,
+            "rate_limit": k.rate_limit,
+            "is_active": k.is_active,
+            "last_used_at": k.last_used_at.isoformat() if k.last_used_at else None,
+            "created_at": k.created_at.isoformat() if k.created_at else None,
+        }
+        for k in keys
+    ]
+    # Round-13 R13-API-1 — full canonical envelope.
     return {
-        "items": [
-            {
-                "id": k.id,
-                "name": k.name,
-                "scopes_json": k.scopes_json,
-                "rate_limit": k.rate_limit,
-                "is_active": k.is_active,
-                "last_used_at": k.last_used_at.isoformat() if k.last_used_at else None,
-                "created_at": k.created_at.isoformat() if k.created_at else None,
-            }
-            for k in keys
-        ],
-        "total": len(keys),
+        "items": items,
+        "total": len(items),
+        "page": 1,
+        "page_size": len(items) if items else 0,
+        "pages": 1 if items else 0,
     }
 
 

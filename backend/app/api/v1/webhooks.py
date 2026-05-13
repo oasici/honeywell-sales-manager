@@ -87,7 +87,13 @@ async def list_webhooks(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Tum webhook aboneliklerini listele."""
+    """Tum webhook aboneliklerini listele.
+
+    Round-13 R13-API-1 — emit the canonical pagination envelope
+    (``items`` / ``total`` / ``page`` / ``page_size`` / ``pages``) while
+    keeping the legacy ``count`` / ``webhooks`` keys so existing SPA
+    consumers do not break in flight. New code should consume ``items``.
+    """
     _check_feature_flag()
 
     stmt = scoped_for_user(
@@ -97,10 +103,17 @@ async def list_webhooks(
     )
     result = await db.execute(stmt.order_by(WebhookSubscription.created_at.desc()))
     subscriptions = result.scalars().all()
+    items = [_subscription_to_dict(s) for s in subscriptions]
 
     return {
-        "count": len(subscriptions),
-        "webhooks": [_subscription_to_dict(s) for s in subscriptions],
+        "items": items,
+        "total": len(items),
+        "page": 1,
+        "page_size": len(items) if items else 0,
+        "pages": 1 if items else 0,
+        # Legacy aliases — drop after SPA migration completes.
+        "count": len(items),
+        "webhooks": items,
     }
 
 

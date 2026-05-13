@@ -21,6 +21,7 @@ import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { formatCurrency, formatDateTime, formatDate } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
@@ -186,12 +187,19 @@ export default function OpportunityDetailPage() {
     [t],
   );
 
-  const { data: intelligence, isLoading: intelligenceLoading } =
-    useQuery<OpportunityIntelligenceResponse>({
-      queryKey: ['opportunity-intelligence', oppId],
-      queryFn: () => opportunitiesApi.getIntelligence(oppId),
-      enabled: !!oppId,
-    });
+  // Round-13 R13-FE-2 — intelligence endpoint feeds opp / health / signals /
+  // tasks all at once, so a failed fetch leaves the entire page blank. Track
+  // isError + refetch and surface QueryErrorBanner instead of "not found".
+  const {
+    data: intelligence,
+    isLoading: intelligenceLoading,
+    isError: intelligenceIsError,
+    refetch: refetchIntelligence,
+  } = useQuery<OpportunityIntelligenceResponse>({
+    queryKey: ['opportunity-intelligence', oppId],
+    queryFn: () => opportunitiesApi.getIntelligence(oppId),
+    enabled: !!oppId,
+  });
 
   const opp = intelligence?.opportunity;
   const dealHealth = intelligence?.health;
@@ -323,15 +331,25 @@ export default function OpportunityDetailPage() {
     enabled: !!oppId,
   });
 
-  // AI queries
-  const { data: aiRisk, isLoading: aiRiskLoading } = useQuery<DealRiskResult>({
+  // AI queries — Round-13 R13-FE-2 surfaces isError so panels can show retry.
+  const {
+    data: aiRisk,
+    isLoading: aiRiskLoading,
+    isError: aiRiskIsError,
+    refetch: refetchAiRisk,
+  } = useQuery<DealRiskResult>({
     queryKey: ['ai-deal-risk', oppId],
     queryFn: () => aiApi.dealRisk(oppId),
     enabled: !!oppId,
     retry: false,
   });
 
-  const { data: aiSummary, isLoading: aiSummaryLoading } = useQuery<AiSummarizeResponse>({
+  const {
+    data: aiSummary,
+    isLoading: aiSummaryLoading,
+    isError: aiSummaryIsError,
+    refetch: refetchAiSummary,
+  } = useQuery<AiSummarizeResponse>({
     queryKey: ['ai-opp-summary', oppId],
     queryFn: () => aiApi.summarize({ entity_type: 'opportunity', entity_id: oppId }),
     enabled: !!oppId,
@@ -349,7 +367,12 @@ export default function OpportunityDetailPage() {
     onError: () => toast.error(t('settings.operation_failed')),
   });
 
-  const { data: aiChanges, isLoading: aiChangesLoading } = useQuery<AiSummarizeResponse>({
+  const {
+    data: aiChanges,
+    isLoading: aiChangesLoading,
+    isError: aiChangesIsError,
+    refetch: refetchAiChanges,
+  } = useQuery<AiSummarizeResponse>({
     queryKey: ['ai-opp-changes', oppId, 7],
     queryFn: () =>
       aiApi.summarizeChanges({ entity_type: 'opportunity', entity_id: oppId, days: 7 }),
@@ -530,6 +553,14 @@ export default function OpportunityDetailPage() {
   }
 
   if (!opp) {
+    // Round-13 R13-FE-2 — distinguish API failure from missing row.
+    if (intelligenceIsError) {
+      return (
+        <div className="py-8">
+          <QueryErrorBanner variant="block" onRetry={() => refetchIntelligence()} />
+        </div>
+      );
+    }
     return <div className="py-16 text-center text-slate-500">{t('opp_detail.not_found')}</div>;
   }
 
@@ -1145,6 +1176,8 @@ export default function OpportunityDetailPage() {
         <Card title={t('opp_detail.ai_risk_title')}>
           {aiRiskLoading ? (
             <Skeleton variant="card" />
+          ) : aiRiskIsError ? (
+            <QueryErrorBanner onRetry={() => refetchAiRisk()} />
           ) : aiRisk ? (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -1761,6 +1794,8 @@ export default function OpportunityDetailPage() {
         >
           {aiSummaryLoading ? (
             <Skeleton variant="card" />
+          ) : aiSummaryIsError && summaryOpen ? (
+            <QueryErrorBanner onRetry={() => refetchAiSummary()} />
           ) : aiSummary && summaryOpen ? (
             <div className="space-y-3">
               <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
@@ -1823,6 +1858,8 @@ export default function OpportunityDetailPage() {
         >
           {aiChangesLoading ? (
             <Skeleton variant="card" />
+          ) : aiChangesIsError && changesOpen ? (
+            <QueryErrorBanner onRetry={() => refetchAiChanges()} />
           ) : aiChanges && changesOpen ? (
             <div className="space-y-3">
               <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">

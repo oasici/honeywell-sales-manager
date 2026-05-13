@@ -197,9 +197,13 @@ export default function DashboardViewerPage() {
   const dashboardQuery = useQuery<{ data: DashboardConfig }>({
     queryKey: ['dashboards', dashboardId],
     queryFn: () =>
-      dashboardsApi.list().then((res: { data: DashboardConfig[] }) => ({
-        data: res.data.find((d) => d.id === dashboardId)!,
-      })),
+      // Round-13 R13-API-1 — prefer canonical `items`; legacy `data` retained.
+      dashboardsApi
+        .list()
+        .then((res: { items?: DashboardConfig[]; data?: DashboardConfig[] }) => {
+          const all = res.items ?? res.data ?? [];
+          return { data: all.find((d) => d.id === dashboardId)! };
+        }),
     enabled: dashboardId > 0,
   });
 

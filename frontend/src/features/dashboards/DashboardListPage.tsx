@@ -183,7 +183,12 @@ export default function DashboardListPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ name: '', widgets_json: '[]', is_default: false });
 
-  const { data, isLoading } = useQuery<{ data: DashboardConfig[] }>({
+  // Round-13 R13-API-1 — list endpoint emits canonical `items` plus
+  // legacy `data` alias; prefer items so the alias can be retired.
+  const { data, isLoading } = useQuery<{
+    items?: DashboardConfig[];
+    data?: DashboardConfig[];
+  }>({
     queryKey: ['dashboards'],
     queryFn: () => dashboardsApi.list(),
   });
@@ -210,7 +215,7 @@ export default function DashboardListPage() {
     onError: () => toast.error('Pano silinemedi'),
   });
 
-  const dashboards = data?.data ?? [];
+  const dashboards = data?.items ?? data?.data ?? [];
 
   return (
     <div>

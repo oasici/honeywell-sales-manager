@@ -250,13 +250,21 @@ export default function WebhookSettings() {
   const [deleteTarget, setDeleteTarget] = useState<WebhookSubscription | null>(null);
   const [form, setForm] = useState<WebhookForm>(INITIAL_FORM);
 
-  const { data, isLoading } = useQuery<{ webhooks: WebhookSubscription[] }>({
+  // Round-13 R13-API-1 — list endpoint now emits the canonical envelope
+  // (`items`) alongside the legacy `webhooks` alias. Prefer items; fall
+  // back through webhooks and the bare-array form for transitional CI.
+  const { data, isLoading } = useQuery<{
+    items?: WebhookSubscription[];
+    webhooks?: WebhookSubscription[];
+  }>({
     queryKey: ['webhooks'],
     queryFn: webhooksApi.list,
   });
 
   const webhooks: WebhookSubscription[] =
-    data?.webhooks ?? (Array.isArray(data) ? (data as WebhookSubscription[]) : []);
+    data?.items ??
+    data?.webhooks ??
+    (Array.isArray(data) ? (data as WebhookSubscription[]) : []);
 
   const createMutation = useMutation({
     mutationFn: () =>

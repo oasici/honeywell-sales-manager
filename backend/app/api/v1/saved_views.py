@@ -35,17 +35,24 @@ async def list_saved_views(
         select(SavedView).where(*conditions).order_by(SavedView.created_at.desc())
     )
     views = result.scalars().all()
+    items = [
+        {
+            "id": v.id,
+            "name": v.name,
+            "route": v.route,
+            "query_json": v.query_json,
+            "created_at": v.created_at.isoformat() if v.created_at else None,
+        }
+        for v in views
+    ]
+    # Round-13 R13-API-1 — canonical envelope + legacy `views` alias.
     return {
-        "views": [
-            {
-                "id": v.id,
-                "name": v.name,
-                "route": v.route,
-                "query_json": v.query_json,
-                "created_at": v.created_at.isoformat() if v.created_at else None,
-            }
-            for v in views
-        ]
+        "items": items,
+        "total": len(items),
+        "page": 1,
+        "page_size": len(items) if items else 0,
+        "pages": 1 if items else 0,
+        "views": items,
     }
 
 

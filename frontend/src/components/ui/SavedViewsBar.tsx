@@ -34,7 +34,10 @@ export function SavedViewsBar({ route, queryJson, onApply }: SavedViewsBarProps)
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [name, setName] = useState('');
 
-  const viewsQuery = useQuery({
+  const viewsQuery = useQuery<{
+    items?: { id: number; name: string; route: string; query_json: string }[];
+    views?: { id: number; name: string; route: string; query_json: string }[];
+  }>({
     queryKey: ['saved-views', route],
     queryFn: () => savedViewsApi.list(),
     staleTime: 60_000,
@@ -58,7 +61,9 @@ export function SavedViewsBar({ route, queryJson, onApply }: SavedViewsBarProps)
     },
   });
 
-  const myViews = (viewsQuery.data?.views ?? []).filter((v) => v.route === route);
+  // Round-13 R13-API-1 — prefer canonical `items`; fall back to legacy `views`.
+  const allViews = viewsQuery.data?.items ?? viewsQuery.data?.views ?? [];
+  const myViews = allViews.filter((v) => v.route === route);
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
