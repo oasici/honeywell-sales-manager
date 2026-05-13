@@ -16,6 +16,7 @@ from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.playbook_service import PlaybookService
 from app.schemas.common import PaginatedResponse
+from app.schemas.playbook import PlaybookResponse
 
 router = APIRouter(prefix="/playbooks", tags=["Playbooks"])
 
@@ -83,7 +84,7 @@ SEED_TEMPLATES = [
 # ── Endpoints ──
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[PlaybookResponse])
 async def list_playbooks(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -103,7 +104,7 @@ async def list_playbooks(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=PlaybookResponse)
 async def create_playbook(
     body: PlaybookCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -289,7 +290,7 @@ async def list_executions(
     return {"items": executions, "total": len(executions)}
 
 
-@router.get("/{playbook_id}")
+@router.get("/{playbook_id}", response_model=PlaybookResponse)
 async def get_playbook(
     playbook_id: int,
     current_user: User = Depends(get_current_user),
@@ -314,7 +315,7 @@ async def get_playbook(
     }
 
 
-@router.put("/{playbook_id}")
+@router.put("/{playbook_id}", response_model=PlaybookResponse)
 async def update_playbook(
     playbook_id: int,
     body: PlaybookUpdate,

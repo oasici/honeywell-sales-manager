@@ -81,7 +81,13 @@ def test_paginated_response_model_declares_canonical_keys(openapi_schema: dict) 
 # Threshold set to 55 so an accidental router-level revert still
 # trips this assertion; an intentional removal lowers the floor in
 # the same PR.
-MIN_TYPED_ENVELOPE_ENDPOINTS = 60  # Round-12 bumped 55 → 60 after R12-API-1 wired 4 more list endpoints
+MIN_TYPED_ENVELOPE_ENDPOINTS = 63  # Round-13 Sprint 6b bumped 60 → 63 after typing 3 more list envelopes (invoices/email_templates/playbooks/sequences carried over to Sprint 6b promotion).
+
+# Round-13 Sprint 6b — second gate for typed item-response endpoints
+# (detail / create / update). These don't use PaginatedResponse but do
+# declare a per-entity ``response_model``. Catches regressions where a
+# refactor strips response_model from item endpoints.
+MIN_TYPED_ITEM_RESPONSE_ENDPOINTS = 30
 
 
 def test_paginated_envelope_coverage_meets_minimum(openapi_schema: dict) -> None:
@@ -109,4 +115,40 @@ def test_paginated_envelope_coverage_meets_minimum(openapi_schema: dict) -> None
     assert count >= MIN_TYPED_ENVELOPE_ENDPOINTS, (
         f"Only {count} endpoints declare PaginatedResponse[…]; "
         f"expected at least {MIN_TYPED_ENVELOPE_ENDPOINTS}."
+    )
+
+
+def test_typed_item_response_coverage_meets_minimum(openapi_schema: dict) -> None:
+    """Round-13 Sprint 6b — at least MIN_TYPED_ITEM_RESPONSE_ENDPOINTS
+    detail/create/update endpoints must declare a per-entity
+    ``response_model`` (matches a component schema ending in
+    ``Response`` that is *not* a PaginatedResponse generic).
+
+    Catches regressions where a router-level refactor strips
+    response_model from item endpoints — distinct from the list
+    envelope gate above.
+    """
+    count = 0
+    for ops in openapi_schema["paths"].values():
+        for op in ops.values():
+            if not isinstance(op, dict):
+                continue
+            for status in ("200", "201"):
+                ref = (
+                    op.get("responses", {})
+                    .get(status, {})
+                    .get("content", {})
+                    .get("application/json", {})
+                    .get("schema", {})
+                    .get("$ref", "")
+                )
+                if not ref:
+                    continue
+                model = ref.rsplit("/", 1)[-1]
+                if model.endswith("Response") and "Paginated" not in model:
+                    count += 1
+                    break  # Don't double-count if 200 + 201 both declared.
+    assert count >= MIN_TYPED_ITEM_RESPONSE_ENDPOINTS, (
+        f"Only {count} item endpoints declare a typed Response model; "
+        f"expected at least {MIN_TYPED_ITEM_RESPONSE_ENDPOINTS}."
     )

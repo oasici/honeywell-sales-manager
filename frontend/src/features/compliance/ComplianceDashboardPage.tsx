@@ -118,10 +118,7 @@ export default function ComplianceDashboardPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Uyumluluk Paneli"
-        description="KVKK ve veri koruma uyumluluk yönetimi"
-      />
+      <PageHeader title="Uyumluluk Paneli" description="KVKK ve veri koruma uyumluluk yönetimi" />
 
       {/* Search */}
       <div className="mb-6 flex items-end gap-3">
@@ -215,9 +212,7 @@ export default function ComplianceDashboardPage() {
       <Card
         title="Saklama Süresi Raporu"
         action={
-          <Badge variant={overdueCount > 0 ? 'danger' : 'success'}>
-            {overdueCount} gecikme
-          </Badge>
+          <Badge variant={overdueCount > 0 ? 'danger' : 'success'}>{overdueCount} gecikme</Badge>
         }
         className="mb-6"
       >

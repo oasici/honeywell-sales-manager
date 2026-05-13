@@ -12,6 +12,7 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.subscription import SubscriptionResponse
 from app.services.subscription_service import SubscriptionService
 
 
@@ -110,7 +111,7 @@ async def mrr_dashboard(
     return await service.get_mrr_dashboard(current_user)
 
 
-@router.get("/renewals", response_model=PaginatedResponse[dict])
+@router.get("/renewals", response_model=PaginatedResponse[SubscriptionResponse])
 async def upcoming_renewals(
     days: int = Query(30, ge=1, le=365),
     page: int = Query(1, ge=1),
@@ -142,7 +143,7 @@ async def upcoming_renewals(
 
 
 # Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[SubscriptionResponse])
 async def list_subscriptions(
     customer_id: int | None = Query(None),
     status: str | None = Query(None),
@@ -170,7 +171,7 @@ async def list_subscriptions(
     }
 
 
-@router.post("/")
+@router.post("/", response_model=SubscriptionResponse)
 async def create_subscription(
     body: SubscriptionCreate,
     current_user: User = Depends(get_current_user),
@@ -182,7 +183,7 @@ async def create_subscription(
     return _serialize(sub)
 
 
-@router.get("/{sub_id}")
+@router.get("/{sub_id}", response_model=SubscriptionResponse)
 async def get_subscription(
     sub_id: int,
     current_user: User = Depends(get_current_user),
@@ -195,7 +196,7 @@ async def get_subscription(
     return _serialize(sub)
 
 
-@router.patch("/{sub_id}")
+@router.patch("/{sub_id}", response_model=SubscriptionResponse)
 async def update_subscription(
     sub_id: int,
     body: SubscriptionUpdate,

@@ -23,6 +23,7 @@ from app.models.invoice import Invoice
 from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
 from app.schemas.common import PaginatedResponse
+from app.schemas.invoice import InvoiceResponse
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
@@ -160,7 +161,9 @@ async def _generate_invoice_number(
 
 
 # Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
-@router.get("/", response_model=PaginatedResponse[dict])
+# Round-13 Sprint 6b — promote dict → InvoiceResponse so the OpenAPI
+# schema documents the per-item shape (extras-tolerant).
+@router.get("/", response_model=PaginatedResponse[InvoiceResponse])
 async def list_invoices(
     page: int = 1,
     page_size: int = 20,
@@ -211,7 +214,7 @@ async def list_invoices(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=InvoiceResponse)
 async def create_invoice(
     body: InvoiceCreate,
     current_user: User = Depends(get_current_user),
@@ -248,7 +251,7 @@ async def create_invoice(
     return _invoice_to_dict(invoice)
 
 
-@router.get("/{invoice_id}")
+@router.get("/{invoice_id}", response_model=InvoiceResponse)
 async def get_invoice(
     invoice_id: int,
     current_user: User = Depends(get_current_user),
@@ -265,7 +268,7 @@ async def get_invoice(
     return _invoice_to_dict(invoice)
 
 
-@router.put("/{invoice_id}")
+@router.put("/{invoice_id}", response_model=InvoiceResponse)
 async def update_invoice(
     invoice_id: int,
     body: InvoiceUpdate,

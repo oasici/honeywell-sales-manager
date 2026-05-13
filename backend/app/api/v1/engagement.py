@@ -30,6 +30,7 @@ from app.models.quote import Quote
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.sequence import SequenceResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Engagement"])
@@ -321,7 +322,7 @@ class SequenceCreate(BaseModel):
     steps: list[dict]  # [{"step":1,"action":"email|task","delay_days":0,"template":"..."}]
 
 
-@router.get("/sequences/", response_model=PaginatedResponse[dict])
+@router.get("/sequences/", response_model=PaginatedResponse[SequenceResponse])
 async def list_sequences(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -364,7 +365,7 @@ async def list_sequences(
     }
 
 
-@router.post("/sequences/", status_code=201)
+@router.post("/sequences/", status_code=201, response_model=SequenceResponse)
 async def create_sequence(
     body: SequenceCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

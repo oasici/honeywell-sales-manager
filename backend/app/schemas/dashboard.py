@@ -3,6 +3,26 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
+class DashboardConfigResponse(BaseModel):
+    """User-customizable dashboard layout (dashboard_builder).
+
+    Round-13 Sprint 6b — separate from ``DashboardStats`` (which serves
+    the analytics surface) and from the existing dashboard_builder
+    handlers' dict shape. ``extra='allow'`` keeps caller-specific
+    extras (e.g. widget count, last-executed timestamps) round-tripping.
+    """
+
+    id: int
+    name: str | None = None
+    owner_id: int | None = None
+    widgets_json: str | None = None
+    is_default: bool | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
 class DashboardStats(BaseModel):
     total_emails: int = 0
     parsed_emails: int = 0

@@ -17,6 +17,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.contract import Contract, ContractAmendment
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.contract import ContractResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 
@@ -110,7 +111,7 @@ def _serialize_contract(c: Contract) -> dict:
 
 
 # Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
-@router.get("/contracts/", response_model=PaginatedResponse[dict])
+@router.get("/contracts/", response_model=PaginatedResponse[ContractResponse])
 async def list_contracts(
     customer_id: int | None = Query(None),
     status: str | None = Query(None),
@@ -160,7 +161,7 @@ async def list_contracts(
     }
 
 
-@router.post("/contracts/", status_code=201)
+@router.post("/contracts/", status_code=201, response_model=ContractResponse)
 async def create_contract(
     body: ContractCreate,
     current_user: User = Depends(get_current_user),
@@ -184,7 +185,7 @@ async def create_contract(
     return _serialize_contract(contract)
 
 
-@router.get("/contracts/expiring", response_model=PaginatedResponse[dict])
+@router.get("/contracts/expiring", response_model=PaginatedResponse[ContractResponse])
 async def expiring_contracts(
     days: int = Query(30, ge=1, le=365),
     page: int = Query(1, ge=1),
@@ -237,7 +238,7 @@ async def expiring_contracts(
     }
 
 
-@router.get("/contracts/{contract_id}")
+@router.get("/contracts/{contract_id}", response_model=ContractResponse)
 async def get_contract(
     contract_id: int,
     current_user: User = Depends(get_current_user),
@@ -251,7 +252,7 @@ async def get_contract(
     return _serialize_contract(contract)
 
 
-@router.put("/contracts/{contract_id}")
+@router.put("/contracts/{contract_id}", response_model=ContractResponse)
 async def update_contract(
     contract_id: int,
     body: ContractUpdate,

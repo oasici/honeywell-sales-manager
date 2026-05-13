@@ -11,6 +11,7 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import ForbiddenException
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.email_template import EmailTemplateResponse
 from app.services.email_template_service import (
     AVAILABLE_VARIABLES,
     EmailTemplateService,
@@ -83,7 +84,7 @@ async def get_available_variables(
     return {"variables": AVAILABLE_VARIABLES}
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[EmailTemplateResponse])
 async def list_email_templates(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -108,7 +109,7 @@ async def list_email_templates(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=EmailTemplateResponse)
 async def create_email_template(
     body: EmailTemplateCreate,
     current_user: User = Depends(get_current_user),
@@ -129,7 +130,7 @@ async def create_email_template(
     return _serialize(template)
 
 
-@router.put("/{template_id}")
+@router.put("/{template_id}", response_model=EmailTemplateResponse)
 async def update_email_template(
     template_id: int,
     body: EmailTemplateUpdate,

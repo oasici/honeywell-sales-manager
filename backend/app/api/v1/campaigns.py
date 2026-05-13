@@ -16,6 +16,7 @@ from app.core.exceptions import NotFoundException
 from app.models.campaign import Campaign, CampaignMember
 from app.models.enums import UserRole
 from app.models.user import User
+from app.schemas.campaign import CampaignResponse
 from app.schemas.common import PaginatedResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
@@ -132,7 +133,7 @@ def _member_to_dict(member: CampaignMember) -> dict:
 
 
 # Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[CampaignResponse])
 async def list_campaigns(
     page: int = 1,
     page_size: int = 20,
@@ -192,7 +193,7 @@ async def list_campaigns(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=CampaignResponse)
 async def create_campaign(
     body: CampaignCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -221,7 +222,7 @@ async def create_campaign(
     }
 
 
-@router.get("/{campaign_id}")
+@router.get("/{campaign_id}", response_model=CampaignResponse)
 async def get_campaign(
     campaign_id: int,
     current_user: User = Depends(get_current_user),
@@ -246,7 +247,7 @@ async def get_campaign(
     return _campaign_to_dict(campaign, member_count)
 
 
-@router.put("/{campaign_id}")
+@router.put("/{campaign_id}", response_model=CampaignResponse)
 async def update_campaign(
     campaign_id: int,
     body: CampaignUpdate,
