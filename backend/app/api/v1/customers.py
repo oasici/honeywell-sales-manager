@@ -179,13 +179,19 @@ async def unpin_customer(
     return {"pinned": False, "customer_id": customer_id}
 
 
-@router.get("/{customer_id}")
+@router.get("/{customer_id}", response_model=CustomerResponse)
 async def get_customer(
     customer_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get customer detail with quote statistics."""
+    """Get customer detail with quote statistics.
+
+    Round-13 Sprint 6a — wires ``response_model=CustomerResponse`` so
+    detail GET shows up in OpenAPI with the same shape as the list
+    endpoint. ``CustomerResponse`` is extras-tolerant (R10-API-6), so
+    the caller-specific ``pinned`` / ``stats`` extras still round-trip.
+    """
     result = await db.execute(
         select(Customer).where(Customer.id == customer_id)
     )
@@ -417,13 +423,17 @@ async def get_account_360(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=CustomerResponse)
 async def create_customer(
     data: CustomerCreate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new customer."""
+    """Create a new customer.
+
+    Round-13 Sprint 6a — response_model added so the 201 surface is
+    typed in OpenAPI; CustomerResponse is extras-tolerant.
+    """
     # Check for duplicate email
     existing = await db.execute(
         select(Customer).where(Customer.email == data.email)
@@ -480,7 +490,7 @@ async def create_customer(
     return _customer_to_dict(customer)
 
 
-@router.put("/{customer_id}")
+@router.put("/{customer_id}", response_model=CustomerResponse)
 async def update_customer(
     customer_id: int,
     data: CustomerUpdate,

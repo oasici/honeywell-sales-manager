@@ -12,6 +12,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { complianceApi, customersApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 import type { ConsentStatus } from '../../lib/types';
 
@@ -28,6 +29,7 @@ interface CustomerOption {
 }
 
 export default function ComplianceDashboardPage() {
+  const t = useT();
   const queryClient = useQueryClient();
 
   const [customerIdInput, setCustomerIdInput] = useState('');
@@ -141,7 +143,7 @@ export default function ComplianceDashboardPage() {
             ))}
           </select>
           {customersQuery.isLoading && (
-            <p className="mt-1 text-[11px] text-slate-500">Müşteriler yükleniyor…</p>
+            <p className="mt-1 text-[11px] text-slate-500">{t('common.loading')}</p>
           )}
         </div>
         <Button onClick={handleSearch} disabled={!customerIdInput}>

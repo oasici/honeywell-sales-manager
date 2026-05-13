@@ -12,6 +12,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { dashboardsApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 import type { DashboardConfig, DashboardExecuteResult } from '../../lib/types';
 
 /**
@@ -68,6 +69,7 @@ interface ViewerWidgetProps {
 }
 
 function ViewerWidget({ widget }: ViewerWidgetProps) {
+  const t = useT();
   const data = widget.data as {
     columns?: string[];
     rows?: Record<string, unknown>[];
@@ -78,7 +80,9 @@ function ViewerWidget({ widget }: ViewerWidgetProps) {
   if (widget.error) {
     return (
       <Card title={widget.title ?? widget.type ?? 'Widget'}>
-        <p className="text-caption text-warning">Hata: {widget.error}</p>
+        <p className="text-caption text-warning">
+          {t('common.error_prefix')}: {widget.error}
+        </p>
       </Card>
     );
   }
@@ -86,7 +90,7 @@ function ViewerWidget({ widget }: ViewerWidgetProps) {
   if (!data) {
     return (
       <Card title={widget.title ?? widget.type ?? 'Widget'}>
-        <p className="text-caption text-slate-400">Veri yok</p>
+        <p className="text-caption text-slate-400">{t('common.no_data')}</p>
       </Card>
     );
   }
@@ -94,8 +98,7 @@ function ViewerWidget({ widget }: ViewerWidgetProps) {
   const widgetType = widget.type ?? 'report';
   const rows = data.rows ?? [];
   // Round-10 R10-FE-13.
-  const columns =
-    data.columns ?? (rows.length > 0 && rows[0] ? Object.keys(rows[0]) : []);
+  const columns = data.columns ?? (rows.length > 0 && rows[0] ? Object.keys(rows[0]) : []);
   const chartData = data.chart_data;
 
   // KPI block
@@ -183,7 +186,7 @@ function ViewerWidget({ widget }: ViewerWidgetProps) {
 
   return (
     <Card title={widget.title ?? 'Widget'}>
-      <p className="text-caption text-slate-400">Veri yok</p>
+      <p className="text-caption text-slate-400">{t('common.no_data')}</p>
     </Card>
   );
 }
@@ -198,12 +201,10 @@ export default function DashboardViewerPage() {
     queryKey: ['dashboards', dashboardId],
     queryFn: () =>
       // Round-13 R13-API-1 — prefer canonical `items`; legacy `data` retained.
-      dashboardsApi
-        .list()
-        .then((res: { items?: DashboardConfig[]; data?: DashboardConfig[] }) => {
-          const all = res.items ?? res.data ?? [];
-          return { data: all.find((d) => d.id === dashboardId)! };
-        }),
+      dashboardsApi.list().then((res: { items?: DashboardConfig[]; data?: DashboardConfig[] }) => {
+        const all = res.items ?? res.data ?? [];
+        return { data: all.find((d) => d.id === dashboardId)! };
+      }),
     enabled: dashboardId > 0,
   });
 

@@ -24,6 +24,7 @@ import { Card } from '../../components/ui/Card';
 import { Modal } from '../../components/ui/Modal';
 import type { Territory, TerritoryAssignment, User } from '../../lib/types';
 import { formatCurrency } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 // ── Schemas ──────────────────────────────────────────
 
@@ -235,6 +236,7 @@ interface AssignModalProps {
 }
 
 function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
+  const t = useT();
   const queryClient = useQueryClient();
   const {
     register,
@@ -265,7 +267,7 @@ function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
               {...register('user_id', { setValueAs: (v) => Number(v) })}
               className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-[13px] text-slate-900 transition-[border-color,box-shadow] duration-150 focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
-              <option value="">Kullanıcı seçin...</option>
+              <option value="">{t('common.select_user')}</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.full_name} ({u.email})

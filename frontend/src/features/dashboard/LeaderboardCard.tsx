@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { leaderboardApi } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
+import { useT } from '../../hooks/useT';
 
 import type { LeaderboardEntry } from '../../lib/types';
 
@@ -28,6 +29,7 @@ const PODIUM_TONE: Array<{ pill: string; numeral: string }> = [
 const TOP_COUNT = 3;
 
 export function LeaderboardCard() {
+  const t = useT();
   const navigate = useNavigate();
   const [metric, setMetric] = useState('revenue');
 
@@ -61,7 +63,7 @@ export function LeaderboardCard() {
       </div>
 
       {topThree.length === 0 ? (
-        <p className="px-5 pb-5 text-[13px] text-slate-400">Henüz veri yok</p>
+        <p className="px-5 pb-5 text-[13px] text-slate-400">{t('common.no_data')}</p>
       ) : (
         <ul className="divide-y divide-slate-100 px-2 dark:divide-slate-800">
           {topThree.map((entry, idx) => {

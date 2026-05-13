@@ -263,26 +263,47 @@ export default function OpportunityDetailPage() {
     onError: () => toast.error(t('opp_detail.meeting_placeholder_fail')),
   });
 
-  const { data: timelineData } = useQuery<{ events: OpportunityEvent[] }>({
+  // Round-13 Sprint 4 — isError + refetch parity on the 8 secondary
+  // panel queries. Each Card under the opportunity now shows a
+  // QueryErrorBanner instead of silently rendering empty when the
+  // backing endpoint fails.
+  const {
+    data: timelineData,
+    isError: timelineIsError,
+    refetch: refetchTimeline,
+  } = useQuery<{ events: OpportunityEvent[] }>({
     queryKey: ['opportunity-timeline', oppId],
     queryFn: () => opportunitiesApi.getTimeline(oppId),
     enabled: !!oppId,
   });
 
-  const { data: activitySummary, isLoading: activitySummaryLoading } = useQuery<ActivitySummary>({
+  const {
+    data: activitySummary,
+    isLoading: activitySummaryLoading,
+    isError: activitySummaryIsError,
+    refetch: refetchActivitySummary,
+  } = useQuery<ActivitySummary>({
     queryKey: ['activity-summary', oppId],
     queryFn: () => opportunitiesApi.getActivitySummary(oppId),
     enabled: !!oppId,
   });
 
-  const { data: v4LatestFeatures } = useQuery<OpportunityFeaturesDailyLatest | null>({
+  const {
+    data: v4LatestFeatures,
+    isError: v4LatestIsError,
+    refetch: refetchV4Latest,
+  } = useQuery<OpportunityFeaturesDailyLatest | null>({
     queryKey: ['v4-opp-features-latest', oppId],
     queryFn: () => v4Api.getLatestOpportunityFeatures(oppId),
     enabled: !!oppId,
     retry: false,
   });
 
-  const { data: buyerStateTimeline } = useQuery<{
+  const {
+    data: buyerStateTimeline,
+    isError: buyerStateIsError,
+    refetch: refetchBuyerState,
+  } = useQuery<{
     items: Array<{ snapshot_date: string; state: string; confidence: number; drivers: unknown[] }>;
     total: number;
   }>({
@@ -292,7 +313,11 @@ export default function OpportunityDetailPage() {
     retry: false,
   });
 
-  const { data: decisionGaps } = useQuery<{
+  const {
+    data: decisionGaps,
+    isError: decisionGapsIsError,
+    refetch: refetchDecisionGaps,
+  } = useQuery<{
     opportunity_id: number;
     items: Array<{
       id: number;
@@ -308,7 +333,11 @@ export default function OpportunityDetailPage() {
     retry: false,
   });
 
-  const { data: benchmarkGap } = useQuery<{
+  const {
+    data: benchmarkGap,
+    isError: benchmarkGapIsError,
+    refetch: refetchBenchmarkGap,
+  } = useQuery<{
     data: null | {
       segment_key: string;
       snapshot_date: string;
@@ -323,7 +352,12 @@ export default function OpportunityDetailPage() {
     retry: false,
   });
 
-  const { data: adjustmentsData, isLoading: adjLoading } = useQuery<{
+  const {
+    data: adjustmentsData,
+    isLoading: adjLoading,
+    isError: adjIsError,
+    refetch: refetchAdjustments,
+  } = useQuery<{
     adjustments: ForecastAdjustment[];
   }>({
     queryKey: ['forecast-adjustments', oppId],
@@ -397,7 +431,14 @@ export default function OpportunityDetailPage() {
   });
 
   // R6-PAGE-1 — accept canonical {items} alongside legacy {deal_rooms}.
-  const { data: dealRoomsData, isLoading: dealRoomsLoading } = useQuery<{
+  // Round-13 Sprint 4 adds isError so a backend outage shows a retry
+  // affordance rather than an empty "no deal rooms" card.
+  const {
+    data: dealRoomsData,
+    isLoading: dealRoomsLoading,
+    isError: dealRoomsIsError,
+    refetch: refetchDealRooms,
+  } = useQuery<{
     items?: DealRoom[];
     deal_rooms?: DealRoom[];
   }>({
@@ -1022,7 +1063,9 @@ export default function OpportunityDetailPage() {
         {/* Right: Timeline */}
         <div>
           <Card title={t('opp_detail.timeline')}>
-            {events.length === 0 ? (
+            {timelineIsError ? (
+              <QueryErrorBanner onRetry={() => refetchTimeline()} />
+            ) : events.length === 0 ? (
               <p className="py-8 text-center text-sm text-slate-400">
                 {t('opp_detail.timeline_empty')}
               </p>
@@ -1429,7 +1472,9 @@ export default function OpportunityDetailPage() {
 
         {/* V4 Momentum */}
         <Card title={t('opp_detail.momentum')}>
-          {!v4LatestFeatures?.momentum_score ? (
+          {v4LatestIsError ? (
+            <QueryErrorBanner onRetry={() => refetchV4Latest()} />
+          ) : !v4LatestFeatures?.momentum_score ? (
             <p className="py-6 text-center text-sm text-slate-400">
               {t('opp_detail.momentum_empty')}
             </p>
@@ -1489,7 +1534,9 @@ export default function OpportunityDetailPage() {
 
         {/* Buyer State Timeline */}
         <Card title={t('opp_detail.buyer_state')}>
-          {buyerStateTimeline?.items?.length ? (
+          {buyerStateIsError ? (
+            <QueryErrorBanner onRetry={() => refetchBuyerState()} />
+          ) : buyerStateTimeline?.items?.length ? (
             <div className="space-y-2">
               {buyerStateTimeline.items.slice(0, 10).map((it) => {
                 // `drivers[]` is the *reason* the buyer was classified
@@ -1554,7 +1601,9 @@ export default function OpportunityDetailPage() {
 
         {/* Decision Gaps */}
         <Card title={t('opp_detail.decision_gaps')}>
-          {decisionGaps?.items?.length ? (
+          {decisionGapsIsError ? (
+            <QueryErrorBanner onRetry={() => refetchDecisionGaps()} />
+          ) : decisionGaps?.items?.length ? (
             <div className="space-y-2">
               {decisionGaps.items.slice(0, 8).map((g) => (
                 <div
@@ -1600,7 +1649,9 @@ export default function OpportunityDetailPage() {
 
         {/* Segment Benchmark Gap */}
         <Card title={t('opp_detail.benchmark_gap_title')}>
-          {benchmarkGap?.data ? (
+          {benchmarkGapIsError ? (
+            <QueryErrorBanner onRetry={() => refetchBenchmarkGap()} />
+          ) : benchmarkGap?.data ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Badge
@@ -1975,6 +2026,8 @@ export default function OpportunityDetailPage() {
         <Card title={t('opp_detail.forecast_adj')}>
           {adjLoading ? (
             <Skeleton variant="card" />
+          ) : adjIsError ? (
+            <QueryErrorBanner onRetry={() => refetchAdjustments()} />
           ) : (
             <div className="space-y-6">
               {/* History table */}
@@ -2114,6 +2167,8 @@ export default function OpportunityDetailPage() {
         <Card title={t('opp_detail.activity_summary')}>
           {activitySummaryLoading ? (
             <Skeleton variant="card" />
+          ) : activitySummaryIsError ? (
+            <QueryErrorBanner onRetry={() => refetchActivitySummary()} />
           ) : activitySummary ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
               <div>
@@ -2171,6 +2226,8 @@ export default function OpportunityDetailPage() {
         <Card title={t('opp_detail.deal_room_title')}>
           {dealRoomsLoading ? (
             <Skeleton variant="card" />
+          ) : dealRoomsIsError ? (
+            <QueryErrorBanner onRetry={() => refetchDealRooms()} />
           ) : oppDealRooms.length > 0 ? (
             <div className="space-y-2">
               {oppDealRooms.map((room) => (

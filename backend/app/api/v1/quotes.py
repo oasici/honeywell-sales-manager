@@ -77,13 +77,17 @@ async def list_quotes(
     }
 
 
-@router.get("/{quote_id}")
+@router.get("/{quote_id}", response_model=QuoteResponse)
 async def get_quote(
     quote_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get quote detail with items. Non-managers can only see their own quotes."""
+    """Get quote detail with items. Non-managers can only see their own quotes.
+
+    Round-13 Sprint 6a — response_model wired. QuoteResponse is
+    extras-tolerant so per-item joins (e.g. ``items``) round-trip.
+    """
     result = await db.execute(
         select(Quote).where(Quote.id == quote_id)
     )
@@ -99,7 +103,7 @@ async def get_quote(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=QuoteResponse)
 async def create_quote(
     data: QuoteCreate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -241,7 +245,7 @@ async def create_quote_from_email(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.put("/{quote_id}")
+@router.put("/{quote_id}", response_model=QuoteResponse)
 async def update_quote(
     quote_id: int,
     data: QuoteUpdate,

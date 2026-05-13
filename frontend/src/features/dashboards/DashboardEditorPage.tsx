@@ -13,6 +13,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { dashboardsApi, reportsApi } from '../../lib/api';
+import { useT } from '../../hooks/useT';
 import type { DashboardConfig, DashboardExecuteResult, ReportTemplate } from '../../lib/types';
 
 const CHART_COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -58,6 +59,7 @@ function extractWidgetItems(data: unknown): { label: string; value: number }[] {
 
 /* ── Funnel Widget ── */
 function FunnelWidget({ data }: { data: unknown }) {
+  const t = useT();
   const stages = extractWidgetItems(data);
   const maxVal = stages.reduce((m, s) => Math.max(m, s.value), 1);
   return (
@@ -72,7 +74,7 @@ function FunnelWidget({ data }: { data: unknown }) {
           <span className="text-xs font-medium text-slate-700">{stage.value}</span>
         </div>
       ))}
-      {stages.length === 0 && <p className="text-xs text-slate-400">Veri yok</p>}
+      {stages.length === 0 && <p className="text-xs text-slate-400">{t('common.no_data')}</p>}
     </div>
   );
 }
@@ -112,6 +114,7 @@ function GaugeWidget({ data }: { data: unknown }) {
 
 /* ── Leaderboard Widget ── */
 function LeaderboardWidget({ data }: { data: unknown }) {
+  const t = useT();
   const items = extractWidgetItems(data);
   const rows = items.map((i) => ({ name: i.label, value: i.value }));
   const sorted = [...rows].sort((a, b) => b.value - a.value).slice(0, 10);
@@ -129,13 +132,14 @@ function LeaderboardWidget({ data }: { data: unknown }) {
           <span className="text-sm font-semibold text-slate-800">{row.value}</span>
         </div>
       ))}
-      {sorted.length === 0 && <p className="text-xs text-slate-400">Veri yok</p>}
+      {sorted.length === 0 && <p className="text-xs text-slate-400">{t('common.no_data')}</p>}
     </div>
   );
 }
 
 /* ── Report/Chart/KPI Widget ── */
 function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: string }) {
+  const t = useT();
   const reportData = data as {
     columns?: string[];
     rows?: Record<string, unknown>[];
@@ -143,14 +147,13 @@ function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: str
     total?: number;
   } | null;
 
-  if (!reportData) return <p className="text-xs text-slate-400">Veri yok</p>;
+  if (!reportData) return <p className="text-xs text-slate-400">{t('common.no_data')}</p>;
 
   const rows = reportData.rows ?? [];
   // Round-10 R10-FE-13 — guarded; `rows[0]` is non-undefined inside the
   // `rows.length > 0` branch but the type checker still narrows to
   // `Record<string, unknown> | undefined`.
-  const columns =
-    reportData.columns ?? (rows.length > 0 && rows[0] ? Object.keys(rows[0]) : []);
+  const columns = reportData.columns ?? (rows.length > 0 && rows[0] ? Object.keys(rows[0]) : []);
   const chartData = reportData.chart_data;
 
   // KPI: show summary numbers
@@ -230,7 +233,7 @@ function ReportDataWidget({ data, widgetType }: { data: unknown; widgetType: str
     );
   }
 
-  return <p className="text-xs text-slate-400">Veri yok</p>;
+  return <p className="text-xs text-slate-400">{t('common.no_data')}</p>;
 }
 
 interface WidgetDef {
@@ -251,12 +254,10 @@ export default function DashboardEditorPage() {
     queryFn: () =>
       // Round-13 R13-API-1 — list endpoint now ships canonical `items`
       // plus legacy `data` alias. Prefer items.
-      dashboardsApi
-        .list()
-        .then((res: { items?: DashboardConfig[]; data?: DashboardConfig[] }) => {
-          const all = res.items ?? res.data ?? [];
-          return { data: all.find((d) => d.id === dashboardId)! };
-        }),
+      dashboardsApi.list().then((res: { items?: DashboardConfig[]; data?: DashboardConfig[] }) => {
+        const all = res.items ?? res.data ?? [];
+        return { data: all.find((d) => d.id === dashboardId)! };
+      }),
     enabled: !!dashboardId,
   });
 

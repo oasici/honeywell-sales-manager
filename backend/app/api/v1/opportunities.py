@@ -358,14 +358,19 @@ async def pipeline_inspection(
     }
 
 
-@router.get("/opportunities/{opp_id}")
+@router.get("/opportunities/{opp_id}", response_model=OpportunityResponse)
 async def get_opportunity(
     opp_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v2_board),
 ):
-    """Get opportunity detail with quotes and computed fields."""
+    """Get opportunity detail with quotes and computed fields.
+
+    Round-13 Sprint 6a — response_model wired. OpportunityResponse is
+    extras-tolerant so per-item joins (``quotes``, ``customer``, etc.)
+    round-trip.
+    """
     result = await db.execute(
         select(Opportunity)
         .options(selectinload(Opportunity.quotes))
@@ -547,7 +552,7 @@ async def get_stage_requirements(
     return {"data": stages}
 
 
-@router.post("/opportunities/", status_code=201)
+@router.post("/opportunities/", status_code=201, response_model=OpportunityResponse)
 async def create_opportunity(
     body: OpportunityCreate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -594,7 +599,7 @@ async def create_opportunity(
     return _opp_to_dict(opp, last_activity_at=last_by_opp.get(int(opp.id)))
 
 
-@router.patch("/opportunities/{opp_id}")
+@router.patch("/opportunities/{opp_id}", response_model=OpportunityResponse)
 async def update_opportunity(
     opp_id: int,
     body: OpportunityUpdate,

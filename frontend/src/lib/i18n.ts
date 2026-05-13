@@ -257,6 +257,10 @@ const translations = {
     'common.download_pdf': 'PDF İndir',
     'common.share_link': 'Paylaşım Linki',
     'common.status': 'Durum',
+    // Round-13 Sprint 5 — extracted hardcoded strings.
+    'common.no_data': 'Henüz veri yok',
+    'common.select_user': 'Kullanıcı seçin...',
+    'common.error_prefix': 'Hata',
 
     // Notifications
     'notifications.title': 'Bildirimler',
@@ -995,6 +999,7 @@ const translations = {
     'customers.card_quotes_not_found': 'Teklif bulunamadı',
     'customers.card_more': '+{count} daha',
 
+    'customer_detail.title': 'Müşteri Detayı',
     'customer_detail.not_found': 'Müşteri bulunamadı',
     'customer_detail.back': 'Geri',
     'customer_detail.edit': 'Düzenle',
@@ -2597,6 +2602,9 @@ const translations = {
     'common.download_pdf': 'Download PDF',
     'common.share_link': 'Share link',
     'common.status': 'Status',
+    'common.no_data': 'No data yet',
+    'common.select_user': 'Select user...',
+    'common.error_prefix': 'Error',
 
     'notifications.title': 'Notifications',
     'notifications.mark_all_read': 'Mark all read',
@@ -3326,6 +3334,7 @@ const translations = {
     'customers.card_quotes_not_found': 'No quotes found',
     'customers.card_more': '+{count} more',
 
+    'customer_detail.title': 'Customer detail',
     'customer_detail.not_found': 'Customer not found',
     'customer_detail.back': 'Back',
     'customer_detail.edit': 'Edit',
@@ -4685,21 +4694,24 @@ const translations = {
     'planning.open_board': 'Open board',
     'planning.delete': 'Delete',
     'planning.rules_title': 'Rule shortcuts',
-    'planning.rules_hint': 'Staleness and tasks are filtered server-side; deal-health risk is applied client-side on the board.',
+    'planning.rules_hint':
+      'Staleness and tasks are filtered server-side; deal-health risk is applied client-side on the board.',
     'planning.preset_at_risk': 'At risk (deal health)',
     'planning.preset_high_risk': 'High risk (deal health)',
     'planning.preset_stale10': 'No activity for 10+ days',
     'planning.preset_tasks': 'Open tasks ≥ 1',
     'planning.save_high_risk': 'Save high-risk filter',
     'planning.save_stale10': 'Save stale filter',
-    'planning.deal_health_note': 'The risk column comes from the Revenue Cockpit deal-health summary; cards may be empty if the API is unavailable.',
+    'planning.deal_health_note':
+      'The risk column comes from the Revenue Cockpit deal-health summary; cards may be empty if the API is unavailable.',
     'planning.segments_title': 'Segment builder',
     'planning.segments_hint': 'Define account or behavioural segments and map them to sequences.',
     'planning.link_segments': 'Go to segments',
     'planning.toast_saved': 'View saved',
     'planning.toast_deleted': 'View deleted',
     'settings.modules_title': 'Server modules (read-only)',
-    'settings.modules_subtitle': 'Feature flags are managed via the environment (.env); only status is shown here.',
+    'settings.modules_subtitle':
+      'Feature flags are managed via the environment (.env); only status is shown here.',
 
     'auth.footer': '© 2026 Honeywell Sales Suite. All rights reserved.',
   },

@@ -262,9 +262,7 @@ export default function WebhookSettings() {
   });
 
   const webhooks: WebhookSubscription[] =
-    data?.items ??
-    data?.webhooks ??
-    (Array.isArray(data) ? (data as WebhookSubscription[]) : []);
+    data?.items ?? data?.webhooks ?? (Array.isArray(data) ? (data as WebhookSubscription[]) : []);
 
   const createMutation = useMutation({
     mutationFn: () =>

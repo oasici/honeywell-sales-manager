@@ -20,6 +20,7 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { analyticsApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 import type { TopPart, TrendData } from '../../lib/types';
 
 interface PeriodOption {
@@ -90,6 +91,7 @@ function SectionCard({
 }
 
 export default function ReportsPage() {
+  const t = useT();
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
 
   const { data: trendData, isLoading: isTrendLoading } = useQuery<TrendData[]>({
@@ -174,7 +176,7 @@ export default function ReportsPage() {
         <SectionCard title="Aylık Teklif & Gelir Trendi">
           {isTrendLoading ? (
             <div className="flex h-[300px] items-center justify-center">
-              <p className="text-[13px] text-slate-400">Yükleniyor...</p>
+              <p className="text-[13px] text-slate-400">{t('common.loading')}</p>
             </div>
           ) : trendChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -226,7 +228,7 @@ export default function ReportsPage() {
         <SectionCard title="Kategori Dağılımı">
           {isCategoryLoading ? (
             <div className="flex h-[300px] items-center justify-center">
-              <p className="text-[13px] text-slate-400">Yükleniyor...</p>
+              <p className="text-[13px] text-slate-400">{t('common.loading')}</p>
             </div>
           ) : categoryData && categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -279,7 +281,7 @@ export default function ReportsPage() {
         <div className="print-page-break" />
         <SectionCard title="En Çok Talep Edilen Parçalar">
           {isTopPartsLoading ? (
-            <p className="py-8 text-center text-[13px] text-slate-400">Yükleniyor...</p>
+            <p className="py-8 text-center text-[13px] text-slate-400">{t('common.loading')}</p>
           ) : topParts && topParts.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -342,7 +344,7 @@ export default function ReportsPage() {
         {/* Section 4: Parts Without Price */}
         <SectionCard title="Fiyatsız Parçalar">
           {isNoPriceLoading ? (
-            <p className="py-8 text-center text-[13px] text-slate-400">Yükleniyor...</p>
+            <p className="py-8 text-center text-[13px] text-slate-400">{t('common.loading')}</p>
           ) : noPriceParts && noPriceParts.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left">

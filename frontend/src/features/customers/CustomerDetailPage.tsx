@@ -143,7 +143,13 @@ export default function CustomerDetailPage() {
     enabled: !!customerId,
   });
 
-  const { data: timelineData } = useQuery<{
+  // Round-13 Sprint 4 — surface isError on the secondary detail panels
+  // so a backend outage doesn't render as an empty timeline/activity card.
+  const {
+    data: timelineData,
+    isError: timelineIsError,
+    refetch: refetchTimeline,
+  } = useQuery<{
     events: {
       type: string;
       id: number;
@@ -158,7 +164,11 @@ export default function CustomerDetailPage() {
     enabled: !!customerId,
   });
 
-  const { data: activityData } = useQuery<{
+  const {
+    data: activityData,
+    isError: activityIsError,
+    refetch: refetchActivity,
+  } = useQuery<{
     activities: {
       id: number;
       activity_type: string;
@@ -173,7 +183,11 @@ export default function CustomerDetailPage() {
     enabled: !!customerId,
   });
 
-  const { data: hierarchy } = useQuery<{
+  const {
+    data: hierarchy,
+    isError: hierarchyIsError,
+    refetch: refetchHierarchy,
+  } = useQuery<{
     customer_id: number;
     parents: { id: number; name: string; company: string }[];
     subsidiaries: { id: number; name: string; company: string }[];
@@ -195,8 +209,13 @@ export default function CustomerDetailPage() {
     enabled: !!customerId && (hierarchy?.subsidiaries?.length ?? 0) > 0,
   });
 
-  // AI Summary
-  const { data: aiSummary, isLoading: aiSummaryLoading } = useQuery<AiSummarizeResponse>({
+  // AI Summary — Round-13 Sprint 4 isError parity.
+  const {
+    data: aiSummary,
+    isLoading: aiSummaryLoading,
+    isError: aiSummaryIsError,
+    refetch: refetchAiSummary,
+  } = useQuery<AiSummarizeResponse>({
     queryKey: ['ai-customer-summary', customerId],
     queryFn: () => aiApi.summarize({ entity_type: 'customer', entity_id: customerId }),
     enabled: !!customerId,
@@ -233,7 +252,12 @@ export default function CustomerDetailPage() {
   });
 
   // Churn prediction
-  const { data: churnPrediction, isLoading: churnLoading } = useQuery<{
+  const {
+    data: churnPrediction,
+    isLoading: churnLoading,
+    isError: churnIsError,
+    refetch: refetchChurn,
+  } = useQuery<{
     data: ChurnPredictionResult;
   }>({
     queryKey: ['ai-predict-churn', customerId],
@@ -243,13 +267,21 @@ export default function CustomerDetailPage() {
   });
 
   // Inline opportunities
-  const { data: oppsData } = useQuery<{ items: Opportunity[] }>({
+  const {
+    data: oppsData,
+    isError: oppsIsError,
+    refetch: refetchOpps,
+  } = useQuery<{ items: Opportunity[] }>({
     queryKey: ['customer-opportunities', customerId],
     queryFn: () => opportunitiesApi.list({ customer_id: customerId }),
     enabled: !!customerId,
   });
 
-  const { data: intelligence } = useQuery<CustomerIntelligenceResponse>({
+  const {
+    data: intelligence,
+    isError: intelligenceIsError,
+    refetch: refetchIntelligence,
+  } = useQuery<CustomerIntelligenceResponse>({
     queryKey: ['customer-intelligence', customerId],
     queryFn: () => customersApi.getIntelligence(customerId),
     enabled: !!customerId,
@@ -1084,6 +1116,11 @@ export default function CustomerDetailPage() {
         ) : null}
 
         {/* Account Intelligence (v2) */}
+        {intelligenceIsError && (
+          <Card title={t('customer_detail.account_intelligence')}>
+            <QueryErrorBanner onRetry={() => refetchIntelligence()} />
+          </Card>
+        )}
         {intelligence && (
           <Card title={t('customer_detail.account_intelligence')}>
             <div className="grid grid-cols-2 gap-3">
@@ -1178,6 +1215,8 @@ export default function CustomerDetailPage() {
         <Card title={t('customer_detail.ai_summary_title')}>
           {aiSummaryLoading ? (
             <Skeleton variant="line" count={3} />
+          ) : aiSummaryIsError ? (
+            <QueryErrorBanner onRetry={() => refetchAiSummary()} />
           ) : aiSummary ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
@@ -1274,6 +1313,8 @@ export default function CustomerDetailPage() {
         <Card title={t('customer_detail.churn_title')}>
           {churnLoading ? (
             <Skeleton variant="line" count={3} />
+          ) : churnIsError ? (
+            <QueryErrorBanner onRetry={() => refetchChurn()} />
           ) : churnPrediction?.data ? (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -1357,6 +1398,11 @@ export default function CustomerDetailPage() {
         </Card>
 
         {/* Inline Opportunities */}
+        {oppsIsError && (
+          <Card title={t('customer_detail.opps_title').replace('{count}', '0')}>
+            <QueryErrorBanner onRetry={() => refetchOpps()} />
+          </Card>
+        )}
         {oppsData?.items && oppsData.items.length > 0 && (
           <Card
             title={t('customer_detail.opps_title').replace(
@@ -1450,7 +1496,11 @@ export default function CustomerDetailPage() {
 
         {/* Customer 360 Timeline */}
         <Card title={t('customer_detail.timeline_card_title')}>
-          {timelineData?.events && timelineData.events.length > 0 ? (
+          {timelineIsError ? (
+            <div className="p-3">
+              <QueryErrorBanner onRetry={() => refetchTimeline()} />
+            </div>
+          ) : timelineData?.events && timelineData.events.length > 0 ? (
             <div className="space-y-0 p-2">
               {timelineData.events.map((event, idx) => (
                 <div key={`${event.type}-${event.id}`} className="relative flex gap-3 pb-4">
@@ -1502,6 +1552,13 @@ export default function CustomerDetailPage() {
         </Card>
 
         {/* Activity Auto-Log Timeline */}
+        {activityIsError && (
+          <Card title={t('customer_detail.activity_auto_title')}>
+            <div className="p-3">
+              <QueryErrorBanner onRetry={() => refetchActivity()} />
+            </div>
+          </Card>
+        )}
         {activityData?.activities && activityData.activities.length > 0 && (
           <Card title={t('customer_detail.activity_auto_title')}>
             <div className="space-y-0 p-2">
@@ -1546,6 +1603,17 @@ export default function CustomerDetailPage() {
         )}
 
         {/* Account Hierarchy */}
+        {hierarchyIsError && (
+          <Card>
+            <div className="p-4">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                <Building2 size={16} />
+                {t('customer_detail.account_hierarchy')}
+              </h3>
+              <QueryErrorBanner onRetry={() => refetchHierarchy()} />
+            </div>
+          </Card>
+        )}
         {hierarchy && (hierarchy.parents.length > 0 || hierarchy.subsidiaries.length > 0) && (
           <Card>
             <div className="p-4">

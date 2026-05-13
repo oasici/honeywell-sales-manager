@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
 import { auditApi, usersApi } from '../../lib/api';
+import { useT } from '../../hooks/useT';
 
 interface UserSummary {
   id: number;
@@ -50,6 +51,7 @@ function downloadJson(payload: unknown, filename: string): void {
 }
 
 export default function DataExportPage() {
+  const t = useT();
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [exporting, setExporting] = useState(false);
   const [lastExport, setLastExport] = useState<UserDataExport | null>(null);
@@ -63,7 +65,7 @@ export default function DataExportPage() {
   const users = usersData?.items ?? usersData?.users ?? [];
 
   const userOptions = [
-    { value: '', label: 'Kullanıcı seçin...' },
+    { value: '', label: t('common.select_user') },
     ...users.map((u) => ({
       value: String(u.id),
       label: `${u.full_name ?? u.email} (#${u.id})`,
