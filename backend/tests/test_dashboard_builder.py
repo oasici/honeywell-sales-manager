@@ -53,8 +53,10 @@ async def test_list_dashboards(client: AsyncClient, auth_headers: dict):
 
     response = await client.get("/api/v1/dashboards/", headers=auth_headers)
     assert response.status_code == 200
-    data = response.json()["data"]
-    assert len(data) >= 1
+    # Round-13 Sprint 7b — list endpoint now ships the canonical
+    # PaginatedResponse envelope; legacy ``data`` alias dropped.
+    items = response.json()["items"]
+    assert len(items) >= 1
 
 
 @pytest.mark.asyncio

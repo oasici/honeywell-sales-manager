@@ -10,6 +10,8 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
 from app.models.saved_view import SavedView
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
+from app.schemas.shared_document import SavedViewResponse
 
 router = APIRouter(prefix="/saved-views", tags=["Saved Views"])
 
@@ -20,12 +22,17 @@ class SavedViewCreate(BaseModel):
     query_json: str = "{}"
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[SavedViewResponse])
 async def list_saved_views(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List current user's saved views."""
+    """List current user's saved views.
+
+    Round-13 R13-API-1 → Sprint 7b — legacy ``views`` alias dropped.
+    PlanningStudioPage and SavedViewsBar both read ``items`` first
+    (R13 Sprint 1b migration), making the alias dead weight.
+    """
     # Round-11 R11-AUTH-4 — tenant scope alongside user_id.
     conditions = [SavedView.user_id == current_user.id]
     tenant_id = getattr(current_user, "tenant_id", None)
@@ -45,18 +52,16 @@ async def list_saved_views(
         }
         for v in views
     ]
-    # Round-13 R13-API-1 — canonical envelope + legacy `views` alias.
     return {
         "items": items,
         "total": len(items),
         "page": 1,
         "page_size": len(items) if items else 0,
         "pages": 1 if items else 0,
-        "views": items,
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=SavedViewResponse)
 async def create_saved_view(
     body: SavedViewCreate,
     current_user: User = Depends(get_current_user),

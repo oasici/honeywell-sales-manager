@@ -16,6 +16,8 @@ from app.models.enums import UserRole
 from app.core.exceptions import NotFoundException
 from app.models.user import User
 from app.models.webhook import WebhookDelivery, WebhookSubscription
+from app.schemas.common import PaginatedResponse
+from app.schemas.webhook import WebhookSubscriptionResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.services.webhook_service import WebhookService, validate_webhook_url
 
@@ -82,17 +84,19 @@ def _delivery_to_dict(delivery: WebhookDelivery) -> dict:
     }
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[WebhookSubscriptionResponse])
 async def list_webhooks(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
     """Tum webhook aboneliklerini listele.
 
-    Round-13 R13-API-1 — emit the canonical pagination envelope
-    (``items`` / ``total`` / ``page`` / ``page_size`` / ``pages``) while
-    keeping the legacy ``count`` / ``webhooks`` keys so existing SPA
-    consumers do not break in flight. New code should consume ``items``.
+    Round-13 R13-API-1 → Sprint 7b — emit only the canonical pagination
+    envelope. The legacy ``count`` / ``webhooks`` aliases that R13-API-1
+    kept for migration were dropped here after every SPA consumer
+    confirmed it reads ``items`` first (WebhookSettings.tsx reads
+    ``data?.items ?? data?.webhooks``, so the second fallback is now
+    dead code).
     """
     _check_feature_flag()
 
@@ -111,13 +115,10 @@ async def list_webhooks(
         "page": 1,
         "page_size": len(items) if items else 0,
         "pages": 1 if items else 0,
-        # Legacy aliases — drop after SPA migration completes.
-        "count": len(items),
-        "webhooks": items,
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=WebhookSubscriptionResponse)
 async def create_webhook(
     body: WebhookCreateRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -147,7 +148,7 @@ async def create_webhook(
     return _subscription_to_dict(subscription)
 
 
-@router.get("/{webhook_id}")
+@router.get("/{webhook_id}", response_model=WebhookSubscriptionResponse)
 async def get_webhook(
     webhook_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -167,7 +168,7 @@ async def get_webhook(
     return _subscription_to_dict(subscription)
 
 
-@router.patch("/{webhook_id}")
+@router.patch("/{webhook_id}", response_model=WebhookSubscriptionResponse)
 async def update_webhook(
     webhook_id: int,
     body: WebhookUpdateRequest,

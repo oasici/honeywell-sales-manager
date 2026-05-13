@@ -81,13 +81,13 @@ def test_paginated_response_model_declares_canonical_keys(openapi_schema: dict) 
 # Threshold set to 55 so an accidental router-level revert still
 # trips this assertion; an intentional removal lowers the floor in
 # the same PR.
-MIN_TYPED_ENVELOPE_ENDPOINTS = 63  # Round-13 Sprint 6b bumped 60 → 63 after typing 3 more list envelopes (invoices/email_templates/playbooks/sequences carried over to Sprint 6b promotion).
+MIN_TYPED_ENVELOPE_ENDPOINTS = 67  # Round-13 Sprint 7b bumped 63 → 67 after webhooks/dashboard_builder/documents/saved_views (formerly dict-shape) joined the typed list cohort.
 
 # Round-13 Sprint 6b — second gate for typed item-response endpoints
 # (detail / create / update). These don't use PaginatedResponse but do
 # declare a per-entity ``response_model``. Catches regressions where a
 # refactor strips response_model from item endpoints.
-MIN_TYPED_ITEM_RESPONSE_ENDPOINTS = 30
+MIN_TYPED_ITEM_RESPONSE_ENDPOINTS = 38  # Sprint 7b + Lead bumped 30 → 38 (+ webhooks POST/GET/PATCH, saved_views POST, leads GET/POST/PATCH).
 
 
 def test_paginated_envelope_coverage_meets_minimum(openapi_schema: dict) -> None:

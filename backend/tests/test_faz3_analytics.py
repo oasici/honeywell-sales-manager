@@ -145,10 +145,11 @@ async def test_saved_views_crud(client: AsyncClient, db: AsyncSession):
     assert r.status_code == 201
     view_id = r.json()["id"]
 
-    # List
+    # List — Round-13 Sprint 7b reads canonical ``items`` (legacy
+    # ``views`` alias dropped).
     r = await client.get("/api/v1/saved-views/", headers=h)
     assert r.status_code == 200
-    assert len(r.json()["views"]) >= 1
+    assert len(r.json()["items"]) >= 1
 
     # Delete
     r = await client.delete(f"/api/v1/saved-views/{view_id}", headers=h)

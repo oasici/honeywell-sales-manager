@@ -22,6 +22,7 @@ from app.models.enums import UserRole
 from app.models.lead import Lead
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.lead import LeadResponse
 from app.core.event_bus import event_bus
 from app.services.lead_service import LeadService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
@@ -254,7 +255,7 @@ async def web_lead_form(
 
 
 # Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[LeadResponse])
 async def list_leads(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
@@ -478,7 +479,7 @@ async def bulk_action_leads(
     raise BadRequestException(f"Bilinmeyen islem: {action}")
 
 
-@router.get("/{lead_id}")
+@router.get("/{lead_id}", response_model=LeadResponse)
 async def get_lead(
     lead_id: int,
     current_user: User = Depends(get_current_user),
@@ -501,7 +502,7 @@ async def get_lead(
     return lead_dict
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=LeadResponse)
 async def create_lead(
     data: LeadCreate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -526,7 +527,7 @@ async def create_lead(
     return _lead_to_dict(lead)
 
 
-@router.patch("/{lead_id}")
+@router.patch("/{lead_id}", response_model=LeadResponse)
 async def update_lead(
     lead_id: int,
     data: LeadUpdate,

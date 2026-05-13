@@ -17,6 +17,8 @@ from app.core.exceptions import ForbiddenException, NotFoundException
 from app.models.dashboard_config import DashboardConfig
 from app.models.report import ReportTemplate
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
+from app.schemas.dashboard import DashboardConfigResponse
 from app.services.report_engine import ReportEngine
 
 logger = logging.getLogger(__name__)
@@ -47,12 +49,19 @@ class DashboardUpdate(BaseModel):
 # -- Endpoints --
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[DashboardConfigResponse])
 async def list_dashboards(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List user's dashboards."""
+    """List user's dashboards.
+
+    Round-13 R13-API-1 → Sprint 7b — legacy ``data`` alias dropped.
+    All SPA consumers (DashboardListPage, DashboardEditorPage,
+    DashboardViewerPage) now read ``items`` first per the R13 Sprint 1b
+    migration; the fallback to ``data`` was kept for one release and is
+    now dead code.
+    """
     _check_feature_flag()
 
     result = await db.execute(
@@ -74,14 +83,12 @@ async def list_dashboards(
         }
         for d in dashboards
     ]
-    # Round-13 R13-API-1 — canonical envelope + legacy `data` alias.
     return {
         "items": items,
         "total": len(items),
         "page": 1,
         "page_size": len(items) if items else 0,
         "pages": 1 if items else 0,
-        "data": items,
     }
 
 

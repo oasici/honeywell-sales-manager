@@ -13,6 +13,8 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
 from app.models.shared_document import SharedDocument
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
+from app.schemas.shared_document import SharedDocumentResponse
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -93,16 +95,16 @@ async def track_document(
     return {"data": {"file_url": doc.file_url, "file_name": doc.file_name}}
 
 
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[SharedDocumentResponse])
 async def list_documents(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List shared documents for the current user, scoped by tenant.
 
-    Round-13 R13-API-1 — emit the canonical pagination envelope while
-    keeping the legacy ``data`` alias for transitional SPA consumers.
-    New code should consume ``items``.
+    Round-13 R13-API-1 → Sprint 7b — legacy ``data`` alias dropped. The
+    GET /documents/ endpoint has no SPA consumer today, so the alias
+    was unused dead weight; new consumers should read ``items``.
     """
     # Round-12 R12-AUTH-2 — tenant scope alongside user_id.
     conditions = [SharedDocument.created_by == current_user.id]
@@ -137,8 +139,6 @@ async def list_documents(
         "page": 1,
         "page_size": len(items) if items else 0,
         "pages": 1 if items else 0,
-        # Legacy alias.
-        "data": items,
     }
 
 
