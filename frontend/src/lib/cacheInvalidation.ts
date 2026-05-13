@@ -303,3 +303,123 @@ export function onRelationshipsRebuilt(qc: QueryClient, opportunityId: number): 
   qc.invalidateQueries({ queryKey: ['stakeholder-alerts', opportunityId] });
   qc.invalidateQueries({ queryKey: ['ai-deal-risk', opportunityId] });
 }
+
+// ── Round-14 Sprint 14c — additional helpers for the cohorts the R14 ──
+// audit flagged as drifting (10× cockpit, 7× compliance, 5× each on
+// subscriptions/playbooks/emails/ai-tasks ad-hoc invalidations). These
+// helpers let feature code stop reaching into invalidateQueries
+// directly; the audit's R14-CACHE-1 fix lands here, and a follow-up
+// ESLint rule will warn on raw invalidateQueries() calls in features/.
+
+/**
+ * Round-14 — Cockpit signal resolved / dismissed. Touches the cockpit
+ * rollup, the originating opportunity card, and the dashboard.
+ */
+export function onCockpitSignalChanged(
+  qc: QueryClient,
+  opportunityId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['cockpit'] });
+  qc.invalidateQueries({ queryKey: ['dashboard'] });
+  if (opportunityId) {
+    qc.invalidateQueries({ queryKey: ['opportunity', opportunityId] });
+    qc.invalidateQueries({ queryKey: ['ai-deal-risk', opportunityId] });
+  }
+}
+
+/**
+ * Round-14 — Compliance state mutated (consent toggled, retention
+ * applied, breach acknowledged). Invalidates the compliance dashboard,
+ * audit log, and the affected customer's detail.
+ */
+export function onComplianceChanged(
+  qc: QueryClient,
+  customerId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['compliance'] });
+  qc.invalidateQueries({ queryKey: ['audit-log'] });
+  if (customerId) {
+    qc.invalidateQueries({ queryKey: ['customer', customerId] });
+  }
+}
+
+/** Round-14 — Email template CRUD. Templates feed the composer + sequence steps. */
+export function onEmailTemplateChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['email-templates'] });
+  qc.invalidateQueries({ queryKey: ['email-template-variables'] });
+}
+
+/** Round-14 — Playbook CRUD or execution state change. */
+export function onPlaybookChanged(
+  qc: QueryClient,
+  playbookId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['playbooks'] });
+  qc.invalidateQueries({ queryKey: ['playbook-executions'] });
+  qc.invalidateQueries({ queryKey: ['playbook-analytics'] });
+  if (playbookId) {
+    qc.invalidateQueries({ queryKey: ['playbook', playbookId] });
+  }
+}
+
+/** Round-14 — Webhook subscription created/updated/tested. */
+export function onWebhookChanged(
+  qc: QueryClient,
+  webhookId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['webhooks'] });
+  if (webhookId) {
+    qc.invalidateQueries({ queryKey: ['webhook-deliveries', webhookId] });
+  }
+}
+
+/** Round-14 — Sequence definition or enrollment changed. */
+export function onSequenceChanged(
+  qc: QueryClient,
+  opportunityId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['sequences'] });
+  qc.invalidateQueries({ queryKey: ['sequence-enrollments'] });
+  qc.invalidateQueries({ queryKey: ['sequence-analytics'] });
+  if (opportunityId) {
+    qc.invalidateQueries({ queryKey: ['opportunity-intelligence', opportunityId] });
+  }
+}
+
+/** Round-14 — Territory CRUD or rules / assignment edited. */
+export function onTerritoryChanged(
+  qc: QueryClient,
+  territoryId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['territories-tree'] });
+  if (territoryId) {
+    qc.invalidateQueries({ queryKey: ['territory-detail', territoryId] });
+  }
+}
+
+/** Round-14 — Approval rule CRUD. */
+export function onApprovalRuleChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['approval-rules'] });
+  qc.invalidateQueries({ queryKey: ['approvals'] });
+}
+
+/** Round-14 — Revenue schedule entry recognized / refunded. */
+export function onRevenueScheduleChanged(
+  qc: QueryClient,
+  contractId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['revenue-schedules'] });
+  qc.invalidateQueries({ queryKey: ['cockpit'] });
+  qc.invalidateQueries({ queryKey: ['dashboard'] });
+  if (contractId) {
+    qc.invalidateQueries({ queryKey: ['contract', contractId] });
+  }
+}
+
+/** Round-14 — Pipeline / stage-config edited by an admin. */
+export function onPipelineConfigChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['pipelines'] });
+  qc.invalidateQueries({ queryKey: ['stage-configs'] });
+  qc.invalidateQueries({ queryKey: ['cockpit'] });
+  qc.invalidateQueries({ queryKey: ['forecast-hybrid'] });
+}

@@ -340,7 +340,7 @@ export default function EmailDetailPage() {
                 </span>
                 <span className="font-medium text-slate-500">Dil:</span>
                 <span className="text-slate-900">{parsed.language || '-'}</span>
-                <span className="font-medium text-slate-500">Müşteri:</span>
+                <span className="font-medium text-slate-500">{t('common.customer_label')}:</span>
                 <span className="text-slate-900">{parsed.customer_name || '-'}</span>
                 <span className="font-medium text-slate-500">Şirket:</span>
                 <span className="text-slate-900">{parsed.customer_company || '-'}</span>

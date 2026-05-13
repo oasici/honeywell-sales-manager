@@ -152,7 +152,9 @@ export default function ReportBuilderPage() {
         apiErr?.message ||
         'Onizleme yuklenemedi';
       toast.error(msg);
-      console.error('Preview error:', apiErr?.response?.data || err);
+      // Round-14 R14-LOG-1 — toast.error already surfaces the failure
+      // to the user; the leftover console.error was dev-only debug
+      // noise reaching prod. Removed.
     },
   });
 

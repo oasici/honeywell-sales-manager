@@ -12,6 +12,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { playbookApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 import { ConditionBuilder } from './ConditionBuilder';
 import { StepBuilder } from './StepBuilder';
 
@@ -72,6 +73,7 @@ function isStepStub(step: PlaybookStepDef): boolean {
 }
 
 export default function PlaybookDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const playbookId = Number(id);
@@ -302,7 +304,7 @@ export default function PlaybookDetailPage() {
         <div className="p-4">
           <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">Yurutmeler</h2>
           {executions.length === 0 ? (
-            <p className="text-sm text-slate-500">Henüz yürütme bulunmuyor.</p>
+            <p className="text-sm text-slate-500">{t('common.no_executions')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">

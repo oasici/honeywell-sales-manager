@@ -6,6 +6,7 @@ import { commentsApi, usersApi } from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { Card } from '../../components/ui/Card';
 import { currentLocale, formatRelativeTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 import type { Comment, User } from '../../lib/types';
 
 const REFETCH_INTERVAL_MS = 30_000;
@@ -174,6 +175,7 @@ interface CommentThreadProps {
 }
 
 export default function CommentThread({ entityType, entityId }: CommentThreadProps) {
+  const t = useT();
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((s) => s.user);
   const currentUserId = currentUser?.id ?? 0;
@@ -278,7 +280,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
     <Card title="Yorumlar">
       <div className="space-y-0 divide-y divide-slate-100 dark:divide-slate-800">
         {comments.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-400">Henüz yorum yok</p>
+          <p className="py-6 text-center text-sm text-slate-400">{t('common.no_comments')}</p>
         ) : (
           comments.map((comment) => (
             <CommentItem

@@ -100,12 +100,30 @@ def test_migration_chain_is_linear_with_single_head() -> None:
 def test_no_schema_drift_against_test_db() -> None:
     """R5-DB-8 — live DB introspection must match Base.metadata.
 
-    Skips when TEST_DATABASE_URL is unset so unit-only runs on
-    offline boxes don't fail. CI sets the URL.
+    Skips when:
+      * ``TEST_DATABASE_URL`` is unset (offline / unit-only run); or
+      * the configured DB is SQLite (Round-14 R14-DB-1 — SQLite has no
+        native timezone-aware type, so every ``Mapped[datetime]`` column
+        backed by ``DateTime(timezone=True)`` reports a spurious
+        ``TIMESTAMPTZ vs DATETIME`` mismatch. The drift gate is meant
+        for Postgres; the SQLite false positive masked real drift
+        signal and broke the gate's promise. Production uses Postgres
+        exclusively, so SQLite-only test runs skip this assertion
+        rather than producing 50+ noise lines).
+
+    CI must set ``TEST_DATABASE_URL`` to a Postgres URL for the gate
+    to actually fire.
     """
     url = os.environ.get("TEST_DATABASE_URL")
     if not url:
         pytest.skip("TEST_DATABASE_URL not set")
+
+    if url.startswith("sqlite") or "sqlite" in url:
+        pytest.skip(
+            "Schema-drift gate requires Postgres — SQLite has no "
+            "native timezone-aware DateTime, so TIMESTAMPTZ columns "
+            "report spurious drift. See R14-DB-1."
+        )
 
     # ``check_schema`` is async-only as of round-4 v1.9.6; run via the
     # CLI module to keep this test sync (pytest-asyncio is configured

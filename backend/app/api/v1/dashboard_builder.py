@@ -230,16 +230,20 @@ async def execute_dashboard(
 async def _get_user_dashboard(
     db: AsyncSession, dashboard_id: int, current_user: User
 ) -> DashboardConfig:
-    """Get a dashboard, verifying ownership."""
+    """Get a dashboard, verifying ownership.
+
+    Round-14 R14-AUTH-2 — foreign-owner access maps to 404, not 403.
+    Pre-fix the explicit ForbiddenException leaked the existence of
+    another user's dashboard via the response code. The project's
+    existence-leak convention (CLAUDE.md) collapses both
+    "doesn't exist" and "cross-owner" to 404.
+    """
     result = await db.execute(
         select(DashboardConfig).where(DashboardConfig.id == dashboard_id)
     )
     dashboard = result.scalar_one_or_none()
-    if dashboard is None:
+    if dashboard is None or dashboard.owner_id != current_user.id:
         raise NotFoundException("Dashboard bulunamadi")
-
-    if dashboard.owner_id != current_user.id:
-        raise ForbiddenException("Bu dashboard'a erisim yetkiniz yok")
 
     return dashboard
 

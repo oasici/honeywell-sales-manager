@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { aiApi, opportunitiesApi, quotesApi, customersApi, emailsApi } from '../../lib/api';
+import { useT } from '../../hooks/useT';
 import type {
   AiSummarizeResponse,
   PipelineSuggestion,
@@ -47,6 +48,7 @@ const ENTITY_DROPDOWN_CLASS =
   'rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm w-full min-w-[250px]';
 
 function SummarizeTab() {
+  const t = useT();
   const [entityType, setEntityType] = useState('opportunity');
   const [entityId, setEntityId] = useState('');
   const [result, setResult] = useState<AiSummarizeResponse | null>(null);
@@ -101,10 +103,10 @@ function SummarizeTab() {
             value={entityType}
             onChange={(e) => handleEntityTypeChange(e.target.value)}
           >
-            <option value="opportunity">Fırsat</option>
-            <option value="quote">Teklif</option>
+            <option value="opportunity">{t('ai_insights.entity_opportunity')}</option>
+            <option value="quote">{t('ai_insights.entity_quote')}</option>
             <option value="email">E-posta</option>
-            <option value="customer">Müşteri</option>
+            <option value="customer">{t('ai_insights.entity_customer')}</option>
           </select>
         </div>
         <div>

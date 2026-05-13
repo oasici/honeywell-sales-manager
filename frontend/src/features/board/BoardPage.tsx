@@ -673,7 +673,9 @@ export default function BoardPage() {
               {/* Card stack */}
               <div className="min-h-[200px] space-y-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-900/40">
                 {visible.length === 0 ? (
-                  <p className="py-10 text-center text-[12px] text-slate-400">Fırsat yok</p>
+                  <p className="py-10 text-center text-[12px] text-slate-400">
+                    {t('common.no_opportunities')}
+                  </p>
                 ) : (
                   [...visible]
                     .sort((a, b) => {

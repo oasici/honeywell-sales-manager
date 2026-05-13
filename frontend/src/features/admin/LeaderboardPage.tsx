@@ -5,8 +5,10 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { leaderboardApi } from '../../lib/api';
 import { formatDate } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 import type { LeaderboardEntry, Achievement } from '../../lib/types';
 
@@ -35,16 +37,29 @@ const PODIUM_TONE: Record<number, string> = {
 };
 
 export default function LeaderboardPage() {
+  const t = useT();
   const [period, setPeriod] = useState('month');
   const [metric, setMetric] = useState('revenue');
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
-  const { data: leaderboardData, isLoading } = useQuery<{ data: LeaderboardEntry[] }>({
+  // Round-14 Sprint 14e — surface isError on both queries so the
+  // leaderboard panel and badge column show a retry banner instead of
+  // rendering blank when the backend is unavailable.
+  const {
+    data: leaderboardData,
+    isLoading,
+    isError: leaderboardIsError,
+    refetch: refetchLeaderboard,
+  } = useQuery<{ data: LeaderboardEntry[] }>({
     queryKey: ['leaderboard', period, metric],
     queryFn: () => leaderboardApi.getLeaderboard(period, metric),
   });
 
-  const { data: achievementsData } = useQuery<{ data: Achievement[] }>({
+  const {
+    data: achievementsData,
+    isError: achievementsIsError,
+    refetch: refetchAchievements,
+  } = useQuery<{ data: Achievement[] }>({
     queryKey: ['achievements', selectedUserId],
     queryFn: () =>
       selectedUserId
@@ -109,13 +124,19 @@ export default function LeaderboardPage() {
                     <Skeleton variant="line" count={3} />
                   </td>
                 </tr>
+              ) : leaderboardIsError ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-3">
+                    <QueryErrorBanner onRetry={() => refetchLeaderboard()} />
+                  </td>
+                </tr>
               ) : rankings.length === 0 ? (
                 <tr>
                   <td colSpan={5}>
                     <EmptyState
                       variant="compact"
                       icon={<Trophy size={18} />}
-                      title="Henüz veri yok"
+                      title={t('common.no_data')}
                     />
                   </td>
                 </tr>
@@ -199,8 +220,10 @@ export default function LeaderboardPage() {
             </span>
             <h2 className="text-heading-3 text-slate-900 dark:text-white">Kazanılan Rozetler</h2>
           </div>
-          {achievements.length === 0 ? (
-            <p className="text-[13px] text-slate-400">Henüz rozet kazanılmamış</p>
+          {achievementsIsError ? (
+            <QueryErrorBanner onRetry={() => refetchAchievements()} />
+          ) : achievements.length === 0 ? (
+            <p className="text-[13px] text-slate-400">{t('common.no_badges')}</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {achievements.map((ach) => (

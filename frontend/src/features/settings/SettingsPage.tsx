@@ -694,7 +694,7 @@ function StageConfigSection() {
                     type="text"
                     value={stage.label}
                     onChange={(e) => updateStage(idx, 'label', e.target.value)}
-                    className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                    className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20"
                   />
                 </td>
                 <td className="py-2 pr-4">
@@ -704,7 +704,7 @@ function StageConfigSection() {
                     max={100}
                     value={stage.probability_pct}
                     onChange={(e) => updateStage(idx, 'probability_pct', Number(e.target.value))}
-                    className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                    className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20"
                   />
                 </td>
                 <td className="py-2">
@@ -715,7 +715,7 @@ function StageConfigSection() {
                     onChange={(e) =>
                       updateStage(idx, 'rotting_threshold_days', Number(e.target.value))
                     }
-                    className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none"
+                    className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-sm focus:border-honeywell-red focus:outline-none focus:ring-[3px] focus:ring-honeywell-red/20"
                   />
                 </td>
               </tr>

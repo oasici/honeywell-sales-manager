@@ -657,6 +657,7 @@ function flattenTree(territories: Territory[]): Territory[] {
 // ── Page ──────────────────────────────────────────────
 
 export default function TerritoryPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
   const [isCreateOpen, setNewModalOpen] = useState(false);
@@ -750,7 +751,7 @@ export default function TerritoryPage() {
               ) : treeData.length === 0 ? (
                 <div className="py-8 text-center">
                   <Map className="mx-auto mb-2 text-slate-400" size={24} />
-                  <p className="text-xs text-slate-400">Henüz bölge yok</p>
+                  <p className="text-xs text-slate-400">{t('common.no_territories')}</p>
                 </div>
               ) : (
                 <div className="space-y-0.5">

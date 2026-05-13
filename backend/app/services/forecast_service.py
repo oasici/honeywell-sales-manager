@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import NotFoundException
 from app.models.forecast import ForecastAdjustment, PipelineSnapshot
 from app.models.opportunity import Opportunity
+from app.services.tenant_context import assert_same_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -67,14 +68,28 @@ class ForecastService:
         new_amount: float | None = None,
         new_category: str | None = None,
         reason: str | None = None,
+        current_user=None,
     ) -> ForecastAdjustment:
-        """Save current values as original, apply new values to opportunity."""
+        """Save current values as original, apply new values to opportunity.
+
+        Round-14 R14-AUTH-1 — when ``current_user`` is supplied, verify
+        the opportunity belongs to the caller's tenant before mutating
+        it. Pre-fix, a sales_manager from tenant A could post an
+        adjustment to any tenant B opportunity simply by knowing the id.
+        The parameter is keyword-only and defaults to ``None`` so legacy
+        callers (cron jobs, in-tenant background workers) keep working;
+        any user-facing router MUST pass it.
+        """
         result = await self.db.execute(
             select(Opportunity).where(Opportunity.id == opp_id)
         )
         opportunity = result.scalar_one_or_none()
         if not opportunity:
             raise NotFoundException("Firsat bulunamadi")
+        if current_user is not None:
+            assert_same_tenant(
+                opportunity, current_user, exception_cls=NotFoundException
+            )
 
         original_amount = opportunity.amount or 0.0
         original_category = opportunity.forecast_category
@@ -103,8 +118,28 @@ class ForecastService:
         await self.db.refresh(adjustment)
         return adjustment
 
-    async def get_adjustments(self, opp_id: int) -> list[ForecastAdjustment]:
-        """Return adjustment history for an opportunity, newest first."""
+    async def get_adjustments(
+        self, opp_id: int, current_user=None
+    ) -> list[ForecastAdjustment]:
+        """Return adjustment history for an opportunity, newest first.
+
+        Round-14 R14-AUTH-1 — when ``current_user`` is supplied, verify
+        the parent opportunity belongs to the caller's tenant before
+        returning the history (an adjustment carries no tenant_id of
+        its own; the security boundary is the parent opportunity).
+        """
+        if current_user is not None:
+            opportunity = (
+                await self.db.execute(
+                    select(Opportunity).where(Opportunity.id == opp_id)
+                )
+            ).scalar_one_or_none()
+            if not opportunity:
+                raise NotFoundException("Firsat bulunamadi")
+            assert_same_tenant(
+                opportunity, current_user, exception_cls=NotFoundException
+            )
+
         result = await self.db.execute(
             select(ForecastAdjustment)
             .where(ForecastAdjustment.opportunity_id == opp_id)

@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { formatDate } from '../../lib/formatters';
 import QuickActivityModal from './QuickActivityModal';
+import { useT } from '../../hooks/useT';
 import type { ActivityLogFull } from '../../lib/types';
 
 interface ActivityLogPanelProps {
@@ -57,6 +58,7 @@ function groupByDate(items: ActivityLogFull[]): Record<string, ActivityLogFull[]
 }
 
 export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProps) {
+  const t = useT();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data, isLoading } = useQuery<{ items: ActivityLogFull[] }>({
@@ -80,7 +82,7 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
         {isLoading ? (
           <Skeleton variant="card" count={2} />
         ) : activities.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">Henüz aktivite kaydedilmemis</p>
+          <p className="py-8 text-center text-sm text-slate-400">{t('common.no_activity')}</p>
         ) : (
           <div className="space-y-5">
             {Object.entries(grouped).map(([date, items]) => (

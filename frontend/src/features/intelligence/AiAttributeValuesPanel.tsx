@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { aiAttributesApi } from '../../lib/api';
 import { onAiAttributeValueChanged } from '../../lib/cacheInvalidation';
 import { formatDate } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 /**
  * Round-8 R8-DEAD-2/4 — surface AI attribute values on entity detail pages.
@@ -24,6 +25,7 @@ interface AiAttributeValuesPanelProps {
 }
 
 export function AiAttributeValuesPanel({ entityType, entityId }: AiAttributeValuesPanelProps) {
+  const t = useT();
   const qc = useQueryClient();
 
   const definitionsQuery = useQuery({
@@ -105,7 +107,7 @@ export function AiAttributeValuesPanel({ entityType, entityId }: AiAttributeValu
                     </p>
                   </>
                 ) : (
-                  <p className="mt-1 text-caption text-slate-400">Henüz değer üretilmedi</p>
+                  <p className="mt-1 text-caption text-slate-400">{t('common.no_values_yet')}</p>
                 )}
               </div>
               <Button

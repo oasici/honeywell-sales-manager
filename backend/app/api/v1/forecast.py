@@ -136,7 +136,13 @@ async def create_adjustment(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_forecast),
 ):
-    """Create a forecast adjustment (manager only)."""
+    """Create a forecast adjustment (manager only).
+
+    Round-14 R14-AUTH-1 — ``current_user`` is threaded into the service
+    so the underlying opportunity tenant boundary is enforced before
+    the mutation lands. Pre-fix, a tenant A manager could mutate any
+    tenant B opportunity's forecast by knowing the id.
+    """
     service = ForecastService(db)
     adjustment = await service.create_adjustment(
         opp_id=data.opportunity_id,
@@ -144,6 +150,7 @@ async def create_adjustment(
         new_amount=data.new_amount,
         new_category=data.new_category,
         reason=data.reason,
+        current_user=current_user,
     )
     return _adjustment_to_dict(adjustment)
 
@@ -155,9 +162,16 @@ async def list_adjustments(
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_forecast),
 ):
-    """Get adjustment history for an opportunity."""
+    """Get adjustment history for an opportunity.
+
+    Round-14 R14-AUTH-1 — verify the opportunity belongs to the
+    caller's tenant before disclosing adjustment history. Pre-fix,
+    any tenant could read any other tenant's adjustment trail.
+    """
     service = ForecastService(db)
-    adjustments = await service.get_adjustments(opportunity_id)
+    adjustments = await service.get_adjustments(
+        opportunity_id, current_user=current_user
+    )
     items = [_adjustment_to_dict(a) for a in adjustments]
     total = len(items)
     # R6-PAGE-1 — canonical envelope.

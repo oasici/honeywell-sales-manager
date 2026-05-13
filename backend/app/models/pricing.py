@@ -48,8 +48,8 @@ class CustomerPricing(Base):
         UniqueConstraint("customer_id", "spare_part_id", name="uq_customer_part_pricing"),
         Index("ix_cp_customer", "customer_id"),
         # Round-4 R4-TEN-15 — tenant boundary on negotiated customer prices.
-        # TODO: backfill via customer_pricing → customers.tenant_id in alembic
-        # 20260504_phase4_tenant.
+        # Backfilled via customer_pricing → customers.tenant_id by
+        # 20260504_phase4_tenant_id_sweep.
         Index("ix_cp_tenant", "tenant_id"),
     )
 

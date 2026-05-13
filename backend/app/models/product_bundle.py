@@ -13,7 +13,7 @@ class ProductBundle(Base):
     __tablename__ = "product_bundles"
     __table_args__ = (
         # Round-4 R4-TEN-15 — tenant boundary on CPQ bundle catalog.
-        # TODO: backfill in alembic 20260504_phase4_tenant.
+        # Backfilled by 20260504_phase4_tenant_id_sweep.
         Index("ix_pb_tenant", "tenant_id"),
     )
 
