@@ -92,7 +92,7 @@ export default function SharingRulesSection() {
     queryFn: teamsApi.getSharingRules,
   });
 
-  const rules: SharingRule[] = data?.data ?? (Array.isArray(data) ? data as SharingRule[] : []);
+  const rules: SharingRule[] = data?.data ?? (Array.isArray(data) ? (data as SharingRule[]) : []);
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -106,9 +106,7 @@ export default function SharingRulesSection() {
         entity_type: form.entity_type,
         criteria_json: JSON.stringify([criteria]),
         share_with_role: form.share_with_role || null,
-        share_with_user_id: form.share_with_user_id
-          ? Number(form.share_with_user_id)
-          : null,
+        share_with_user_id: form.share_with_user_id ? Number(form.share_with_user_id) : null,
         access_level: form.access_level,
       });
     },
@@ -151,9 +149,7 @@ export default function SharingRulesSection() {
       key: 'entity_type',
       header: 'Varlık Tipi',
       render: (row: SharingRule) => (
-        <Badge variant="info">
-          {ENTITY_TYPE_LABELS[row.entity_type] || row.entity_type}
-        </Badge>
+        <Badge variant="info">{ENTITY_TYPE_LABELS[row.entity_type] || row.entity_type}</Badge>
       ),
     },
     {
@@ -168,9 +164,7 @@ export default function SharingRulesSection() {
                 {c.field} {c.operator} {c.value}
               </Badge>
             ))}
-            {criteria.length === 0 && (
-              <span className="text-xs text-slate-400">-</span>
-            )}
+            {criteria.length === 0 && <span className="text-xs text-slate-400">-</span>}
           </div>
         );
       },

@@ -392,8 +392,7 @@ export default function CustomerDetailPage() {
       else await customersApi.unpinCustomer(customerId);
     },
     onSuccess: (_, pin) => {
-      queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
-      queryClient.invalidateQueries({ queryKey: ['high-intent-accounts'] });
+      onCustomerChanged(queryClient, customerId);
       toast.success(pin ? t('high_intent.pinned') : t('high_intent.unpinned'));
     },
     onError: () => toast.error(t('high_intent.pin_error')),

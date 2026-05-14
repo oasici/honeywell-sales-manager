@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { BulkActionBar } from '../../components/ui/BulkActionBar';
 import { useMultiSelect } from '../../hooks/useMultiSelect';
@@ -321,7 +322,7 @@ export default function CustomerListPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
 
-  const { data, isLoading } = useQuery<PaginatedResponse<Customer>>({
+  const { data, isLoading, isError, refetch } = useQuery<PaginatedResponse<Customer>>({
     queryKey: ['customers', { page, search }],
     queryFn: () =>
       customersApi.getCustomers({
@@ -517,7 +518,11 @@ export default function CustomerListPage() {
       </div>
 
       {/* Customer Grid */}
-      {isLoading ? (
+      {isError ? (
+        // Round-15 Sprint 15i — silent panel → retry banner. Pre-fix the
+        // page rendered an empty grid on load failure with no recovery.
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="card" />

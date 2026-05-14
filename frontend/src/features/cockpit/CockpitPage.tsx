@@ -35,7 +35,11 @@ import {
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
-import { onCockpitSignalChanged } from '../../lib/cacheInvalidation';
+import {
+  onAiCompetitiveIntelChanged,
+  onCockpitSignalChanged,
+  onPlaybookChanged,
+} from '../../lib/cacheInvalidation';
 import { useCockpitTick } from './useCockpitTick';
 
 import type {
@@ -621,7 +625,7 @@ function PlaybookPanel() {
     mutationFn: playbookApi.cancelExecution,
     onSuccess: () => {
       toast.success(t('cockpit.toast_playbook_cancelled'));
-      queryClient.invalidateQueries({ queryKey: ['playbook'] });
+      onPlaybookChanged(queryClient);
     },
   });
 
@@ -797,7 +801,7 @@ function CompetitiveIntelPanel() {
     mutationFn: aiApi.crawlCompetitors,
     onSuccess: () => {
       toast.success(t('cockpit.toast_crawl_ok'));
-      queryClient.invalidateQueries({ queryKey: ['ai-competitive-intel'] });
+      onAiCompetitiveIntelChanged(queryClient);
     },
     onError: () => {
       toast.error(t('cockpit.toast_crawl_fail'));

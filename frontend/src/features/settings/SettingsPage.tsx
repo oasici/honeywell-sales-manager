@@ -21,6 +21,12 @@ import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { settingsApi, meetingsApi, opsApi } from '../../lib/api';
+import {
+  onEmailCredentialChanged,
+  onMeetingLinkChanged,
+  onSettingsChanged,
+  onStageConfigChanged,
+} from '../../lib/cacheInvalidation';
 import { usePreferencesStore } from '../../stores/preferencesStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
@@ -87,7 +93,7 @@ export default function SettingsPage() {
       settingsApi.updateSettings({ ...payload }),
     onSuccess: () => {
       toast.success(t('settings.toast_saved'));
-      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      onSettingsChanged(queryClient);
     },
     onError: () => toast.error(t('settings.toast_save_failed')),
   });
@@ -379,7 +385,7 @@ function EmailSettingsSection() {
     },
     onSuccess: () => {
       toast.success(t('settings.email_toast_saved'));
-      queryClient.invalidateQueries({ queryKey: ['email-credentials'] });
+      onEmailCredentialChanged(queryClient);
     },
     onError: () => toast.error(t('settings.email_toast_save_failed')),
   });
@@ -428,7 +434,7 @@ function EmailSettingsSection() {
       });
       setTestResult(null);
       setShowDeleteConfirm(false);
-      queryClient.invalidateQueries({ queryKey: ['email-credentials'] });
+      onEmailCredentialChanged(queryClient);
     },
     onError: () => toast.error(t('settings.email_toast_delete_failed')),
   });
@@ -644,7 +650,7 @@ function StageConfigSection() {
     },
     onSuccess: () => {
       toast.success(t('settings.stage_toast_saved'));
-      queryClient.invalidateQueries({ queryKey: ['stage-config'] });
+      onStageConfigChanged(queryClient);
     },
     onError: () => toast.error(t('settings.stage_toast_failed')),
   });
@@ -888,7 +894,7 @@ function MeetingLinkSection() {
     onSuccess: () => {
       toast.success(t('settings.meeting_toast_created'));
       setTitle('');
-      queryClient.invalidateQueries({ queryKey: ['meeting-links'] });
+      onMeetingLinkChanged(queryClient);
     },
     onError: () => toast.error(t('settings.meeting_toast_create_failed')),
   });
@@ -897,7 +903,7 @@ function MeetingLinkSection() {
     mutationFn: (id: number) => meetingsApi.deactivateLink(id),
     onSuccess: () => {
       toast.success(t('settings.meeting_toast_deactivated'));
-      queryClient.invalidateQueries({ queryKey: ['meeting-links'] });
+      onMeetingLinkChanged(queryClient);
     },
     onError: () => toast.error(t('settings.operation_failed')),
   });

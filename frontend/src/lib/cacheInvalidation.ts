@@ -553,3 +553,87 @@ export function onIntegrationChanged(
     qc.invalidateQueries({ queryKey: ['integrations', kind] });
   }
 }
+
+/**
+ * Round-15 Sprint 15g cohort 8 — Tenant-level settings touched.
+ *
+ * SettingsPage saves a single ``tenant_settings`` row that gates most
+ * organization-wide preferences (currency, locale, feature toggles).
+ * Helper exists so future settings-keyed surfaces (e.g. a settings
+ * audit panel) can fan out from one place.
+ */
+export function onSettingsChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['settings'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 8 — Email credential (SMTP / IMAP / OAuth)
+ * connected, rotated, or deleted from the per-user inbox settings.
+ */
+export function onEmailCredentialChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['email-credentials'] });
+  qc.invalidateQueries({ queryKey: ['integrations', 'email'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 8 — Stage-config edit (kanban column,
+ * probability, sla). Distinct from generic pipeline-config because the
+ * stage-config dialog lives under SettingsPage and edits affect the
+ * board + every per-stage rollup.
+ */
+export function onStageConfigChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['stage-config'] });
+  qc.invalidateQueries({ queryKey: ['stage-configs'] });
+  qc.invalidateQueries({ queryKey: ['pipelines'] });
+  qc.invalidateQueries({ queryKey: ['board'] });
+  qc.invalidateQueries({ queryKey: ['kanban'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 8 — Meeting link CRUD. Used by the
+ * Schedule a Meeting modal across opportunities; SettingsPage manages
+ * the underlying templates.
+ */
+export function onMeetingLinkChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['meeting-links'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 8 — Agent chat session created /
+ * renamed / archived. AgentChatPage groups conversations by session
+ * and the session list is the primary navigation.
+ */
+export function onChatSessionChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['chat-sessions'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 8 — Agent chat message posted /
+ * regenerated. The message list query is keyed by session id.
+ */
+export function onChatMessageChanged(qc: QueryClient, sessionId: number | string | null): void {
+  if (sessionId != null) {
+    qc.invalidateQueries({ queryKey: ['chat-messages-agent', sessionId] });
+  }
+}
+
+/**
+ * Round-15 Sprint 15g cohort 8 — Admin workflow rule CRUD.
+ *
+ * WorkflowRulesPage replicates the helper-shape pattern from
+ * ``onApprovalRuleChanged`` — list-only fan-out since the rule
+ * detail is rendered inline within the row.
+ */
+export function onWorkflowRuleChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['workflowRules'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 8 — AI competitive intel refreshed
+ * from the cockpit tile. Each tenant has a single rollup so the
+ * helper is parameter-less.
+ */
+export function onAiCompetitiveIntelChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['ai-competitive-intel'] });
+  qc.invalidateQueries({ queryKey: ['cockpit'] });
+}

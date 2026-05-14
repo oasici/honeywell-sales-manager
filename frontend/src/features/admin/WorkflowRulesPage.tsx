@@ -14,6 +14,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { workflowRulesApi } from '../../lib/api';
+import { onWorkflowRuleChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 
 import type { WorkflowRule } from '../../lib/types';
@@ -110,7 +111,7 @@ export default function WorkflowRulesPage() {
     onSuccess: () => {
       toast.success('İş kuralı oluşturuldu');
       resetForm();
-      queryClient.invalidateQueries({ queryKey: ['workflowRules'] });
+      onWorkflowRuleChanged(queryClient);
     },
     onError: () => toast.error('İş kuralı oluşturulamadı'),
   });
@@ -120,7 +121,7 @@ export default function WorkflowRulesPage() {
       workflowRulesApi.update(id, { is_active }),
     onSuccess: () => {
       toast.success('Kural durumu guncellendi');
-      queryClient.invalidateQueries({ queryKey: ['workflowRules'] });
+      onWorkflowRuleChanged(queryClient);
     },
     onError: () => toast.error('Güncelleme başarısız'),
   });
@@ -130,7 +131,7 @@ export default function WorkflowRulesPage() {
     onSuccess: () => {
       toast.success('İş kuralı silindi');
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: ['workflowRules'] });
+      onWorkflowRuleChanged(queryClient);
     },
     onError: () => {
       toast.error('İş kuralı silinemedi');

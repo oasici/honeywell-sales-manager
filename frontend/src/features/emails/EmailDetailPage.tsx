@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { emailsApi, quotesApi, aiApi } from '../../lib/api';
+import { onEmailChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 import { REVIEW_STATUS_COLORS, STATUS_COLORS } from '../../lib/constants';
@@ -123,8 +124,7 @@ export default function EmailDetailPage() {
     mutationFn: () => emailsApi.reparseEmail(emailId),
     onSuccess: () => {
       toast.success(t('emails.detail_toast_reparse'));
-      queryClient.invalidateQueries({ queryKey: ['email', emailId] });
-      queryClient.invalidateQueries({ queryKey: ['email-matches', emailId] });
+      onEmailChanged(queryClient, emailId);
     },
     onError: () => toast.error(t('emails.detail_toast_reparse_failed')),
   });
@@ -133,7 +133,7 @@ export default function EmailDetailPage() {
     mutationFn: (action: string) => emailsApi.reviewEmail(emailId, action),
     onSuccess: () => {
       toast.success(t('emails.detail_toast_review_updated'));
-      queryClient.invalidateQueries({ queryKey: ['email', emailId] });
+      onEmailChanged(queryClient, emailId);
     },
     onError: () => toast.error(t('emails.detail_toast_review_failed')),
   });

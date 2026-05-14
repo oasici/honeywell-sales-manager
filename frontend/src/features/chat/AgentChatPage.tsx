@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { chatApi } from '../../lib/api';
+import { onChatMessageChanged, onChatSessionChanged } from '../../lib/cacheInvalidation';
 import type { ChatSession, ChatMessage } from '../../lib/types';
 import { useT } from '../../hooks/useT';
 import { translateChatSessionStatus } from '../../lib/labelTranslations';
@@ -58,7 +59,7 @@ export default function AgentChatPage() {
     mutationFn: (id: number) => chatApi.assignSession(id),
     onSuccess: () => {
       toast.success(t('chat.toast_assigned'));
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
+      onChatSessionChanged(queryClient);
     },
     onError: () => toast.error(t('chat.toast_assign_failed')),
   });
@@ -67,7 +68,7 @@ export default function AgentChatPage() {
     mutationFn: (id: number) => chatApi.closeSession(id),
     onSuccess: () => {
       toast.success(t('chat.toast_closed'));
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions'] });
+      onChatSessionChanged(queryClient);
     },
     onError: () => toast.error(t('chat.toast_close_failed')),
   });
@@ -79,7 +80,7 @@ export default function AgentChatPage() {
         sender_type: 'agent',
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-messages-agent', selectedSessionId] });
+      onChatMessageChanged(queryClient, selectedSessionId);
     },
     onError: () => toast.error(t('chat.toast_send_failed')),
   });

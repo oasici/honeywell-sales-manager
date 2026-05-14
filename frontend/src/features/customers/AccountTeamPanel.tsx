@@ -58,11 +58,10 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
     enabled: !!customerId,
   });
 
-  const members: TeamMember[] = data?.data ?? (Array.isArray(data) ? data as TeamMember[] : []);
+  const members: TeamMember[] = data?.data ?? (Array.isArray(data) ? (data as TeamMember[]) : []);
 
   const addMutation = useMutation({
-    mutationFn: () =>
-      teamsApi.addMember(customerId, Number(form.user_id), form.role),
+    mutationFn: () => teamsApi.addMember(customerId, Number(form.user_id), form.role),
     onSuccess: () => {
       toast.success('Ekip uyesi eklendi');
       onTeamMemberChanged(queryClient, customerId);
@@ -107,10 +106,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {members.map((member) => (
-              <li
-                key={member.user_id}
-                className="flex items-center justify-between py-3"
-              >
+              <li key={member.user_id} className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                     {getInitials(member.user_full_name)}
@@ -149,11 +145,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
         )}
       </Card>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Ekip Uyesi Ekle"
-      >
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Ekip Uyesi Ekle">
         <div className="space-y-4">
           <Input
             label="Kullanıcı ID"

@@ -43,7 +43,13 @@ function PartDetailModal({ part, onClose }: { part: SparePart | null; onClose: (
   const createdDate = part.created_at?.split('T')[0];
 
   return (
-    <Modal isOpen={!!part} onClose={onClose} title={part.honeywell_code} description={part.model_number || undefined} size="lg">
+    <Modal
+      isOpen={!!part}
+      onClose={onClose}
+      title={part.honeywell_code}
+      description={part.model_number || undefined}
+      size="lg"
+    >
       <div className="space-y-5">
         {/* Info highlight (only when present). Amber tint signals "advisory"
             content that's still useful but not destructive. */}
@@ -109,13 +115,17 @@ function PartDetailModal({ part, onClose }: { part: SparePart | null; onClose: (
             <div className="mt-3 space-y-2.5 text-[13px] leading-6 text-slate-700 dark:text-slate-300">
               {descriptionTr && (
                 <div className="flex items-start gap-2">
-                  <Badge variant="info" size="sm">TR</Badge>
+                  <Badge variant="info" size="sm">
+                    TR
+                  </Badge>
                   <span>{descriptionTr}</span>
                 </div>
               )}
               {descriptionEn && (
                 <div className="flex items-start gap-2">
-                  <Badge variant="success" size="sm">EN</Badge>
+                  <Badge variant="success" size="sm">
+                    EN
+                  </Badge>
                   <span>{descriptionEn}</span>
                 </div>
               )}
@@ -127,10 +137,14 @@ function PartDetailModal({ part, onClose }: { part: SparePart | null; onClose: (
         {(part.category || part.subcategory) && (
           <div className="flex flex-wrap gap-2">
             {part.category && (
-              <Badge variant="default" size="md">{part.category}</Badge>
+              <Badge variant="default" size="md">
+                {part.category}
+              </Badge>
             )}
             {part.subcategory && (
-              <Badge variant="default" size="md">{part.subcategory}</Badge>
+              <Badge variant="default" size="md">
+                {part.subcategory}
+              </Badge>
             )}
           </div>
         )}
@@ -247,7 +261,9 @@ export default function PartsPage() {
         header: t('parts.col_category'),
         render: (row: SparePart) =>
           row.category ? (
-            <Badge variant="default" size="sm">{row.category}</Badge>
+            <Badge variant="default" size="sm">
+              {row.category}
+            </Badge>
           ) : (
             <span className="text-[12px] text-slate-400">—</span>
           ),
