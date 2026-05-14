@@ -24,6 +24,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { engagementApi, sequenceV2Api } from '../../lib/api';
+import { onSequenceChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import type { Sequence, SequenceEnrollment } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -59,11 +60,8 @@ export default function SequencesPage() {
     mutationFn: (payload: Record<string, unknown>) => engagementApi.enrollInSequence(payload),
     onSuccess: () => {
       toast.success(t('sequences.toast_enroll_ok'));
-      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
-      queryClient.invalidateQueries({ queryKey: PERF_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-performance'] });
-      queryClient.invalidateQueries({ queryKey: ['sequence-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-analytics'] });
+      // Round-15 Sprint 15g — centralized fan-out replaces 5 inline keys.
+      onSequenceChanged(queryClient);
       setIsEnrollOpen(false);
       resetEnrollForm();
     },
@@ -74,11 +72,8 @@ export default function SequencesPage() {
     mutationFn: (enrollmentId: number) => engagementApi.pauseEnrollment(enrollmentId),
     onSuccess: () => {
       toast.success(t('sequences.toast_pause_ok'));
-      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
-      queryClient.invalidateQueries({ queryKey: PERF_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-performance'] });
-      queryClient.invalidateQueries({ queryKey: ['sequence-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-analytics'] });
+      // Round-15 Sprint 15g — centralized fan-out replaces 5 inline keys.
+      onSequenceChanged(queryClient);
     },
     onError: () => toast.error(t('sequences.toast_pause_fail')),
   });
@@ -87,11 +82,8 @@ export default function SequencesPage() {
     mutationFn: (enrollmentId: number) => engagementApi.resumeEnrollment(enrollmentId),
     onSuccess: () => {
       toast.success(t('sequences.toast_resume_ok'));
-      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments'] });
-      queryClient.invalidateQueries({ queryKey: PERF_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-performance'] });
-      queryClient.invalidateQueries({ queryKey: ['sequence-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['cockpit', 'sequence-analytics'] });
+      // Round-15 Sprint 15g — centralized fan-out replaces 5 inline keys.
+      onSequenceChanged(queryClient);
     },
     onError: () => toast.error(t('sequences.toast_resume_fail')),
   });

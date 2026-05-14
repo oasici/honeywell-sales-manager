@@ -384,11 +384,21 @@ export default function BoardPage() {
     },
   });
 
-  const { data: summary } = useQuery<BoardSummary>({
+  // Round-15 Sprint 15i — surface isError on the three secondary
+  // board widgets so a partial outage doesn't silently render empty
+  // tiles. The kanban error already short-circuits the whole page
+  // above; these are the smaller side widgets that fail independently.
+  const {
+    data: summary,
+    isError: summaryIsError,
+    refetch: refetchSummary,
+  } = useQuery<BoardSummary>({
     queryKey: ['board', 'summary'],
     queryFn: () => boardApi.getSummary(30),
   });
 
+  // healthOverview is consumed only to build the dealHealthRisk filter
+  // map below; no visible panel, so isError is left as silent.
   const { data: healthOverview } = useQuery<{ opportunities: DealHealthReport[] }>({
     queryKey: ['deal-health', 'overview'],
     queryFn: () => dealHealthApi.getOverview(),
@@ -396,7 +406,11 @@ export default function BoardPage() {
     staleTime: 60_000,
   });
 
-  const { data: highIntent } = useQuery<HighIntentListResponse>({
+  const {
+    data: highIntent,
+    isError: highIntentIsError,
+    refetch: refetchHighIntent,
+  } = useQuery<HighIntentListResponse>({
     queryKey: ['high-intent-accounts', 'board-widget'],
     queryFn: () => customersApi.listHighIntent({ limit: 5 }) as Promise<HighIntentListResponse>,
     staleTime: 60_000,
@@ -602,7 +616,11 @@ export default function BoardPage() {
             {t('board.high_intent_cta')}
           </Button>
         </div>
-        {!highIntent?.items?.length ? (
+        {highIntentIsError ? (
+          <div className="px-5 py-3">
+            <QueryErrorBanner onRetry={() => refetchHighIntent()} />
+          </div>
+        ) : !highIntent?.items?.length ? (
           <p className="px-5 py-4 text-[12px] text-slate-500 dark:text-slate-400">
             {t('board.high_intent_empty')}
           </p>
@@ -637,6 +655,11 @@ export default function BoardPage() {
       </div>
 
       {/* KPI strip */}
+      {summaryIsError && (
+        <div className="mb-6">
+          <QueryErrorBanner onRetry={() => refetchSummary()} />
+        </div>
+      )}
       {summary && (
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <KpiTile

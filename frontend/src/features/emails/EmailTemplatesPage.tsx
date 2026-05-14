@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { emailTemplatesApi } from '../../lib/api';
+import { onEmailTemplateChanged } from '../../lib/cacheInvalidation';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
 
@@ -88,7 +89,7 @@ export default function EmailTemplatesPage() {
     mutationFn: (payload: Record<string, unknown>) => emailTemplatesApi.create(payload),
     onSuccess: () => {
       toast.success(t('email_templates.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+      onEmailTemplateChanged(queryClient);
       closeModal();
     },
     onError: () => toast.error(t('email_templates.toast_create_failed')),
@@ -99,7 +100,7 @@ export default function EmailTemplatesPage() {
       emailTemplatesApi.update(id, payload),
     onSuccess: () => {
       toast.success(t('email_templates.toast_updated'));
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+      onEmailTemplateChanged(queryClient);
       closeModal();
     },
     onError: () => toast.error(t('email_templates.toast_update_failed')),
@@ -109,7 +110,7 @@ export default function EmailTemplatesPage() {
     mutationFn: (id: number) => emailTemplatesApi.remove(id),
     onSuccess: () => {
       toast.success(t('email_templates.toast_deleted'));
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+      onEmailTemplateChanged(queryClient);
       setDeleteId(null);
     },
     onError: () => toast.error(t('email_templates.toast_delete_failed')),

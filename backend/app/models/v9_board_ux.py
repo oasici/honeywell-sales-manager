@@ -11,9 +11,20 @@ from app.core.database import Base
 
 
 class PipelineReviewQueueEntry(Base):
+    """V9 board pipeline review queue.
+
+    Round-15 F-002 / Sprint 15j cohort 3 — ``tenant_id`` added for
+    defense in depth. Pre-fix the boundary lived only on the parent
+    ``Opportunity`` FK; a router that forgot ``assert_same_tenant``
+    could surface cross-tenant suggestions. Backfilled from
+    ``opportunities.tenant_id`` by
+    ``20260524_phase12_tenant_did_cohort3``.
+    """
+
     __tablename__ = "pipeline_review_queue"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False
     )

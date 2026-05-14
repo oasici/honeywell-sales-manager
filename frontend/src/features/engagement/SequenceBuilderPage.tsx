@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { engagementApi, emailTemplatesApi } from '../../lib/api';
+import { onSequenceChanged } from '../../lib/cacheInvalidation';
 import type { Sequence } from '../../lib/types';
 import { useT } from '../../hooks/useT';
 
@@ -224,7 +225,7 @@ export default function SequenceBuilderPage() {
         : engagementApi.createSequence(payload),
     onSuccess: () => {
       toast.success(isEdit ? 'Sekans güncellendi' : 'Sekans oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['sequences'] });
+      onSequenceChanged(queryClient);
       navigate('/engagement/sequences');
     },
     onError: () => toast.error('Kaydetme başarısız'),

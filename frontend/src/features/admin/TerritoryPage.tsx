@@ -18,6 +18,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { territoriesApi, usersApi } from '../../lib/api';
+import { onTerritoryChanged } from '../../lib/cacheInvalidation';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -148,7 +149,7 @@ function TerritoryModal({ territories, onClose }: TerritoryModalProps) {
       }),
     onSuccess: () => {
       toast.success('Bölge oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['territories-tree'] });
+      onTerritoryChanged(queryClient);
       // Round-12 R12-FE-5 — reset the form before close so re-opening
       // the modal doesn't show stale state from the last submission.
       reset();
@@ -249,7 +250,7 @@ function AssignModal({ territoryId, users, onClose }: AssignModalProps) {
       territoriesApi.addAssignment(territoryId, { user_id: values.user_id, role: values.role }),
     onSuccess: () => {
       toast.success('Kullanıcı atandı');
-      queryClient.invalidateQueries({ queryKey: ['territory-detail', territoryId] });
+      onTerritoryChanged(queryClient, territoryId);
       onClose();
     },
     onError: () => toast.error('Atama yapılamadı'),
@@ -338,8 +339,7 @@ function RuleEditorModal({ territory, onClose }: RuleEditorModalProps) {
     mutationFn: () => territoriesApi.update(territory.id, { rules_json: JSON.stringify(rules) }),
     onSuccess: () => {
       toast.success('Kurallar güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['territories-tree'] });
-      queryClient.invalidateQueries({ queryKey: ['territory-detail', territory.id] });
+      onTerritoryChanged(queryClient, territory.id);
       onClose();
     },
     onError: () => toast.error('Kurallar guncellenemedi'),
@@ -446,7 +446,7 @@ function DetailPanel({ territory, users }: DetailPanelProps) {
     mutationFn: (userId: number) => territoriesApi.removeAssignment(territory.id, userId),
     onSuccess: () => {
       toast.success('Atama kaldırıldı');
-      queryClient.invalidateQueries({ queryKey: ['territory-detail', territory.id] });
+      onTerritoryChanged(queryClient, territory.id);
     },
     onError: () => toast.error('Atama kaldirilamadi'),
   });
@@ -683,7 +683,7 @@ export default function TerritoryPage() {
     mutationFn: () => territoriesApi.autoAssign(),
     onSuccess: () => {
       toast.success('Otomatik atama tamamlandi');
-      queryClient.invalidateQueries({ queryKey: ['territories-tree'] });
+      onTerritoryChanged(queryClient);
     },
     onError: () => toast.error('Otomatik atama başarısız'),
   });

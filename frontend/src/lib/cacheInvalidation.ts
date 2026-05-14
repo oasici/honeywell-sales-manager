@@ -361,11 +361,21 @@ export function onWebhookChanged(qc: QueryClient, webhookId?: number | null): vo
   }
 }
 
-/** Round-14 — Sequence definition or enrollment changed. */
+/** Round-14 — Sequence definition or enrollment changed.
+ *
+ * Round-15 Sprint 15g — expanded to include sequence-performance +
+ * cockpit-prefixed sequence rollups. SequencesPage previously duplicated
+ * the same 5-key invalidation inline across 3 mutations (15 sites);
+ * folding them into one helper retires the duplication and keeps the
+ * fan-out coherent for any new sequence-keyed surface.
+ */
 export function onSequenceChanged(qc: QueryClient, opportunityId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['sequences'] });
   qc.invalidateQueries({ queryKey: ['sequence-enrollments'] });
   qc.invalidateQueries({ queryKey: ['sequence-analytics'] });
+  qc.invalidateQueries({ queryKey: ['sequence-performance'] });
+  qc.invalidateQueries({ queryKey: ['cockpit', 'sequence-analytics'] });
+  qc.invalidateQueries({ queryKey: ['cockpit', 'sequence-performance'] });
   if (opportunityId) {
     qc.invalidateQueries({ queryKey: ['opportunity-intelligence', opportunityId] });
   }
