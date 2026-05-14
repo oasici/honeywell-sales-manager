@@ -6,7 +6,17 @@ the weekly pipeline rollup. Non-breaking conversion — Postgres
 NUMERIC ↔ DOUBLE PRECISION is safe over the value range we use.
 
 asyncpg constraint: each ``op.execute()`` carries exactly one
-statement (multi-statement strings raise PostgresSyntaxError).
+statement (multi-statement strings raise PostgresSyntaxError). A
+``DO $$ ... END $$`` PL/pgSQL block counts as a single statement,
+which is what lets us guard the ALTER on the table's existence.
+
+Why the existence guard: ``feature_store_daily`` is gated behind
+``FEATURE_V4_FEATURE_STORE``. Deployments where the flag has never
+been turned on don't have the table at all, and a bare ALTER raises
+``UndefinedTableError`` and aborts the whole migration. The
+information_schema check makes the migration idempotent across
+deployment topologies. (Render Free-tier deploys hit this on the
+first attempt — fix authored from the live log signature.)
 
 Revision ID: 20260520_phase12_currency_followup
 Revises: 20260518_phase12_tenant_columns
@@ -26,14 +36,36 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute(
-        "ALTER TABLE feature_store_daily "
-        "ALTER COLUMN total_open_pipeline TYPE NUMERIC(19, 2) "
-        "USING total_open_pipeline::NUMERIC(19, 2)"
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name = 'feature_store_daily'
+            ) THEN
+                ALTER TABLE feature_store_daily
+                    ALTER COLUMN total_open_pipeline TYPE NUMERIC(19, 2)
+                    USING total_open_pipeline::NUMERIC(19, 2);
+            END IF;
+        END $$;
+        """
     )
 
 
 def downgrade() -> None:
     op.execute(
-        "ALTER TABLE feature_store_daily "
-        "ALTER COLUMN total_open_pipeline TYPE DOUBLE PRECISION"
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name = 'feature_store_daily'
+            ) THEN
+                ALTER TABLE feature_store_daily
+                    ALTER COLUMN total_open_pipeline TYPE DOUBLE PRECISION;
+            END IF;
+        END $$;
+        """
     )
