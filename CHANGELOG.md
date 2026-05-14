@@ -9,6 +9,28 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.18.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.17.0...v1.18.0) (2026-05-14)
+
+
+### Added
+
+* **round-13:** apply cross-layer audit fix plan ([57925ab](https://github.com/oasici/honeywell-sales-manager/commit/57925abef4b040ab9dd109c69402a917f36d6768))
+* **round-13:** apply sprint 4-7a closeout — error UI parity + i18n sweep + response_model + runbook ([4f6f20f](https://github.com/oasici/honeywell-sales-manager/commit/4f6f20fdfc2a5fa6b37b044c09a04a69e124f16c))
+* **round-13:** sprint 6b — per-entity response_model on 7 tier-2 routers ([11634d7](https://github.com/oasici/honeywell-sales-manager/commit/11634d7bab1e577dd3d7e31563ad5ad2578f87c8))
+* **round-13:** sprint 7b + lead schema — drop legacy envelope aliases, type lead endpoints ([5fb753c](https://github.com/oasici/honeywell-sales-manager/commit/5fb753cdff69e0f5253bfc5f3a9201a5c74cbbe3))
+* **round-14:** execute audit closeout — 14a critical + 14b-f hygiene ([145af40](https://github.com/oasici/honeywell-sales-manager/commit/145af40c8199581fb8fe4cb7aa4e2a3a3b339fc1))
+* **round-15:** continue deferred sprints — cache migration cohort 2, isError chunk, tenant cohort 2, NOT-NULL floor gate ([84715e7](https://github.com/oasici/honeywell-sales-manager/commit/84715e7ab6c24829a5dd83c39533b460d88af83e))
+* **round-15:** execute deep-audit sprints 15a-15j ([2056679](https://github.com/oasici/honeywell-sales-manager/commit/20566794a4dcddd5575c3062e304904208305170))
+
+
+### Fixed
+
+* **round-15:** correct migration to reference account_features_daily (not feature_store_daily) ([cca1598](https://github.com/oasici/honeywell-sales-manager/commit/cca15989b3f89c81b493d0d99118ffe5315366e7))
+* **round-15:** guard 20260520 currency migration on feature_store_daily existence ([081de5c](https://github.com/oasici/honeywell-sales-manager/commit/081de5c3356a23e150907b432dec4f1c6cbd27a6))
+* **round-15:** pre-create alembic_version with VARCHAR(128) for fresh Postgres DBs ([56ed751](https://github.com/oasici/honeywell-sales-manager/commit/56ed7510232728b468333412083ae98574612e1c))
+* **round-15:** revert revision-ID shortening (f3dc3b2) — chain mismatch on Render ([e45ad3b](https://github.com/oasici/honeywell-sales-manager/commit/e45ad3bc7d45864a1ea86bbb169be0c62ea808d6))
+* **round-15:** shorten new revision IDs to &lt;= 32 chars ([f3dc3b2](https://github.com/oasici/honeywell-sales-manager/commit/f3dc3b2db2fab141e33a7c3c0216b615396bb514))
+
 ## [1.17.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.16.0...v1.17.0) (2026-05-12)
 
 
