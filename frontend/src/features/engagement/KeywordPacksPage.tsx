@@ -94,7 +94,10 @@ export default function KeywordPacksPage() {
 
   return (
     <div>
-      <PageHeader title="Anahtar Kelime Paketleri" description="Görüşme analizi için kelime grupları">
+      <PageHeader
+        title="Anahtar Kelime Paketleri"
+        description="Görüşme analizi için kelime grupları"
+      >
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Paket</Button>
       </PageHeader>
 
@@ -122,9 +125,7 @@ export default function KeywordPacksPage() {
                   <Badge variant={CATEGORY_BADGE_VARIANT[pack.category] ?? 'default'} size="sm">
                     {getCategoryLabel(pack.category)}
                   </Badge>
-                  <span className="text-xs text-slate-500">
-                    {pack.keywords.length} kelime
-                  </span>
+                  <span className="text-xs text-slate-500">{pack.keywords.length} kelime</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {pack.keywords.map((keyword, idx) => (

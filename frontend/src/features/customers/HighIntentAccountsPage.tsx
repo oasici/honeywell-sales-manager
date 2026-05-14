@@ -66,7 +66,9 @@ export default function HighIntentAccountsPage() {
                     {row.company || row.name}
                   </button>
                   {row.company && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{row.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {row.name}
+                    </p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-1">
                     {row.signals.map((s) => (

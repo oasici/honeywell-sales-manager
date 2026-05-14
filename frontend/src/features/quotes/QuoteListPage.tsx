@@ -7,6 +7,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { quotesApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 import type { TranslationKey } from '../../lib/i18n';
@@ -56,7 +57,7 @@ export default function QuoteListPage() {
     [t],
   );
 
-  const { data, isLoading, isError, error, refetch } = useQuery<PaginatedResponse<Quote>>({
+  const { data, isLoading, isError, refetch } = useQuery<PaginatedResponse<Quote>>({
     queryKey: ['quotes', { page, status: statusTab }],
     queryFn: () =>
       quotesApi.getQuotes({
@@ -241,13 +242,12 @@ export default function QuoteListPage() {
       </div>
 
       {/* Round-11 R11-FE-1 — surface load failure instead of silently
-          returning an empty table. */}
+          returning an empty table. Round-15 Sprint 15i — replaced the
+          hand-rolled banner with the canonical primitive so the retry
+          affordance matches the rest of the SPA. */}
       {isError && (
-        <div className="mb-3 flex items-center justify-between rounded-[8px] border border-(--danger)/30 bg-(--danger-bg) px-3 py-2 text-[13px] text-(--danger)">
-          <span>{(error as Error | undefined)?.message ?? t('common.error_load_failed')}</span>
-          <Button variant="ghost" onClick={() => refetch()}>
-            {t('common.retry')}
-          </Button>
+        <div className="mb-3">
+          <QueryErrorBanner variant="inline" onRetry={() => refetch()} />
         </div>
       )}
 

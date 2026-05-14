@@ -317,9 +317,7 @@ export default function ContractListPage() {
 
           {/* Round-15 Sprint 15i — load failure surfaces a retry banner
               instead of silently rendering the empty state. */}
-          {!isLoading && isError && (
-            <QueryErrorBanner variant="block" onRetry={() => refetch()} />
-          )}
+          {!isLoading && isError && <QueryErrorBanner variant="block" onRetry={() => refetch()} />}
 
           {!isLoading && !isError && contracts.length === 0 && (
             <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
