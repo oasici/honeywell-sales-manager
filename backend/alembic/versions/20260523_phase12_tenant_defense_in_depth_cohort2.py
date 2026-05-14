@@ -18,18 +18,19 @@ to tenant-bound queries via SQL three-valued logic.
 asyncpg constraint: each ``op.execute()`` carries exactly one
 statement.
 
-Revision ID: 20260523_r15_tenant_did2
-Revises: 20260522_r15_tenant_did1
+Revision ID: 20260523_phase12_tenant_defense_in_depth_cohort2
+Revises: 20260522_phase12_tenant_defense_in_depth
 Create Date: 2026-05-13
 
-Note on the revision id length: revision strings are persisted into
-``alembic_version.version_num``, which on legacy Postgres bootstraps
-is VARCHAR(32). The previous full-length id
-("20260523_phase12_tenant_defense_in_depth_cohort2", 48 chars) was
-the trigger for this fix — the deploy explicitly raised
-``StringDataRightTruncationError: value too long for type character
-varying(32)``. Shortened to ``20260523_r15_tenant_did2`` (24 chars).
-Filename retained.
+History note. f3dc3b2 briefly renamed this to
+``20260523_r15_tenant_did2`` (23 chars), in response to a
+suggested-fix message that turned out to be wrong: the long name
+had already landed in ``alembic_version`` on Render (so the R11
+widener was already keeping the column at VARCHAR(128)). After the
+rename, alembic could not reconcile the stored long name with the
+new short revision string and bailed with
+``Can't locate revision identified by '<long-name>'``. Reverted
+here.
 """
 
 from __future__ import annotations
@@ -37,8 +38,8 @@ from __future__ import annotations
 from alembic import op
 
 
-revision = "20260523_r15_tenant_did2"
-down_revision = "20260522_r15_tenant_did1"
+revision = "20260523_phase12_tenant_defense_in_depth_cohort2"
+down_revision = "20260522_phase12_tenant_defense_in_depth"
 branch_labels = None
 depends_on = None
 
