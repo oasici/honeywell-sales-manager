@@ -1,7 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { onAiTaskChanged, onOpportunityChanged } from '../../lib/cacheInvalidation';
+import {
+  onAiTaskChanged,
+  onDealRoomChanged,
+  onForecastAdjustmentChanged,
+  onOpportunityChanged,
+} from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { Calendar } from 'lucide-react';
 import {
@@ -459,7 +464,7 @@ export default function OpportunityDetailPage() {
       }),
     onSuccess: () => {
       toast.success(t('opp_detail.toast_deal_room_ok'));
-      queryClient.invalidateQueries({ queryKey: ['deal-rooms'] });
+      onDealRoomChanged(queryClient, null);
     },
     onError: () => toast.error(t('opp_detail.toast_deal_room_fail')),
   });
@@ -584,11 +589,9 @@ export default function OpportunityDetailPage() {
     onSuccess: () => {
       toast.success(t('opp_detail.toast_forecast_saved'));
       // R4-CACHE-110 — adjustments roll up into cockpit / dashboard /
-      // forecast widgets, not just this one card.
-      queryClient.invalidateQueries({ queryKey: ['forecast-adjustments', oppId] });
-      queryClient.invalidateQueries({ queryKey: ['cockpit'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['forecast-wow'] });
+      // forecast widgets. Round-15 Sprint 15g cohort 11 — folded the
+      // 4-key inline fan-out into onForecastAdjustmentChanged.
+      onForecastAdjustmentChanged(queryClient, oppId);
       setAdjForm({ new_amount: '', new_category: 'pipeline', reason: '' });
     },
   });

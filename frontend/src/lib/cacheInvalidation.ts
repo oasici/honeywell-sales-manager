@@ -820,3 +820,19 @@ export function onForecastWowChanged(qc: QueryClient): void {
 export function onHighIntentChanged(qc: QueryClient): void {
   qc.invalidateQueries({ queryKey: ['high-intent-accounts'] });
 }
+
+/**
+ * Round-15 Sprint 15g cohort 11 — Forecast adjustment recorded on
+ * an opportunity (commit / best-case override).
+ *
+ * Pre-fix OpportunityDetailPage enumerated all 4 keys inline per
+ * R4-CACHE-110 comment. Helper centralizes the fan-out so any new
+ * forecast-adjustment-keyed surface (e.g. a per-deal commit history
+ * panel) is captured here, not at the call site.
+ */
+export function onForecastAdjustmentChanged(qc: QueryClient, opportunityId: number): void {
+  qc.invalidateQueries({ queryKey: ['forecast-adjustments', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['cockpit'] });
+  qc.invalidateQueries({ queryKey: ['dashboard'] });
+  qc.invalidateQueries({ queryKey: ['forecast-wow'] });
+}

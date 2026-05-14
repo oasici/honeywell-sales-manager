@@ -20,6 +20,9 @@ class ApiKey(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
     )
+    # Round-15 Sprint 15j cohort 11 — defense-in-depth tenant scoping
+    # (backfilled from users.tenant_id via user_id).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     scopes_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # ["read:quotes","write:leads"]
     rate_limit: Mapped[int] = mapped_column(Integer, default=1000)  # per hour
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

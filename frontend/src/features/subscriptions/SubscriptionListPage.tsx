@@ -5,6 +5,7 @@ import { Plus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionsApi, customersApi, quotesApi } from '../../lib/api';
 import { onSubscriptionChanged } from '../../lib/cacheInvalidation';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { formatCurrency } from '../../lib/formatters';
 import type { Subscription, MrrDashboard } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -79,7 +80,7 @@ export default function SubscriptionListPage() {
     return k ? t(k) : c;
   };
 
-  const { data: subsData, isLoading } = useQuery({
+  const { data: subsData, isLoading, isError, refetch } = useQuery({
     queryKey: ['subscriptions', statusFilter],
     queryFn: () => subscriptionsApi.list(statusFilter ? { status: statusFilter } : {}),
   });
@@ -352,7 +353,16 @@ export default function SubscriptionListPage() {
                 </td>
               </tr>
             )}
-            {!isLoading && filtered.length === 0 && (
+            {!isLoading && isError && (
+              <tr>
+                <td colSpan={6} className="px-4 py-6">
+                  {/* Round-15 Sprint 15i — replace silent empty table with
+                      a retry banner so a failed list load is recoverable. */}
+                  <QueryErrorBanner variant="inline" onRetry={() => refetch()} />
+                </td>
+              </tr>
+            )}
+            {!isLoading && !isError && filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   {t('subscription.empty')}
