@@ -20,6 +20,10 @@ class BuyerStateHistory(Base):
         Integer, ForeignKey("opportunities.id"), primary_key=True
     )
     snapshot_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    # Round-15 F-002 / Sprint 15j cohort 4 — tenant_id added for
+    # defense in depth. Backfilled from opportunities.tenant_id by
+    # 20260525_phase12_tenant_did_cohort4.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     state: Mapped[str] = mapped_column(String(30), nullable=False)  # e.g. exploring|evaluating|negotiating|stalling
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)

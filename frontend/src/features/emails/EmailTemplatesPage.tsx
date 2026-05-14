@@ -458,7 +458,9 @@ export default function EmailTemplatesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">{t('email_templates.send_title')}</h2>
+              <h2 className="text-lg font-bold text-slate-900">
+                {t('email_templates.send_title')}
+              </h2>
               <button
                 type="button"
                 onClick={closeSendModal}

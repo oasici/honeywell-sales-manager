@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { nbaApi } from '../../lib/api';
+import { onAiTaskChanged } from '../../lib/cacheInvalidation';
 import { formatDate } from '../../lib/formatters';
 
 /**
@@ -35,12 +36,10 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
     onMutate: () => setGenerating(true),
     onSuccess: () => {
       toast.success('Yeni öneriler hazırlandı');
-      // Round-11 R11-FE-4 — fan out cache invalidation. Pre-fix only
-      // ['nba', oppId] refreshed; the broader ai/tasks list (used by
-      // the dashboard's task widget) and the opportunity detail header
-      // (which shows open-task counts) stayed stale until next tick.
-      qc.invalidateQueries({ queryKey: ['nba', opportunityId] });
-      qc.invalidateQueries({ queryKey: ['ai-tasks'] });
+      // Round-15 Sprint 15g cohort 4 — centralized fan-out via
+      // onAiTaskChanged retires the 3 inline invalidations that
+      // R11-FE-4 had to enumerate by hand.
+      onAiTaskChanged(qc, opportunityId);
       qc.invalidateQueries({ queryKey: ['opportunity', opportunityId] });
     },
     onError: () => toast.error('Öneri üretilemedi'),

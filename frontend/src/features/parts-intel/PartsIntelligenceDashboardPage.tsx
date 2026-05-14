@@ -356,6 +356,8 @@ export default function PartsIntelligenceDashboardPage() {
         <Card title="Veri Sağlığı">
           {dataHealthQuery.isLoading ? (
             <Skeleton variant="line" />
+          ) : dataHealthQuery.isError ? (
+            <QueryErrorBanner onRetry={() => dataHealthQuery.refetch()} />
           ) : dataHealthQuery.data ? (
             <>
               <div className="flex items-baseline gap-2">
@@ -382,6 +384,8 @@ export default function PartsIntelligenceDashboardPage() {
         >
           {deadStockQuery.isLoading ? (
             <Skeleton variant="table" />
+          ) : deadStockQuery.isError ? (
+            <QueryErrorBanner onRetry={() => deadStockQuery.refetch()} />
           ) : (
             <DataTable
               columns={[
@@ -456,6 +460,8 @@ export default function PartsIntelligenceDashboardPage() {
         >
           {obsolescenceQuery.isLoading ? (
             <Skeleton variant="table" />
+          ) : obsolescenceQuery.isError ? (
+            <QueryErrorBanner onRetry={() => obsolescenceQuery.refetch()} />
           ) : (
             <DataTable
               columns={[

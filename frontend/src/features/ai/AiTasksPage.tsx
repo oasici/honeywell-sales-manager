@@ -12,6 +12,7 @@ import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { aiApi } from '../../lib/api';
+import { onAiTaskChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 import type { AiTask } from '../../lib/types';
@@ -76,7 +77,7 @@ export default function AiTasksPage() {
       toast.success(t('ai_tasks.toast_created'));
       setModalOpen(false);
       setForm(INITIAL_FORM);
-      queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
+      onAiTaskChanged(queryClient);
     },
     onError: () => toast.error(t('ai_tasks.toast_create_failed')),
   });
@@ -86,7 +87,7 @@ export default function AiTasksPage() {
       aiApi.updateTask(id, payload),
     onSuccess: () => {
       toast.success(t('ai_tasks.toast_updated'));
-      queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
+      onAiTaskChanged(queryClient);
     },
     onError: () => toast.error(t('ai_tasks.toast_update_failed')),
   });

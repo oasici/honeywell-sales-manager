@@ -11,9 +11,17 @@ from app.core.database import Base
 
 
 class RecommendedActionWindow(Base):
+    """V5 timing-based recommended action window for an opportunity.
+
+    Round-15 F-002 / Sprint 15j cohort 4 — ``tenant_id`` added for
+    defense in depth. Backfilled from ``opportunities.tenant_id`` by
+    ``20260525_phase12_tenant_did_cohort4``.
+    """
+
     __tablename__ = "recommended_action_windows"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id", ondelete="CASCADE"), index=True
     )

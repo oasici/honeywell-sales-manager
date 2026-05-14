@@ -412,3 +412,21 @@ export function onPipelineConfigChanged(qc: QueryClient): void {
   qc.invalidateQueries({ queryKey: ['cockpit'] });
   qc.invalidateQueries({ queryKey: ['forecast-hybrid'] });
 }
+
+/**
+ * Round-15 Sprint 15g cohort 4 — AI task CRUD or status change.
+ *
+ * AI-generated tasks surface on the AI-Tasks admin page and on each
+ * opportunity's NBA tray (next-best-action). A mutation that touches
+ * the task should invalidate both views plus the notifications badge.
+ */
+export function onAiTaskChanged(
+  qc: QueryClient,
+  opportunityId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['ai-tasks'] });
+  if (opportunityId) {
+    qc.invalidateQueries({ queryKey: ['nba', opportunityId] });
+  }
+  qc.invalidateQueries({ queryKey: ['notifications'] });
+}

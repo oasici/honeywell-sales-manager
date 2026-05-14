@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { onOpportunityChanged } from '../../lib/cacheInvalidation';
+import { onAiTaskChanged, onOpportunityChanged } from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { Calendar } from 'lucide-react';
 import {
@@ -468,7 +468,10 @@ export default function OpportunityDetailPage() {
     mutationFn: () => aiApi.generateActions({ opportunity_id: oppId }),
     onSuccess: (data: { actions: unknown[]; count: number }) => {
       toast.success(`${data.count} ${t('opp_detail.toast_ai_tasks_suffix')}`);
-      queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
+      // Round-15 Sprint 15g cohort 4 — helper invalidates ai-tasks +
+      // notifications + nba; cockpit + intelligence stay inline since
+      // they're not part of the AI-task cohort.
+      onAiTaskChanged(queryClient, oppId);
       queryClient.invalidateQueries({ queryKey: ['cockpit'] });
       queryClient.invalidateQueries({ queryKey: ['opportunity-intelligence', oppId] });
     },
@@ -479,8 +482,9 @@ export default function OpportunityDetailPage() {
     mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
       aiApi.updateTask(id, payload),
     onSuccess: () => {
+      // Round-15 Sprint 15g cohort 4 — helper covers ai-tasks fan-out.
       queryClient.invalidateQueries({ queryKey: ['opportunity-intelligence', oppId] });
-      queryClient.invalidateQueries({ queryKey: ['ai-tasks'] });
+      onAiTaskChanged(queryClient, oppId);
       toast.success(t('settings.operation_success'));
     },
     onError: () => toast.error(t('settings.operation_failed')),
