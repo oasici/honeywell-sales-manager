@@ -106,12 +106,51 @@ def _widen_alembic_version_column(sync_conn) -> None:
     sync_conn.commit()
 
 
+def _pre_create_alembic_version_table(sync_conn) -> None:
+    """Round-15 R15-DB-ENV — pre-create alembic_version with VARCHAR(128).
+
+    Why this exists. ``_widen_alembic_version_column`` (above) only
+    widens an EXISTING column. On a freshly-provisioned Postgres
+    database (Render's first deploy onto an empty DB) the
+    ``alembic_version`` table does not yet exist, so the widener
+    no-ops. Alembic then creates the table inside
+    ``context.run_migrations()`` with its hardcoded default
+    ``VARCHAR(32)`` (alembic does not expose a public API to override
+    the width). The very next INSERT of a >32-char revision id raises
+    ``StringDataRightTruncationError`` — the post-revert symptom on
+    Render.
+
+    Pre-creating the table here, with the same primary-key shape
+    alembic would have created but at VARCHAR(128), makes the
+    chicken-and-egg disappear. Alembic's ``CREATE TABLE IF NOT
+    EXISTS`` guard later sees the table already exists and uses it
+    as-is. ``ON CONFLICT DO NOTHING`` is not needed — the CREATE is
+    itself idempotent via ``IF NOT EXISTS``.
+    """
+    sync_conn.exec_driver_sql(
+        """
+        CREATE TABLE IF NOT EXISTS alembic_version (
+            version_num VARCHAR(128) NOT NULL,
+            CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+        )
+        """
+    )
+    sync_conn.commit()
+
+
 def do_run_migrations(connection):
     # Round-11 R11-DB-ENV — widen alembic_version.version_num on legacy
     # Postgres databases so multi-segment revision IDs (>32 chars) can
     # be persisted by alembic's own bookkeeping UPDATE.
+    #
+    # Round-15 R15-DB-ENV — also pre-create the table with VARCHAR(128)
+    # so fresh Postgres databases don't fall through to alembic's own
+    # CREATE TABLE (which hardcodes VARCHAR(32)). The widener handles
+    # legacy DBs that already have the column at 32; the pre-create
+    # handles brand-new DBs.
     dialect_name = getattr(connection.dialect, "name", "")
     if dialect_name == "postgresql":
+        _pre_create_alembic_version_table(connection)
         _widen_alembic_version_column(connection)
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
