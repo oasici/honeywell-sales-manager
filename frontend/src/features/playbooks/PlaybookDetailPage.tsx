@@ -11,6 +11,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { playbookApi } from '../../lib/api';
+import { onPlaybookChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 import { ConditionBuilder } from './ConditionBuilder';
@@ -117,7 +118,9 @@ export default function PlaybookDetailPage() {
     mutationFn: (payload: Record<string, unknown>) => playbookApi.update(playbookId, payload),
     onSuccess: () => {
       toast.success('Playbook güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['playbooks', playbookId] });
+      // Round-15 Sprint 15f — also invalidates the list + executions
+      // + analytics roll-up that share the playbook's state.
+      onPlaybookChanged(queryClient, playbookId);
       setIsEditing(false);
     },
     onError: (err: unknown) =>
@@ -131,7 +134,7 @@ export default function PlaybookDetailPage() {
     mutationFn: (execId: number) => playbookApi.cancelExecution(execId),
     onSuccess: () => {
       toast.success('Yürütme iptal edildi');
-      queryClient.invalidateQueries({ queryKey: ['playbook-executions', playbookId] });
+      onPlaybookChanged(queryClient, playbookId);
     },
     onError: (err: unknown) =>
       toast.error(

@@ -6,6 +6,7 @@ import { Card } from '../../components/ui/Card';
 import { DataTable } from '../../components/ui/DataTable';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { v10PartsIntelApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
@@ -296,12 +297,25 @@ export default function PartsIntelligenceDashboardPage() {
     );
   }
 
+  // Round-15 Sprint 15i — surface non-404 query failures so an outage
+  // doesn't render as zero metrics. If summary fails for a non-feature
+  // reason, the whole page is misleading; the banner blocks until retry.
+  const summaryNon404Error =
+    summaryQuery.isError &&
+    (summaryQuery.error as { response?: { status?: number } })?.response?.status !== 404;
+
   return (
     <div>
       <PageHeader
         title="Yedek Parça Zekâsı"
         description="ANEXPO 2026 strateji çerçevesine göre derlenen okunaklı zekâ paneli"
       />
+
+      {summaryNon404Error && (
+        <div className="mb-4">
+          <QueryErrorBanner onRetry={() => summaryQuery.refetch()} />
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">

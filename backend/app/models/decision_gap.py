@@ -33,11 +33,20 @@ class StakeholderRole(Base):
 
 
 class DecisionGap(Base):
-    """Computed decision gaps for an opportunity."""
+    """Computed decision gaps for an opportunity.
+
+    Round-15 F-002 / Sprint 15j cohort 2 — ``tenant_id`` added for
+    defense in depth. Tenant boundary was previously enforced only
+    via the parent opportunity FK; the column lets ``scoped_for_user``
+    filter at the query layer too. Backfilled from
+    ``opportunities.tenant_id`` by
+    ``20260523_phase12_tenant_defense_in_depth_cohort2``.
+    """
 
     __tablename__ = "decision_gaps"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False, index=True
     )

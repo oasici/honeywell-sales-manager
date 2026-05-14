@@ -342,13 +342,9 @@ export default function EmailDetailPage() {
                 <span className="text-slate-900">{parsed.language || '-'}</span>
                 <span className="font-medium text-slate-500">{t('common.customer_label')}:</span>
                 <span className="text-slate-900">{parsed.customer_name || '-'}</span>
-                <span className="font-medium text-slate-500">
-                  {t('common.company_label')}:
-                </span>
+                <span className="font-medium text-slate-500">{t('common.company_label')}:</span>
                 <span className="text-slate-900">{parsed.customer_company || '-'}</span>
-                <span className="font-medium text-slate-500">
-                  {t('common.spare_part_label')}:
-                </span>
+                <span className="font-medium text-slate-500">{t('common.spare_part_label')}:</span>
                 <span className="text-slate-900">
                   {parsed.is_spare_part_request ? t('common.yes') : t('common.no')}
                 </span>

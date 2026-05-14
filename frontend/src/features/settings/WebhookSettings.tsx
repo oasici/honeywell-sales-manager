@@ -19,6 +19,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { webhooksApi } from '../../lib/api';
+import { onWebhookChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 import type { TranslationKey } from '../../lib/i18n';
@@ -140,7 +141,9 @@ function WebhookCard({
     mutationFn: () => webhooksApi.update(webhook.id, { is_active: !webhook.is_active }),
     onSuccess: () => {
       toast.success(webhook.is_active ? t('webhooks.toast_disabled') : t('webhooks.toast_enabled'));
-      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+      // Round-15 Sprint 15f — centralized helper invalidates list +
+      // deliveries together.
+      onWebhookChanged(queryClient, webhook.id);
     },
     onError: () => toast.error(t('settings.operation_failed')),
   });
@@ -149,9 +152,7 @@ function WebhookCard({
     mutationFn: () => webhooksApi.test(webhook.id),
     onSuccess: () => {
       toast.success(t('webhooks.toast_test_sent'));
-      queryClient.invalidateQueries({
-        queryKey: ['webhook-deliveries', webhook.id],
-      });
+      onWebhookChanged(queryClient, webhook.id);
     },
     onError: () => toast.error(t('webhooks.toast_test_failed')),
   });
@@ -274,7 +275,7 @@ export default function WebhookSettings() {
       }),
     onSuccess: () => {
       toast.success(t('webhooks.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+      onWebhookChanged(queryClient);
       setIsModalOpen(false);
       setForm(INITIAL_FORM);
     },
@@ -285,7 +286,7 @@ export default function WebhookSettings() {
     mutationFn: (id: number) => webhooksApi.remove(id),
     onSuccess: () => {
       toast.success(t('webhooks.toast_deleted'));
-      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+      onWebhookChanged(queryClient);
       setDeleteTarget(null);
     },
     onError: () => toast.error(t('webhooks.toast_delete_failed')),

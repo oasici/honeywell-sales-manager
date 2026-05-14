@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionsApi, customersApi, quotesApi } from '../../lib/api';
+import { onSubscriptionChanged } from '../../lib/cacheInvalidation';
 import { formatCurrency } from '../../lib/formatters';
 import type { Subscription, MrrDashboard } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -114,7 +115,8 @@ export default function SubscriptionListPage() {
     mutationFn: (payload: Record<string, unknown>) => subscriptionsApi.create(payload),
     onSuccess: () => {
       toast.success(t('subscription.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      // Round-15 Sprint 15f — also invalidates renewals + MRR dashboard.
+      onSubscriptionChanged(queryClient, null);
       setShowCreate(false);
       setForm(INITIAL_FORM);
     },

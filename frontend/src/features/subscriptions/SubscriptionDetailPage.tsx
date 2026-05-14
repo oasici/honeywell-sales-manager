@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, XCircle, RefreshCw, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionsApi } from '../../lib/api';
+import { onSubscriptionChanged } from '../../lib/cacheInvalidation';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 import type { Subscription } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -74,7 +75,9 @@ export default function SubscriptionDetailPage() {
     mutationFn: () => subscriptionsApi.cancel(Number(id)),
     onSuccess: () => {
       toast.success(t('subscription.toast_cancelled'));
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      // Round-15 Sprint 15f — centralized fan-out invalidates renewals
+      // queue + MRR dashboard alongside the list.
+      onSubscriptionChanged(queryClient, Number(id));
     },
     onError: () => toast.error(t('subscription.toast_cancel_fail')),
   });
@@ -83,7 +86,7 @@ export default function SubscriptionDetailPage() {
     mutationFn: () => subscriptionsApi.renew(Number(id)),
     onSuccess: () => {
       toast.success(t('subscription.toast_renewed'));
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      onSubscriptionChanged(queryClient, Number(id));
     },
     onError: () => toast.error(t('subscription.toast_renew_fail')),
   });
@@ -133,8 +136,7 @@ export default function SubscriptionDetailPage() {
     onSuccess: () => {
       toast.success('Abonelik güncellendi');
       setEditing(false);
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
-      queryClient.invalidateQueries({ queryKey: ['subscriptions', id] });
+      onSubscriptionChanged(queryClient, Number(id));
     },
     onError: () => toast.error('Abonelik güncellenemedi'),
   });

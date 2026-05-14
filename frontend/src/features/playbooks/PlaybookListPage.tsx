@@ -13,6 +13,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { playbookApi } from '../../lib/api';
+import { onPlaybookChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import { ConditionBuilder } from './ConditionBuilder';
 import { StepBuilder } from './StepBuilder';
@@ -56,7 +57,7 @@ export default function PlaybookListPage() {
     mutationFn: (payload: Record<string, unknown>) => playbookApi.create(payload),
     onSuccess: () => {
       toast.success('Playbook oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+      onPlaybookChanged(queryClient);
       setShowCreate(false);
       setForm({ ...EMPTY_FORM });
       setTriggerConditions([...EMPTY_CONDITIONS]);
@@ -74,7 +75,7 @@ export default function PlaybookListPage() {
       playbookApi.update(id, { is_active: !isActive }),
     onSuccess: () => {
       toast.success('Durum güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+      onPlaybookChanged(queryClient);
     },
     onError: (err: unknown) =>
       toast.error(
@@ -87,7 +88,7 @@ export default function PlaybookListPage() {
     mutationFn: (id: number) => playbookApi.remove(id),
     onSuccess: () => {
       toast.success('Playbook silindi');
-      queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+      onPlaybookChanged(queryClient);
     },
     onError: (err: unknown) =>
       toast.error(
