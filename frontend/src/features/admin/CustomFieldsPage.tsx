@@ -13,6 +13,7 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { customFieldsApi } from '../../lib/api';
+import { onCustomFieldChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 
 import type { CustomFieldDefinition } from '../../lib/types';
@@ -58,7 +59,7 @@ export default function CustomFieldsPage() {
       toast.success('Özel alan oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
-      queryClient.invalidateQueries({ queryKey: ['customFields', entityType] });
+      onCustomFieldChanged(queryClient, entityType);
     },
     onError: () => toast.error('Özel alan oluşturulamadı'),
   });
@@ -68,7 +69,7 @@ export default function CustomFieldsPage() {
     onSuccess: () => {
       toast.success('Özel alan silindi');
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: ['customFields', entityType] });
+      onCustomFieldChanged(queryClient, entityType);
     },
     onError: () => {
       toast.error('Özel alan silinemedi');

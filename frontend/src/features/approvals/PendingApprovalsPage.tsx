@@ -11,6 +11,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { approvalsApi } from '../../lib/api';
+import { onApprovalActionTaken } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 
@@ -66,7 +67,7 @@ export default function PendingApprovalsPage() {
       approvalsApi.approve(id, comment),
     onSuccess: () => {
       toast.success(t('approvals.toast_approve_ok'));
-      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      onApprovalActionTaken(queryClient);
       closeModal();
     },
     onError: () => {
@@ -79,7 +80,7 @@ export default function PendingApprovalsPage() {
       approvalsApi.reject(id, comment),
     onSuccess: () => {
       toast.success(t('approvals.toast_reject_ok'));
-      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      onApprovalActionTaken(queryClient);
       closeModal();
     },
     onError: () => {

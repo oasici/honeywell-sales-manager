@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Send, Reply, Trash2 } from 'lucide-react';
 import { commentsApi, usersApi } from '../../lib/api';
+import { onCommentChanged } from '../../lib/cacheInvalidation';
 import { useAuthStore } from '../../stores/authStore';
 import { Card } from '../../components/ui/Card';
 import { currentLocale, formatRelativeTime } from '../../lib/formatters';
@@ -207,7 +208,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => commentsApi.create(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
+      onCommentChanged(queryClient, entityType, entityId);
       setNewComment('');
       setReplyToId(null);
     },
@@ -217,7 +218,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
   const deleteMutation = useMutation({
     mutationFn: (id: number) => commentsApi.remove(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
+      onCommentChanged(queryClient, entityType, entityId);
       toast.success('Yorum silindi');
     },
     onError: () => toast.error('Yorum silinemedi'),

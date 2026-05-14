@@ -637,3 +637,97 @@ export function onAiCompetitiveIntelChanged(qc: QueryClient): void {
   qc.invalidateQueries({ queryKey: ['ai-competitive-intel'] });
   qc.invalidateQueries({ queryKey: ['cockpit'] });
 }
+
+/**
+ * Round-15 Sprint 15g cohort 9 — generic quote CRUD (save/edit body,
+ * line-item edits) without the status fan-out.
+ *
+ * Distinct from ``onQuoteStatusChanged`` which also invalidates
+ * notifications + opportunity timeline + activity-summary — none of
+ * those rollups change when a draft quote's body is edited.
+ */
+export function onQuoteChanged(qc: QueryClient, quoteId?: number | null): void {
+  qc.invalidateQueries({ queryKey: ['quotes'] });
+  if (quoteId) {
+    qc.invalidateQueries({ queryKey: ['quote', quoteId] });
+  }
+}
+
+/**
+ * Round-15 Sprint 15g cohort 9 — Comment posted / deleted on any
+ * entity (opportunity / customer / quote / etc). Thread is keyed by
+ * ``(entityType, entityId)``.
+ */
+export function onCommentChanged(
+  qc: QueryClient,
+  entityType: string,
+  entityId: number,
+): void {
+  qc.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 9 — Custom field definition CRUD.
+ *
+ * Custom-field definitions are admin-configured and read by every
+ * entity detail page that renders extra fields. Helper accepts the
+ * entity_type so it can target the per-type query without flushing
+ * unrelated definitions.
+ */
+export function onCustomFieldChanged(qc: QueryClient, entityType: string): void {
+  qc.invalidateQueries({ queryKey: ['customFields', entityType] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 9 — Field-level permission rule
+ * (FieldPermissionsPage). Permission table is global; reload the
+ * single ``['fieldPermissions']`` cache on each rule write.
+ */
+export function onFieldPermissionChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['fieldPermissions'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 9 — Product rule (quote line constraint)
+ * created / toggled / deleted.
+ */
+export function onProductRuleChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['productRules'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 9 — Pending approval acted on
+ * (approved / rejected). Reuses the ``onApprovalRuleChanged`` queue
+ * key alongside the per-row detail.
+ */
+export function onApprovalActionTaken(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['approvals'] });
+  qc.invalidateQueries({ queryKey: ['notifications'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 9 — Stakeholder graph mutated from the
+ * opportunity buyer-relationship map. Same cache surface as
+ * ``onStakeholderChanged`` but reachable from list-side callers
+ * that don't pre-import the full registry.
+ */
+export function onStakeholderGraphChanged(qc: QueryClient, opportunityId: number): void {
+  qc.invalidateQueries({ queryKey: ['stakeholders', opportunityId] });
+  qc.invalidateQueries({ queryKey: ['stakeholder-alerts', opportunityId] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 9 — Relationship metric refreshed for a
+ * non-opportunity entity (currently used for customer-keyed and
+ * lead-keyed cards in RelationshipPanel). Distinct from
+ * ``onRelationshipsRebuilt`` which is opportunity-scoped and fans
+ * out to gap / risk cards.
+ */
+export function onRelationshipMetricChanged(
+  qc: QueryClient,
+  kind: string,
+  entityId: number,
+): void {
+  qc.invalidateQueries({ queryKey: ['relationship-score', kind, entityId] });
+  qc.invalidateQueries({ queryKey: ['relationship-strongest', kind, entityId] });
+}

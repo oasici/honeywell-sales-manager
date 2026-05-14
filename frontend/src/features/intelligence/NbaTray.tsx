@@ -73,7 +73,7 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
       toast.error('Aksiyon kapatılamadı');
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ['nba', opportunityId] });
+      onAiTaskChanged(qc, opportunityId);
     },
   });
 

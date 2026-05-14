@@ -12,6 +12,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { productRulesApi } from '../../lib/api';
+import { onProductRuleChanged } from '../../lib/cacheInvalidation';
 
 import type { ProductRule } from '../../lib/types';
 
@@ -56,7 +57,7 @@ export default function ProductRulesPage() {
       toast.success('Ürün kuralı oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
-      queryClient.invalidateQueries({ queryKey: ['productRules'] });
+      onProductRuleChanged(queryClient);
     },
     onError: () => toast.error('Ürün kuralı oluşturulamadı'),
   });
@@ -66,7 +67,7 @@ export default function ProductRulesPage() {
     onSuccess: () => {
       toast.success('Ürün kuralı silindi');
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: ['productRules'] });
+      onProductRuleChanged(queryClient);
     },
     onError: () => {
       toast.error('Ürün kuralı silinemedi');

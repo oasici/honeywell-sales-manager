@@ -165,8 +165,7 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
           opportunityId={opportunityId}
           onClose={() => setShowAddForm(false)}
           onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['stakeholders', opportunityId] });
-            queryClient.invalidateQueries({ queryKey: ['stakeholder-alerts', opportunityId] });
+            onStakeholderChanged(queryClient, opportunityId);
             setShowAddForm(false);
           }}
         />

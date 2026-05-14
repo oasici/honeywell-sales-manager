@@ -13,6 +13,7 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { fieldPermissionsApi } from '../../lib/api';
+import { onFieldPermissionChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 
 import type { FieldPermission } from '../../lib/types';
@@ -90,7 +91,7 @@ export default function FieldPermissionsPage() {
       toast.success('Alan izni oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
-      queryClient.invalidateQueries({ queryKey: ['fieldPermissions'] });
+      onFieldPermissionChanged(queryClient);
     },
     onError: () => toast.error('Alan izni oluşturulamadı'),
   });
@@ -100,7 +101,7 @@ export default function FieldPermissionsPage() {
     onSuccess: () => {
       toast.success('Alan izni silindi');
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: ['fieldPermissions'] });
+      onFieldPermissionChanged(queryClient);
     },
     onError: () => {
       toast.error('Alan izni silinemedi');

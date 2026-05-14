@@ -19,6 +19,9 @@ class QuoteItem(Base):
     quote_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("quotes.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # Round-15 Sprint 15j cohort 9 — defense-in-depth tenant scoping
+    # (backfilled from parent quote).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     spare_part_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("spare_parts.id"), nullable=True
     )

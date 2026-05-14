@@ -13,6 +13,7 @@ import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { customersApi, dealHealthApi, opportunitiesApi } from '../../lib/api';
 import { onOpportunityChanged } from '../../lib/cacheInvalidation';
 import { formatCurrency, formatDate } from '../../lib/formatters';
@@ -328,9 +329,10 @@ export default function OpportunitiesHomePage() {
       {oppsQuery.isLoading ? (
         <Skeleton variant="card" count={6} />
       ) : oppsQuery.isError ? (
-        <Card>
-          <div className="p-8 text-center text-red-500">{t('opps.home.load_error')}</div>
-        </Card>
+        // Round-15 Sprint 15i — standardized banner with retry. Pre-fix
+        // the page rendered a static red-text Card with no recovery
+        // affordance.
+        <QueryErrorBanner variant="block" onRetry={() => oppsQuery.refetch()} />
       ) : filtered.length === 0 ? (
         <EmptyState title={t('opps.home.empty_title')} description={t('opps.home.empty_desc')} />
       ) : (

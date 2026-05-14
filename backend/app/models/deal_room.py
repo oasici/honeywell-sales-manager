@@ -24,6 +24,9 @@ class DealRoom(Base):
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False,
     )
+    # Round-15 Sprint 15j cohort 9 — defense-in-depth tenant scoping
+    # (backfilled from parent opportunity).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     external_token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     shared_items_json: Mapped[str | None] = mapped_column(Text, nullable=True)

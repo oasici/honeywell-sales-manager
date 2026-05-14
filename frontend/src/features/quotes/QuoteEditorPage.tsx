@@ -9,7 +9,7 @@ import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { quotesApi, customersApi, partsApi, documentsApi } from '../../lib/api';
-import { onQuoteStatusChanged } from '../../lib/cacheInvalidation';
+import { onQuoteChanged, onQuoteStatusChanged } from '../../lib/cacheInvalidation';
 import BundleSelectorModal from './BundleSelectorModal';
 import GuidedSellingWizard from './GuidedSellingWizard';
 import QuoteComparisonModal from './QuoteComparisonModal';
@@ -122,9 +122,8 @@ export default function QuoteEditorPage() {
       quoteId ? quotesApi.updateQuote(quoteId, payload) : quotesApi.createQuote(payload),
     onSuccess: (result) => {
       toast.success(quoteId ? t('quotes.editor_toast_updated') : t('quotes.editor_toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      onQuoteChanged(queryClient, quoteId ?? result.id);
       if (!quoteId) navigate(`/quotes/${result.id}`, { replace: true });
-      else queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
     },
     onError: () => toast.error(t('quotes.editor_toast_save_failed')),
   });

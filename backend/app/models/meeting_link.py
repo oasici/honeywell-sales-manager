@@ -15,6 +15,9 @@ class MeetingLink(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, index=True
     )
+    # Round-15 Sprint 15j cohort 9 — defense-in-depth tenant scoping
+    # (backfilled from the owning user.tenant_id).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     # R7-DB-1 — UNIQUE auto-creates a btree index.
     slug: Mapped[str] = mapped_column(
         String(50), unique=True, nullable=False

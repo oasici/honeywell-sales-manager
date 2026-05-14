@@ -8,7 +8,10 @@ import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { relationshipsApi } from '../../lib/api';
-import { onRelationshipsRebuilt } from '../../lib/cacheInvalidation';
+import {
+  onRelationshipMetricChanged,
+  onRelationshipsRebuilt,
+} from '../../lib/cacheInvalidation';
 
 /**
  * S-B — relationship panel.
@@ -56,8 +59,7 @@ export function RelationshipPanel({
       if (kind === 'opportunity') {
         onRelationshipsRebuilt(qc, entityId);
       } else {
-        qc.invalidateQueries({ queryKey: ['relationship-score', kind, entityId] });
-        qc.invalidateQueries({ queryKey: ['relationship-strongest', kind, entityId] });
+        onRelationshipMetricChanged(qc, kind, entityId);
       }
     },
     onError: () => toast.error('İlişki grafı yeniden oluşturulamadı'),
