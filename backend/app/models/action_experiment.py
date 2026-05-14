@@ -11,9 +11,17 @@ from app.core.database import Base
 
 
 class ActionExperiment(Base):
+    """A/B action experiment record on an opportunity.
+
+    Round-15 F-002 / Sprint 15j cohort 6 — ``tenant_id`` added for
+    defense in depth. Backfilled from ``opportunities.tenant_id`` by
+    ``20260527_phase12_tenant_did_cohort6``.
+    """
+
     __tablename__ = "action_experiments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False, index=True
     )

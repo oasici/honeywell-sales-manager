@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { invoicesApi, customersApi } from '../../lib/api';
+import { onInvoiceCreated } from '../../lib/cacheInvalidation';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 import { Modal } from '../../components/ui/Modal';
 import { useT } from '../../hooks/useT';
@@ -118,7 +119,9 @@ export default function InvoiceListPage() {
     mutationFn: (payload: Parameters<typeof invoicesApi.create>[0]) => invoicesApi.create(payload),
     onSuccess: (created: Invoice) => {
       toast.success(t('invoices.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      // Round-15 Sprint 15g cohort 6 — also invalidates rev-rec +
+      // cockpit + dashboard + customer-360 via the helper.
+      onInvoiceCreated(queryClient, created.customer_id);
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       navigate(`/invoices/${created.id}`);
@@ -130,7 +133,7 @@ export default function InvoiceListPage() {
     mutationFn: (quoteId: number) => invoicesApi.createFromQuote(quoteId),
     onSuccess: (created: Invoice) => {
       toast.success(t('invoices.toast_from_quote'));
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      onInvoiceCreated(queryClient, created.customer_id);
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       navigate(`/invoices/${created.id}`);

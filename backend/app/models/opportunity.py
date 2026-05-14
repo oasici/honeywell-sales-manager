@@ -87,9 +87,17 @@ class Opportunity(Base):
 
 
 class OpportunityEvent(Base):
+    """Per-opportunity event log.
+
+    Round-15 F-002 / Sprint 15j cohort 6 — ``tenant_id`` added for
+    defense in depth. Backfilled from ``opportunities.tenant_id`` by
+    ``20260527_phase12_tenant_did_cohort6``.
+    """
+
     __tablename__ = "opportunity_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False, index=True
     )

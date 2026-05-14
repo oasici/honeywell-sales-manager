@@ -210,9 +210,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
                         {...register(`stages.${index}.key`)}
                         className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-honeywell-red dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       >
-                        <option value="">
-                          {t('pipelines.stage_key_placeholder')}
-                        </option>
+                        <option value="">{t('pipelines.stage_key_placeholder')}</option>
                         {STAGE_KEY_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
                             {opt.label}

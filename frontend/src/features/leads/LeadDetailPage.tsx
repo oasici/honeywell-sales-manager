@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { onLeadConverted, onLeadScoreChanged } from '../../lib/cacheInvalidation';
+import {
+  onLeadChanged,
+  onLeadConverted,
+  onLeadScoreChanged,
+} from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
 import AiAttributeValuesPanel from '../intelligence/AiAttributeValuesPanel';
@@ -171,9 +175,9 @@ export default function LeadDetailPage() {
     mutationFn: (payload: Record<string, unknown>) => leadsApi.update(leadId, payload),
     onSuccess: () => {
       toast.success(t('leads.toast_updated'));
-      // R4-CACHE-2: list page also needs to refresh after edit.
-      queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      // Round-15 Sprint 15g cohort 6 — onLeadChanged invalidates the
+      // detail card AND list. Replaces the R4-CACHE-2 inline pair.
+      onLeadChanged(queryClient, leadId);
     },
   });
 

@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { DataTable } from '../../components/ui/DataTable';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { complianceApi, customersApi } from '../../lib/api';
@@ -221,7 +222,14 @@ export default function ComplianceDashboardPage() {
       >
         {retentionReportQuery.isLoading && <Skeleton variant="table" />}
 
-        {!retentionReportQuery.isLoading && (
+        {/* Round-15 Sprint 15i — surface retention report fetch failures
+            with a retry banner. Pre-fix, an outage rendered an empty
+            "Gecikme bulunamadı" row indistinguishable from real zero. */}
+        {!retentionReportQuery.isLoading && retentionReportQuery.isError && (
+          <QueryErrorBanner onRetry={() => retentionReportQuery.refetch()} />
+        )}
+
+        {!retentionReportQuery.isLoading && !retentionReportQuery.isError && (
           <DataTable
             columns={retentionColumns}
             data={report?.customers ?? []}

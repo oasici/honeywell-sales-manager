@@ -131,7 +131,11 @@ export default function LeadListPage() {
     onSuccess: (res) => {
       toast.success(res.message);
       clearSelection();
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      // Round-15 Sprint 15g cohort 6 — bulk lead actions can change
+      // status/owner across many rows; onLeadCreated covers the
+      // analytics + dashboard + cockpit fan-out the inline pattern
+      // missed (R7-CACHE-1 pattern reused).
+      onLeadCreated(queryClient);
     },
     onError: () => toast.error(t('leads.bulk_failed')),
   });

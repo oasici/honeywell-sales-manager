@@ -83,6 +83,18 @@ export function onLeadScoreChanged(qc: QueryClient, leadId: number): void {
 }
 
 /**
+ * Round-15 Sprint 15g cohort 6 — generic lead field update.
+ *
+ * Lead detail edits (status / owner / company / etc.) need to refresh
+ * the detail card AND the list page so the row reflects the change
+ * without a manual reload.
+ */
+export function onLeadChanged(qc: QueryClient, leadId: number): void {
+  qc.invalidateQueries({ queryKey: ['lead', leadId] });
+  qc.invalidateQueries({ queryKey: ['leads'] });
+}
+
+/**
  * After quote.approve / quote.send. Updates the quote detail and
  * the list, fires a notification (so the badge polls less laggy),
  * and updates the linked opportunity timeline + activity summary.

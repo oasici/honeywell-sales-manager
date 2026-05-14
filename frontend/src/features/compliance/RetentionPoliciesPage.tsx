@@ -129,7 +129,8 @@ export default function RetentionPoliciesPage() {
             />
           );
         }
-        const label = ENTITY_TYPE_OPTIONS.find((o) => o.value === row.entity_type)?.label ?? row.entity_type;
+        const label =
+          ENTITY_TYPE_OPTIONS.find((o) => o.value === row.entity_type)?.label ?? row.entity_type;
         return <span>{label}</span>;
       },
     },
@@ -143,7 +144,9 @@ export default function RetentionPoliciesPage() {
             <Input
               type="number"
               value={String(form.retention_days)}
-              onChange={(e) => setForm({ ...form, retention_days: parseInt(e.target.value, 10) || 0 })}
+              onChange={(e) =>
+                setForm({ ...form, retention_days: parseInt(e.target.value, 10) || 0 })
+              }
             />
           );
         }
@@ -250,11 +253,7 @@ export default function RetentionPoliciesPage() {
       {isLoading && <Skeleton variant="table" />}
 
       {!isLoading && (
-        <DataTable
-          columns={columns}
-          data={policies}
-          emptyMessage="Saklama politikasi bulunamadi"
-        />
+        <DataTable columns={columns} data={policies} emptyMessage="Saklama politikasi bulunamadi" />
       )}
 
       {/* Create modal */}
@@ -274,7 +273,9 @@ export default function RetentionPoliciesPage() {
             label="Saklama Süresi (Gun)"
             type="number"
             value={String(form.retention_days)}
-            onChange={(e) => setForm({ ...form, retention_days: parseInt(e.target.value, 10) || 0 })}
+            onChange={(e) =>
+              setForm({ ...form, retention_days: parseInt(e.target.value, 10) || 0 })
+            }
           />
           <Select
             label="Aksiyon"

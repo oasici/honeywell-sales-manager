@@ -15,9 +15,7 @@ import { onApprovalRuleChanged } from '../../lib/cacheInvalidation';
 
 import type { ApprovalRule } from '../../lib/types';
 
-const ENTITY_TYPE_OPTIONS = [
-  { value: 'quote', label: 'Teklif' },
-];
+const ENTITY_TYPE_OPTIONS = [{ value: 'quote', label: 'Teklif' }];
 
 const CONDITION_TYPE_OPTIONS = [
   { value: 'discount_pct', label: 'Iskonto Orani (%)' },
@@ -32,9 +30,7 @@ const OPERATOR_OPTIONS = [
   { value: 'lte', label: '<= (Kucuk Esit)' },
 ];
 
-const APPROVER_ROLE_OPTIONS = [
-  { value: 'sales_manager', label: 'Satış Yoneticisi' },
-];
+const APPROVER_ROLE_OPTIONS = [{ value: 'sales_manager', label: 'Satış Yoneticisi' }];
 
 const OPERATOR_SYMBOL: Record<string, string> = {
   gt: '>',
@@ -82,8 +78,7 @@ export default function ApprovalRulesPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: Record<string, unknown>) =>
-      approvalsApi.createRule(payload),
+    mutationFn: (payload: Record<string, unknown>) => approvalsApi.createRule(payload),
     onSuccess: () => {
       toast.success('Kural oluşturuldu');
       onApprovalRuleChanged(queryClient);
@@ -95,13 +90,8 @@ export default function ApprovalRulesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: number;
-      payload: Record<string, unknown>;
-    }) => approvalsApi.updateRule(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      approvalsApi.updateRule(id, payload),
     onSuccess: () => {
       toast.success('Kural güncellendi');
       onApprovalRuleChanged(queryClient);
@@ -187,9 +177,7 @@ export default function ApprovalRulesPage() {
       key: 'name',
       header: 'Kural Adi',
       render: (row: ApprovalRule) => (
-        <span className="font-medium text-slate-900 dark:text-white">
-          {row.name}
-        </span>
+        <span className="font-medium text-slate-900 dark:text-white">{row.name}</span>
       ),
     },
     {
@@ -215,8 +203,7 @@ export default function ApprovalRulesPage() {
       header: 'Esik Değer',
       render: (row: ApprovalRule) => (
         <span className="font-mono text-sm text-slate-700 dark:text-slate-300">
-          {OPERATOR_SYMBOL[row.threshold_operator] || row.threshold_operator}{' '}
-          {row.threshold_value}
+          {OPERATOR_SYMBOL[row.threshold_operator] || row.threshold_operator} {row.threshold_value}
         </span>
       ),
     },
@@ -225,9 +212,7 @@ export default function ApprovalRulesPage() {
       header: 'Onaylayan Rol',
       render: (row: ApprovalRule) => (
         <span className="text-slate-700 dark:text-slate-300">
-          {row.approver_role === 'sales_manager'
-            ? 'Satış Yoneticisi'
-            : row.approver_role || '-'}
+          {row.approver_role === 'sales_manager' ? 'Satış Yoneticisi' : row.approver_role || '-'}
         </span>
       ),
     },
@@ -330,17 +315,13 @@ export default function ApprovalRulesPage() {
               label="Varlık Tipi"
               options={ENTITY_TYPE_OPTIONS}
               value={form.entity_type}
-              onChange={(e) =>
-                setForm({ ...form, entity_type: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, entity_type: e.target.value })}
             />
             <Select
               label="Koşul Tipi"
               options={CONDITION_TYPE_OPTIONS}
               value={form.condition_type}
-              onChange={(e) =>
-                setForm({ ...form, condition_type: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, condition_type: e.target.value })}
             />
           </div>
 
@@ -349,18 +330,14 @@ export default function ApprovalRulesPage() {
               label="Operatör"
               options={OPERATOR_OPTIONS}
               value={form.threshold_operator}
-              onChange={(e) =>
-                setForm({ ...form, threshold_operator: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, threshold_operator: e.target.value })}
             />
             <Input
               label="Eşik Değer"
               type="number"
               step="any"
               value={form.threshold_value}
-              onChange={(e) =>
-                setForm({ ...form, threshold_value: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, threshold_value: e.target.value })}
               required
             />
           </div>
@@ -370,18 +347,14 @@ export default function ApprovalRulesPage() {
               label="Onaylayan Rol"
               options={APPROVER_ROLE_OPTIONS}
               value={form.approver_role}
-              onChange={(e) =>
-                setForm({ ...form, approver_role: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, approver_role: e.target.value })}
             />
             <Input
               label="Öncelik"
               type="number"
               min="1"
               value={form.priority}
-              onChange={(e) =>
-                setForm({ ...form, priority: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, priority: e.target.value })}
               required
             />
           </div>

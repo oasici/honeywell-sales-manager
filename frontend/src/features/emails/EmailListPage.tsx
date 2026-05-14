@@ -24,6 +24,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { emailsApi, customersApi, quotesApi } from '../../lib/api';
+import { onCustomerCreated, onEmailChanged } from '../../lib/cacheInvalidation';
 import { getErrorMessage } from '../../lib/utils';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
@@ -91,7 +92,7 @@ export default function EmailListPage() {
     mutationFn: emailsApi.pollEmails,
     onSuccess: (res) => {
       toast.success(res.message || t('emails.toast_poll_done'));
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      onEmailChanged(queryClient, null);
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, t('emails.toast_poll_failed')));
@@ -103,7 +104,8 @@ export default function EmailListPage() {
       customersApi.createCustomer(payload),
     onSuccess: (customer) => {
       toast.success(`${t('emails.toast_customer_created_prefix')}: ${customer.name}`);
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      // Round-15 Sprint 15g — also invalidates high-intent + dashboard.
+      onCustomerCreated(queryClient);
     },
     onError: () => toast.error(t('emails.toast_customer_create_failed')),
   });
@@ -122,10 +124,7 @@ export default function EmailListPage() {
     mutationFn: (emailId: number) => emailsApi.reparseEmail(emailId),
     onSuccess: (res) => {
       toast.success(res.message || t('emails.toast_reparse_done'));
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
-      if (detailEmail) {
-        queryClient.invalidateQueries({ queryKey: ['email-detail', detailEmail.id] });
-      }
+      onEmailChanged(queryClient, detailEmail?.id ?? null);
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, t('emails.toast_reparse_failed')));
@@ -141,10 +140,7 @@ export default function EmailListPage() {
     onSuccess: (res) => {
       toast.success(res.message);
       setEditingParse(false);
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
-      if (detailEmail) {
-        queryClient.invalidateQueries({ queryKey: ['email-detail', detailEmail.id] });
-      }
+      onEmailChanged(queryClient, detailEmail?.id ?? null);
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, t('emails.toast_correction_failed')));
@@ -156,7 +152,7 @@ export default function EmailListPage() {
       emailsApi.reviewEmail(id, action),
     onSuccess: () => {
       toast.success(t('emails.toast_review_done'));
-      queryClient.invalidateQueries({ queryKey: ['emails'] });
+      onEmailChanged(queryClient, detailEmail?.id ?? null);
       setDetailEmail(null);
     },
     onError: (err: unknown) => {
