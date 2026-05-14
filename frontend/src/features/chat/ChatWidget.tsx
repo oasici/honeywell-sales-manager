@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, X, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { chatApi } from '../../lib/api';
+import { onChatWidgetMessageChanged } from '../../lib/cacheInvalidation';
 import type { ChatMessage, ChatSession } from '../../lib/types';
 
 const VISITOR_ID_KEY = 'chat-visitor-id';
@@ -93,7 +94,7 @@ export function ChatWidget() {
         sender_id: visitorId.current,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-messages', sessionId] });
+      onChatWidgetMessageChanged(queryClient, sessionId);
     },
     onError: () => toast.error('Mesaj gönderilemedi'),
   });

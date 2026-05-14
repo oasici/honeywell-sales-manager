@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Badge } from '../../components/ui/Badge';
 import { customersApi } from '../../lib/api';
+import { onCustomerChanged } from '../../lib/cacheInvalidation';
 import { useT } from '../../hooks/useT';
 import type { HighIntentListResponse } from '../../lib/types';
 
@@ -27,7 +28,7 @@ export default function HighIntentAccountsPage() {
       else await customersApi.unpinCustomer(id);
     },
     onSuccess: (_, v) => {
-      queryClient.invalidateQueries({ queryKey: ['high-intent-accounts'] });
+      onCustomerChanged(queryClient, v.id);
       toast.success(v.pin ? t('high_intent.pinned') : t('high_intent.unpinned'));
     },
     onError: () => toast.error(t('high_intent.pin_error')),

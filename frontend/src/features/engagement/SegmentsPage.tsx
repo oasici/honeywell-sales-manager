@@ -12,6 +12,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { engagementApi } from '../../lib/api';
+import { onSegmentChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import type { Segment } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -122,7 +123,7 @@ export default function SegmentsPage() {
     mutationFn: (payload: Record<string, unknown>) => engagementApi.createSegment(payload),
     onSuccess: () => {
       toast.success(t('segments.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['segments'] });
+      onSegmentChanged(queryClient);
       setIsCreateOpen(false);
       resetForm();
     },

@@ -24,6 +24,9 @@ class AccountEnrichment(Base):
     customer_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, unique=True
     )
+    # Round-15 Sprint 15j cohort 10 — defense-in-depth tenant scoping
+    # (backfilled from parent customer).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2).
     pipeline_open_amount: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)

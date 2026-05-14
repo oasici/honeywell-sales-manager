@@ -8,10 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { relationshipsApi } from '../../lib/api';
-import {
-  onRelationshipMetricChanged,
-  onRelationshipsRebuilt,
-} from '../../lib/cacheInvalidation';
+import { onRelationshipMetricChanged, onRelationshipsRebuilt } from '../../lib/cacheInvalidation';
 
 /**
  * S-B — relationship panel.

@@ -423,7 +423,7 @@ export default function EmailListPage() {
           setDetailEmail(email);
           if (!email.is_read) {
             emailsApi.markRead(email.id).then(() => {
-              queryClient.invalidateQueries({ queryKey: ['emails'] });
+              onEmailChanged(queryClient, null);
             });
           }
         }}

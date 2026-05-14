@@ -19,6 +19,11 @@ class UserCustomerPin(Base):
     customer_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False
     )
+    # Round-15 Sprint 15j cohort 10 — defense-in-depth tenant scoping
+    # (backfilled from parent customer; equally valid via user.tenant_id
+    # since a pin requires both the user and the customer to live in
+    # the same tenant).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     # DB rows created before this feature may have NULL timestamps.
     pinned_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=True

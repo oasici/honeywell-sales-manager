@@ -29,6 +29,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { workflowRulesApi } from '../../lib/api';
+import { onWorkflowRuleChanged } from '../../lib/cacheInvalidation';
 
 import type { WorkflowRule } from '../../lib/types';
 
@@ -625,7 +626,7 @@ export default function FlowBuilderPage() {
     },
     onSuccess: () => {
       toast.success('Kural kaydedildi');
-      queryClient.invalidateQueries({ queryKey: ['workflowRules'] });
+      onWorkflowRuleChanged(queryClient);
       if (isNew) {
         navigate('/admin/workflow-rules');
       }

@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { playbookApi } from '../../lib/api';
+import { onPlaybookChanged } from '../../lib/cacheInvalidation';
 
 import type { PlaybookTemplate } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -41,7 +42,7 @@ export default function PlaybookTemplatesPage() {
       }),
     onSuccess: () => {
       toast.success('Sablondan playbook oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+      onPlaybookChanged(queryClient);
       navigate('/playbooks');
     },
     onError: (err: unknown) =>

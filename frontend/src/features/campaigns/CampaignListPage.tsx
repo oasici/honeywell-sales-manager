@@ -12,6 +12,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
 import { campaignsApi } from '../../lib/api';
+import { onCampaignChanged } from '../../lib/cacheInvalidation';
 import { formatCurrency } from '../../lib/formatters';
 import type { Campaign } from '../../lib/types';
 import { STATUS_VARIANTS } from './campaignConstants';
@@ -119,7 +120,7 @@ export default function CampaignListPage() {
       campaignsApi.create(payload),
     onSuccess: (created: Campaign) => {
       toast.success('Kampanya oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      onCampaignChanged(queryClient, created.id);
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       navigate(`/campaigns/${created.id}`);

@@ -20,6 +20,9 @@ class CoachingSnapshot(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, index=True
     )
+    # Round-15 Sprint 15j cohort 10 — defense-in-depth tenant scoping
+    # (backfilled from users.tenant_id via user_id).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     score: Mapped[int] = mapped_column(Integer, nullable=False)
     indicators_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

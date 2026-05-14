@@ -38,6 +38,9 @@ class PlaybookAdherence(Base):
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id", ondelete="CASCADE"), index=True
     )
+    # Round-15 Sprint 15j cohort 10 — defense-in-depth tenant scoping
+    # (backfilled from parent opportunity).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     playbook_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("playbooks.id", ondelete="CASCADE")
     )

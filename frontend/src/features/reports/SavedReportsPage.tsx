@@ -22,6 +22,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { reportsApi } from '../../lib/api';
+import { onSavedReportChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import type { ReportTemplate } from '../../lib/types';
 import { useState } from 'react';
@@ -65,7 +66,7 @@ export default function SavedReportsPage() {
     mutationFn: (id: number) => reportsApi.deleteTemplate(id),
     onSuccess: () => {
       toast.success('Rapor şablonu silindi');
-      queryClient.invalidateQueries({ queryKey: ['report-templates'] });
+      onSavedReportChanged(queryClient);
       setDeleteTarget(null);
     },
     onError: () => toast.error('Rapor silinemedi'),

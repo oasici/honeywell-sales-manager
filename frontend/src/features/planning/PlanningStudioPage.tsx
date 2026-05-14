@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { savedViewsApi } from '../../lib/api';
+import { onSavedViewChanged } from '../../lib/cacheInvalidation';
 import { useT } from '../../hooks/useT';
 import type { SavedView } from '../../lib/types';
 
@@ -39,7 +40,7 @@ export default function PlanningStudioPage() {
     mutationFn: savedViewsApi.create,
     onSuccess: () => {
       toast.success(t('planning.toast_saved'));
-      queryClient.invalidateQueries({ queryKey: ['saved-views'] });
+      onSavedViewChanged(queryClient);
     },
     onError: () => toast.error(t('settings.operation_failed')),
   });
@@ -48,7 +49,7 @@ export default function PlanningStudioPage() {
     mutationFn: (id: number) => savedViewsApi.remove(id),
     onSuccess: () => {
       toast.success(t('planning.toast_deleted'));
-      queryClient.invalidateQueries({ queryKey: ['saved-views'] });
+      onSavedViewChanged(queryClient);
     },
     onError: () => toast.error(t('settings.operation_failed')),
   });

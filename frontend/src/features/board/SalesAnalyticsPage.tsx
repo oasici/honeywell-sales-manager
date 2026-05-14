@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { analyticsApi, opsApi, forecastApi } from '../../lib/api';
+import { onForecastWowChanged } from '../../lib/cacheInvalidation';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -153,7 +154,7 @@ export default function SalesAnalyticsPage() {
     mutationFn: () => forecastApi.takeSnapshot(),
     onSuccess: () => {
       toast.success(t('sales_analytics.toast_snapshot_ok'));
-      queryClient.invalidateQueries({ queryKey: ['forecast-wow'] });
+      onForecastWowChanged(queryClient);
     },
   });
   const { data: funnel } = useQuery({

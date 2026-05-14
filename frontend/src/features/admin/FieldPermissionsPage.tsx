@@ -82,7 +82,8 @@ export default function FieldPermissionsPage() {
 
   const { data, isLoading } = useQuery<FieldPermission[]>({
     queryKey: ['fieldPermissions', filterParams],
-    queryFn: () => fieldPermissionsApi.list(Object.keys(filterParams).length > 0 ? filterParams : undefined),
+    queryFn: () =>
+      fieldPermissionsApi.list(Object.keys(filterParams).length > 0 ? filterParams : undefined),
   });
 
   const createMutation = useMutation({
@@ -134,7 +135,9 @@ export default function FieldPermissionsPage() {
       header: 'Rol',
       sortable: true,
       render: (row: FieldPermission) => (
-        <Badge variant="default" size="sm">{roleLabel(row.role)}</Badge>
+        <Badge variant="default" size="sm">
+          {roleLabel(row.role)}
+        </Badge>
       ),
     },
     {
@@ -191,10 +194,7 @@ export default function FieldPermissionsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Alan İzinleri"
-        description="Rol bazında alan erişim izinlerini yönetin"
-      >
+      <PageHeader title="Alan İzinleri" description="Rol bazında alan erişim izinlerini yönetin">
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus size={14} />
           Yeni İzin

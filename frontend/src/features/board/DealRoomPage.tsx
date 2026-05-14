@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { dealRoomsApi } from '../../lib/api';
+import { onDealRoomChanged } from '../../lib/cacheInvalidation';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -77,7 +78,7 @@ export default function DealRoomPage() {
       }),
     onSuccess: () => {
       toast.success(t('deal_room.toast_saved'));
-      queryClient.invalidateQueries({ queryKey: ['deal-room', roomId] });
+      onDealRoomChanged(queryClient, roomId);
     },
     onError: () => toast.error(t('deal_room.toast_save_failed')),
   });

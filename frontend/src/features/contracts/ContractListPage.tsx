@@ -11,7 +11,9 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Modal } from '../../components/ui/Modal';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { contractsApi, customersApi } from '../../lib/api';
+import { onContractChanged } from '../../lib/cacheInvalidation';
 import type { Contract, Customer } from '../../lib/types';
 import { useT } from '../../hooks/useT';
 import { CONTRACT_STATUS_VALUES, translateContractStatus } from '../../lib/labelTranslations';
@@ -88,7 +90,12 @@ export default function ContractListPage() {
   const [formEndDate, setFormEndDate] = useState('');
   const [formValue, setFormValue] = useState('');
 
-  const { data: contractsData, isLoading } = useQuery({
+  const {
+    data: contractsData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['contracts', statusFilter, search],
     queryFn: () =>
       contractsApi.list({
@@ -112,7 +119,7 @@ export default function ContractListPage() {
     mutationFn: (payload: Record<string, unknown>) => contractsApi.create(payload),
     onSuccess: (data) => {
       toast.success(t('contracts.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      onContractChanged(queryClient, (data as Contract).id);
       setIsCreateOpen(false);
       resetForm();
       navigate(`/contracts/${(data as Contract).id}`);
@@ -308,7 +315,13 @@ export default function ContractListPage() {
 
           {isLoading && <Skeleton variant="table" />}
 
-          {!isLoading && contracts.length === 0 && (
+          {/* Round-15 Sprint 15i — load failure surfaces a retry banner
+              instead of silently rendering the empty state. */}
+          {!isLoading && isError && (
+            <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+          )}
+
+          {!isLoading && !isError && contracts.length === 0 && (
             <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
               <EmptyState
                 variant="default"
@@ -324,7 +337,7 @@ export default function ContractListPage() {
             </div>
           )}
 
-          {!isLoading && contracts.length > 0 && (
+          {!isLoading && !isError && contracts.length > 0 && (
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">

@@ -20,6 +20,9 @@ class CoachingPlan(Base):
     manager_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
     )
+    # Round-15 Sprint 15j cohort 10 — defense-in-depth tenant scoping
+    # (backfilled from users.tenant_id via user_id).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     # JSON: [{"indicator":"followup_adherence","target":75,"current":40}]
     goals_json: Mapped[str] = mapped_column(Text, nullable=False)
     weeks: Mapped[int] = mapped_column(Integer, default=4)

@@ -13,6 +13,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { engagementApi, aiApi } from '../../lib/api';
+import { onTranscriptChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 
@@ -147,7 +148,7 @@ export default function TranscriptsPage() {
     mutationFn: (payload: Record<string, unknown>) => engagementApi.createTranscript(payload),
     onSuccess: () => {
       toast.success(t('transcripts.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['transcripts'] });
+      onTranscriptChanged(queryClient);
       setIsCreateOpen(false);
       resetForm();
     },

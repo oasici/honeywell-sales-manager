@@ -658,11 +658,7 @@ export function onQuoteChanged(qc: QueryClient, quoteId?: number | null): void {
  * entity (opportunity / customer / quote / etc). Thread is keyed by
  * ``(entityType, entityId)``.
  */
-export function onCommentChanged(
-  qc: QueryClient,
-  entityType: string,
-  entityId: number,
-): void {
+export function onCommentChanged(qc: QueryClient, entityType: string, entityId: number): void {
   qc.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
 }
 
@@ -723,11 +719,104 @@ export function onStakeholderGraphChanged(qc: QueryClient, opportunityId: number
  * ``onRelationshipsRebuilt`` which is opportunity-scoped and fans
  * out to gap / risk cards.
  */
-export function onRelationshipMetricChanged(
-  qc: QueryClient,
-  kind: string,
-  entityId: number,
-): void {
+export function onRelationshipMetricChanged(qc: QueryClient, kind: string, entityId: number): void {
   qc.invalidateQueries({ queryKey: ['relationship-score', kind, entityId] });
   qc.invalidateQueries({ queryKey: ['relationship-strongest', kind, entityId] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Deal room mutated (welcome edit,
+ * mutual-action-plan update, share toggle). Each room is keyed by id;
+ * the list view consumes ``['deal-rooms']``.
+ */
+export function onDealRoomChanged(qc: QueryClient, roomId: number | null): void {
+  qc.invalidateQueries({ queryKey: ['deal-rooms'] });
+  if (roomId) {
+    qc.invalidateQueries({ queryKey: ['deal-room', roomId] });
+  }
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Engagement keyword pack CRUD.
+ *
+ * KeywordPacksPage lists the per-tenant keyword bundles used by
+ * the email + transcript signal extractor.
+ */
+export function onKeywordPackChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['keyword-packs'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Engagement segment CRUD.
+ * Segments are saved filter definitions consumed by transcript /
+ * email matching rules.
+ */
+export function onSegmentChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['segments'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Transcript imported / re-tagged.
+ * Currently a single list; helper exists so future transcript-keyed
+ * cards (per-deal transcript chip) fan out from one place.
+ */
+export function onTranscriptChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['transcripts'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Saved report template CRUD.
+ */
+export function onSavedReportChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['report-templates'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Coaching plan CRUD.
+ * Plan list lives under ``['coaching', 'plans']`` per the page
+ * convention; helper centralizes that key.
+ */
+export function onCoachingPlanChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['coaching', 'plans'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Saved view CRUD (per-list quick
+ * filter). PlanningStudioPage + list pages share the same key.
+ */
+export function onSavedViewChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['saved-views'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Chat widget (buyer-facing) message
+ * posted. Distinct key from the agent-side ``['chat-messages-agent', id]``
+ * tracked by ``onChatMessageChanged``.
+ */
+export function onChatWidgetMessageChanged(
+  qc: QueryClient,
+  sessionId: number | string | null,
+): void {
+  if (sessionId != null) {
+    qc.invalidateQueries({ queryKey: ['chat-messages', sessionId] });
+  }
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — Forecast week-over-week rollup
+ * manually recomputed from SalesAnalyticsPage. Narrow scope (no
+ * cockpit fan-out) — the user is already on the analytics page.
+ */
+export function onForecastWowChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['forecast-wow'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 10 — High-intent pin list mutated from
+ * the dedicated HighIntentAccountsPage. Narrower than
+ * ``onCustomerChanged``'s full fan-out since the page only operates
+ * on the pin list, not customer profile fields.
+ */
+export function onHighIntentChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['high-intent-accounts'] });
 }

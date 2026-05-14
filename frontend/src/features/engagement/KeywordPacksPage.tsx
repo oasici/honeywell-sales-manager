@@ -12,6 +12,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { engagementApi } from '../../lib/api';
+import { onKeywordPackChanged } from '../../lib/cacheInvalidation';
 import type { KeywordPack } from '../../lib/types';
 
 const CATEGORY_OPTIONS = [
@@ -58,7 +59,7 @@ export default function KeywordPacksPage() {
     mutationFn: (payload: Record<string, unknown>) => engagementApi.createKeywordPack(payload),
     onSuccess: () => {
       toast.success('Anahtar kelime paketi oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['keyword-packs'] });
+      onKeywordPackChanged(queryClient);
       setIsCreateOpen(false);
       resetForm();
     },

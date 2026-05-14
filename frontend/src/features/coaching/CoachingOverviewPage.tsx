@@ -12,6 +12,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { coachingApi } from '../../lib/api';
+import { onCoachingPlanChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime, formatPercent } from '../../lib/formatters';
 
 import type { CoachingOverview, CoachingPlan } from '../../lib/types';
@@ -158,7 +159,7 @@ export default function CoachingOverviewPage() {
     }) => coachingApi.createPlan(payload),
     onSuccess: () => {
       toast.success(t('coaching.toast_plan_created'));
-      queryClient.invalidateQueries({ queryKey: ['coaching', 'plans'] });
+      onCoachingPlanChanged(queryClient);
       setShowCreatePlan(false);
       setPlanForm(INITIAL_PLAN_FORM);
       setGoalRows([{ goal: '', target: '' }]);

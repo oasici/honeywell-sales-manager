@@ -16,6 +16,9 @@ import { BulkActionBar } from '../../components/ui/BulkActionBar';
 import { useMultiSelect } from '../../hooks/useMultiSelect';
 import { customersApi, quotesApi } from '../../lib/api';
 import { onCustomerCreated } from '../../lib/cacheInvalidation';
+// Round-15 Sprint 15g cohort 10 — bulk customer mutations reuse the
+// onCustomerCreated helper since both touch the customers list + the
+// dashboard tile + notifications + high-intent pin list.
 import { DuplicateWarning } from '../../components/ui/DuplicateWarning';
 import { formatCurrency } from '../../lib/formatters';
 import { STATUS_COLORS } from '../../lib/constants';
@@ -415,7 +418,7 @@ export default function CustomerListPage() {
     onSuccess: (res) => {
       toast.success(res.message);
       clearSelection();
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      onCustomerCreated(queryClient);
     },
     onError: () => toast.error(t('customers.bulk_failed')),
   });
