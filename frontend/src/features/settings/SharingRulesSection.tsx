@@ -13,6 +13,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { teamsApi } from '../../lib/api';
+import { onSharingRuleChanged } from '../../lib/cacheInvalidation';
 import type { SharingRule } from '../../lib/types';
 
 const ENTITY_TYPE_OPTIONS = [
@@ -113,7 +114,7 @@ export default function SharingRulesSection() {
     },
     onSuccess: () => {
       toast.success('Paylasim kuralı oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['sharing-rules'] });
+      onSharingRuleChanged(queryClient);
       setIsModalOpen(false);
       setForm(INITIAL_FORM);
     },
@@ -124,7 +125,7 @@ export default function SharingRulesSection() {
     mutationFn: (id: number) => teamsApi.deleteSharingRule(id),
     onSuccess: () => {
       toast.success('Paylasim kuralı silindi');
-      queryClient.invalidateQueries({ queryKey: ['sharing-rules'] });
+      onSharingRuleChanged(queryClient);
       setDeleteTarget(null);
     },
     onError: () => toast.error('Kural silinemedi'),

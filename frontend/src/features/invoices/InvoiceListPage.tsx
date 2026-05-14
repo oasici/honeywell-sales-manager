@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { invoicesApi, customersApi } from '../../lib/api';
 import { onInvoiceCreated } from '../../lib/cacheInvalidation';
 import { formatCurrency, formatDate } from '../../lib/formatters';
@@ -102,7 +103,7 @@ export default function InvoiceListPage() {
     [t],
   );
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['invoices', statusFilter],
     queryFn: () => invoicesApi.list(statusFilter ? { status: statusFilter } : {}),
   });
@@ -165,14 +166,12 @@ export default function InvoiceListPage() {
   const isPending = createMutation.isPending || createFromQuoteMutation.isPending;
 
   if (isError) {
+    // Round-15 Sprint 15i — standardized banner with retry. Replaces the
+    // hand-rolled red-bg placeholder that had no retry affordance.
     return (
       <div>
         <PageHeader title={t('invoices.title')} description={t('invoices.description')} />
-        <div className="rounded-2xl border border-red-100 bg-red-50/40 p-8 text-center dark:border-red-900/40 dark:bg-red-950/20">
-          <p className="text-[14px] font-medium text-red-700 dark:text-red-400">
-            {t('invoices.load_error')}
-          </p>
-        </div>
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
       </div>
     );
   }

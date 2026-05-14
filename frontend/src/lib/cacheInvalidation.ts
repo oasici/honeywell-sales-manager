@@ -460,3 +460,96 @@ export function onDashboardChanged(qc: QueryClient, dashboardId?: number | null)
     qc.invalidateQueries({ queryKey: ['dashboard-execute', dashboardId] });
   }
 }
+
+/**
+ * Round-15 Sprint 15g cohort 7 — User CRUD (admin → user mgmt page).
+ *
+ * UserManagementPage previously duplicated ``['users']`` invalidation
+ * inline across 2 mutations (create + update). Wiring it through the
+ * registry retires the duplication and is a single point where new
+ * user-keyed surfaces (role audit, audit-log filter) can be added.
+ */
+export function onUserChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['users'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 7 — Sharing rule CRUD.
+ *
+ * SharingRulesSection had inline invalidations on the same key from
+ * 2 mutations. Folded into one helper for parity with the other
+ * settings-page registries (territory, approval-rule, pipeline-config).
+ */
+export function onSharingRuleChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['sharing-rules'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 7 — Account team member added / removed.
+ *
+ * AccountTeamPanel invalidated the per-customer team-members key
+ * inline. The team-member count is also a feature input to
+ * ``customer-intelligence`` and ``account-360``, so folding here
+ * lets us pick up those rollups in a single point if the panel grows.
+ */
+export function onTeamMemberChanged(qc: QueryClient, customerId: number): void {
+  qc.invalidateQueries({ queryKey: ['team-members', customerId] });
+  qc.invalidateQueries({ queryKey: ['account-360', customerId] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 7 — Part CRUD (parts catalog admin).
+ *
+ * PartsPage create / update / delete invalidated ``['parts']`` AND
+ * ``['parts-categories']`` inline; folded into one helper so any
+ * future parts-keyed surface (parts-intel summary, BOM picker) is
+ * captured here rather than at every call site.
+ */
+export function onPartChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['parts'] });
+  qc.invalidateQueries({ queryKey: ['parts-categories'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 7 — Pricing tier or customer-pricing edit.
+ *
+ * PricingAdminPage had 5 inline invalidations across 3 distinct keys
+ * (``['pricing-tiers', priceEntryId]``, ``['customer-pricing', cid]``,
+ * ``['parts', 'all']``). The helper takes both ids so the same call
+ * covers tier edits and customer-specific overrides, plus a single
+ * place to also refresh the parts catalog (price changes propagate
+ * to the price column shown in PartsPage).
+ */
+export function onPricingChanged(
+  qc: QueryClient,
+  priceEntryId?: number | null,
+  customerId?: number | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['pricing-tiers'] });
+  qc.invalidateQueries({ queryKey: ['parts', 'all'] });
+  if (priceEntryId) {
+    qc.invalidateQueries({ queryKey: ['pricing-tiers', priceEntryId] });
+  }
+  if (customerId) {
+    qc.invalidateQueries({ queryKey: ['customer-pricing', customerId] });
+  }
+}
+
+/**
+ * Round-15 Sprint 15g cohort 7 — Integration connector connected /
+ * disconnected / token refreshed.
+ *
+ * IntegrationsPage manages calendar + e-sign + email connectors. Each
+ * connector previously invalidated its own narrow key inline. Helper
+ * accepts the connector kind so the same registry covers all three
+ * without leaking implementation detail into the page.
+ */
+export function onIntegrationChanged(
+  qc: QueryClient,
+  kind?: 'calendar' | 'esign' | 'email' | null,
+): void {
+  qc.invalidateQueries({ queryKey: ['integrations'] });
+  if (kind) {
+    qc.invalidateQueries({ queryKey: ['integrations', kind] });
+  }
+}

@@ -7,7 +7,9 @@ import { DataTable } from '../../components/ui/DataTable';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { usersApi } from '../../lib/api';
+import { onUserChanged } from '../../lib/cacheInvalidation';
 import { translateUserRole } from '../../lib/labelTranslations';
 import { formatDate } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
@@ -61,7 +63,7 @@ export default function UserManagementPage() {
     [t],
   );
 
-  const { data, isLoading } = useQuery<PaginatedUsers>({
+  const { data, isLoading, isError, refetch } = useQuery<PaginatedUsers>({
     queryKey: ['users', { page, search }],
     queryFn: () =>
       usersApi.getUsers({
@@ -75,7 +77,7 @@ export default function UserManagementPage() {
     mutationFn: (id: number) => usersApi.toggleActive(id),
     onSuccess: (_data, id) => {
       toast.success(t('admin.toast_user_status').replace('{id}', String(id)));
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      onUserChanged(queryClient);
     },
     onError: () => toast.error(t('admin.toast_status_fail')),
   });
@@ -85,7 +87,7 @@ export default function UserManagementPage() {
     onSuccess: () => {
       toast.success(t('admin.toast_role_ok'));
       setRoleConfirm(null);
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      onUserChanged(queryClient);
     },
     onError: () => {
       toast.error(t('admin.toast_role_fail'));
@@ -228,15 +230,19 @@ export default function UserManagementPage() {
         />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={users}
-        loading={isLoading}
-        emptyMessage={t('admin.users_empty')}
-        page={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-      />
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={users}
+          loading={isLoading}
+          emptyMessage={t('admin.users_empty')}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={roleConfirm !== null}

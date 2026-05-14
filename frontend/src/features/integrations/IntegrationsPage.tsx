@@ -16,6 +16,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { integrationsApi } from '../../lib/api';
+import { onIntegrationChanged } from '../../lib/cacheInvalidation';
 
 import type { CalendarHealth, CalendarStatus, EsignStatus } from '../../lib/types';
 
@@ -245,7 +246,7 @@ export default function IntegrationsPage() {
     mutationFn: () => integrationsApi.connectCalendar({ provider: 'google' }),
     onSuccess: () => {
       toast.success('Takvim başarıyla bağlandı');
-      queryClient.invalidateQueries({ queryKey: ['integrations', 'calendar'] });
+      onIntegrationChanged(queryClient, 'calendar');
     },
     onError: () => toast.error('Takvim bağlanamadı'),
   });
@@ -260,7 +261,7 @@ export default function IntegrationsPage() {
     mutationFn: () => integrationsApi.connectEsign({ provider: 'docusign' }),
     onSuccess: () => {
       toast.success('E-imza başarıyla bağlandı');
-      queryClient.invalidateQueries({ queryKey: ['integrations', 'esign'] });
+      onIntegrationChanged(queryClient, 'esign');
     },
     onError: () => toast.error('E-imza bağlanamadı'),
   });

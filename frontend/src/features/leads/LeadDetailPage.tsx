@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  onLeadChanged,
-  onLeadConverted,
-  onLeadScoreChanged,
-} from '../../lib/cacheInvalidation';
+import { onLeadChanged, onLeadConverted, onLeadScoreChanged } from '../../lib/cacheInvalidation';
 import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
 import AiAttributeValuesPanel from '../intelligence/AiAttributeValuesPanel';

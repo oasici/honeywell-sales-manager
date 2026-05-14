@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { partsApi, customersApi, pricingApi, pricesApi } from '../../lib/api';
+import { onPricingChanged } from '../../lib/cacheInvalidation';
 import type { SparePart, Customer, PriceTier, CustomerPricing, PriceEntry } from '../../lib/types';
 import { useT } from '../../hooks/useT';
 
@@ -107,7 +108,7 @@ function PriceTiersTab() {
     }) => pricingApi.createTier(payload),
     onSuccess: () => {
       toast.success(t('pricing_admin.toast_tier_added'));
-      queryClient.invalidateQueries({ queryKey: ['pricing-tiers', priceEntry?.id] });
+      onPricingChanged(queryClient, priceEntry?.id);
       setShowAddForm(false);
       setTierForm(EMPTY_TIER_FORM);
     },
@@ -118,7 +119,7 @@ function PriceTiersTab() {
     mutationFn: (tierId: number) => pricingApi.deleteTier(tierId),
     onSuccess: () => {
       toast.success(t('pricing_admin.toast_tier_deleted'));
-      queryClient.invalidateQueries({ queryKey: ['pricing-tiers', priceEntry?.id] });
+      onPricingChanged(queryClient, priceEntry?.id);
     },
     onError: () => toast.error(t('pricing_admin.toast_tier_delete_fail')),
   });
@@ -387,7 +388,7 @@ function CustomerPricingTab() {
       }),
     onSuccess: () => {
       toast.success(t('pricing_admin.toast_cp_added'));
-      queryClient.invalidateQueries({ queryKey: ['customer-pricing', selectedCustomerId] });
+      onPricingChanged(queryClient, null, selectedCustomerId);
       setAddModalOpen(false);
       setCpForm(EMPTY_CP_FORM);
     },
@@ -399,7 +400,7 @@ function CustomerPricingTab() {
       pricingApi.deleteCustomerPricing(selectedCustomerId!, pricingId),
     onSuccess: () => {
       toast.success(t('pricing_admin.toast_cp_deleted'));
-      queryClient.invalidateQueries({ queryKey: ['customer-pricing', selectedCustomerId] });
+      onPricingChanged(queryClient, null, selectedCustomerId);
     },
     onError: () => toast.error(t('pricing_admin.toast_cp_delete_fail')),
   });
@@ -671,7 +672,7 @@ function MarginRulesTab() {
       pricingApi.updateMargin(id, min_margin_pct),
     onSuccess: () => {
       toast.success(t('pricing_admin.toast_margin_ok'));
-      queryClient.invalidateQueries({ queryKey: ['parts', 'all'] });
+      onPricingChanged(queryClient);
       setRowState({ editingId: null, editValue: '' });
     },
     onError: () => toast.error(t('pricing_admin.toast_margin_fail')),

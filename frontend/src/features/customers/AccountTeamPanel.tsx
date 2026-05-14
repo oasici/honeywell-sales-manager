@@ -11,6 +11,7 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { teamsApi } from '../../lib/api';
+import { onTeamMemberChanged } from '../../lib/cacheInvalidation';
 import type { TeamMember } from '../../lib/types';
 
 interface AccountTeamPanelProps {
@@ -64,7 +65,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
       teamsApi.addMember(customerId, Number(form.user_id), form.role),
     onSuccess: () => {
       toast.success('Ekip uyesi eklendi');
-      queryClient.invalidateQueries({ queryKey: ['team-members', customerId] });
+      onTeamMemberChanged(queryClient, customerId);
       setIsModalOpen(false);
       setForm({ user_id: '', role: 'member' });
     },
@@ -75,7 +76,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
     mutationFn: (userId: number) => teamsApi.removeMember(customerId, userId),
     onSuccess: () => {
       toast.success('Ekip uyesi kaldırıldı');
-      queryClient.invalidateQueries({ queryKey: ['team-members', customerId] });
+      onTeamMemberChanged(queryClient, customerId);
       setRemoveTarget(null);
     },
     onError: () => toast.error('Ekip uyesi kaldirilamadi'),

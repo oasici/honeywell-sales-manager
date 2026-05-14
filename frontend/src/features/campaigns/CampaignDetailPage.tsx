@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { campaignsApi, leadsApi, customersApi } from '../../lib/api';
+import { onCampaignChanged } from '../../lib/cacheInvalidation';
 import { formatCurrency, formatDate, currentLocale } from '../../lib/formatters';
 import { Modal } from '../../components/ui/Modal';
 import type { Campaign, CampaignMember, CampaignROI, Customer } from '../../lib/types';
@@ -84,7 +85,7 @@ export default function CampaignDetailPage() {
     mutationFn: (payload: Record<string, unknown>) => campaignsApi.update(campaignId, payload),
     onSuccess: () => {
       toast.success(t('campaigns.toast_updated'));
-      queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
+      onCampaignChanged(queryClient, campaignId);
       setIsEditOpen(false);
     },
     onError: () => toast.error(t('campaigns.toast_update_failed')),
@@ -104,8 +105,7 @@ export default function CampaignDetailPage() {
       campaignsApi.addMembers(campaignId, members),
     onSuccess: () => {
       toast.success(t('campaigns.toast_member_added'));
-      queryClient.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
-      queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
+      onCampaignChanged(queryClient, campaignId);
       setIsAddMembersOpen(false);
       setMemberSearch('');
     },
@@ -116,7 +116,7 @@ export default function CampaignDetailPage() {
     mutationFn: (memberId: number) => campaignsApi.removeMember(campaignId, memberId),
     onSuccess: () => {
       toast.success(t('campaigns.toast_member_removed'));
-      queryClient.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
+      onCampaignChanged(queryClient, campaignId);
     },
     onError: () => toast.error(t('campaigns.toast_member_remove_failed')),
   });
@@ -125,7 +125,7 @@ export default function CampaignDetailPage() {
     mutationFn: ({ memberId, status }: { memberId: number; status: string }) =>
       campaignsApi.updateMemberStatus(campaignId, memberId, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaign-members', campaignId] });
+      onCampaignChanged(queryClient, campaignId);
     },
     onError: () => toast.error(t('campaigns.toast_member_status_failed')),
   });

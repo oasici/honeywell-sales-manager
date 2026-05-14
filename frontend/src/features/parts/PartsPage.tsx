@@ -10,6 +10,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { partsApi } from '../../lib/api';
+import { onPartChanged } from '../../lib/cacheInvalidation';
 import { useT } from '../../hooks/useT';
 import type { SparePart, PaginatedResponse } from '../../lib/types';
 
@@ -184,8 +185,7 @@ export default function PartsPage() {
           .replace('{updated}', String(res.parts_updated || 0))
           .replace('{skipped}', skipped),
       );
-      queryClient.invalidateQueries({ queryKey: ['parts'] });
-      queryClient.invalidateQueries({ queryKey: ['parts-categories'] });
+      onPartChanged(queryClient);
     },
     onError: () => toast.error(t('parts.import_failed')),
   });

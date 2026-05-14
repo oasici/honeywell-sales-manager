@@ -12,7 +12,10 @@ import { Modal } from '../../components/ui/Modal';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { aiAttributesApi } from '../../lib/api';
-import { onAiAttributeValueChanged } from '../../lib/cacheInvalidation';
+import {
+  onAiAttributeDefinitionChanged,
+  onAiAttributeValueChanged,
+} from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 
 /**
@@ -64,7 +67,7 @@ export default function AiAttributesPage() {
       toast.success('Tanım oluşturuldu');
       setShowModal(false);
       setForm(EMPTY_FORM);
-      qc.invalidateQueries({ queryKey: ['ai-attributes', 'definitions'] });
+      onAiAttributeDefinitionChanged(qc);
     },
     onError: () => toast.error('Tanım oluşturulamadı'),
   });
@@ -73,7 +76,7 @@ export default function AiAttributesPage() {
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
       aiAttributesApi.updateDefinition(id, { is_active: !isActive }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['ai-attributes', 'definitions'] });
+      onAiAttributeDefinitionChanged(qc);
     },
   });
 

@@ -311,13 +311,7 @@ export default function EmailListPage() {
         const p = row.priority;
         if (!p) return <span className="text-[12px] text-slate-400">—</span>;
         const tone =
-          p === 'urgent'
-            ? 'danger'
-            : p === 'high'
-              ? 'warning'
-              : p === 'low'
-                ? 'default'
-                : 'info';
+          p === 'urgent' ? 'danger' : p === 'high' ? 'warning' : p === 'low' ? 'default' : 'info';
         const label =
           p === 'urgent' ? 'Acil' : p === 'high' ? 'Yüksek' : p === 'low' ? 'Düşük' : 'Normal';
         return (
@@ -337,7 +331,11 @@ export default function EmailListPage() {
         const label = s === 'positive' ? 'Olumlu' : s === 'negative' ? 'Olumsuz' : 'Nötr';
         const score = typeof row.sentiment_score === 'number' ? row.sentiment_score : null;
         return (
-          <Badge variant={tone} size="sm" title={score != null ? `Skor: ${score.toFixed(2)}` : undefined}>
+          <Badge
+            variant={tone}
+            size="sm"
+            title={score != null ? `Skor: ${score.toFixed(2)}` : undefined}
+          >
             {label}
           </Badge>
         );
