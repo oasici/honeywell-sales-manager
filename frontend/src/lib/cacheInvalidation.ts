@@ -395,9 +395,16 @@ export function onApprovalRuleChanged(qc: QueryClient): void {
   qc.invalidateQueries({ queryKey: ['approvals'] });
 }
 
-/** Round-14 — Revenue schedule entry recognized / refunded. */
+/** Round-14 — Revenue schedule entry recognized / refunded.
+ *
+ * Round-15 Sprint 15g cohort 5 — also invalidates the
+ * ``['revenue-dashboard']`` rollup that RevenueRecognitionPage
+ * surfaces. Pre-fix, the page redundantly invalidated both keys
+ * inline; folding it here keeps the fan-out coherent.
+ */
 export function onRevenueScheduleChanged(qc: QueryClient, contractId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['revenue-schedules'] });
+  qc.invalidateQueries({ queryKey: ['revenue-dashboard'] });
   qc.invalidateQueries({ queryKey: ['cockpit'] });
   qc.invalidateQueries({ queryKey: ['dashboard'] });
   if (contractId) {
@@ -420,13 +427,24 @@ export function onPipelineConfigChanged(qc: QueryClient): void {
  * opportunity's NBA tray (next-best-action). A mutation that touches
  * the task should invalidate both views plus the notifications badge.
  */
-export function onAiTaskChanged(
-  qc: QueryClient,
-  opportunityId?: number | null,
-): void {
+export function onAiTaskChanged(qc: QueryClient, opportunityId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['ai-tasks'] });
   if (opportunityId) {
     qc.invalidateQueries({ queryKey: ['nba', opportunityId] });
   }
   qc.invalidateQueries({ queryKey: ['notifications'] });
+}
+
+/**
+ * Round-15 Sprint 15g cohort 5 — Custom dashboard CRUD or widget edit.
+ *
+ * Dashboards built via DashboardBuilder render on the list page and
+ * a viewer page; both consume the same ``['dashboards']`` query, and
+ * widget edits affect the executed result keyed by dashboard id.
+ */
+export function onDashboardChanged(qc: QueryClient, dashboardId?: number | null): void {
+  qc.invalidateQueries({ queryKey: ['dashboards'] });
+  if (dashboardId) {
+    qc.invalidateQueries({ queryKey: ['dashboard-execute', dashboardId] });
+  }
 }

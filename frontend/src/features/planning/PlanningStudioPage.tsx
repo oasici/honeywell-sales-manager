@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { savedViewsApi } from '../../lib/api';
 import { useT } from '../../hooks/useT';
 import type { SavedView } from '../../lib/types';
@@ -19,7 +20,9 @@ export default function PlanningStudioPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery<{
+  // Round-15 Sprint 15i — surface isError so an outage doesn't render
+  // the empty saved-views list silently.
+  const { data, isLoading, isError, refetch } = useQuery<{
     items?: SavedView[];
     views?: SavedView[];
   }>({
@@ -153,6 +156,8 @@ export default function PlanningStudioPage() {
       <Card title={t('planning.saved_views_heading')}>
         {isLoading ? (
           <Skeleton variant="line" count={4} />
+        ) : isError ? (
+          <QueryErrorBanner onRetry={() => refetch()} />
         ) : views.length === 0 ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">{t('planning.empty_views')}</p>
         ) : (

@@ -11,7 +11,12 @@ from app.core.database import Base
 
 
 class ForecastSnapshotDetail(Base):
-    """Point-in-time capture of an individual opportunity's forecast state."""
+    """Point-in-time capture of an individual opportunity's forecast state.
+
+    Round-15 F-002 / Sprint 15j cohort 5 — ``tenant_id`` added for
+    defense in depth. Backfilled from ``opportunities.tenant_id`` by
+    ``20260526_phase12_tenant_did_cohort5``.
+    """
 
     __tablename__ = "forecast_snapshot_details"
     __table_args__ = (
@@ -21,6 +26,7 @@ class ForecastSnapshotDetail(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     snapshot_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("pipeline_snapshots.id"), nullable=True,
     )

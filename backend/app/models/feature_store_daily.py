@@ -9,12 +9,20 @@ from app.core.database import Base
 
 
 class OpportunityFeaturesDaily(Base):
+    """Daily per-opportunity feature snapshot.
+
+    Round-15 F-002 / Sprint 15j cohort 5 — ``tenant_id`` added for
+    defense in depth. Backfilled from ``opportunities.tenant_id`` by
+    ``20260526_phase12_tenant_did_cohort5``.
+    """
+
     __tablename__ = "opportunity_features_daily"
 
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), primary_key=True
     )
     snapshot_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     # Core recency / counts (MVP)
     deal_age_days: Mapped[int] = mapped_column(Integer, default=0)

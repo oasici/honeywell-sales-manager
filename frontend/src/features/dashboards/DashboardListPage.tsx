@@ -22,6 +22,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { dashboardsApi } from '../../lib/api';
+import { onDashboardChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import type { DashboardConfig } from '../../lib/types';
 
@@ -199,7 +200,7 @@ export default function DashboardListPage() {
       toast.success('Pano oluşturuldu');
       setModalOpen(false);
       setForm({ name: '', widgets_json: '[]', is_default: false });
-      queryClient.invalidateQueries({ queryKey: ['dashboards'] });
+      onDashboardChanged(queryClient);
       // New dashboards land on the editor — they have no widgets yet.
       navigate(`/dashboards/${result.data.id}/edit`);
     },
@@ -210,7 +211,7 @@ export default function DashboardListPage() {
     mutationFn: (id: number) => dashboardsApi.remove(id),
     onSuccess: () => {
       toast.success('Pano silindi');
-      queryClient.invalidateQueries({ queryKey: ['dashboards'] });
+      onDashboardChanged(queryClient);
     },
     onError: () => toast.error('Pano silinemedi'),
   });

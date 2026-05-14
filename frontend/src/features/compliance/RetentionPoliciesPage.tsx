@@ -12,6 +12,7 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { complianceApi } from '../../lib/api';
+import { onComplianceChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 
 import type { RetentionPolicy } from '../../lib/types';
@@ -60,7 +61,7 @@ export default function RetentionPoliciesPage() {
       toast.success('Saklama politikasi oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
-      queryClient.invalidateQueries({ queryKey: ['compliance', 'retentionPolicies'] });
+      onComplianceChanged(queryClient);
     },
     onError: () => toast.error('Politika oluşturulamadı'),
   });
@@ -72,7 +73,7 @@ export default function RetentionPoliciesPage() {
       toast.success('Politika guncellendi');
       setEditingId(null);
       setForm(INITIAL_FORM);
-      queryClient.invalidateQueries({ queryKey: ['compliance', 'retentionPolicies'] });
+      onComplianceChanged(queryClient);
     },
     onError: () => toast.error('Politika guncellenemedi'),
   });
@@ -82,7 +83,7 @@ export default function RetentionPoliciesPage() {
     onSuccess: () => {
       toast.success('Politika silindi');
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: ['compliance', 'retentionPolicies'] });
+      onComplianceChanged(queryClient);
     },
     onError: () => {
       toast.error('Politika silinemedi');

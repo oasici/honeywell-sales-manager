@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { revenueRecApi, contractsApi } from '../../lib/api';
+import { onRevenueScheduleChanged } from '../../lib/cacheInvalidation';
 import { formatCurrency } from '../../lib/formatters';
 import type { RevenueSchedule, RevenueScheduleEntry, Contract } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -308,8 +309,7 @@ export default function RevenueRecognitionPage() {
       setForm(EMPTY_FORM);
       setFormErrors({});
       setNewScheduleId(created.id);
-      queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
-      queryClient.invalidateQueries({ queryKey: ['revenue-dashboard'] });
+      onRevenueScheduleChanged(queryClient);
     },
     onError: () => toast.error(t('revenue.toast_schedule_failed')),
   });
@@ -319,7 +319,7 @@ export default function RevenueRecognitionPage() {
     onSuccess: () => {
       toast.success(t('revenue.toast_entries_created'));
       setNewScheduleId(null);
-      queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
+      onRevenueScheduleChanged(queryClient);
     },
     onError: () => toast.error(t('revenue.toast_entries_failed')),
   });
@@ -329,8 +329,7 @@ export default function RevenueRecognitionPage() {
       revenueRecApi.recognizeEntry(scheduleId, entryId),
     onSuccess: () => {
       toast.success(t('revenue.toast_recognized'));
-      queryClient.invalidateQueries({ queryKey: ['revenue-schedules'] });
-      queryClient.invalidateQueries({ queryKey: ['revenue-dashboard'] });
+      onRevenueScheduleChanged(queryClient);
     },
     onError: () => toast.error(t('revenue.toast_recognize_failed')),
   });

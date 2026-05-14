@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { GitBranch, Plus, Trash2, Star, Pencil, Check } from 'lucide-react';
 import { pipelinesApi } from '../../lib/api';
+import { onPipelineConfigChanged } from '../../lib/cacheInvalidation';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -102,7 +103,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
       }),
     onSuccess: () => {
       toast.success(t('pipelines.toast_created'));
-      queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+      onPipelineConfigChanged(queryClient);
       onClose();
     },
     onError: () => toast.error(t('pipelines.toast_create_failed')),
@@ -118,7 +119,7 @@ function PipelineModal({ pipeline, onClose }: PipelineModalProps) {
       }),
     onSuccess: () => {
       toast.success(t('pipelines.toast_updated'));
-      queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+      onPipelineConfigChanged(queryClient);
       onClose();
     },
     onError: () => toast.error(t('pipelines.toast_update_failed')),
@@ -436,7 +437,7 @@ export default function PipelineSettingsPage() {
     mutationFn: (id: number) => pipelinesApi.delete(id),
     onSuccess: () => {
       toast.success(t('pipelines.toast_deleted'));
-      queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+      onPipelineConfigChanged(queryClient);
     },
     onError: () => toast.error(t('pipelines.toast_delete_failed')),
   });
@@ -445,7 +446,7 @@ export default function PipelineSettingsPage() {
     mutationFn: (id: number) => pipelinesApi.setDefault(id),
     onSuccess: () => {
       toast.success(t('pipelines.toast_default_updated'));
-      queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+      onPipelineConfigChanged(queryClient);
     },
     onError: () => toast.error(t('settings.operation_failed')),
   });

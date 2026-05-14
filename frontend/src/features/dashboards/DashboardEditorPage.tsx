@@ -13,6 +13,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { dashboardsApi, reportsApi } from '../../lib/api';
+import { onDashboardChanged } from '../../lib/cacheInvalidation';
 import { useT } from '../../hooks/useT';
 import type { DashboardConfig, DashboardExecuteResult, ReportTemplate } from '../../lib/types';
 
@@ -306,7 +307,7 @@ export default function DashboardEditorPage() {
       }),
     onSuccess: () => {
       toast.success('Pano kaydedildi');
-      queryClient.invalidateQueries({ queryKey: ['dashboards'] });
+      onDashboardChanged(queryClient, dashboardId);
     },
     onError: () => toast.error('Kaydedilemedi'),
   });
@@ -326,7 +327,7 @@ export default function DashboardEditorPage() {
         ...result,
         widgets: result?.widgets ?? [],
       });
-      queryClient.invalidateQueries({ queryKey: ['dashboards'] });
+      onDashboardChanged(queryClient, dashboardId);
       toast.success('Pano kaydedildi ve calistirildi');
     },
     onError: () => toast.error('Calistirilamadi'),

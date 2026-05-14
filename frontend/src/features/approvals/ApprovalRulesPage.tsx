@@ -11,6 +11,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { approvalsApi } from '../../lib/api';
+import { onApprovalRuleChanged } from '../../lib/cacheInvalidation';
 
 import type { ApprovalRule } from '../../lib/types';
 
@@ -85,7 +86,7 @@ export default function ApprovalRulesPage() {
       approvalsApi.createRule(payload),
     onSuccess: () => {
       toast.success('Kural oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['approval-rules'] });
+      onApprovalRuleChanged(queryClient);
       closeForm();
     },
     onError: () => {
@@ -103,7 +104,7 @@ export default function ApprovalRulesPage() {
     }) => approvalsApi.updateRule(id, payload),
     onSuccess: () => {
       toast.success('Kural güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['approval-rules'] });
+      onApprovalRuleChanged(queryClient);
       closeForm();
     },
     onError: () => {
@@ -115,7 +116,7 @@ export default function ApprovalRulesPage() {
     mutationFn: (id: number) => approvalsApi.deleteRule(id),
     onSuccess: () => {
       toast.success('Kural silindi');
-      queryClient.invalidateQueries({ queryKey: ['approval-rules'] });
+      onApprovalRuleChanged(queryClient);
       setDeleteTarget(null);
     },
     onError: () => {
@@ -127,7 +128,7 @@ export default function ApprovalRulesPage() {
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
       approvalsApi.updateRule(id, { is_active: !isActive }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approval-rules'] });
+      onApprovalRuleChanged(queryClient);
     },
     onError: () => {
       toast.error('Durum guncellenemedi');

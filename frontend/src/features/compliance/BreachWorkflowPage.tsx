@@ -12,6 +12,7 @@ import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { complianceApi } from '../../lib/api';
+import { onComplianceChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 
 import type { BreachNotification } from '../../lib/types';
@@ -85,7 +86,7 @@ export default function BreachWorkflowPage() {
       toast.success('Ihlal bildirimi oluşturuldu');
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
-      queryClient.invalidateQueries({ queryKey: ['compliance', 'breaches'] });
+      onComplianceChanged(queryClient);
     },
     onError: () => toast.error('Ihlal bildirimi oluşturulamadı'),
   });
@@ -95,7 +96,7 @@ export default function BreachWorkflowPage() {
       complianceApi.updateBreach(id, { status }),
     onSuccess: () => {
       toast.success('Durum guncellendi');
-      queryClient.invalidateQueries({ queryKey: ['compliance', 'breaches'] });
+      onComplianceChanged(queryClient);
     },
     onError: () => toast.error('Durum guncellenemedi'),
   });
