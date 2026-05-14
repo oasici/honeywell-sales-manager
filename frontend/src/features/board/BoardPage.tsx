@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Target, Star, RotateCcw, ListChecks, Activity } from 'lucide-react';
 import { boardApi, customersApi, dealHealthApi, pipelinesApi } from '../../lib/api';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -364,7 +365,14 @@ export default function BoardPage() {
     },
   });
 
-  const { data: kanban, isLoading } = useQuery<{ columns: KanbanColumn[] }>({
+  // Round-15 Sprint 15h — surface kanban load failure so an outage
+  // renders a retry banner instead of an empty board.
+  const {
+    data: kanban,
+    isLoading,
+    isError: kanbanIsError,
+    refetch: refetchKanban,
+  } = useQuery<{ columns: KanbanColumn[] }>({
     queryKey: ['board', 'kanban', activePipelineId, customerId, minRottingDays, minOpenTasks],
     queryFn: () => {
       const params: Record<string, unknown> = {};
@@ -415,6 +423,18 @@ export default function BoardPage() {
         <div className="space-y-4">
           <Skeleton variant="card" count={3} />
         </div>
+      </div>
+    );
+  }
+
+  // Round-15 Sprint 15h — distinguish "kanban failed to load" from
+  // "no opportunities in pipeline". Pre-fix, an outage rendered as
+  // an empty board with no retry affordance.
+  if (kanbanIsError) {
+    return (
+      <div>
+        <PageHeader title="Sales Board" description="Pipeline görünümü" />
+        <QueryErrorBanner variant="block" onRetry={() => refetchKanban()} />
       </div>
     );
   }

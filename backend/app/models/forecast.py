@@ -11,14 +11,28 @@ from app.core.database import Base
 
 
 class ForecastAdjustment(Base):
-    """Manual manager adjustment to an opportunity's forecast amount or category."""
+    """Manual manager adjustment to an opportunity's forecast amount or category.
+
+    Round-15 F-002 / Sprint 15j — ``tenant_id`` added for defense in
+    depth. Before, the tenant boundary was enforced *only* through the
+    parent opportunity (Round-14 R14-AUTH-1 added the
+    ``assert_same_tenant`` check at the service layer). With the
+    column present, a future router that forgets the assert still
+    can't cross tenants because ``scoped_for_user`` filters at the
+    query layer. Backfilled from ``opportunities.tenant_id`` by
+    ``20260522_phase12_tenant_defense_in_depth``.
+    """
 
     __tablename__ = "forecast_adjustments"
     __table_args__ = (
         Index("ix_forecast_adj_opportunity", "opportunity_id"),
+        Index("ix_forecast_adj_tenant", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Nullable for one deploy cycle to absorb orphan rows (opportunity
+    # deleted before backfill); follow-up revision promotes NOT NULL.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False
     )

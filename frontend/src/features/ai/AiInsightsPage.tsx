@@ -388,7 +388,8 @@ function CompetitiveTab() {
                   <div className="space-y-2">
                     {comp.recent_mentions.slice(0, 3).map((m, i) => (
                       <div key={i} className="rounded bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                        <span className="text-slate-400">[{m.source_type}]</span> {m.context_snippet}
+                        <span className="text-slate-400">[{m.source_type}]</span>{' '}
+                        {m.context_snippet}
                       </div>
                     ))}
                   </div>

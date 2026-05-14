@@ -11,6 +11,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { complianceApi, customersApi } from '../../lib/api';
+import { onComplianceChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 
@@ -67,7 +68,9 @@ export default function ComplianceDashboardPage() {
       }),
     onSuccess: () => {
       toast.success('Onay başarıyla kaydedildi');
-      queryClient.invalidateQueries({ queryKey: ['compliance', 'consent', searchedCustomerId] });
+      // Round-15 Sprint 15e — centralized fan-out also touches the
+      // customer detail (consent badge) and the audit log.
+      onComplianceChanged(queryClient, searchedCustomerId);
     },
     onError: () => toast.error('Onay kaydedilemedi'),
   });
@@ -83,7 +86,7 @@ export default function ComplianceDashboardPage() {
     onSuccess: () => {
       toast.success('Veri anonimleştirildi');
       setIsAnonymizeOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['compliance', 'consent', searchedCustomerId] });
+      onComplianceChanged(queryClient, searchedCustomerId);
     },
     onError: () => {
       toast.error('Anonimleştirme başarısız');

@@ -315,10 +315,7 @@ export function onRelationshipsRebuilt(qc: QueryClient, opportunityId: number): 
  * Round-14 — Cockpit signal resolved / dismissed. Touches the cockpit
  * rollup, the originating opportunity card, and the dashboard.
  */
-export function onCockpitSignalChanged(
-  qc: QueryClient,
-  opportunityId?: number | null,
-): void {
+export function onCockpitSignalChanged(qc: QueryClient, opportunityId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['cockpit'] });
   qc.invalidateQueries({ queryKey: ['dashboard'] });
   if (opportunityId) {
@@ -332,10 +329,7 @@ export function onCockpitSignalChanged(
  * applied, breach acknowledged). Invalidates the compliance dashboard,
  * audit log, and the affected customer's detail.
  */
-export function onComplianceChanged(
-  qc: QueryClient,
-  customerId?: number | null,
-): void {
+export function onComplianceChanged(qc: QueryClient, customerId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['compliance'] });
   qc.invalidateQueries({ queryKey: ['audit-log'] });
   if (customerId) {
@@ -350,10 +344,7 @@ export function onEmailTemplateChanged(qc: QueryClient): void {
 }
 
 /** Round-14 — Playbook CRUD or execution state change. */
-export function onPlaybookChanged(
-  qc: QueryClient,
-  playbookId?: number | null,
-): void {
+export function onPlaybookChanged(qc: QueryClient, playbookId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['playbooks'] });
   qc.invalidateQueries({ queryKey: ['playbook-executions'] });
   qc.invalidateQueries({ queryKey: ['playbook-analytics'] });
@@ -363,10 +354,7 @@ export function onPlaybookChanged(
 }
 
 /** Round-14 — Webhook subscription created/updated/tested. */
-export function onWebhookChanged(
-  qc: QueryClient,
-  webhookId?: number | null,
-): void {
+export function onWebhookChanged(qc: QueryClient, webhookId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['webhooks'] });
   if (webhookId) {
     qc.invalidateQueries({ queryKey: ['webhook-deliveries', webhookId] });
@@ -374,10 +362,7 @@ export function onWebhookChanged(
 }
 
 /** Round-14 — Sequence definition or enrollment changed. */
-export function onSequenceChanged(
-  qc: QueryClient,
-  opportunityId?: number | null,
-): void {
+export function onSequenceChanged(qc: QueryClient, opportunityId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['sequences'] });
   qc.invalidateQueries({ queryKey: ['sequence-enrollments'] });
   qc.invalidateQueries({ queryKey: ['sequence-analytics'] });
@@ -387,10 +372,7 @@ export function onSequenceChanged(
 }
 
 /** Round-14 — Territory CRUD or rules / assignment edited. */
-export function onTerritoryChanged(
-  qc: QueryClient,
-  territoryId?: number | null,
-): void {
+export function onTerritoryChanged(qc: QueryClient, territoryId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['territories-tree'] });
   if (territoryId) {
     qc.invalidateQueries({ queryKey: ['territory-detail', territoryId] });
@@ -404,10 +386,7 @@ export function onApprovalRuleChanged(qc: QueryClient): void {
 }
 
 /** Round-14 — Revenue schedule entry recognized / refunded. */
-export function onRevenueScheduleChanged(
-  qc: QueryClient,
-  contractId?: number | null,
-): void {
+export function onRevenueScheduleChanged(qc: QueryClient, contractId?: number | null): void {
   qc.invalidateQueries({ queryKey: ['revenue-schedules'] });
   qc.invalidateQueries({ queryKey: ['cockpit'] });
   qc.invalidateQueries({ queryKey: ['dashboard'] });

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -62,7 +62,12 @@ class AccountFeaturesDaily(Base):
     snapshot_date: Mapped[date] = mapped_column(Date, primary_key=True)
 
     open_opportunity_count: Mapped[int] = mapped_column(Integer, default=0)
-    total_open_pipeline: Mapped[float] = mapped_column(Float, default=0.0)
+    # Round-15 F-004 — promote to NUMERIC(19, 2) to match every other
+    # currency column (R10-DB-CCY established the convention; this one
+    # slipped past the original sweep).
+    total_open_pipeline: Mapped[float] = mapped_column(
+        Numeric(19, 2, asdecimal=False), default=0.0
+    )
     avg_deal_health: Mapped[float | None] = mapped_column(Float, nullable=True)
     last_touch_days: Mapped[int] = mapped_column(Integer, default=999)
 

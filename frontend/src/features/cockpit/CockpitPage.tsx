@@ -35,6 +35,7 @@ import {
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
+import { onCockpitSignalChanged } from '../../lib/cacheInvalidation';
 import { useCockpitTick } from './useCockpitTick';
 
 import type {
@@ -220,7 +221,9 @@ function SignalStream() {
     mutationFn: cockpitApi.resolveSignal,
     onSuccess: () => {
       toast.success(t('cockpit.toast_signal_resolved'));
-      queryClient.invalidateQueries({ queryKey: ['cockpit'] });
+      // Round-15 Sprint 15e — centralized fan-out so the dashboard
+      // and originating opportunity refresh together.
+      onCockpitSignalChanged(queryClient);
     },
   });
 

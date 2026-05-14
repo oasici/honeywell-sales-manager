@@ -115,4 +115,18 @@ class CustomerResponse(BaseModel):
     data_classification: str | None = None
     deletion_requested_at: datetime | None = None
 
+    # Round-15 F-006 — KVKK / GDPR consent state, populated by
+    # ``/customers/{id}/kvkk-consent``. The DB columns existed and the
+    # serializer emitted them via ``extra='allow'`` pass-through, but
+    # OpenAPI didn't document them, so SDK codegen + the SPA had to
+    # ``as unknown as`` cast. Now declared so the contract is explicit.
+    kvkk_consent: bool | None = None
+    kvkk_consent_date: datetime | None = None
+    # 'web' | 'email' | 'in_person' | 'import' — kept as `str | None`
+    # so we don't lock the wire format if a new method is added before
+    # the SPA ships the literal union.
+    kvkk_consent_method: str | None = None
+    data_processing_purpose: str | None = None
+    data_retention_until: datetime | None = None
+
     model_config = {"from_attributes": True, "extra": "allow"}

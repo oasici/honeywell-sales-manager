@@ -67,8 +67,7 @@ function parseSteps(raw: string | null): PlaybookStepDef[] {
  */
 function isStepStub(step: PlaybookStepDef): boolean {
   const hasTemplate = typeof step.template === 'string' && step.template.trim().length > 0;
-  const hasDescription =
-    typeof step.description === 'string' && step.description.trim().length > 0;
+  const hasDescription = typeof step.description === 'string' && step.description.trim().length > 0;
   return !hasTemplate && !hasDescription;
 }
 
@@ -331,7 +330,9 @@ export default function PlaybookDetailPage() {
                           {exec.status}
                         </Badge>
                       </td>
-                      <td className="py-2 text-slate-700 dark:text-slate-300">{exec.current_step}</td>
+                      <td className="py-2 text-slate-700 dark:text-slate-300">
+                        {exec.current_step}
+                      </td>
                       <td className="py-2 text-slate-500">{formatDateTime(exec.started_at)}</td>
                       {/* next_action_at — when the delayed scheduler
                           will fire the next step. Was returned by the

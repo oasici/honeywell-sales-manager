@@ -100,6 +100,10 @@ class ForecastService:
         adjustment = ForecastAdjustment(
             opportunity_id=opp_id,
             adjusted_by=user_id,
+            # Round-15 F-002 — copy tenant_id from parent so the
+            # scoped_for_user filter can enforce isolation at the
+            # query layer in addition to the service-layer assert.
+            tenant_id=getattr(opportunity, "tenant_id", None),
             original_amount=original_amount,
             adjusted_amount=adjusted_amount,
             original_category=original_category,

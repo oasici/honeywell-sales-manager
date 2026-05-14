@@ -71,6 +71,15 @@ export interface Customer {
    * pre-fix consumers had to `as { currency?: string }` it.
    */
   currency?: string | null;
+  // Round-15 F-008 — KVKK / GDPR consent state. Backend populates via
+  // ``/customers/{id}/kvkk-consent`` endpoints. Pre-fix the columns
+  // existed in the DB but neither CustomerResponse nor this interface
+  // declared them, so the SPA needed `as unknown as` casts.
+  kvkk_consent?: boolean | null;
+  kvkk_consent_date?: string | null;
+  kvkk_consent_method?: 'web' | 'email' | 'in_person' | 'import' | string | null;
+  data_processing_purpose?: string | null;
+  data_retention_until?: string | null;
 }
 
 export interface CustomerIntelligenceOpportunityItem {
