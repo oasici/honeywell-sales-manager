@@ -15,7 +15,7 @@ asyncpg constraint: each ``op.execute()`` carries exactly one
 statement.
 
 Revision ID: 20260521_phase12_fk_indexes
-Revises: 20260520_phase12_currency_followup
+Revises: 20260520_r15_ccy_followup
 Create Date: 2026-05-13
 """
 
@@ -25,7 +25,7 @@ from alembic import op
 
 
 revision = "20260521_phase12_fk_indexes"
-down_revision = "20260520_phase12_currency_followup"
+down_revision = "20260520_r15_ccy_followup"
 branch_labels = None
 depends_on = None
 

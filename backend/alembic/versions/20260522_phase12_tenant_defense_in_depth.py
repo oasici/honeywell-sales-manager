@@ -19,9 +19,18 @@ promote NOT NULL after stable observation, matching the
 asyncpg constraint: each ``op.execute()`` carries exactly one
 statement.
 
-Revision ID: 20260522_phase12_tenant_defense_in_depth
+Revision ID: 20260522_r15_tenant_did1
 Revises: 20260521_phase12_fk_indexes
 Create Date: 2026-05-13
+
+Note on the revision id length: revision strings are persisted into
+``alembic_version.version_num``, which on legacy Postgres bootstraps
+is VARCHAR(32). The previous full-length id
+("20260522_phase12_tenant_defense_in_depth", 40 chars) exceeded the
+column on environments where the env.py widener hadn't already
+widened ``version_num`` to VARCHAR(128) — Render's prod hit that.
+Shortened to ``20260522_r15_tenant_did1`` (23 chars) so the INSERT
+succeeds regardless of widener state. Filename retained.
 """
 
 from __future__ import annotations
@@ -29,7 +38,7 @@ from __future__ import annotations
 from alembic import op
 
 
-revision = "20260522_phase12_tenant_defense_in_depth"
+revision = "20260522_r15_tenant_did1"
 down_revision = "20260521_phase12_fk_indexes"
 branch_labels = None
 depends_on = None

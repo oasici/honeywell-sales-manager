@@ -18,9 +18,18 @@ information_schema check makes the migration idempotent across
 deployment topologies. (Render Free-tier deploys hit this on the
 first attempt — fix authored from the live log signature.)
 
-Revision ID: 20260520_phase12_currency_followup
+Revision ID: 20260520_r15_ccy_followup
 Revises: 20260518_phase12_tenant_columns
 Create Date: 2026-05-13
+
+Note on the revision id length: revision strings are persisted into
+``alembic_version.version_num``, which on legacy Postgres bootstraps
+is VARCHAR(32). The previous full-length id
+("20260520_phase12_currency_followup", 34 chars) exceeded the column
+on environments where the env.py widener hadn't (yet) widened
+``version_num`` to VARCHAR(128). Shortened to fit in 32 chars so the
+INSERT succeeds regardless of the widener state. Filename retained
+in full for human readability.
 """
 
 from __future__ import annotations
@@ -28,7 +37,7 @@ from __future__ import annotations
 from alembic import op
 
 
-revision = "20260520_phase12_currency_followup"
+revision = "20260520_r15_ccy_followup"
 down_revision = "20260518_phase12_tenant_columns"
 branch_labels = None
 depends_on = None

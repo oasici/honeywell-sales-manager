@@ -18,9 +18,18 @@ to tenant-bound queries via SQL three-valued logic.
 asyncpg constraint: each ``op.execute()`` carries exactly one
 statement.
 
-Revision ID: 20260523_phase12_tenant_defense_in_depth_cohort2
-Revises: 20260522_phase12_tenant_defense_in_depth
+Revision ID: 20260523_r15_tenant_did2
+Revises: 20260522_r15_tenant_did1
 Create Date: 2026-05-13
+
+Note on the revision id length: revision strings are persisted into
+``alembic_version.version_num``, which on legacy Postgres bootstraps
+is VARCHAR(32). The previous full-length id
+("20260523_phase12_tenant_defense_in_depth_cohort2", 48 chars) was
+the trigger for this fix — the deploy explicitly raised
+``StringDataRightTruncationError: value too long for type character
+varying(32)``. Shortened to ``20260523_r15_tenant_did2`` (24 chars).
+Filename retained.
 """
 
 from __future__ import annotations
@@ -28,8 +37,8 @@ from __future__ import annotations
 from alembic import op
 
 
-revision = "20260523_phase12_tenant_defense_in_depth_cohort2"
-down_revision = "20260522_phase12_tenant_defense_in_depth"
+revision = "20260523_r15_tenant_did2"
+down_revision = "20260522_r15_tenant_did1"
 branch_labels = None
 depends_on = None
 
