@@ -26,7 +26,10 @@ async def test_enrich_from_transcript_creates_rows(db: AsyncSession):
     from app.models.engagement import Transcript
     from app.services.stakeholder_enrichment_service import enrich_from_transcript
 
+    # Round-15 Sprint 15k/l — tenant_id threaded on all rows.
+    _TENANT_ID = 1
     u = User(
+        tenant_id=_TENANT_ID,
         email="se@test.com",
         full_name="SE",
         hashed_password=hash_password("x"),
@@ -36,12 +39,13 @@ async def test_enrich_from_transcript_creates_rows(db: AsyncSession):
     db.add(u)
     await db.flush()
     await db.refresh(u)
-    c = Customer(name="Acme", email="acme_se@test.com", company="Acme", created_by=u.id)
+    c = Customer(tenant_id=_TENANT_ID, name="Acme", email="acme_se@test.com", company="Acme", created_by=u.id)
     db.add(c)
     await db.commit()
     await db.refresh(c)
 
     o = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Deal",
         stage="qualified",
         status="active",
@@ -82,7 +86,9 @@ async def test_create_transcript_enriches_when_flag_on(client: AsyncClient, db: 
 
     monkeypatch.setattr(settings, "FEATURE_BUYER_MAP", True)
 
+    _TENANT_ID = 1
     mgr = User(
+        tenant_id=_TENANT_ID,
         email="se_api@test.com",
         full_name="Mgr",
         hashed_password=hash_password("Test1234"),
@@ -92,12 +98,13 @@ async def test_create_transcript_enriches_when_flag_on(client: AsyncClient, db: 
     db.add(mgr)
     await db.flush()
     await db.refresh(mgr)
-    c = Customer(name="Co", email="co_se_api@test.com", company="Co", created_by=mgr.id)
+    c = Customer(tenant_id=_TENANT_ID, name="Co", email="co_se_api@test.com", company="Co", created_by=mgr.id)
     db.add(c)
     await db.commit()
     await db.refresh(c)
 
     o = Opportunity(
+        tenant_id=_TENANT_ID,
         title="O",
         stage="qualified",
         status="active",

@@ -15,8 +15,12 @@ from app.models.user import User
 from app.services.decision_gap_service import rebuild_decision_gaps_for_opportunity
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_user(db: AsyncSession, email: str, role: str) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name=f"Test {role}",
         hashed_password=hash_password("Test1234"),
@@ -43,12 +47,13 @@ def _enable_v4_flag():
 @pytest.mark.asyncio
 async def test_gap_engine_creates_missing_economic(db: AsyncSession):
     mgr = await _create_user(db, "dg_mgr@test.com", "sales_manager")
-    cust = Customer(name="ACME", company="ACME", email="acme@test.com", phone="", address="", tax_id="")
+    cust = Customer(tenant_id=_TENANT_ID, name="ACME", company="ACME", email="acme@test.com", phone="", address="", tax_id="")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=mgr.id,
         title="Deal",
@@ -84,12 +89,13 @@ async def test_gap_engine_creates_missing_economic(db: AsyncSession):
 @pytest.mark.asyncio
 async def test_decision_gaps_endpoint_lists(client: AsyncClient, db: AsyncSession):
     mgr = await _create_user(db, "dg_mgr2@test.com", "sales_manager")
-    cust = Customer(name="ACME2", company="ACME2", email="acme2@test.com", phone="", address="", tax_id="")
+    cust = Customer(tenant_id=_TENANT_ID, name="ACME2", company="ACME2", email="acme2@test.com", phone="", address="", tax_id="")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=mgr.id,
         title="Deal2",

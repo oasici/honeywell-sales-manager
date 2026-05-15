@@ -14,8 +14,12 @@ from app.models.opportunity import Opportunity
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _user(db: AsyncSession, email: str, role: str) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name="T",
         hashed_password=hash_password("Test1234"),
@@ -44,12 +48,13 @@ async def test_deal_replay_materialize_and_read(client: AsyncClient, db: AsyncSe
     with patch("app.api.v1.deal_replay.settings") as s:
         s.FEATURE_V4_DEAL_REPLAY = True
         mgr = await _user(db, "replay_mgr@test.com", "sales_manager")
-        cust = Customer(name="C", company="C", email="cr@test.com", phone="", address="", tax_id="")
+        cust = Customer(tenant_id=_TENANT_ID, name="C", company="C", email="cr@test.com", phone="", address="", tax_id="")
         db.add(cust)
         await db.commit()
         await db.refresh(cust)
 
         opp = Opportunity(
+            tenant_id=_TENANT_ID,
             customer_id=cust.id,
             owner_id=mgr.id,
             title="O",
@@ -114,12 +119,13 @@ async def test_deal_replay_rep_other_opp_forbidden(client: AsyncClient, db: Asyn
         s.FEATURE_V4_DEAL_REPLAY = True
         mgr = await _user(db, "replay_owner2@test.com", "sales_manager")
         rep = await _user(db, "replay_rep2@test.com", "sales_rep")
-        cust = Customer(name="C2", company="C2", email="c2r@test.com", phone="", address="", tax_id="")
+        cust = Customer(tenant_id=_TENANT_ID, name="C2", company="C2", email="c2r@test.com", phone="", address="", tax_id="")
         db.add(cust)
         await db.commit()
         await db.refresh(cust)
 
         opp = Opportunity(
+            tenant_id=_TENANT_ID,
             customer_id=cust.id,
             owner_id=mgr.id,
             title="O2",

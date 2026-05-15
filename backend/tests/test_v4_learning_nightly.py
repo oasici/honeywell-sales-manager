@@ -18,8 +18,12 @@ from app.models.user import User
 from app.services.v4_learning_nightly import collect_active_opportunity_ids, run_v4_deal_replay_nightly, run_v4_sales_dna_nightly
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _mgr(db: AsyncSession) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email="learn_nightly@test.com",
         full_name="M",
         hashed_password=hash_password("Test1234"),
@@ -35,13 +39,14 @@ async def _mgr(db: AsyncSession) -> User:
 @pytest.mark.asyncio
 async def test_collect_active_opportunity_ids_union(db: AsyncSession):
     mgr = await _mgr(db)
-    cust = Customer(name="LC", company="LC", email="lc@test.com", phone="", address="", tax_id="")
+    cust = Customer(tenant_id=_TENANT_ID, name="LC", company="LC", email="lc@test.com", phone="", address="", tax_id="")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)
 
     snap = date(2026, 3, 15)
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=mgr.id,
         title="Learn",
@@ -95,13 +100,14 @@ async def test_collect_active_opportunity_ids_union(db: AsyncSession):
 @pytest.mark.asyncio
 async def test_run_sales_dna_and_replay_nightly(db: AsyncSession):
     mgr = await _mgr(db)
-    cust = Customer(name="LR", company="LR", email="lr@test.com", phone="", address="", tax_id="")
+    cust = Customer(tenant_id=_TENANT_ID, name="LR", company="LR", email="lr@test.com", phone="", address="", tax_id="")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)
 
     snap = date(2026, 3, 20)
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=mgr.id,
         title="N2",
