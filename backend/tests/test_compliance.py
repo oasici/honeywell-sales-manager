@@ -16,9 +16,13 @@ from app.models.opportunity import Opportunity
 from app.models.quote import Quote
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def sample_customer(db: AsyncSession) -> Customer:
     customer = Customer(
+        tenant_id=_TENANT_ID,
         name="Ahmet Yilmaz",
         email="ahmet@example.com",
         company="Yilmaz Ltd",
@@ -41,6 +45,7 @@ async def customer_with_relations(
 ) -> Customer:
     """Customer with quotes, emails, and opportunities."""
     quote = Quote(
+        tenant_id=_TENANT_ID,
         quote_number="Q-TEST-001",
         customer_id=sample_customer.id,
         status="draft",
@@ -60,6 +65,7 @@ async def customer_with_relations(
     db.add(email)
 
     opportunity = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Test Firsat",
         stage="prospecting",
         customer_id=sample_customer.id,

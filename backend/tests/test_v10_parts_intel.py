@@ -33,8 +33,12 @@ from app.services import (
 # ─────────────────────── shared fixtures ─────────────────────────────
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _seed_user(db: AsyncSession) -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email="v10-mgr@test.com",
         full_name="V10 Manager",
         hashed_password=hash_password("Test1234"),
@@ -47,6 +51,7 @@ async def _seed_user(db: AsyncSession) -> User:
 
 async def _seed_customer(db: AsyncSession, *, industry: str = "industrial") -> Customer:
     cust = Customer(
+        tenant_id=_TENANT_ID,
         name="V10 Customer",
         company="V10 Co",
         email=f"v10-{datetime.utcnow().timestamp()}@cust.com",
@@ -99,6 +104,7 @@ async def _seed_quote_with_item(
     opportunity_id: int | None = None,
 ) -> Quote:
     q = Quote(
+        tenant_id=_TENANT_ID,
         quote_number=f"Q-{datetime.utcnow().timestamp()}-{part.id}",
         customer_id=customer.id,
         opportunity_id=opportunity_id,
@@ -440,6 +446,7 @@ async def test_substitution_detects_part_swap_via_revision_chain(
 
     parent = await _seed_quote_with_item(db, customer=cust, part=p_old)
     child = Quote(
+        tenant_id=_TENANT_ID,
         quote_number="Q-CHILD",
         customer_id=cust.id,
         status="draft",

@@ -19,8 +19,12 @@ from app.models.user import User
 from app.services.revenue_signal_service import emit_signal
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_user(db: AsyncSession, email: str, role: str) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name=f"Test {role}",
         hashed_password=hash_password("Test1234"),
@@ -57,12 +61,13 @@ async def test_v4_endpoints_404_when_flag_off(client: AsyncClient, db: AsyncSess
 async def test_build_and_read_latest_snapshot(client: AsyncClient, db: AsyncSession):
     mgr = await _create_user(db, "v4_mgr@test.com", "sales_manager")
 
-    cust = Customer(name="ACME", company="ACME", email="acme@test.com", phone="", address="", tax_id="")
+    cust = Customer(tenant_id=_TENANT_ID, name="ACME", company="ACME", email="acme@test.com", phone="", address="", tax_id="")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=mgr.id,
         title="Deal",
@@ -94,6 +99,7 @@ async def test_build_and_read_latest_snapshot(client: AsyncClient, db: AsyncSess
 
     # quote + quote item discount
     q = Quote(
+        tenant_id=_TENANT_ID,
         quote_number="Q-1",
         customer_id=cust.id,
         created_by=mgr.id,

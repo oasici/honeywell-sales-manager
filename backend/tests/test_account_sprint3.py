@@ -12,8 +12,12 @@ from app.models.opportunity import Opportunity
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _mgr(db: AsyncSession) -> tuple[User, dict]:
     user = User(
+        tenant_id=_TENANT_ID,
         email="s3_mgr@test.com",
         full_name="S3 Manager",
         hashed_password=hash_password("Test1234"),
@@ -31,6 +35,7 @@ async def _mgr(db: AsyncSession) -> tuple[User, dict]:
 async def test_account_360_creates_enrichment_and_open_deals(client: AsyncClient, db: AsyncSession):
     mgr, h = await _mgr(db)
     cust = Customer(
+        tenant_id=_TENANT_ID,
         name="Acct360 Co",
         email="acct360@test.com",
         company="Acct360",
@@ -41,6 +46,7 @@ async def test_account_360_creates_enrichment_and_open_deals(client: AsyncClient
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Pipeline deal",
         stage="qualified",
         status="active",
@@ -70,6 +76,7 @@ async def test_account_360_creates_enrichment_and_open_deals(client: AsyncClient
 async def test_meeting_prep_fallback_without_claude(client: AsyncClient, db: AsyncSession):
     mgr, h = await _mgr(db)
     cust = Customer(
+        tenant_id=_TENANT_ID,
         name="MeetPrep Co",
         email="meetprep@test.com",
         company="MeetPrep",

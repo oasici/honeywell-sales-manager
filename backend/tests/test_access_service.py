@@ -14,8 +14,12 @@ from app.models.user import User
 from app.services.access_service import AccessService
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_user(db: AsyncSession, email: str, role: str = "sales_rep") -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name=f"Test {role}",
         hashed_password=hash_password("Test1234"),
@@ -30,6 +34,7 @@ async def _create_user(db: AsyncSession, email: str, role: str = "sales_rep") ->
 
 async def _create_customer(db: AsyncSession, owner_id: int) -> Customer:
     customer = Customer(
+        tenant_id=_TENANT_ID,
         name="Test Musteri",
         email=f"customer_{owner_id}@example.com",
         company="Test Sanayi A.S.",
@@ -45,6 +50,7 @@ async def _create_opportunity(
     db: AsyncSession, owner_id: int, customer_id: int
 ) -> Opportunity:
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Test Firsat",
         stage="prospecting",
         owner_id=owner_id,
@@ -210,6 +216,7 @@ async def test_get_accessible_customer_ids_includes_owned_and_team(db: AsyncSess
 
     own_customer = await _create_customer(db, rep.id)
     team_customer = Customer(
+        tenant_id=_TENANT_ID,
         name="Takim Musteri",
         email="team_cust@example.com",
         company="Takim Sanayi",
@@ -297,6 +304,7 @@ async def test_sharing_rule_no_match_denies_access(db: AsyncSession):
     rep_a = await _create_user(db, "rule_no_owner@test.com", "sales_rep")
     rep_b = await _create_user(db, "rule_no_target@test.com", "sales_rep")
     customer = Customer(
+        tenant_id=_TENANT_ID,
         name="Farkli Musteri",
         email="farkli@example.com",
         company="Teknoloji Ltd",

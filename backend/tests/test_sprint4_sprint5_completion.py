@@ -20,8 +20,12 @@ def _insights_flag(monkeypatch):
     monkeypatch.setattr(settings, "FEATURE_V2_BOARD", True)
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _manager(db: AsyncSession) -> tuple[User, dict]:
     u = User(
+        tenant_id=_TENANT_ID,
         email="s45_mgr@test.com",
         full_name="S45 Manager",
         hashed_password=hash_password("Test1234"),
@@ -67,10 +71,11 @@ async def test_conversation_search_transcript(
     client: AsyncClient, db: AsyncSession, _insights_flag,
 ):
     mgr, h = await _manager(db)
-    cust = Customer(name="ACME", company="ACME Ltd", email="acme@test.com")
+    cust = Customer(tenant_id=_TENANT_ID, name="ACME", company="ACME Ltd", email="acme@test.com")
     db.add(cust)
     await db.flush()
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Big deal",
         stage="qualification",
         owner_id=mgr.id,
@@ -104,10 +109,11 @@ async def test_conversation_search_signal_filter(
     client: AsyncClient, db: AsyncSession, _insights_flag,
 ):
     mgr, h = await _manager(db)
-    cust = Customer(name="Beta", company="Beta Co", email="beta@test.com")
+    cust = Customer(tenant_id=_TENANT_ID, name="Beta", company="Beta Co", email="beta@test.com")
     db.add(cust)
     await db.flush()
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="O2",
         stage="prospecting",
         owner_id=mgr.id,
