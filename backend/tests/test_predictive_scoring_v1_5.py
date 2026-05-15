@@ -7,9 +7,13 @@ from app.core.security import hash_password
 from app.services.predictive_scoring_service import predict_close_probability
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest.mark.asyncio
 async def test_predictive_scoring_returns_probability_in_0_1(db: AsyncSession):
     user = User(
+        tenant_id=_TENANT_ID,
         email="ps@test.com",
         full_name="Predictive Test",
         hashed_password=hash_password("Test1234"),
@@ -20,7 +24,7 @@ async def test_predictive_scoring_returns_probability_in_0_1(db: AsyncSession):
     await db.commit()
     await db.refresh(user)
 
-    opp = Opportunity(title="P Deal", stage="qualified", owner_id=user.id)
+    opp = Opportunity(tenant_id=_TENANT_ID, title="P Deal", stage="qualified", owner_id=user.id)
     db.add(opp)
     await db.commit()
     await db.refresh(opp)

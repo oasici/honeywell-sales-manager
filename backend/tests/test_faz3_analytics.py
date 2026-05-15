@@ -8,8 +8,12 @@ from app.core.security import create_access_token, hash_password
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _mgr(db: AsyncSession) -> tuple[User, dict]:
     user = User(
+        tenant_id=_TENANT_ID,
         email="faz3_mgr@test.com",
         full_name="Faz3 Manager",
         hashed_password=hash_password("Test1234"),
@@ -24,6 +28,7 @@ async def _mgr(db: AsyncSession) -> tuple[User, dict]:
 
 async def _rep(db: AsyncSession) -> tuple[User, dict]:
     user = User(
+        tenant_id=_TENANT_ID,
         email="faz3_rep@test.com",
         full_name="Faz3 Rep",
         hashed_password=hash_password("Test1234"),
@@ -161,7 +166,7 @@ async def test_customer_timeline_empty(client: AsyncClient, db: AsyncSession):
     from app.models.customer import Customer
     _, h = await _mgr(db)
 
-    cust = Customer(name="Timeline Test", email="timeline@test.com")
+    cust = Customer(tenant_id=_TENANT_ID, name="Timeline Test", email="timeline@test.com")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)

@@ -18,8 +18,12 @@ from app.models.user import User
 from app.services.sales_events_shadow_sync import sync_sales_events_shadow_window
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _mgr(db: AsyncSession) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email="shadow_mgr@test.com",
         full_name="M",
         hashed_password=hash_password("Test1234"),
@@ -39,13 +43,14 @@ def _auth(u: User) -> dict[str, str]:
 @pytest.mark.asyncio
 async def test_shadow_sync_idempotent_and_api(client: AsyncClient, db: AsyncSession):
     mgr = await _mgr(db)
-    cust = Customer(name="S", company="S", email="s@test.com", phone="", address="", tax_id="")
+    cust = Customer(tenant_id=_TENANT_ID, name="S", company="S", email="s@test.com", phone="", address="", tax_id="")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)
 
     now = datetime.now(timezone.utc)
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=mgr.id,
         title="Sh",

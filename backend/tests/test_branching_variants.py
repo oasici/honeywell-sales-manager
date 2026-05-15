@@ -18,9 +18,13 @@ from app.core.security import hash_password
 from app.services.sequence_engine import select_variant, evaluate_branch_rules
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def user(db: AsyncSession) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email="branchtest@test.com",
         full_name="Branch Tester",
         hashed_password=hash_password("test123"),
@@ -36,6 +40,7 @@ async def user(db: AsyncSession) -> User:
 @pytest_asyncio.fixture
 async def opportunity(db: AsyncSession, user: User) -> Opportunity:
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Branch Deal",
         stage="prospecting",
         owner_id=user.id,

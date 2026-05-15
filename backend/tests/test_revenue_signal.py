@@ -15,20 +15,25 @@ from app.core.security import hash_password
 from app.services import revenue_signal_service
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def setup_data(db: AsyncSession):
     user = User(
+        tenant_id=_TENANT_ID,
         email="cockpit@test.com", full_name="Cockpit Tester",
         hashed_password=hash_password("Test1234"), role="sales_manager", is_active=True,
     )
     db.add(user)
     await db.flush()
 
-    customer = Customer(name="Signal Corp", email="signal@corp.com", created_by=user.id)
+    customer = Customer(tenant_id=_TENANT_ID, name="Signal Corp", email="signal@corp.com", created_by=user.id)
     db.add(customer)
     await db.flush()
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Signal Deal", stage="proposal", amount=100000,
         owner_id=user.id, customer_id=customer.id,
     )

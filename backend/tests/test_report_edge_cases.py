@@ -17,8 +17,12 @@ from app.services.report_engine import (
 )
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_user(db: AsyncSession) -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email=f"report_edge_{id(db)}@test.com",
         full_name="Report User",
         hashed_password=hash_password("pass123"),
@@ -151,6 +155,7 @@ class TestCrossEntityJoin:
     ):
         user = await _create_user(db)
         customer = Customer(
+            tenant_id=_TENANT_ID,
             name="Join Test Customer",
             company="JoinCo",
             email="join@test.com",
@@ -161,6 +166,7 @@ class TestCrossEntityJoin:
         await db.flush()
 
         quote = Quote(
+            tenant_id=_TENANT_ID,
             quote_number="JOIN-001",
             customer_id=customer.id,
             created_by=user.id,

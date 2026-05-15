@@ -18,9 +18,13 @@ from app.models.user import User
 from app.core.security import hash_password
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def user(db: AsyncSession) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email="scoretest@test.com",
         full_name="Score Tester",
         hashed_password=hash_password("test123"),
@@ -36,6 +40,7 @@ async def user(db: AsyncSession) -> User:
 @pytest_asyncio.fixture
 async def lead(db: AsyncSession, user: User) -> Lead:
     ld = Lead(
+        tenant_id=_TENANT_ID,
         first_name="Score",
         last_name="Test",
         email="scoretest_lead@example.com",

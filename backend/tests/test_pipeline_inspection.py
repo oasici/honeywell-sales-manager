@@ -14,9 +14,13 @@ from app.models.opportunity import Opportunity
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def manager_user(db: AsyncSession) -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email="mgr_pipeline@test.com",
         full_name="Pipeline Manager",
         hashed_password=hash_password("Test1234"),
@@ -48,6 +52,7 @@ async def sample_opportunities(db: AsyncSession, manager_user: User) -> list[Opp
     ]
     for title, stage, amount in stages_data:
         opp = Opportunity(
+            tenant_id=_TENANT_ID,
             title=title,
             stage=stage,
             amount=amount,

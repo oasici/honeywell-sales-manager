@@ -10,8 +10,12 @@ from app.models.quote import Quote
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_user(db: AsyncSession, email: str, role: str) -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name=f"Test {role}",
         hashed_password=hash_password("Test1234"),
@@ -38,6 +42,7 @@ async def test_sales_rep_cannot_access_other_reps_quote(client: AsyncClient, db:
     rep_b = await _create_user(db, "rep_b@test.com", "sales_rep")
 
     quote = Quote(
+        tenant_id=_TENANT_ID,
         quote_number="TEST-001",
         created_by=rep_a.id,
         status="draft",
@@ -66,6 +71,7 @@ async def test_manager_can_access_any_quote(client: AsyncClient, db: AsyncSessio
     manager = await _create_user(db, "mgr_q_test@test.com", "sales_manager")
 
     quote = Quote(
+        tenant_id=_TENANT_ID,
         quote_number="TEST-002",
         created_by=rep.id,
         status="draft",

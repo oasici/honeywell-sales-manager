@@ -13,8 +13,12 @@ from app.models.user import User
 from app.services.customer_health_service import CustomerHealthReport
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _mgr(db: AsyncSession) -> tuple[User, dict]:
     user = User(
+        tenant_id=_TENANT_ID,
         email="cockpit_risky_mgr@test.com",
         full_name="Cockpit Risky Manager",
         hashed_password=hash_password("Test1234"),
@@ -31,12 +35,13 @@ async def _mgr(db: AsyncSession) -> tuple[User, dict]:
 async def test_risky_accounts_enriched(client: AsyncClient, db: AsyncSession):
     user, h = await _mgr(db)
 
-    cust = Customer(name="Acme", email="acme_cockpit_risky@test.com", company="Acme AŞ")
+    cust = Customer(tenant_id=_TENANT_ID, name="Acme", email="acme_cockpit_risky@test.com", company="Acme AŞ")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Acme Deal",
         stage="qualified",
         status="active",

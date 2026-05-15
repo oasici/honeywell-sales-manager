@@ -11,8 +11,12 @@ from app.models.enums import EmailStatus
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _mgr(db: AsyncSession) -> tuple[User, dict]:
     user = User(
+        tenant_id=_TENANT_ID,
         email="s0_mgr@test.com",
         full_name="Sprint0 Manager",
         hashed_password=hash_password("Test1234"),
@@ -31,7 +35,7 @@ async def test_quote_from_email_creates_and_links_opportunity(
 ):
     user, h = await _mgr(db)
 
-    customer = Customer(name="C1", email="c1@test.com", created_by=user.id)
+    customer = Customer(tenant_id=_TENANT_ID, name="C1", email="c1@test.com", created_by=user.id)
     db.add(customer)
     await db.commit()
     await db.refresh(customer)

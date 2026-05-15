@@ -12,8 +12,12 @@ from app.models.quote import Quote
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _mgr(db: AsyncSession) -> tuple[User, dict]:
     user = User(
+        tenant_id=_TENANT_ID,
         email="s0_board_mgr@test.com",
         full_name="Sprint0 Board Manager",
         hashed_password=hash_password("Test1234"),
@@ -37,12 +41,13 @@ async def test_board_kanban_items_have_probability_and_quotes_link(
         user, h = await _mgr(db)
 
         # Create a minimal opportunity + a quote linked to it
-        opp = Opportunity(title="Board Deal", stage="qualified", owner_id=user.id, probability=0.25)
+        opp = Opportunity(tenant_id=_TENANT_ID, title="Board Deal", stage="qualified", owner_id=user.id, probability=0.25)
         db.add(opp)
         await db.commit()
         await db.refresh(opp)
 
         quote = Quote(
+            tenant_id=_TENANT_ID,
             quote_number="S0-Q-001",
             status="draft",
             language="tr",

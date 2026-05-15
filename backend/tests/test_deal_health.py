@@ -18,8 +18,12 @@ from app.models.user import User
 from app.services.deal_health_service import DealHealthService
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_user(db: AsyncSession) -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email="deal_health@test.com",
         full_name="Deal Health Tester",
         hashed_password=hash_password("Test1234"),
@@ -34,6 +38,7 @@ async def _create_user(db: AsyncSession) -> User:
 
 async def _create_opportunity(db: AsyncSession, owner_id: int, **kwargs) -> Opportunity:
     defaults = {
+        "tenant_id": _TENANT_ID,
         "title": "Test Firsati",
         "stage": "proposal",
         "owner_id": owner_id,
@@ -184,6 +189,7 @@ async def test_quote_progress_with_sent_quote(db: AsyncSession):
     opp = await _create_opportunity(db, user.id)
 
     quote = Quote(
+        tenant_id=_TENANT_ID,
         quote_number="HW-TEST-001",
         opportunity_id=opp.id,
         status="sent",

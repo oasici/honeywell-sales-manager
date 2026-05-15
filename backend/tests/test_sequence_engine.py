@@ -21,9 +21,13 @@ from app.core.security import hash_password
 # ── Fixtures ──
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def user(db: AsyncSession) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email="seqtest@test.com",
         full_name="Seq Tester",
         hashed_password=hash_password("test123"),
@@ -58,6 +62,7 @@ async def sequence(db: AsyncSession, user: User) -> Sequence:
 @pytest_asyncio.fixture
 async def opportunity(db: AsyncSession, user: User) -> Opportunity:
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Test Deal",
         stage="prospecting",
         owner_id=user.id,
@@ -72,6 +77,7 @@ async def opportunity(db: AsyncSession, user: User) -> Opportunity:
 @pytest_asyncio.fixture
 async def lead(db: AsyncSession, user: User) -> Lead:
     ld = Lead(
+        tenant_id=_TENANT_ID,
         first_name="Test",
         last_name="Lead",
         email="testlead@example.com",

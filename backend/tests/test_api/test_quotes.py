@@ -17,8 +17,10 @@ async def test_list_quotes_empty(client: AsyncClient, auth_headers):
 
 @pytest.mark.asyncio
 async def test_create_quote(client: AsyncClient, auth_headers, db: AsyncSession):
-    # Create a customer first
-    customer = Customer(name="Test Customer", email="customer@test.com")
+    # Create a customer first. Round-15 Sprint 15k/l — tenant_id
+    # threaded to match the canonical single-tenant test id used by
+    # ``auth_headers``.
+    customer = Customer(tenant_id=1, name="Test Customer", email="customer@test.com")
     db.add(customer)
     await db.commit()
     await db.refresh(customer)

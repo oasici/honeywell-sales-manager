@@ -55,8 +55,12 @@ async def _make_email(db: AsyncSession, *, days_ago: int, message_id: str) -> Em
     return er
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _make_user(db: AsyncSession, *, email: str = "owner@test.com") -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name="Owner",
         role="sales_rep",
@@ -70,7 +74,7 @@ async def _make_user(db: AsyncSession, *, email: str = "owner@test.com") -> User
 
 async def _make_customer(db: AsyncSession, *, name: str = "Acme", email: str | None = None) -> Customer:
     suffix = email or f"{name.lower().replace(' ', '_')}@test.com"
-    cust = Customer(name=name, email=suffix, kvkk_consent=True)
+    cust = Customer(tenant_id=_TENANT_ID, name=name, email=suffix, kvkk_consent=True)
     db.add(cust)
     await db.flush()
     return cust
@@ -85,6 +89,7 @@ async def _make_opportunity(
     close_date_days_ago: int | None,
 ) -> Opportunity:
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title=f"Opp-{customer_id}-{status}",
         owner_id=owner_id,
         customer_id=customer_id,

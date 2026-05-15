@@ -13,9 +13,13 @@ from app.services.activity_logger import log_activity
 from app.core.security import hash_password
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def test_user(db: AsyncSession) -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email="actlog@test.com",
         full_name="Activity Logger",
         hashed_password=hash_password("Test1234"),
@@ -31,6 +35,7 @@ async def test_user(db: AsyncSession) -> User:
 @pytest_asyncio.fixture
 async def test_customer(db: AsyncSession, test_user: User) -> Customer:
     customer = Customer(
+        tenant_id=_TENANT_ID,
         name="Test Corp",
         email="corp@test.com",
         company="Test Corp Ltd",
@@ -45,6 +50,7 @@ async def test_customer(db: AsyncSession, test_user: User) -> Customer:
 @pytest_asyncio.fixture
 async def test_opportunity(db: AsyncSession, test_user: User, test_customer: Customer) -> Opportunity:
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         title="Test Deal",
         stage="prospecting",
         owner_id=test_user.id,

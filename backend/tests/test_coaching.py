@@ -15,8 +15,12 @@ from app.models.user import User
 from app.services.coaching_service import CoachingService
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_rep(db: AsyncSession, email: str = "rep@test.com") -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name="Satis Temsilcisi",
         hashed_password=hash_password("Test1234"),
@@ -33,6 +37,7 @@ async def _create_opportunity(
     db: AsyncSession, owner_id: int, **kwargs
 ) -> Opportunity:
     defaults = {
+        "tenant_id": _TENANT_ID,
         "title": "Test Firsati",
         "stage": "proposal",
         "owner_id": owner_id,

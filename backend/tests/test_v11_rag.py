@@ -200,8 +200,12 @@ async def test_index_opportunity_close_no_op_when_flag_off():
 # ─────────────────────── flag-on backfill paths (mocked vector_store) ─
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _seed_basic_data(db: AsyncSession) -> tuple[int, int]:
     user = User(
+        tenant_id=_TENANT_ID,
         email="rag_owner@test.com",
         full_name="RAG Owner",
         hashed_password=hash_password("Test1234"),
@@ -210,6 +214,7 @@ async def _seed_basic_data(db: AsyncSession) -> tuple[int, int]:
     )
     db.add(user)
     cust = Customer(
+        tenant_id=_TENANT_ID,
         name="RAG Cust", company="RAG Cust", email="rag@test.com",
         phone="", address="", tax_id="",
     )
@@ -219,6 +224,7 @@ async def _seed_basic_data(db: AsyncSession) -> tuple[int, int]:
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id, owner_id=user.id, title="RAG Deal",
         stage="closed_won", status="closed", amount=120_000.0, currency="TRY",
         created_at=datetime.now(timezone.utc) - timedelta(days=10),

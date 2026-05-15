@@ -9,8 +9,12 @@ from app.models.customer import Customer
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _setup(db: AsyncSession):
     user = User(
+        tenant_id=_TENANT_ID,
         email="health_test@test.com",
         full_name="Health Tester",
         hashed_password=hash_password("Test1234"),
@@ -19,6 +23,7 @@ async def _setup(db: AsyncSession):
     )
     db.add(user)
     customer = Customer(
+        tenant_id=_TENANT_ID,
         name="Test Corp",
         company="Test Corp Ltd",
         email="test@corp.com",

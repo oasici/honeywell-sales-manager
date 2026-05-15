@@ -72,6 +72,9 @@ async def test_approve_quote_notifies_creator(client: AsyncClient, db: AsyncSess
     mgr = await _create_user(db, "notif_mgr@test.com", "sales_manager")
 
     quote = Quote(
+        # Round-15 Sprint 15k/l — tenant_id matches the _create_user
+        # ``tenant_id=1`` constant in this file.
+        tenant_id=1,
         quote_number="NOTIF-001",
         created_by=rep.id,
         status="draft",
