@@ -10,13 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, hash_password
 from app.models.activity_log import ActivityLog
-from app.models.customer import Customer
-from app.models.opportunity import Opportunity, Task
+from app.models.opportunity import Task
 from app.models.user import User
+from tests.factories import DEFAULT_TENANT_ID, make_customer, make_opportunity
 
 
 async def _mgr(db: AsyncSession) -> tuple[User, dict]:
-    user = User(email="ai_mgr@test.com", full_name="AI Manager",
+    # Round-15 Sprint 15k/l unblocker — tenant_id threaded.
+    user = User(tenant_id=DEFAULT_TENANT_ID, email="ai_mgr@test.com", full_name="AI Manager",
                 hashed_password=hash_password("Test1234"), role="sales_manager", is_active=True)
     db.add(user)
     await db.commit()
@@ -39,10 +40,8 @@ def _enable_flags():
 @pytest.mark.asyncio
 async def test_summarize_changes_opportunity(client: AsyncClient, db: AsyncSession):
     user, h = await _mgr(db)
-    opp = Opportunity(title="Chg", stage="prospecting", owner_id=user.id)
-    db.add(opp)
+    opp = await make_opportunity(db, title="Chg", stage="prospecting", owner_id=user.id)
     await db.commit()
-    await db.refresh(opp)
 
     r = await client.post(
         "/api/v1/ai/summarize/changes",
@@ -59,10 +58,8 @@ async def test_summarize_changes_opportunity(client: AsyncClient, db: AsyncSessi
 @pytest.mark.asyncio
 async def test_summarize_changes_customer(client: AsyncClient, db: AsyncSession):
     _, h = await _mgr(db)
-    cust = Customer(name="C1", email="c1_ai_ch@test.com", company="Co")
-    db.add(cust)
+    cust = await make_customer(db, name="C1", email="c1_ai_ch@test.com", company="Co")
     await db.commit()
-    await db.refresh(cust)
 
     r = await client.post(
         "/api/v1/ai/summarize/changes",
@@ -76,10 +73,8 @@ async def test_summarize_changes_customer(client: AsyncClient, db: AsyncSession)
 @pytest.mark.asyncio
 async def test_summarize_changes_invalid_entity(client: AsyncClient, db: AsyncSession):
     user, h = await _mgr(db)
-    opp = Opportunity(title="X", stage="prospecting", owner_id=user.id)
-    db.add(opp)
+    opp = await make_opportunity(db, title="X", stage="prospecting", owner_id=user.id)
     await db.commit()
-    await db.refresh(opp)
 
     r = await client.post(
         "/api/v1/ai/summarize/changes",
@@ -92,10 +87,8 @@ async def test_summarize_changes_invalid_entity(client: AsyncClient, db: AsyncSe
 @pytest.mark.asyncio
 async def test_summarize_fallback(client: AsyncClient, db: AsyncSession):
     user, h = await _mgr(db)
-    opp = Opportunity(title="Test Deal", stage="prospecting", owner_id=user.id)
-    db.add(opp)
+    opp = await make_opportunity(db, title="Test Deal", stage="prospecting", owner_id=user.id)
     await db.commit()
-    await db.refresh(opp)
 
     r = await client.post("/api/v1/ai/summarize", json={
         "entity_type": "opportunity", "entity_id": opp.id,
@@ -107,10 +100,8 @@ async def test_summarize_fallback(client: AsyncClient, db: AsyncSession):
 @pytest.mark.asyncio
 async def test_suggest_pipeline_update(client: AsyncClient, db: AsyncSession):
     user, h = await _mgr(db)
-    opp = Opportunity(title="Stale Deal", stage="prospecting", owner_id=user.id)
-    db.add(opp)
+    opp = await make_opportunity(db, title="Stale Deal", stage="prospecting", owner_id=user.id)
     await db.commit()
-    await db.refresh(opp)
 
     r = await client.post("/api/v1/ai/suggest-pipeline-update", json={
         "opportunity_id": opp.id,
@@ -125,10 +116,8 @@ async def test_suggest_pipeline_update(client: AsyncClient, db: AsyncSession):
 async def test_suggest_pipeline_staleness_uses_activity_log(client: AsyncClient, db: AsyncSession):
     """no_touch staleness aligns with board: max(ActivityLog) else updated_at."""
     user, h = await _mgr(db)
-    opp = Opportunity(title="Touchy Deal", stage="prospecting", owner_id=user.id)
-    db.add(opp)
+    opp = await make_opportunity(db, title="Touchy Deal", stage="prospecting", owner_id=user.id)
     await db.commit()
-    await db.refresh(opp)
 
     log = ActivityLog(
         activity_type="note_added",
@@ -161,10 +150,8 @@ async def test_suggest_pipeline_staleness_uses_activity_log(client: AsyncClient,
 @pytest.mark.asyncio
 async def test_extract_signals_empty(client: AsyncClient, db: AsyncSession):
     user, h = await _mgr(db)
-    opp = Opportunity(title="Signal Deal", stage="qualified", owner_id=user.id)
-    db.add(opp)
+    opp = await make_opportunity(db, title="Signal Deal", stage="qualified", owner_id=user.id)
     await db.commit()
-    await db.refresh(opp)
 
     r = await client.post("/api/v1/ai/extract-signals", json={
         "opportunity_id": opp.id,

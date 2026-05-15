@@ -404,6 +404,9 @@ async def test_quote_revision_clones_and_links(db: AsyncSession):
     await db.refresh(spare)
 
     src = Quote(
+        # Round-15 Sprint 15k/l — thread tenant_id to match the file's
+        # ``_seed_*`` pattern and unblock the NOT NULL promotion.
+        tenant_id=_TENANT_ID,
         quote_number="Q-V9-1",
         customer_id=cust.id,
         created_by=user.id,
@@ -436,6 +439,7 @@ async def test_quote_revision_clones_and_links(db: AsyncSession):
 async def test_quote_revision_list_tree_returns_chain(db: AsyncSession):
     user, cust, opp = await _seed_opp(db)
     src = Quote(
+        tenant_id=_TENANT_ID,
         quote_number="Q-V9-2",
         customer_id=cust.id,
         created_by=user.id,
@@ -492,6 +496,7 @@ async def test_slippage_detects_close_date_push(db: AsyncSession):
     cust = await _seed_customer(db)
     today = datetime.now(timezone.utc).date()
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=user.id,
         title="Slip Deal",

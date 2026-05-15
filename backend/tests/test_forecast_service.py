@@ -15,11 +15,14 @@ from app.models.forecast import ForecastAdjustment, PipelineSnapshot
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.forecast_service import ForecastService, STAGE_PROBABILITIES
+from tests.factories import DEFAULT_TENANT_ID, make_opportunity
 
 
 @pytest_asyncio.fixture
 async def manager_user(db: AsyncSession) -> User:
     user = User(
+        # Round-15 Sprint 15k/l unblocker — tenant_id threaded.
+        tenant_id=DEFAULT_TENANT_ID,
         email="mgr@test.com",
         full_name="Manager User",
         hashed_password=hash_password("Test1234"),
@@ -34,7 +37,8 @@ async def manager_user(db: AsyncSession) -> User:
 
 @pytest_asyncio.fixture
 async def sample_opportunity(db: AsyncSession, manager_user: User) -> Opportunity:
-    opp = Opportunity(
+    opp = await make_opportunity(
+        db,
         title="Test Deal",
         stage="proposal",
         amount=100000.0,
@@ -42,7 +46,6 @@ async def sample_opportunity(db: AsyncSession, manager_user: User) -> Opportunit
         owner_id=manager_user.id,
         forecast_category="best_case",
     )
-    db.add(opp)
     await db.commit()
     await db.refresh(opp)
     return opp
@@ -181,32 +184,22 @@ async def test_take_pipeline_snapshot(
     db: AsyncSession, manager_user: User,
 ):
     """Snapshot groups active opportunities by stage with weighted amounts."""
-    # Create opportunities in different stages
-    opp_1 = Opportunity(
-        title="Prospecting Deal",
-        stage="prospecting",
-        amount=50000.0,
-        currency="TRY",
-        owner_id=manager_user.id,
-        status="active",
+    # Create opportunities in different stages via tenant-aware factory.
+    await make_opportunity(
+        db, title="Prospecting Deal", stage="prospecting",
+        amount=50000.0, currency="TRY",
+        owner_id=manager_user.id, status="active",
     )
-    opp_2 = Opportunity(
-        title="Qualified Deal",
-        stage="qualified",
-        amount=80000.0,
-        currency="TRY",
-        owner_id=manager_user.id,
-        status="active",
+    await make_opportunity(
+        db, title="Qualified Deal", stage="qualified",
+        amount=80000.0, currency="TRY",
+        owner_id=manager_user.id, status="active",
     )
-    opp_3 = Opportunity(
-        title="Another Qualified",
-        stage="qualified",
-        amount=40000.0,
-        currency="TRY",
-        owner_id=manager_user.id,
-        status="active",
+    await make_opportunity(
+        db, title="Another Qualified", stage="qualified",
+        amount=40000.0, currency="TRY",
+        owner_id=manager_user.id, status="active",
     )
-    db.add_all([opp_1, opp_2, opp_3])
     await db.commit()
 
     service = ForecastService(db)
@@ -237,23 +230,16 @@ async def test_snapshot_excludes_inactive_opportunities(
     db: AsyncSession, manager_user: User,
 ):
     """Closed opportunities are excluded from snapshots."""
-    active_opp = Opportunity(
-        title="Active",
-        stage="proposal",
-        amount=100000.0,
-        currency="TRY",
-        owner_id=manager_user.id,
-        status="active",
+    await make_opportunity(
+        db, title="Active", stage="proposal",
+        amount=100000.0, currency="TRY",
+        owner_id=manager_user.id, status="active",
     )
-    closed_opp = Opportunity(
-        title="Closed",
-        stage="proposal",
-        amount=200000.0,
-        currency="TRY",
-        owner_id=manager_user.id,
-        status="closed",
+    await make_opportunity(
+        db, title="Closed", stage="proposal",
+        amount=200000.0, currency="TRY",
+        owner_id=manager_user.id, status="closed",
     )
-    db.add_all([active_opp, closed_opp])
     await db.commit()
 
     service = ForecastService(db)
