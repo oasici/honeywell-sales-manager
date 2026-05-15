@@ -10,16 +10,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, hash_password
 from app.models.activity_log import ActivityLog
-from app.models.customer import Customer
 from app.models.email_request import EmailRequest
+# Opportunity is still imported for query-side use (``select(Opportunity)``)
+# even though row construction goes through ``make_opportunity``.
 from app.models.opportunity import Opportunity, Task
-from app.models.quote import Quote
 from app.models.user import User
 from app.services.summary_service import SummaryService
+from tests.factories import (
+    DEFAULT_TENANT_ID,
+    make_customer,
+    make_opportunity,
+    make_quote,
+)
 
 
 async def _create_user(db: AsyncSession, email: str, role: str) -> User:
     user = User(
+        # Round-15 Sprint 15k/l unblocker — tenant_id threaded so the
+        # factory-created customers/opportunities/quotes inherit it.
+        tenant_id=DEFAULT_TENANT_ID,
         email=email, full_name=f"Test {role}",
         hashed_password=hash_password("Test1234"),
         role=role, is_active=True,
@@ -213,14 +222,16 @@ async def test_kanban_filters_customer_tasks_rotting(client: AsyncClient, db: As
     mgr = await _create_user(db, "opp_kanban_filters@test.com", "sales_manager")
     h = _auth(mgr)
 
-    c_keep = Customer(name="KeepCo", email="keepco_kanban@test.com", company="KeepCo")
-    c_drop = Customer(name="DropCo", email="dropco_kanban@test.com", company="DropCo")
-    db.add_all([c_keep, c_drop])
+    c_keep = await make_customer(
+        db, name="KeepCo", email="keepco_kanban@test.com", company="KeepCo"
+    )
+    c_drop = await make_customer(
+        db, name="DropCo", email="dropco_kanban@test.com", company="DropCo"
+    )
     await db.commit()
-    await db.refresh(c_keep)
-    await db.refresh(c_drop)
 
-    opp_match = Opportunity(
+    opp_match = await make_opportunity(
+        db,
         title="Match",
         stage="qualified",
         status="active",
@@ -229,7 +240,8 @@ async def test_kanban_filters_customer_tasks_rotting(client: AsyncClient, db: As
         amount=1000,
         currency="TRY",
     )
-    opp_noise_same_stage = Opportunity(
+    opp_noise_same_stage = await make_opportunity(
+        db,
         title="Noise",
         stage="qualified",
         status="active",
@@ -238,10 +250,7 @@ async def test_kanban_filters_customer_tasks_rotting(client: AsyncClient, db: As
         amount=2000,
         currency="TRY",
     )
-    db.add_all([opp_match, opp_noise_same_stage])
     await db.commit()
-    await db.refresh(opp_match)
-    await db.refresh(opp_noise_same_stage)
 
     db.add_all(
         [
@@ -284,16 +293,16 @@ async def test_board_summary(client: AsyncClient, db: AsyncSession):
     mgr = await _create_user(db, "opp_summary@test.com", "sales_manager")
     h = _auth(mgr)
 
-    fresh_opp = Opportunity(title="Fresh pipe", stage="prospecting", status="active", owner_id=mgr.id)
-    stale_opp = Opportunity(title="Stale pipe", stage="prospecting", status="active", owner_id=mgr.id)
-    stale_no_log = Opportunity(
-        title="No log stale", stage="qualified", status="active", owner_id=mgr.id
+    fresh_opp = await make_opportunity(
+        db, title="Fresh pipe", stage="prospecting", status="active", owner_id=mgr.id
     )
-    db.add_all([fresh_opp, stale_opp, stale_no_log])
+    stale_opp = await make_opportunity(
+        db, title="Stale pipe", stage="prospecting", status="active", owner_id=mgr.id
+    )
+    stale_no_log = await make_opportunity(
+        db, title="No log stale", stage="qualified", status="active", owner_id=mgr.id
+    )
     await db.commit()
-    await db.refresh(fresh_opp)
-    await db.refresh(stale_opp)
-    await db.refresh(stale_no_log)
 
     old = datetime.now(timezone.utc) - timedelta(days=10)
     recent = datetime.now(timezone.utc) - timedelta(days=1)
@@ -337,15 +346,14 @@ async def test_email_link_opportunity_timeline(client: AsyncClient, db: AsyncSes
     mgr = await _create_user(db, "email_opp_tl@test.com", "sales_manager")
     h = _auth(mgr)
 
-    cust = Customer(
+    cust = await make_customer(
+        db,
         name="EuroCust",
-        company="EuroCo",
         email="eurocust_tl@test.com",
+        company="EuroCo",
         created_by=mgr.id,
     )
-    db.add(cust)
     await db.commit()
-    await db.refresh(cust)
 
     cr = await client.post(
         "/api/v1/opportunities/",
@@ -394,15 +402,14 @@ async def test_timeline_includes_email_only_via_quote(client: AsyncClient, db: A
     mgr = await _create_user(db, "opp_tl_quote@test.com", "sales_manager")
     h = _auth(mgr)
 
-    cust = Customer(
+    cust = await make_customer(
+        db,
         name="QuoteChainCo",
-        company="QCC",
         email="qcc_tl@test.com",
+        company="QCC",
         created_by=mgr.id,
     )
-    db.add(cust)
     await db.commit()
-    await db.refresh(cust)
 
     cr = await client.post(
         "/api/v1/opportunities/",
@@ -426,7 +433,8 @@ async def test_timeline_includes_email_only_via_quote(client: AsyncClient, db: A
     await db.commit()
     await db.refresh(email)
 
-    quote = Quote(
+    await make_quote(
+        db,
         quote_number="Q-TL-QUOTE-001",
         opportunity_id=opp_id,
         email_request_id=email.id,
@@ -434,7 +442,6 @@ async def test_timeline_includes_email_only_via_quote(client: AsyncClient, db: A
         grand_total=1000.0,
         status="draft",
     )
-    db.add(quote)
     await db.commit()
 
     tr = await client.get(f"/api/v1/opportunities/{opp_id}/timeline", headers=h)
@@ -458,17 +465,17 @@ async def test_opportunity_summary_context_includes_quote_linked_email(
 ):
     mgr = await _create_user(db, "opp_sum_quote@test.com", "sales_manager")
 
-    cust = Customer(
+    cust = await make_customer(
+        db,
         name="SumQuoteCo",
-        company="SQC",
         email="sqc_sum@test.com",
+        company="SQC",
         created_by=mgr.id,
     )
-    db.add(cust)
     await db.commit()
-    await db.refresh(cust)
 
-    opp = Opportunity(
+    opp = await make_opportunity(
+        db,
         title="Summary quote chain",
         stage="negotiation",
         status="active",
@@ -477,7 +484,6 @@ async def test_opportunity_summary_context_includes_quote_linked_email(
         amount=5000,
         currency="TRY",
     )
-    db.add(opp)
     await db.commit()
     await db.refresh(opp)
 
@@ -495,7 +501,8 @@ async def test_opportunity_summary_context_includes_quote_linked_email(
     await db.commit()
     await db.refresh(email)
 
-    quote = Quote(
+    await make_quote(
+        db,
         quote_number="Q-SUM-QUOTE-001",
         opportunity_id=opp.id,
         email_request_id=email.id,
@@ -503,7 +510,6 @@ async def test_opportunity_summary_context_includes_quote_linked_email(
         grand_total=2500.0,
         status="sent",
     )
-    db.add(quote)
     await db.commit()
 
     sources: list[dict] = []

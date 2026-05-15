@@ -5,13 +5,14 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, hash_password
-from app.models.customer import Customer
-from app.models.opportunity import Opportunity
 from app.models.user import User
+from tests.factories import DEFAULT_TENANT_ID, make_customer, make_opportunity
 
 
 async def _user(db: AsyncSession, email: str, role: str) -> tuple[User, dict]:
     u = User(
+        # Round-15 Sprint 15k/l unblocker.
+        tenant_id=DEFAULT_TENANT_ID,
         email=email,
         full_name="HI Test",
         hashed_password=hash_password("Test1234"),
@@ -28,15 +29,13 @@ async def _user(db: AsyncSession, email: str, role: str) -> tuple[User, dict]:
 @pytest.mark.asyncio
 async def test_high_intent_list_and_pin_flow(client: AsyncClient, db: AsyncSession):
     mgr, h = await _user(db, "hi_pin_mgr@test.com", "sales_manager")
-    cust = Customer(
+    cust = await make_customer(
+        db,
         name="SignalCo",
         email="signalco_hi@test.com",
         company="SignalCo",
         created_by=mgr.id,
     )
-    db.add(cust)
-    await db.commit()
-    await db.refresh(cust)
 
     from datetime import datetime, timedelta, timezone
 
@@ -51,7 +50,8 @@ async def test_high_intent_list_and_pin_flow(client: AsyncClient, db: AsyncSessi
         created_at=datetime.now(timezone.utc) - timedelta(days=1),
     )
     db.add(em)
-    opp = Opportunity(
+    await make_opportunity(
+        db,
         title="Open O",
         stage="qualified",
         status="active",
@@ -60,7 +60,6 @@ async def test_high_intent_list_and_pin_flow(client: AsyncClient, db: AsyncSessi
         amount=50000.0,
         currency="EUR",
     )
-    db.add(opp)
     await db.commit()
 
     gr0 = await client.get(f"/api/v1/customers/{cust.id}", headers=h)

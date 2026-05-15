@@ -13,11 +13,17 @@ from app.models.lead import Lead
 from app.models.lead_assignment_rule import LeadAssignmentRule
 from app.models.user import User
 from app.services.lead_service import LeadService
+from tests.factories import make_lead
 
 
 async def _create_user(db: AsyncSession, email: str, name: str) -> User:
     """Helper to create a test user."""
+    from tests.factories import DEFAULT_TENANT_ID
+
     user = User(
+        # Round-15 Sprint 15k/l unblocker — match the canonical
+        # single-tenant test id so factory-created leads inherit it.
+        tenant_id=DEFAULT_TENANT_ID,
         email=email,
         full_name=name,
         hashed_password=hash_password("test123"),
@@ -129,16 +135,16 @@ async def test_round_robin_assignment(db: AsyncSession, users: list[User]):
 @pytest.mark.asyncio
 async def test_least_loaded_assignment(db: AsyncSession, users: list[User]):
     """Least loaded rule should assign to user with fewest active leads."""
-    # Pre-load user_a with leads
+    # Pre-load user_a with leads via tenant-aware factory.
     for i in range(3):
-        lead = Lead(
+        await make_lead(
+            db,
             first_name=f"Existing{i}",
             last_name="Lead",
             email=f"existing{i}@test.com",
             source="manual",
             owner_id=users[0].id,
         )
-        db.add(lead)
     await db.flush()
 
     rule = LeadAssignmentRule(

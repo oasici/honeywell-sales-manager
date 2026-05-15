@@ -12,6 +12,7 @@ from app.models.customer import Customer
 from app.models.email_request import EmailRequest
 from app.models.lead import Lead
 from app.models.user import User
+from tests.factories import DEFAULT_TENANT_ID, make_customer
 from app.services.lead_service import (
     INACTIVITY_PENALTY_POINTS,
     INACTIVITY_THRESHOLD_DAYS,
@@ -21,7 +22,10 @@ from app.services.lead_service import (
 
 @pytest_asyncio.fixture
 async def lead_owner(db: AsyncSession) -> User:
+    # Round-15 Sprint 15k/l unblocker — tenant_id threaded so derived
+    # rows (leads, customers) inherit the canonical single-tenant id.
     user = User(
+        tenant_id=DEFAULT_TENANT_ID,
         email="lead_owner@test.com",
         full_name="Lead Owner",
         hashed_password=hash_password("pass123"),
@@ -37,6 +41,7 @@ async def lead_owner(db: AsyncSession) -> User:
 @pytest_asyncio.fixture
 async def manager_user(db: AsyncSession) -> User:
     user = User(
+        tenant_id=DEFAULT_TENANT_ID,
         email="manager_lead@test.com",
         full_name="Manager Lead",
         hashed_password=hash_password("pass123"),
@@ -227,14 +232,14 @@ class TestDuplicateEmailAcrossLeadAndCustomer:
     async def test_skips_lead_creation_if_customer_exists(
         self, db: AsyncSession, lead_owner: User,
     ):
-        customer = Customer(
+        customer = await make_customer(
+            db,
             name="Existing Customer",
-            company="ExistCo",
             email="existing@customer.com",
+            company="ExistCo",
             phone="555-0000",
             created_by=lead_owner.id,
         )
-        db.add(customer)
         await db.commit()
 
         service = LeadService(db)
