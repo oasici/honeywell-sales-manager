@@ -28,6 +28,11 @@ class Transcript(Base):
     customer_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=True, index=True
     )
+    # Round-15 Sprint 15j cohort 13 — defense-in-depth tenant scoping.
+    # Backfill source: opportunity.tenant_id when present, else
+    # customer.tenant_id (both FKs are nullable but at least one is
+    # usually set in practice; rows with neither stay NULL).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     source: Mapped[str] = mapped_column(String(30), default="upload")  # upload | paste | teams | zoom
     content: Mapped[str] = mapped_column(Text, nullable=False)

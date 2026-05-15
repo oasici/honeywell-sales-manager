@@ -38,6 +38,9 @@ class SequenceStepRun(Base):
     sequence_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("sequences.id"), nullable=False, index=True
     )
+    # Round-15 Sprint 15j cohort 13 — defense-in-depth tenant scoping
+    # (backfilled from parent sequence_enrollments.tenant_id).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     step_number: Mapped[int] = mapped_column(Integer, nullable=False)
     step_action: Mapped[str] = mapped_column(String(30), nullable=False)  # email | task | wait | branch
     variant_key: Mapped[str | None] = mapped_column(String(10), nullable=True)  # A | B | None

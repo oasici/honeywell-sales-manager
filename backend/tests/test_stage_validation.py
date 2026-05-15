@@ -8,15 +8,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
 from app.models.opportunity import Opportunity
-from app.models.quote import Quote
 from app.models.stage_requirement import StageRequirement
 from app.models.user import User
 from app.services.stage_validation_service import validate_stage_transition
+from tests.factories import (
+    DEFAULT_TENANT_ID,
+    make_customer,
+    make_opportunity,
+    make_quote,
+)
 
 
 @pytest_asyncio.fixture
 async def sales_user(db: AsyncSession) -> User:
     user = User(
+        # Round-15 Sprint 15k/l unblocker — tenant_id threading. Without
+        # this the make_opportunity factory still works (it overrides),
+        # but the fixture user matches the canonical single-tenant id.
+        tenant_id=DEFAULT_TENANT_ID,
         email="rep_stage@test.com",
         full_name="Stage Test Rep",
         hashed_password=hash_password("Test1234"),
@@ -32,12 +41,12 @@ async def sales_user(db: AsyncSession) -> User:
 @pytest_asyncio.fixture
 async def opportunity_no_amount(db: AsyncSession, sales_user: User) -> Opportunity:
     """Opportunity missing amount and customer_id."""
-    opp = Opportunity(
+    opp = await make_opportunity(
+        db,
         title="Test Opp Missing Fields",
         stage="prospecting",
         owner_id=sales_user.id,
     )
-    db.add(opp)
     await db.commit()
     await db.refresh(opp)
     return opp
@@ -46,14 +55,13 @@ async def opportunity_no_amount(db: AsyncSession, sales_user: User) -> Opportuni
 @pytest_asyncio.fixture
 async def opportunity_complete(db: AsyncSession, sales_user: User) -> Opportunity:
     """Opportunity with all fields filled."""
-    opp = Opportunity(
+    opp = await make_opportunity(
+        db,
         title="Test Opp Complete",
         stage="prospecting",
         amount=50000.0,
         owner_id=sales_user.id,
-        customer_id=None,  # will be set below
     )
-    db.add(opp)
     await db.commit()
     await db.refresh(opp)
     return opp
@@ -176,33 +184,27 @@ async def test_has_quote_rule_passes_with_quote(
     stage_requirement_proposal: StageRequirement,
 ):
     """has_quote validation rule passes when a quote exists for opportunity."""
-    from app.models.customer import Customer
+    # Round-15 Sprint 15k/l unblocker — route through tenant-aware factories
+    # so the fixture row always carries tenant_id.
+    customer = await make_customer(db, name="Test Customer", email="c@test.com")
 
-    # Create customer
-    customer = Customer(name="Test Customer", email="c@test.com")
-    db.add(customer)
-    await db.flush()
-
-    # Create opportunity with all required fields
-    opp = Opportunity(
+    opp = await make_opportunity(
+        db,
         title="Opp With Quote",
         stage="qualified",
         amount=100000.0,
         owner_id=sales_user.id,
         customer_id=customer.id,
     )
-    db.add(opp)
-    await db.flush()
     await db.refresh(opp)
 
-    # Create a quote for this opportunity
-    quote = Quote(
+    await make_quote(
+        db,
         quote_number="HW-TEST-001",
         opportunity_id=opp.id,
         customer_id=customer.id,
         created_by=sales_user.id,
     )
-    db.add(quote)
     await db.commit()
 
     result = await validate_stage_transition(db, opp, "proposal")
