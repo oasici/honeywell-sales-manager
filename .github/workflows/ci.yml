@@ -137,6 +137,15 @@ jobs:
             -q --tb=short
       - name: Upload coverage report
         if: always()
+        # Round-15 — artifact-upload outages should not fail the test
+        # gate. The coverage XML is diagnostic-only; the
+        # ``--cov-fail-under`` flag above is what actually enforces the
+        # coverage floor. The FinalizeArtifact step in
+        # ``upload-artifact@v7`` has hit transient ``Unexpected token '<'``
+        # errors (GitHub returning HTML error pages instead of JSON),
+        # which retried 5× and still failed. ``continue-on-error`` keeps
+        # the job green when the upload service is degraded.
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.sha }}
@@ -200,6 +209,12 @@ jobs:
           fi
       - name: Upload audit report
         if: always()
+        # Round-15 — diagnostic-only upload; the audit gate above already
+        # fails on any HIGH/CRITICAL vuln. ``continue-on-error`` keeps the
+        # job green during transient ``upload-artifact@v7`` outages
+        # (FinalizeArtifact occasionally returns HTML instead of JSON and
+        # retries-exhaust). See the parallel guard on the frontend audit.
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: pip-audit-${{ github.sha }}
@@ -230,6 +245,12 @@ jobs:
         run: npm audit --json --omit=dev > npm-audit.json || true
       - name: Upload audit report
         if: always()
+        # Round-15 — diagnostic-only upload; the ``npm audit
+        # --audit-level=high`` step above is the actual gate.
+        # ``continue-on-error`` keeps the job green when
+        # ``upload-artifact@v7`` hits the FinalizeArtifact JSON-parse
+        # error from a degraded blob-storage backend.
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: npm-audit-${{ github.sha }}
