@@ -17,8 +17,12 @@ from app.services.feature_store_builder import build_daily_feature_store
 from app.models.buyer_state_history import BuyerStateHistory
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_user(db: AsyncSession, email: str, role: str) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name=f"Test {role}",
         hashed_password=hash_password("Test1234"),
@@ -55,12 +59,13 @@ async def test_buyer_state_timeline_requires_flag(client: AsyncClient, db: Async
 async def test_buyer_state_history_written_and_timeline_returns(client: AsyncClient, db: AsyncSession):
     mgr = await _create_user(db, "bs_mgr2@test.com", "sales_manager")
 
-    cust = Customer(name="ACME", company="ACME", email="acme@test.com", phone="", address="", tax_id="")
+    cust = Customer(tenant_id=_TENANT_ID, name="ACME", company="ACME", email="acme@test.com", phone="", address="", tax_id="")
     db.add(cust)
     await db.commit()
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=mgr.id,
         title="Deal",

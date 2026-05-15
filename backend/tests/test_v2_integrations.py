@@ -10,8 +10,11 @@ from app.models.quote import Quote
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _mgr(db: AsyncSession) -> tuple[User, dict]:
-    user = User(email="integ_mgr@test.com", full_name="Integ Manager",
+    user = User(tenant_id=_TENANT_ID, email="integ_mgr@test.com", full_name="Integ Manager",
                 hashed_password=hash_password("Test1234"), role="sales_manager", is_active=True)
     db.add(user)
     await db.commit()
@@ -42,7 +45,7 @@ async def test_calendar_status_not_configured(client: AsyncClient, db: AsyncSess
 @pytest.mark.asyncio
 async def test_calendar_link_event(client: AsyncClient, db: AsyncSession):
     user, h = await _mgr(db)
-    opp = Opportunity(title="Calendar Test", stage="proposal", owner_id=user.id)
+    opp = Opportunity(tenant_id=_TENANT_ID, title="Calendar Test", stage="proposal", owner_id=user.id)
     db.add(opp)
     await db.commit()
     await db.refresh(opp)
@@ -95,7 +98,7 @@ async def test_esign_status(client: AsyncClient, db: AsyncSession):
 @pytest.mark.asyncio
 async def test_esign_send_stub(client: AsyncClient, db: AsyncSession):
     user, h = await _mgr(db)
-    quote = Quote(quote_number="ESIGN-001", created_by=user.id, status="approved",
+    quote = Quote(tenant_id=_TENANT_ID, quote_number="ESIGN-001", created_by=user.id, status="approved",
                   subtotal=1000, discount_total=0, tax_rate=20, tax_amount=200, grand_total=1200)
     db.add(quote)
     await db.commit()

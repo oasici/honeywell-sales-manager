@@ -15,8 +15,12 @@ from app.models.revenue_signal import RevenueSignal
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _user(db: AsyncSession, email: str, role: str) -> User:
     u = User(
+        tenant_id=_TENANT_ID,
         email=email,
         full_name="T",
         hashed_password=hash_password("Test1234"),
@@ -45,12 +49,13 @@ async def test_alignment_timeline_merges_sources(client: AsyncClient, db: AsyncS
     with patch("app.api.v1.target_alignment.settings") as s:
         s.FEATURE_V4_ADDITIVE_READMODEL = True
         mgr = await _user(db, "align_on@test.com", "sales_manager")
-        cust = Customer(name="C", company="C", email="c@test.com", phone="", address="", tax_id="")
+        cust = Customer(tenant_id=_TENANT_ID, name="C", company="C", email="c@test.com", phone="", address="", tax_id="")
         db.add(cust)
         await db.commit()
         await db.refresh(cust)
 
         opp = Opportunity(
+            tenant_id=_TENANT_ID,
             customer_id=cust.id,
             owner_id=mgr.id,
             title="O",

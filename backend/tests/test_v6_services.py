@@ -192,8 +192,12 @@ async def test_recompute_after_activity_short_circuits_when_flag_off(db: AsyncSe
 # ─────────────────────── DB-backed helpers ───────────────────────────
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _seed_opp(db: AsyncSession) -> Opportunity:
     user = User(
+        tenant_id=_TENANT_ID,
         email="rep_v6@test.com",
         full_name="Rep V6",
         hashed_password=hash_password("Test1234"),
@@ -202,6 +206,7 @@ async def _seed_opp(db: AsyncSession) -> Opportunity:
     )
     db.add(user)
     cust = Customer(
+        tenant_id=_TENANT_ID,
         name="V6 Acme",
         company="V6 Acme",
         email="v6@test.com",
@@ -217,6 +222,7 @@ async def _seed_opp(db: AsyncSession) -> Opportunity:
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=user.id,
         title="V6 Deal",

@@ -201,8 +201,12 @@ async def test_objection_llm_detector_rejects_invalid_type():
 # ─────────────────────── hybrid detect path ──────────────────────────
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _seed_opp(db: AsyncSession) -> Opportunity:
     user = User(
+        tenant_id=_TENANT_ID,
         email="rep_v7@test.com",
         full_name="Rep V7",
         hashed_password=hash_password("Test1234"),
@@ -211,6 +215,7 @@ async def _seed_opp(db: AsyncSession) -> Opportunity:
     )
     db.add(user)
     cust = Customer(
+        tenant_id=_TENANT_ID,
         name="V7 Acme",
         company="V7 Acme",
         email="v7@test.com",
@@ -224,6 +229,7 @@ async def _seed_opp(db: AsyncSession) -> Opportunity:
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=user.id,
         title="V7 Deal",

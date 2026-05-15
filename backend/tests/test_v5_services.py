@@ -110,10 +110,14 @@ def test_dna_pattern_miner_signature_drops_noise():
 # ─────────────────────── DB-backed tests ─────────────────────────────
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _seed_basics(
     db: AsyncSession,
 ) -> tuple[User, Customer, Opportunity]:
     user = User(
+        tenant_id=_TENANT_ID,
         email="rep_v5@test.com",
         full_name="Rep V5",
         hashed_password=hash_password("Test1234"),
@@ -122,6 +126,7 @@ async def _seed_basics(
     )
     db.add(user)
     cust = Customer(
+        tenant_id=_TENANT_ID,
         name="Acme",
         company="Acme",
         email="acme@test.com",
@@ -137,6 +142,7 @@ async def _seed_basics(
     await db.refresh(cust)
 
     opp = Opportunity(
+        tenant_id=_TENANT_ID,
         customer_id=cust.id,
         owner_id=user.id,
         title="Deal V5",
