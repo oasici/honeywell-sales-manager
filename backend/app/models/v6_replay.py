@@ -17,6 +17,9 @@ class DealReplayDelta(Base):
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False
     )
+    # Round-15 Sprint 15j cohort 12 — defense-in-depth tenant scoping
+    # (backfilled from parent opportunity).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     from_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     to_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

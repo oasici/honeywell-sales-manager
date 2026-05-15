@@ -16,6 +16,9 @@ class OpportunityTextEmbedding(Base):
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id", ondelete="CASCADE"), primary_key=True
     )
+    # Round-15 Sprint 15j cohort 12 — defense-in-depth tenant scoping
+    # (backfilled from parent opportunity).
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     embedding_json: Mapped[str] = mapped_column(Text, nullable=False)
     dim: Mapped[int] = mapped_column(Integer, nullable=False)
     version: Mapped[str] = mapped_column(String(40), nullable=False)
