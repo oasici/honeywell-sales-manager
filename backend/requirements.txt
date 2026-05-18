@@ -57,7 +57,7 @@ sentry-sdk[fastapi]==2.58.0  # security advisory — see pip install --upgrade "
 
 # Vector search
 pgvector==0.3.6
-qdrant-client==1.13.3
+qdrant-client==1.18.0
 
 # Background jobs
 apscheduler==3.11.2
