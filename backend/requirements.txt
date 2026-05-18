@@ -73,7 +73,7 @@ apscheduler==3.11.2
 # the older lxml in that deployment.
 
 # Data processing
-pandas==2.2.3
+pandas==3.0.3
 openpyxl==3.1.5
 pdfplumber==0.11.9  # pulls pdfminer.six 20251107 to clear CVE-2025-64512 / CVE-2025-70559
 
