@@ -24,7 +24,8 @@ class Campaign(Base):
     # campaign module never received the treatment, leaving every
     # ``GET /campaigns`` cross-tenant readable. Backfilled from the
     # creator's tenant by the 20260506 migration.
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Round-15 Sprint 15l cohort 2 — promoted to NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     type: Mapped[str] = mapped_column(String(30), nullable=False, default="email")
     # email | event | webinar | direct_mail | social | other

@@ -14,7 +14,8 @@ class Subscription(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-7 — tenant boundary on subscriptions. Backfilled
     # from customers.tenant_id by alembic 20260504_billing_tenant.
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15l cohort 2 — promoted to NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     customer_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=False, index=True,
     )

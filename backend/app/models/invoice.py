@@ -22,7 +22,8 @@ class Invoice(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Round-15 Sprint 15l cohort 2 — promoted to NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     invoice_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     quote_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("quotes.id"), nullable=True)
     contract_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("contracts.id"), nullable=True)

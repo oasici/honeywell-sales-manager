@@ -38,6 +38,15 @@ NOT_NULL_TENANT_ALLOWLIST: set[str] = {
     "opportunities",
     "quotes",
     "leads",
+    # Round-15 Sprint 15l cohort 2 — billing + campaigns surface.
+    # Promoted by migration
+    # ``20260605_phase13_tenant_not_null_cohort2.py``. All four hang
+    # off customers (which became NOT NULL in cohort 1), so the
+    # backfill chain is clean by construction.
+    "contracts",
+    "invoices",
+    "campaigns",
+    "subscriptions",
 }
 
 
