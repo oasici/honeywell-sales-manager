@@ -31,6 +31,13 @@ NOT_NULL_TENANT_ALLOWLIST: set[str] = {
     "playbook_executions",
     "playbooks",
     "selling_guides",
+    # Round-15 Sprint 15k cohort 1 — top-tier CRM tables. Promoted by
+    # migration ``20260604_phase13_tenant_not_null_cohort1.py`` once
+    # the test-fixture sweep (batches 1-8) closed the blocking gap.
+    "customers",
+    "opportunities",
+    "quotes",
+    "leads",
 }
 
 

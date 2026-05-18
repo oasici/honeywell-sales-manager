@@ -238,24 +238,23 @@ async def test_customer_create_propagates_caller_tenant(
 
 
 # ─────────────────────── single-tenant compatibility ──────────────────
-
-
-@pytest.mark.asyncio
-async def test_single_tenant_user_unaffected_by_v12(
-    client: AsyncClient, db: AsyncSession
-):
-    """A user with tenant_id=NULL must still see all unscoped data.
-
-    This is the legacy single-tenant deployment path. The helpers
-    treat ``user.tenant_id is None`` as a no-op so we don't break
-    existing installs that haven't run the bootstrap script.
-    """
-    legacy_user = await _seed_user(db, email="legacy@test.com", tenant_id=None)
-    await _seed_opportunity(
-        db, owner_id=legacy_user.id, title="Legacy Deal", tenant_id=None
-    )
-
-    r = await client.get("/api/v1/opportunities/", headers=_auth(legacy_user))
-    assert r.status_code == 200
-    titles = {item["title"] for item in r.json()["items"]}
-    assert "Legacy Deal" in titles
+#
+# Round-15 Sprint 15k cohort 1 (NOT NULL promotion on customers /
+# opportunities / quotes / leads.tenant_id) made the legacy
+# ``tenant_id IS NULL`` insert path unreachable: the schema rejects
+# the row at INSERT time. The previous coverage here intentionally
+# inserted ``tenant_id=None`` Opportunity + User rows to exercise the
+# pre-V7 single-tenant fallback. That branch is now unreachable by
+# construction.
+#
+# CLAUDE.md is explicit on the contract: "every CRM row carries
+# ``tenant_id``." Read-side helpers may still tolerate
+# ``user.tenant_id is None`` for inspection use cases, but the
+# mutation surface enforces the contract.
+#
+# Pre-V7 single-tenant deployments must run the bootstrap script
+# (``backend/scripts/bootstrap_default_tenant.py``, scheduled via the
+# ``bootstrap-default-tenant.yml`` workflow) before upgrading past
+# this point. The promotion runbook is at
+# ``docs/runbooks/r15k-tenant-orphan-backfill.md`` and the parking-
+# notes timeline at ``docs/audits/2026-05-15-15kl-parking-notes.md``.

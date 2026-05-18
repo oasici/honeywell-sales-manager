@@ -51,8 +51,11 @@ class Quote(Base):
 
     valid_days: Mapped[int] = mapped_column(Integer, default=30)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # V8: multi-tenant boundary
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # V8: multi-tenant boundary.
+    # Round-15 Sprint 15k cohort 1 — promoted to NOT NULL. Backfill
+    # chain: opportunity.tenant_id → customer.tenant_id →
+    # users.tenant_id via created_by.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     # V9: revision tree
     parent_quote_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("quotes.id"), nullable=True

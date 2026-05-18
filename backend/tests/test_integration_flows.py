@@ -11,10 +11,14 @@ from app.core.security import hash_password
 from app.models.user import User
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def manager(db: AsyncSession) -> User:
     """A sales_manager user for integration tests."""
     user = User(
+        tenant_id=_TENANT_ID,
         email="integration_mgr@test.com",
         full_name="Integration Manager",
         hashed_password=hash_password("pass123"),

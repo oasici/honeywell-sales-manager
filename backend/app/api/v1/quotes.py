@@ -206,6 +206,10 @@ async def create_quote_from_pdf(
 
         if not customer_id and pdf_data.get("customer_name"):
             new_customer = Customer(
+                # Round-15 Sprint 15k cohort 1 — Customer.tenant_id
+                # NOT NULL. Inherit caller's tenant on the PDF-parse
+                # auto-create path.
+                tenant_id=getattr(current_user, "tenant_id", None),
                 name=pdf_data["customer_name"],
                 company=pdf_data.get("customer_company", ""),
                 email=pdf_data.get("customer_email", ""),

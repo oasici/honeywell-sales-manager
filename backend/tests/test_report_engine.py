@@ -17,8 +17,12 @@ from app.models.user import User
 from app.services.report_engine import ALLOWED_COLUMNS, ReportEngine
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 async def _create_user(db: AsyncSession) -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email="report_test@test.com",
         full_name="Report Tester",
         hashed_password=hash_password("Test1234"),
@@ -33,9 +37,9 @@ async def _create_user(db: AsyncSession) -> User:
 
 async def _seed_customers(db: AsyncSession, user_id: int) -> list[Customer]:
     customers = [
-        Customer(name="Ahmet Yilmaz", email="ahmet@sanayi.com", company="ABC Sanayi", created_by=user_id),
-        Customer(name="Mehmet Demir", email="mehmet@teknoloji.com", company="XYZ Teknoloji", created_by=user_id),
-        Customer(name="Ayse Kaya", email="ayse@insaat.com", company="Kaya Insaat", created_by=user_id),
+        Customer(tenant_id=_TENANT_ID, name="Ahmet Yilmaz", email="ahmet@sanayi.com", company="ABC Sanayi", created_by=user_id),
+        Customer(tenant_id=_TENANT_ID, name="Mehmet Demir", email="mehmet@teknoloji.com", company="XYZ Teknoloji", created_by=user_id),
+        Customer(tenant_id=_TENANT_ID, name="Ayse Kaya", email="ayse@insaat.com", company="Kaya Insaat", created_by=user_id),
     ]
     db.add_all(customers)
     await db.commit()
@@ -47,6 +51,7 @@ async def _seed_customers(db: AsyncSession, user_id: int) -> list[Customer]:
 async def _seed_quotes(db: AsyncSession, user_id: int) -> list[Quote]:
     quotes = [
         Quote(
+            tenant_id=_TENANT_ID,
             quote_number="RPT-001",
             created_by=user_id,
             status="draft",
@@ -58,6 +63,7 @@ async def _seed_quotes(db: AsyncSession, user_id: int) -> list[Quote]:
             valid_days=30,
         ),
         Quote(
+            tenant_id=_TENANT_ID,
             quote_number="RPT-002",
             created_by=user_id,
             status="approved",
@@ -80,8 +86,8 @@ async def _seed_opportunities(
     db: AsyncSession, user_id: int, customer_id: int
 ) -> list[Opportunity]:
     opps = [
-        Opportunity(title="Firsat A", stage="prospecting", owner_id=user_id, customer_id=customer_id, amount=10000.0),
-        Opportunity(title="Firsat B", stage="proposal", owner_id=user_id, customer_id=customer_id, amount=25000.0),
+        Opportunity(tenant_id=_TENANT_ID, title="Firsat A", stage="prospecting", owner_id=user_id, customer_id=customer_id, amount=10000.0),
+        Opportunity(tenant_id=_TENANT_ID, title="Firsat B", stage="proposal", owner_id=user_id, customer_id=customer_id, amount=25000.0),
     ]
     db.add_all(opps)
     await db.commit()
@@ -177,6 +183,10 @@ async def test_execute_inline_opportunity(db: AsyncSession):
 async def test_execute_inline_email(db: AsyncSession):
     user = await _create_user(db)
     email = EmailRequest(
+        # Round-15 Sprint 15k cohort 1 — tenant_id threaded so the
+        # ReportEngine's scoped query (filters by user.tenant_id)
+        # picks up the seed row.
+        tenant_id=_TENANT_ID,
         message_id="rpt-test-001",
         from_address="test@example.com",
         subject="Test Konu",

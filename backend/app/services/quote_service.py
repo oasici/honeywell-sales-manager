@@ -47,6 +47,16 @@ class QuoteService:
             # customers by guessing the ID.
             await self._validate_customer(customer_id, tenant_id=tenant_id)
 
+        # Round-15 Sprint 15k cohort 1 — Quote.tenant_id now NOT NULL.
+        # If the caller didn't pass it, derive from created_by user.
+        if tenant_id is None and created_by is not None:
+            from app.models.user import User
+
+            owner_row = await self._db.execute(
+                select(User.tenant_id).where(User.id == created_by)
+            )
+            tenant_id = owner_row.scalar_one_or_none()
+
         quote_number = self.generate_quote_number()
 
         quote = Quote(
@@ -59,7 +69,6 @@ class QuoteService:
             tax_rate=tax_rate,
             valid_days=valid_days,
             notes=notes,
-            # V12 multi-tenant: caller passes the requesting user's tenant.
             tenant_id=tenant_id,
         )
         self._db.add(quote)
@@ -93,9 +102,22 @@ class QuoteService:
         )
         email.opportunity_id = opportunity_id
 
+        # Round-15 Sprint 15k cohort 1 — Quote.tenant_id NOT NULL.
+        # Inherit from the source email (which has tenant_id set via
+        # the parsing pipeline).
+        derived_tenant_id = getattr(email, "tenant_id", None)
+        if derived_tenant_id is None and created_by is not None:
+            from app.models.user import User
+
+            owner_row = await self._db.execute(
+                select(User.tenant_id).where(User.id == created_by)
+            )
+            derived_tenant_id = owner_row.scalar_one_or_none()
+
         quote_number = self.generate_quote_number()
 
         quote = Quote(
+            tenant_id=derived_tenant_id,
             quote_number=quote_number,
             customer_id=email.customer_id,
             email_request_id=email.id,

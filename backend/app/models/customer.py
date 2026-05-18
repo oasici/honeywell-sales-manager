@@ -24,8 +24,12 @@ class Customer(Base):
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     tax_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     preferred_lang: Mapped[str] = mapped_column(String(5), default="tr")
-    # V8: multi-tenant boundary
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # V8: multi-tenant boundary.
+    # Round-15 Sprint 15k cohort 1 — promoted from NULLABLE to NOT
+    # NULL. Audit F-001 documented this as the defense-in-depth gap.
+    # The migration backfills residual NULL rows from
+    # users.tenant_id via created_by before flipping the constraint.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     created_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True
     )

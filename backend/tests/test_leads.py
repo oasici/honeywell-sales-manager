@@ -16,9 +16,13 @@ from app.core.security import hash_password
 from app.services.lead_service import LeadService
 
 
+_TENANT_ID = 1  # Round-15 Sprint 15k/l — canonical single-tenant id.
+
+
 @pytest_asyncio.fixture
 async def sales_user(db: AsyncSession) -> User:
     user = User(
+        tenant_id=_TENANT_ID,
         email="rep@test.com",
         full_name="Sales Rep",
         hashed_password=hash_password("Test1234"),
@@ -180,7 +184,7 @@ async def test_auto_create_lead_from_email(db: AsyncSession, sales_user: User):
 @pytest.mark.asyncio
 async def test_auto_create_lead_skips_existing_customer(db: AsyncSession, sales_user: User):
     # Create a customer first
-    db.add(Customer(name="Existing", email="existing@corp.com", created_by=sales_user.id))
+    db.add(Customer(tenant_id=_TENANT_ID, name="Existing", email="existing@corp.com", created_by=sales_user.id))
     await db.commit()
 
     service = LeadService(db)

@@ -51,6 +51,17 @@ class LeadService:
         if existing.scalar_one_or_none():
             raise BadRequestException(f"Bu email ile kayitli lead zaten var: {email}")
 
+        # Round-15 Sprint 15k cohort 1 — Lead.tenant_id is now NOT NULL.
+        # If the caller didn't pass tenant_id, derive it from the
+        # owner's user record (owner_id is NOT NULL on the row).
+        if tenant_id is None:
+            from app.models.user import User
+
+            owner_row = await self.db.execute(
+                select(User.tenant_id).where(User.id == owner_id)
+            )
+            tenant_id = owner_row.scalar_one_or_none()
+
         lead = Lead(
             first_name=first_name,
             last_name=last_name,
@@ -61,7 +72,6 @@ class LeadService:
             source=source,
             owner_id=owner_id,
             notes=notes,
-            # V12 multi-tenant: caller passes the requesting user's tenant.
             tenant_id=tenant_id,
         )
         self.db.add(lead)
@@ -166,8 +176,14 @@ class LeadService:
         )
         customer = cust_result.scalar_one_or_none()
 
+        # Round-15 Sprint 15k cohort 1 — customers + opportunities are
+        # now NOT NULL on tenant_id. Inherit from the lead (which is
+        # also NOT NULL by this point).
+        derived_tenant_id = lead.tenant_id
+
         if not customer:
             customer = Customer(
+                tenant_id=derived_tenant_id,
                 name=f"{lead.first_name} {lead.last_name}",
                 company=lead.company or "",
                 email=lead.email,
@@ -182,6 +198,7 @@ class LeadService:
         if create_opportunity:
             opp_title = opportunity_title or f"{lead.company or lead.last_name} - Yeni Firsat"
             opportunity = Opportunity(
+                tenant_id=derived_tenant_id,
                 title=opp_title,
                 stage="prospecting",
                 amount=opportunity_amount,

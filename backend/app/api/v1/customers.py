@@ -631,6 +631,9 @@ async def import_customers(
                 continue
 
             customer = Customer(
+                # Round-15 Sprint 15k cohort 1 — Customer.tenant_id
+                # NOT NULL. Inherit caller's tenant.
+                tenant_id=getattr(current_user, "tenant_id", None),
                 name=name,
                 email=email,
                 company=str(row.get("company") or "").strip() or None,

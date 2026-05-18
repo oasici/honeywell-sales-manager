@@ -32,8 +32,10 @@ class Lead(Base):
 
     lead_score: Mapped[int] = mapped_column(default=0)  # 0-100
 
-    # V8: multi-tenant boundary
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # V8: multi-tenant boundary.
+    # Round-15 Sprint 15k cohort 1 — promoted to NOT NULL. Backfill
+    # source: users.tenant_id via owner_id (NOT NULL FK).
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 

@@ -290,7 +290,11 @@ async def test_data_export_bundles_user_owned_records(
     from .conftest import TestSession  # type: ignore
 
     async with TestSession() as seed:
+        # Round-15 Sprint 15k cohort 1 — tenant_id threaded so the
+        # seeded Customer + Opportunity rows satisfy the NOT NULL
+        # constraint.
         target = User(
+            tenant_id=1,
             email="subject@test.com",
             full_name="Data Subject",
             hashed_password=hash_password("x"),
@@ -309,8 +313,8 @@ async def test_data_export_bundles_user_owned_records(
                 entity_id=target.id,
             )
         )
-        seed.add(Customer(name="Made By Subject", email="madeby@test.com", created_by=target.id))
-        seed.add(Opportunity(title="Subject's Opp", owner_id=target.id, status="active"))
+        seed.add(Customer(tenant_id=1, name="Made By Subject", email="madeby@test.com", created_by=target.id))
+        seed.add(Opportunity(tenant_id=1, title="Subject's Opp", owner_id=target.id, status="active"))
         await seed.commit()
 
     r = await client.get(

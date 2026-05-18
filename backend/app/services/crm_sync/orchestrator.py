@@ -152,7 +152,14 @@ async def _upsert_account(
     sig = _hash_signature(rec.fields)
 
     if link is None:
+        # Round-15 Sprint 15k cohort 1 — Customer.tenant_id NOT NULL.
+        # Inherit from the connection row (the connection itself is
+        # tenant-scoped at the schema layer).
+        connection = await db.get(CrmConnection, connection_id)
+        derived_tenant_id = getattr(connection, "tenant_id", None) if connection else None
+
         cust = Customer(
+            tenant_id=derived_tenant_id,
             name=name,
             company=name,
             email=email,
@@ -219,7 +226,19 @@ async def _upsert_opportunity(
         ).scalar_one_or_none()
         if owner_id is None:
             raise ConnectorError("Cannot create opportunity — no User in DB")
+        # Round-15 Sprint 15k cohort 1 — Opportunity.tenant_id NOT
+        # NULL. Inherit from the CRM connection (or the owner user
+        # as a fallback).
+        connection = await db.get(CrmConnection, connection_id)
+        derived_tenant_id = getattr(connection, "tenant_id", None) if connection else None
+        if derived_tenant_id is None:
+            owner_row = await db.execute(
+                select(User.tenant_id).where(User.id == int(owner_id))
+            )
+            derived_tenant_id = owner_row.scalar_one_or_none()
+
         opp = Opportunity(
+            tenant_id=derived_tenant_id,
             customer_id=None,
             owner_id=int(owner_id),
             title=title,

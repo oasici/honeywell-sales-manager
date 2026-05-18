@@ -56,8 +56,11 @@ class Opportunity(Base):
         Integer, ForeignKey("territories.id"), nullable=True, index=True
     )
 
-    # V8: multi-tenant boundary
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # V8: multi-tenant boundary.
+    # Round-15 Sprint 15k cohort 1 — promoted to NOT NULL. Backfill
+    # sources, in order: customer.tenant_id → users.tenant_id via
+    # owner_id (owner_id is NOT NULL on the row).
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

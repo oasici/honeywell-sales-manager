@@ -147,6 +147,7 @@ def test_hubspot_adapter_push_record_returns_id():
 @pytest.mark.asyncio
 async def test_factory_returns_test_mode_for_unconfigured_connection(db: AsyncSession):
     conn = CrmConnection(
+        tenant_id=_TENANT_ID,
         provider="salesforce",
         label="Demo SF",
         is_active=True,
@@ -163,6 +164,7 @@ async def test_factory_rejects_unknown_provider(db: AsyncSession):
     from app.services.crm_sync.base import ConnectorError
 
     conn = CrmConnection(
+        tenant_id=_TENANT_ID,
         provider="oracle", label="Mystery", is_active=True
     )
     db.add(conn)
@@ -175,6 +177,7 @@ async def test_factory_rejects_unknown_provider(db: AsyncSession):
 async def test_run_sync_job_creates_records_in_test_mode(db: AsyncSession):
     user = await _seed_user(db, email="sync_owner@test.com")
     conn = CrmConnection(
+        tenant_id=_TENANT_ID,
         provider="salesforce",
         label="Demo SF",
         is_active=True,
@@ -351,6 +354,7 @@ async def test_pipeline_wip_status_warns_over_limit(db: AsyncSession):
     for i in range(2):
         db.add(
             Opportunity(
+                tenant_id=_TENANT_ID,
                 customer_id=cust.id,
                 owner_id=user.id,
                 title=f"WIP {i}",

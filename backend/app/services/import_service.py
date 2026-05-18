@@ -232,11 +232,15 @@ async def import_prices_from_file(
 
 
 async def import_customers_from_file(
-    db: AsyncSession, file_path: str
+    db: AsyncSession, file_path: str, *, tenant_id: int | None = None
 ) -> dict[str, Any]:
     """Import customers from Excel/CSV. Upsert by email.
 
     Expected columns: email, name, company, phone, address, tax_id, preferred_lang.
+
+    ``tenant_id`` — Round-15 Sprint 15k cohort 1: Customer.tenant_id is
+    NOT NULL. Caller must pass the importing user's tenant_id so new
+    rows land in the correct tenant.
 
     Returns: {created: int, updated: int, errors: list[str]}
     """
@@ -287,7 +291,7 @@ async def import_customers_from_file(
                         setattr(existing, key, value)
                 updated += 1
             else:
-                customer = Customer(email=email, **fields)
+                customer = Customer(tenant_id=tenant_id, email=email, **fields)
                 db.add(customer)
                 created += 1
 

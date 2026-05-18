@@ -317,7 +317,11 @@ class EmailProcessingService:
                 existing.company = customer_company
         else:
             name = customer_name or from_address.split("@")[0]
+            # Round-15 Sprint 15k cohort 1 — Customer.tenant_id NOT
+            # NULL. Inherit from the email (parser sets it from the
+            # owning user).
             customer = Customer(
+                tenant_id=getattr(email, "tenant_id", None),
                 name=name,
                 email=from_address,
                 company=customer_company or None,

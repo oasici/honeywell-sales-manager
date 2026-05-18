@@ -72,7 +72,18 @@ async def ensure_opportunity_for_email(
     subject = (email.subject or "").strip()
     title = subject[:120] if subject else f"E-posta #{email.id} - Yeni Firsat"
 
+    # Round-15 Sprint 15k cohort 1 — Opportunity.tenant_id NOT NULL.
+    # Inherit from the email (which has tenant_id set by the parser)
+    # with a fallback to the owner user's tenant.
+    derived_tenant_id = getattr(email, "tenant_id", None)
+    if derived_tenant_id is None:
+        owner_row = await db.execute(
+            select(User.tenant_id).where(User.id == int(owner_id))
+        )
+        derived_tenant_id = owner_row.scalar_one_or_none()
+
     opp = Opportunity(
+        tenant_id=derived_tenant_id,
         title=title,
         stage=OpportunityStage.PROSPECTING.value,
         customer_id=email.customer_id,
