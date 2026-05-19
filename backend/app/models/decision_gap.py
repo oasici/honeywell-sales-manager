@@ -46,7 +46,8 @@ class DecisionGap(Base):
     __tablename__ = "decision_gaps"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15m cohort 3 — promoted to NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False, index=True
     )

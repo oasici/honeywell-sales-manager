@@ -47,6 +47,14 @@ NOT_NULL_TENANT_ALLOWLIST: set[str] = {
     "invoices",
     "campaigns",
     "subscriptions",
+    # Round-15 Sprint 15m cohort 3 — opportunity-derived tables.
+    # Promoted by migration
+    # ``20260606_phase13_tenant_not_null_cohort3.py``. All four hang
+    # off opportunities (NOT NULL post-cohort-1) via NOT NULL FK.
+    "opportunity_events",
+    "opportunity_signals",
+    "decision_gaps",
+    "forecast_adjustments",
 }
 
 

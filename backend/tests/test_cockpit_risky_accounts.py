@@ -55,6 +55,7 @@ async def test_risky_accounts_enriched(client: AsyncClient, db: AsyncSession):
     await db.refresh(opp)
 
     sig = OpportunitySignal(
+        tenant_id=opp.tenant_id,
         opportunity_id=opp.id,
         signal_type="test",
         severity="high",

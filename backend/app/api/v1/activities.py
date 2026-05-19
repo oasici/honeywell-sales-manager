@@ -90,7 +90,15 @@ async def log_activity(
     db.add(activity)
 
     if payload.opportunity_id:
+        # Round-15 Sprint 15m cohort 3 — OpportunityEvent.tenant_id
+        # NOT NULL. Inherit from the parent opportunity.
+        from app.models.opportunity import Opportunity as _Opportunity
+
+        opp_row = await db.execute(
+            select(_Opportunity.tenant_id).where(_Opportunity.id == payload.opportunity_id)
+        )
         opp_event = OpportunityEvent(
+            tenant_id=opp_row.scalar_one_or_none(),
             opportunity_id=payload.opportunity_id,
             event_type=payload.activity_type,
             entity_type="activity",

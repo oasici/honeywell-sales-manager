@@ -53,7 +53,17 @@ async def upsert_opportunity_signal(
     if existing:
         return existing
 
+    # Round-15 Sprint 15m cohort 3 — OpportunitySignal.tenant_id NOT
+    # NULL. Inherit from the parent opportunity.
+    from app.models.opportunity import Opportunity
+
+    opp_row = await db.execute(
+        select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+    )
+    derived_tenant_id = opp_row.scalar_one_or_none()
+
     signal = OpportunitySignal(
+        tenant_id=derived_tenant_id,
         opportunity_id=opportunity_id,
         signal_type=signal_type,
         severity=severity,

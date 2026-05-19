@@ -100,9 +100,17 @@ async def auto_log_meeting(
     await db.flush()
 
     # Mirror to OpportunityEvent so V4/V5 timeline picks it up.
+    # Round-15 Sprint 15m cohort 3 — OpportunityEvent.tenant_id NOT NULL.
     if matched_opp_id is not None:
+        from app.models.opportunity import Opportunity as _Opportunity
+
+        opp_row = await db.execute(
+            select(_Opportunity.tenant_id).where(_Opportunity.id == matched_opp_id)
+        )
+        derived_tenant_id = opp_row.scalar_one_or_none()
         db.add(
             OpportunityEvent(
+                tenant_id=derived_tenant_id,
                 opportunity_id=matched_opp_id,
                 event_type="meeting_logged",
                 entity_type="meeting_booking",

@@ -100,7 +100,10 @@ class OpportunityEvent(Base):
     __tablename__ = "opportunity_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15m cohort 3 — promoted to NOT NULL.
+    # opportunity_id is NOT NULL on this row and ``opportunities.tenant_id``
+    # is NOT NULL post-cohort-1, so the FK chain is clean.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False, index=True
     )
@@ -122,7 +125,8 @@ class OpportunitySignal(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-8 R8-PII-1 — tenant_id backfilled from opportunity.
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15m cohort 3 — promoted to NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False, index=True
     )

@@ -576,8 +576,10 @@ async def create_opportunity(
     await db.flush()
     await db.refresh(opp)
 
-    # Timeline event
+    # Timeline event. Round-15 Sprint 15m cohort 3 — OpportunityEvent
+    # inherits tenant_id from the parent opportunity (NOT NULL).
     db.add(OpportunityEvent(
+        tenant_id=opp.tenant_id,
         opportunity_id=opp.id,
         event_type="stage_change",
         description=f"Firsat olusturuldu: {body.stage}",
@@ -683,6 +685,7 @@ async def update_opportunity(
     # Stage change event
     if "stage" in updates and updates["stage"] != old_stage:
         db.add(OpportunityEvent(
+            tenant_id=opp.tenant_id,
             opportunity_id=opp.id,
             event_type="stage_change",
             description=f"Asamadan gecis: {old_stage} -> {updates['stage']}",

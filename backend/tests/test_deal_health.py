@@ -256,11 +256,13 @@ async def test_signal_balance_mostly_positive(db: AsyncSession):
 
     for _ in range(3):
         db.add(OpportunitySignal(
+            tenant_id=opp.tenant_id,
             opportunity_id=opp.id,
             signal_type="positive",
             severity="low",
         ))
     db.add(OpportunitySignal(
+        tenant_id=opp.tenant_id,
         opportunity_id=opp.id,
         signal_type="pricing_concern",
         severity="med",

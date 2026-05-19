@@ -84,6 +84,7 @@ async def test_alignment_timeline_merges_sources(client: AsyncClient, db: AsyncS
         )
         db.add(
             OpportunityEvent(
+                tenant_id=opp.tenant_id,
                 opportunity_id=opp.id,
                 event_type="email",
                 entity_type="email",
@@ -108,6 +109,7 @@ async def test_alignment_timeline_merges_sources(client: AsyncClient, db: AsyncS
         )
         db.add(
             OpportunitySignal(
+                tenant_id=opp.tenant_id,
                 opportunity_id=opp.id,
                 signal_type="pricing_concern",
                 severity="high",

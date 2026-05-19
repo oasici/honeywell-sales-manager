@@ -129,8 +129,12 @@ async def rebuild_decision_gaps_for_opportunity(db: AsyncSession, *, opportunity
     # overwrite decision_gaps for this opportunity
     await db.execute(sa.delete(DecisionGap).where(DecisionGap.opportunity_id == opportunity_id))
     now = datetime.now(timezone.utc)
+    # Round-15 Sprint 15m cohort 3 — DecisionGap.tenant_id NOT NULL.
+    # Inherit from the loaded opportunity (cohort 1 guarantees it's set).
+    derived_tenant_id = opp.tenant_id
     gap_rows = [
         DecisionGap(
+            tenant_id=derived_tenant_id,
             opportunity_id=opportunity_id,
             gap_type=r.gap_type,
             severity=r.severity,

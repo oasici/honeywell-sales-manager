@@ -79,6 +79,7 @@ async def test_shadow_sync_idempotent_and_api(client: AsyncClient, db: AsyncSess
     )
     db.add(
         OpportunityEvent(
+            tenant_id=opp.tenant_id,
             opportunity_id=opp.id,
             event_type="email",
             entity_type="email",
@@ -103,6 +104,7 @@ async def test_shadow_sync_idempotent_and_api(client: AsyncClient, db: AsyncSess
     )
     db.add(
         OpportunitySignal(
+            tenant_id=opp.tenant_id,
             opportunity_id=opp.id,
             signal_type="objection",
             severity="med",

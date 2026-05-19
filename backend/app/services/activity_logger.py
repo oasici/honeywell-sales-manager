@@ -109,9 +109,19 @@ async def _create_opportunity_event(
     summary: str,
 ) -> None:
     """Create a corresponding OpportunityEvent entry."""
-    from app.models.opportunity import OpportunityEvent
+    from app.models.opportunity import Opportunity, OpportunityEvent
+
+    # Round-15 Sprint 15m cohort 3 — OpportunityEvent.tenant_id NOT
+    # NULL. Inherit from the parent opportunity.
+    from sqlalchemy import select
+
+    opp_row = await db.execute(
+        select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+    )
+    derived_tenant_id = opp_row.scalar_one_or_none()
 
     event = OpportunityEvent(
+        tenant_id=derived_tenant_id,
         opportunity_id=opportunity_id,
         event_type=event_type,
         entity_type=entity_type,

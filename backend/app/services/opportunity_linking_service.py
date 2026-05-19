@@ -96,6 +96,7 @@ async def ensure_opportunity_for_email(
 
     db.add(
         OpportunityEvent(
+            tenant_id=opp.tenant_id,
             opportunity_id=opp.id,
             event_type="email",
             entity_type="email",

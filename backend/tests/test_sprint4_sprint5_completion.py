@@ -123,6 +123,7 @@ async def test_conversation_search_signal_filter(
     db.add(opp)
     await db.flush()
     sig = OpportunitySignal(
+        tenant_id=opp.tenant_id,
         opportunity_id=opp.id,
         signal_type=OpportunitySignalType.PRICING_CONCERN.value,
         severity="high",

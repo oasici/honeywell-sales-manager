@@ -30,9 +30,10 @@ class ForecastAdjustment(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    # Nullable for one deploy cycle to absorb orphan rows (opportunity
-    # deleted before backfill); follow-up revision promotes NOT NULL.
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Round-15 Sprint 15m cohort 3 — promoted to NOT NULL. The "one
+    # deploy cycle" buffer the prior comment alluded to has elapsed
+    # since 15j cohort 1 landed; backfill chain is clean.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=False
     )
