@@ -47,3 +47,9 @@ backend/tmp-debug.db
 # Generated
 *.pdf
 data/
+
+# Round-15 15m — OpenAPI dump (re-emitted by scripts/generate-api-types.sh).
+# The generated TS file (frontend/src/lib/api-types.gen.ts) IS committed so
+# CI can diff against it; the source JSON is regenerated each run.
+backend/openapi.gen.json
+backend/_openapi_dump.db
