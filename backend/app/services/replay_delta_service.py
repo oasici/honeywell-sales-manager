@@ -177,6 +177,15 @@ async def compute_deltas(
     if len(rows) < 2:
         return 0
 
+    # Round-15 Sprint 15o cohort 5 — deal_replay_deltas.tenant_id NOT NULL.
+    # Look up the parent opportunity's tenant once per compute pass.
+    from app.models.opportunity import Opportunity
+    opp_tenant_id = (
+        await db.execute(
+            select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+        )
+    ).scalar_one_or_none()
+
     # Drop stale deltas. Cheaper than per-pair upsert at our scale.
     existing = (
         await db.execute(
@@ -229,6 +238,7 @@ async def compute_deltas(
         db.add(
             DealReplayDelta(
                 opportunity_id=opportunity_id,
+                tenant_id=opp_tenant_id,
                 from_ts=from_ts,
                 to_ts=to_ts,
                 change_type=change_type,

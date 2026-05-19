@@ -19,7 +19,8 @@ class Achievement(Base):
     )
     # Round-15 Sprint 15j cohort 11 — defense-in-depth tenant scoping
     # (backfilled from users.tenant_id via user_id).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15o cohort 5 — promoted to NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     achievement_type: Mapped[str] = mapped_column(String(50), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

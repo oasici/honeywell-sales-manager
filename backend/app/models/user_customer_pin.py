@@ -23,7 +23,10 @@ class UserCustomerPin(Base):
     # (backfilled from parent customer; equally valid via user.tenant_id
     # since a pin requires both the user and the customer to live in
     # the same tenant).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15o cohort 5 — promoted to NOT NULL.
+    # customer_id is NOT NULL and ``customers.tenant_id`` is NOT NULL
+    # since Sprint 15k cohort 1.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     # DB rows created before this feature may have NULL timestamps.
     pinned_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=True

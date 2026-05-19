@@ -112,9 +112,15 @@ class AccessService:
         role: str = "member",
     ) -> AccountTeam:
         """Add a user to a customer's account team."""
+        # Round-15 Sprint 15o cohort 5 — account_teams.tenant_id NOT NULL.
+        # Inherit from the parent customer.
+        tenant_id = (
+            await self.db.execute(select(Customer.tenant_id).where(Customer.id == customer_id))
+        ).scalar_one_or_none()
         member = AccountTeam(
             customer_id=customer_id,
             user_id=user_id,
+            tenant_id=tenant_id,
             role=role,
         )
         self.db.add(member)

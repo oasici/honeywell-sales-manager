@@ -20,7 +20,9 @@ class Territory(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Round-15 Sprint 15o cohort 5 — promoted to NOT NULL.
+    # created_by is NOT NULL and ``users.tenant_id`` is NOT NULL since R11.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     parent_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("territories.id"), nullable=True

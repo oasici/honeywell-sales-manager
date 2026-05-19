@@ -156,7 +156,14 @@ async def pin_customer(
         )
     ).scalar_one_or_none()
     if existing is None:
-        db.add(UserCustomerPin(user_id=current_user.id, customer_id=customer_id))
+        # Round-15 Sprint 15o cohort 5 — user_customer_pins.tenant_id NOT NULL.
+        db.add(
+            UserCustomerPin(
+                user_id=current_user.id,
+                customer_id=customer_id,
+                tenant_id=current_user.tenant_id,
+            )
+        )
         await db.flush()
     return {"pinned": True, "customer_id": customer_id}
 

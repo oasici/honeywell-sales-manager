@@ -19,7 +19,10 @@ class AccountTeam(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Round-15 Sprint 15o cohort 5 — promoted to NOT NULL.
+    # customer_id is NOT NULL and ``customers.tenant_id`` is NOT NULL
+    # since Sprint 15k cohort 1.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     customer_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("customers.id"), nullable=False, index=True
     )

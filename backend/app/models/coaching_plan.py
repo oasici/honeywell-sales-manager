@@ -22,7 +22,9 @@ class CoachingPlan(Base):
     )
     # Round-15 Sprint 15j cohort 10 — defense-in-depth tenant scoping
     # (backfilled from users.tenant_id via user_id).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15o cohort 5 — promoted to NOT NULL.
+    # user_id is NOT NULL and ``users.tenant_id`` is NOT NULL since R11.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     # JSON: [{"indicator":"followup_adherence","target":75,"current":40}]
     goals_json: Mapped[str] = mapped_column(Text, nullable=False)
     weeks: Mapped[int] = mapped_column(Integer, default=4)

@@ -65,6 +65,20 @@ NOT_NULL_TENANT_ALLOWLIST: set[str] = {
     "webhook_subscriptions",
     "account_enrichments",
     "v4_deal_replay_snapshots",
+    # Round-15 Sprint 15o cohort 5 — second-tier user/customer/opp/contract
+    # derivatives. Promoted by migration
+    # ``20260608_phase13_tenant_not_null_cohort5.py``.
+    "coaching_plans",
+    "achievements",
+    "territories",
+    "report_folders",
+    "user_customer_pins",
+    "account_teams",
+    "forecast_snapshot_details",
+    "deal_replay_deltas",
+    "opportunity_embeddings",
+    "action_experiments",
+    "revenue_schedules",
 }
 
 

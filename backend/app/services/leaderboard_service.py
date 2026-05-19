@@ -251,8 +251,14 @@ class LeaderboardService:
         safe_metadata = None
         if metadata:
             safe_metadata = {k: float(v) if hasattr(v, 'as_integer_ratio') else v for k, v in metadata.items()}
+        # Round-15 Sprint 15o cohort 5 — achievements.tenant_id NOT NULL.
+        # Derive from owner user (users.tenant_id NOT NULL since R11).
+        tenant_id = (
+            await self.db.execute(select(User.tenant_id).where(User.id == user_id))
+        ).scalar_one_or_none()
         achievement = Achievement(
             user_id=user_id,
+            tenant_id=tenant_id,
             achievement_type=achievement_type,
             title=title,
             description=description,

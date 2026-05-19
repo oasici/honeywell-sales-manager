@@ -19,9 +19,10 @@ class OpportunityEmbedding(Base):
         Integer, ForeignKey("opportunities.id", ondelete="CASCADE"), primary_key=True
     )
     # Round-15 Sprint 15j cohort 7 — defense-in-depth tenant scoping.
-    # Backfilled from opportunities.tenant_id; nullable for migration
-    # safety. See app.services.tenant_context.scoped_for_user usage.
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15o cohort 5 — promoted to NOT NULL.
+    # opportunity_id is the PK on this row and ``opportunities.tenant_id``
+    # is NOT NULL since Sprint 15k cohort 1.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     embedding_json: Mapped[str] = mapped_column(Text, nullable=False)
     dim: Mapped[int] = mapped_column(Integer, nullable=False)
     version: Mapped[str] = mapped_column(String(40), default="v5-structured-1")

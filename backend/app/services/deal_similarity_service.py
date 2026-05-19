@@ -204,8 +204,16 @@ async def upsert_embedding(
         return None
     existing = await db.get(OpportunityEmbedding, opportunity_id)
     if existing is None:
+        # Round-15 Sprint 15o cohort 5 — opportunity_embeddings.tenant_id NOT NULL.
+        from app.models.opportunity import Opportunity
+        opp_tenant_id = (
+            await db.execute(
+                select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+            )
+        ).scalar_one_or_none()
         row = OpportunityEmbedding(
             opportunity_id=opportunity_id,
+            tenant_id=opp_tenant_id,
             embedding_json=json.dumps(vec),
             dim=EMBEDDING_DIM,
             version=EMBEDDING_VERSION,

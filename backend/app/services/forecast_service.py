@@ -200,6 +200,10 @@ class ForecastService:
                 Opportunity.forecast_category,
                 Opportunity.amount,
                 Opportunity.stage,
+                # Round-15 Sprint 15o cohort 5 — pull tenant_id alongside
+                # the row so ForecastSnapshotDetail can be NOT NULL on
+                # tenant_id without an extra query.
+                Opportunity.tenant_id,
             ).where(Opportunity.status == "active")
         )
 
@@ -210,6 +214,7 @@ class ForecastService:
             detail = ForecastSnapshotDetail(
                 snapshot_id=snapshot_map.get(opp_row.stage),
                 opportunity_id=opp_row.id,
+                tenant_id=opp_row.tenant_id,
                 forecast_category=opp_row.forecast_category,
                 amount=float(opp_row.amount or 0.0),
                 stage=opp_row.stage,

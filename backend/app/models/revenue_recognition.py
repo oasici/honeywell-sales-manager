@@ -21,7 +21,10 @@ class RevenueSchedule(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Round-15 Sprint 15o cohort 5 — promoted to NOT NULL.
+    # contract_id is NOT NULL and ``contracts.tenant_id`` is NOT NULL
+    # since Sprint 15l cohort 2.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     contract_id: Mapped[int] = mapped_column(Integer, ForeignKey("contracts.id"), nullable=False)
     recognition_type: Mapped[str] = mapped_column(String(20), nullable=False, default="straight_line")
     # immediate | straight_line | milestone | usage

@@ -138,6 +138,10 @@ async def create_coaching_plan(
 
     plan = CoachingPlan(
         user_id=body.user_id,
+        # Round-15 Sprint 15o cohort 5 — coaching_plans.tenant_id NOT NULL.
+        # Target_user.tenant_id == current_user.tenant_id (assert_same_tenant
+        # above).
+        tenant_id=target_user.tenant_id,
         manager_id=current_user.id,
         goals_json=body.goals_json,
         weeks=body.weeks,

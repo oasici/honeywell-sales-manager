@@ -19,7 +19,8 @@ class DealReplayDelta(Base):
     )
     # Round-15 Sprint 15j cohort 12 — defense-in-depth tenant scoping
     # (backfilled from parent opportunity).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15o cohort 5 — promoted to NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     from_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     to_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
