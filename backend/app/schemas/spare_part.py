@@ -1,8 +1,33 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+
+class MissingPricePartResponse(BaseModel):
+    """Round-15 audit F-027 — typed row for ``/analytics/parts-without-price``.
+
+    Two variants share the same shape:
+      * ``status == "no_price"``    — part exists in the catalog but
+        both ``supplier_price`` and ``transfer_price`` are NULL.
+      * ``status == "unknown_part"`` — quoted SKU that doesn't exist in
+        the catalog at all; ``id`` and the name fields are NULL.
+
+    Pre-fix the endpoint returned a bare list of dicts. The SPA had to
+    cast via ``as unknown as`` because the dict shape wasn't surfaced
+    in OpenAPI.
+    """
+
+    id: int | None = None
+    honeywell_code: str
+    name_en: str | None = None
+    name_tr: str | None = None
+    category: str | None = None
+    status: Literal["no_price", "unknown_part"]
+
+    model_config = {"from_attributes": True}
 
 
 class SparePartCreate(BaseModel):

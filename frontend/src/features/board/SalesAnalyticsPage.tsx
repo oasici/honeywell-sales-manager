@@ -424,7 +424,9 @@ export default function SalesAnalyticsPage() {
         </Card>
       )}
 
-      {/* Team Forecast Rollup (managers only) */}
+      {/* Team Forecast Rollup (managers only) — Round-15 F-028: mobile
+          shows Rep + Total only; commit/best/pipeline columns appear at
+          ``md`` breakpoint, total stays visible throughout. */}
       {isManager && teamRollup?.reps && teamRollup.reps.length > 0 && (
         <Card title={t('sales_analytics.team_rollup')} className="mb-6">
           <div className="overflow-x-auto">
@@ -434,13 +436,13 @@ export default function SalesAnalyticsPage() {
                   <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_rep')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
+                  <th className="hidden md:table-cell py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_commit')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
+                  <th className="hidden md:table-cell py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_best')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
+                  <th className="hidden md:table-cell py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_pipeline')}
                   </th>
                   <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
@@ -458,11 +460,13 @@ export default function SalesAnalyticsPage() {
                     <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-white">
                       {row.user_name}
                     </td>
-                    <td className="py-2.5 px-4 text-right">{formatCurrency(row.commit, 'TRY')}</td>
-                    <td className="py-2.5 px-4 text-right">
+                    <td className="hidden md:table-cell py-2.5 px-4 text-right">
+                      {formatCurrency(row.commit, 'TRY')}
+                    </td>
+                    <td className="hidden md:table-cell py-2.5 px-4 text-right">
                       {formatCurrency(row.best_case, 'TRY')}
                     </td>
-                    <td className="py-2.5 px-4 text-right">
+                    <td className="hidden md:table-cell py-2.5 px-4 text-right">
                       {formatCurrency(row.pipeline, 'TRY')}
                     </td>
                     <td className="py-2.5 px-4 text-right font-semibold">
@@ -477,13 +481,13 @@ export default function SalesAnalyticsPage() {
                     <td className="py-2.5 px-4 font-bold text-slate-900 dark:text-white">
                       {t('sales_analytics.grand_total')}
                     </td>
-                    <td className="py-2.5 px-4 text-right font-bold">
+                    <td className="hidden md:table-cell py-2.5 px-4 text-right font-bold">
                       {formatCurrency(teamRollup.grand_total.commit, 'TRY')}
                     </td>
-                    <td className="py-2.5 px-4 text-right font-bold">
+                    <td className="hidden md:table-cell py-2.5 px-4 text-right font-bold">
                       {formatCurrency(teamRollup.grand_total.best_case, 'TRY')}
                     </td>
-                    <td className="py-2.5 px-4 text-right font-bold">
+                    <td className="hidden md:table-cell py-2.5 px-4 text-right font-bold">
                       {formatCurrency(teamRollup.grand_total.pipeline, 'TRY')}
                     </td>
                     <td className="py-2.5 px-4 text-right font-bold">
@@ -531,16 +535,18 @@ export default function SalesAnalyticsPage() {
               </div>
               {forecastAccuracy.per_rep.length > 0 && (
                 <div className="overflow-x-auto">
+                  {/* Round-15 F-028 — mobile shows Rep + Accuracy %;
+                      forecast/actual amounts hidden until ``sm`` breakpoint. */}
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800">
                         <th className="py-2 px-3 text-left text-xs text-slate-500">
                           {t('sales_analytics.col_rep')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-slate-500">
+                        <th className="hidden sm:table-cell py-2 px-3 text-right text-xs text-slate-500">
                           {t('sales_analytics.forecast')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-slate-500">
+                        <th className="hidden sm:table-cell py-2 px-3 text-right text-xs text-slate-500">
                           {t('sales_analytics.actual')}
                         </th>
                         <th className="py-2 px-3 text-right text-xs text-slate-500">
@@ -557,10 +563,10 @@ export default function SalesAnalyticsPage() {
                           <td className="py-2 px-3 font-medium text-slate-900 dark:text-white">
                             {rep.user_name}
                           </td>
-                          <td className="py-2 px-3 text-right">
+                          <td className="hidden sm:table-cell py-2 px-3 text-right">
                             {formatCurrency(rep.forecast, 'TRY')}
                           </td>
-                          <td className="py-2 px-3 text-right">
+                          <td className="hidden sm:table-cell py-2 px-3 text-right">
                             {formatCurrency(rep.actual, 'TRY')}
                           </td>
                           <td className="py-2 px-3 text-right">
@@ -634,7 +640,10 @@ export default function SalesAnalyticsPage() {
         </Card>
       </div>
 
-      {/* Row 3: Rep Scorecards */}
+      {/* Row 3: Rep Scorecards — Round-15 F-028: 7 columns is too dense
+          for phones. Mobile shows Rep + Win% + Revenue (the three the
+          manager scans first). Quotes/Sent/Won counts surface at ``sm``;
+          avg-discount at ``lg``. */}
       <Card title={t('sales_analytics.rep_perf')} className="mb-6">
         {scorecards?.scorecards && scorecards.scorecards.length > 0 ? (
           <div className="overflow-x-auto">
@@ -644,13 +653,13 @@ export default function SalesAnalyticsPage() {
                   <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_rep')}
                   </th>
-                  <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
+                  <th className="hidden sm:table-cell py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_quotes')}
                   </th>
-                  <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
+                  <th className="hidden sm:table-cell py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_sent')}
                   </th>
-                  <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
+                  <th className="hidden sm:table-cell py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_won')}
                   </th>
                   <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase">
@@ -659,7 +668,7 @@ export default function SalesAnalyticsPage() {
                   <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_revenue')}
                   </th>
-                  <th className="py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
+                  <th className="hidden lg:table-cell py-3 px-4 text-right text-xs font-semibold text-slate-500 uppercase">
                     {t('sales_analytics.col_avg_disc')}
                   </th>
                 </tr>
@@ -673,9 +682,15 @@ export default function SalesAnalyticsPage() {
                     <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-white">
                       {r.full_name as string}
                     </td>
-                    <td className="py-2.5 px-4 text-center">{r.quote_count as number}</td>
-                    <td className="py-2.5 px-4 text-center">{r.sent_count as number}</td>
-                    <td className="py-2.5 px-4 text-center">{r.won_count as number}</td>
+                    <td className="hidden sm:table-cell py-2.5 px-4 text-center">
+                      {r.quote_count as number}
+                    </td>
+                    <td className="hidden sm:table-cell py-2.5 px-4 text-center">
+                      {r.sent_count as number}
+                    </td>
+                    <td className="hidden sm:table-cell py-2.5 px-4 text-center">
+                      {r.won_count as number}
+                    </td>
                     <td className="py-2.5 px-4 text-center">
                       <span
                         className={`font-semibold ${(r.win_rate as number) >= 50 ? 'text-green-600' : (r.win_rate as number) >= 30 ? 'text-yellow-600' : 'text-red-600'}`}
@@ -686,7 +701,7 @@ export default function SalesAnalyticsPage() {
                     <td className="py-2.5 px-4 text-right font-medium">
                       {formatCurrency(r.revenue as number, 'TRY')}
                     </td>
-                    <td className="py-2.5 px-4 text-right">
+                    <td className="hidden lg:table-cell py-2.5 px-4 text-right">
                       {formatCurrency(r.avg_discount as number, 'TRY')}
                     </td>
                   </tr>

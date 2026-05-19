@@ -17,6 +17,7 @@ from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
 from app.models.spare_part import SparePart
 from app.models.user import User
+from app.schemas.spare_part import MissingPricePartResponse
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -147,12 +148,20 @@ async def get_category_breakdown(
     return items
 
 
-@router.get("/parts-without-price")
+@router.get(
+    "/parts-without-price",
+    response_model=list[MissingPricePartResponse],
+)
 async def get_parts_without_price(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
-):
-    """Parts requested in quotes that have no pricing (supplier_price AND transfer_price both null)."""
+) -> list[dict]:
+    """Parts requested in quotes that have no pricing (supplier_price AND transfer_price both null).
+
+    Round-15 audit F-027 — ``response_model`` wired. Two row variants:
+      * ``no_price``     — part exists, pricing fields are NULL.
+      * ``unknown_part`` — quoted SKU absent from the catalog.
+    """
     from sqlalchemy import or_
 
     # Get all honeywell codes from quote items

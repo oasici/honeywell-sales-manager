@@ -295,6 +295,23 @@ export interface SparePart {
   created_at: string | null;
 }
 
+/**
+ * Round-15 audit F-027 — row shape for ``GET /analytics/parts-without-price``.
+ *
+ * Two variants:
+ *   - ``no_price``     — part exists in the catalog but pricing fields are null.
+ *   - ``unknown_part`` — SKU was quoted but has no SparePart row at all
+ *                       (id, name_en, name_tr, category are all null).
+ */
+export interface MissingPricePart {
+  id: number | null;
+  honeywell_code: string;
+  name_en: string | null;
+  name_tr: string | null;
+  category: string | null;
+  status: 'no_price' | 'unknown_part';
+}
+
 // ── Price Entry ──────────────────────────────────────
 export interface PriceEntry {
   id: number;

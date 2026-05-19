@@ -48,14 +48,11 @@ interface CategoryItem {
   total_value: number;
 }
 
-interface NoPricePart {
-  id: number | null;
-  honeywell_code: string;
-  name_en: string | null;
-  name_tr: string | null;
-  category: string | null;
-  status: string;
-}
+// Round-15 audit F-027 — replaced the inline ``NoPricePart`` shape with
+// the canonical ``MissingPricePart`` from ``frontend/src/lib/types.ts``.
+// Endpoint now declares its response_model on the backend so this stays
+// in sync.
+import type { MissingPricePart } from '../../lib/types';
 
 const TOOLTIP_STYLE = {
   fontSize: 12,
@@ -118,13 +115,13 @@ export default function ReportsPage() {
     queryFn: () => analyticsApi.getTopParts(selectedPeriod.days, TOP_PARTS_LIMIT),
   });
 
-  const { data: noPriceParts, isLoading: isNoPriceLoading } = useQuery<NoPricePart[]>({
+  // Round-15 audit F-027 — clean typing; ``analyticsApi.getPartsWithoutPrice``
+  // now returns ``MissingPricePart[]`` directly. The defensive
+  // ``{items: …}`` branch was dead — the endpoint has always returned a
+  // bare list — and is removed alongside the ``as unknown as`` casts.
+  const { data: noPriceParts, isLoading: isNoPriceLoading } = useQuery<MissingPricePart[]>({
     queryKey: ['reports-parts-without-price'],
-    queryFn: async (): Promise<NoPricePart[]> => {
-      const raw = await analyticsApi.getPartsWithoutPrice();
-      if (Array.isArray(raw)) return raw as unknown as NoPricePart[];
-      return (raw as unknown as { items: NoPricePart[] }).items ?? [];
-    },
+    queryFn: () => analyticsApi.getPartsWithoutPrice(),
   });
 
   const trendChartData = useMemo(() => {

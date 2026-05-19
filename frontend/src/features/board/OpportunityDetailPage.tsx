@@ -2044,22 +2044,26 @@ export default function OpportunityDetailPage() {
             <QueryErrorBanner onRetry={() => refetchAdjustments()} />
           ) : (
             <div className="space-y-6">
-              {/* History table */}
+              {/* History table — Round-15 audit F-028: ``hidden sm:table-cell``
+                  on the lower-priority columns (Date + Original amount +
+                  Category) drops them on phones. Mobile shows the two
+                  must-have columns (New amount + Reason); the rest are
+                  available on tablet+. */}
               {adjustmentsData?.adjustments && adjustmentsData.adjustments.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800">
-                        <th className="py-2 px-3 text-left text-xs text-slate-500">
+                        <th className="hidden sm:table-cell py-2 px-3 text-left text-xs text-slate-500">
                           {t('opp_detail.tbl_date')}
                         </th>
-                        <th className="py-2 px-3 text-right text-xs text-slate-500">
+                        <th className="hidden sm:table-cell py-2 px-3 text-right text-xs text-slate-500">
                           {t('opp_detail.tbl_orig_amount')}
                         </th>
                         <th className="py-2 px-3 text-right text-xs text-slate-500">
                           {t('opp_detail.tbl_new_amount')}
                         </th>
-                        <th className="py-2 px-3 text-left text-xs text-slate-500">
+                        <th className="hidden md:table-cell py-2 px-3 text-left text-xs text-slate-500">
                           {t('opp_detail.tbl_category')}
                         </th>
                         <th className="py-2 px-3 text-left text-xs text-slate-500">
@@ -2070,16 +2074,16 @@ export default function OpportunityDetailPage() {
                     <tbody>
                       {adjustmentsData.adjustments.map((adj) => (
                         <tr key={adj.id} className="border-b border-gray-50 dark:border-slate-800">
-                          <td className="py-2 px-3 text-xs text-slate-600 dark:text-slate-400">
+                          <td className="hidden sm:table-cell py-2 px-3 text-xs text-slate-600 dark:text-slate-400">
                             {adj.created_at ? formatDate(adj.created_at) : '-'}
                           </td>
-                          <td className="py-2 px-3 text-right text-xs">
+                          <td className="hidden sm:table-cell py-2 px-3 text-right text-xs">
                             {formatCurrency(adj.original_amount, opp.currency)}
                           </td>
                           <td className="py-2 px-3 text-right text-xs font-semibold">
                             {formatCurrency(adj.adjusted_amount, opp.currency)}
                           </td>
-                          <td className="py-2 px-3 text-xs">
+                          <td className="hidden md:table-cell py-2 px-3 text-xs">
                             {adj.original_category !== adj.adjusted_category ? (
                               <span>
                                 {adj.original_category} &rarr; {adj.adjusted_category}

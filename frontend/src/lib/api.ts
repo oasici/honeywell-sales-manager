@@ -10,6 +10,7 @@ import type {
   DashboardStats,
   EmailRequest,
   SparePart,
+  MissingPricePart,
   PriceEntry,
   Customer,
   Quote,
@@ -660,10 +661,14 @@ export const analyticsApi = {
     return data;
   },
 
-  getPartsWithoutPrice: async (days: number = 30): Promise<SparePart[]> => {
-    const { data } = await api.get<SparePart[]>('/analytics/parts-without-price', {
-      params: { days },
-    });
+  // Round-15 audit F-027 — typed against ``MissingPricePart`` (was
+  // ``SparePart[]`` which lacked the ``status`` discriminator and the
+  // nullable ``id`` for unknown-part rows).
+  getPartsWithoutPrice: async (days: number = 30): Promise<MissingPricePart[]> => {
+    const { data } = await api.get<MissingPricePart[]>(
+      '/analytics/parts-without-price',
+      { params: { days } },
+    );
     return data;
   },
 
