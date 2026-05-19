@@ -201,7 +201,13 @@ async def test_run_sync_job_creates_records_in_test_mode(db: AsyncSession):
 async def test_calendar_auto_log_matches_by_attendee_email(db: AsyncSession):
     user, cust, opp = await _seed_opp(db)
     link = MeetingLink(
-        user_id=user.id, slug="v9-rep-link", title="Demo", duration_minutes=30, is_active=True
+        user_id=user.id,
+        # Round-15 Sprint 15n cohort 4 — meeting_links.tenant_id NOT NULL.
+        tenant_id=user.tenant_id,
+        slug="v9-rep-link",
+        title="Demo",
+        duration_minutes=30,
+        is_active=True,
     )
     db.add(link)
     await db.commit()
@@ -236,7 +242,12 @@ async def test_calendar_auto_log_no_match_returns_link_with_null_opp(
 ):
     user = await _seed_user(db, email="lonely_rep@test.com")
     link = MeetingLink(
-        user_id=user.id, slug="lonely", title="Lonely", duration_minutes=30, is_active=True
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        slug="lonely",
+        title="Lonely",
+        duration_minutes=30,
+        is_active=True,
     )
     db.add(link)
     await db.commit()
@@ -266,7 +277,12 @@ async def test_calendar_auto_log_no_match_returns_link_with_null_opp(
 async def test_calendar_link_meeting_to_opportunity_overrides(db: AsyncSession):
     user, cust, opp = await _seed_opp(db)
     link = MeetingLink(
-        user_id=user.id, slug="man-link", title="Manual", duration_minutes=30, is_active=True
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        slug="man-link",
+        title="Manual",
+        duration_minutes=30,
+        is_active=True,
     )
     db.add(link)
     await db.commit()

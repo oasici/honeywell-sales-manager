@@ -159,7 +159,17 @@ class AccountAggregateService:
             },
         )
         if row is None:
-            row = AccountEnrichment(customer_id=customer_id, **payload)
+            # Round-15 Sprint 15n cohort 4 — ``account_enrichments.tenant_id``
+            # is NOT NULL. Backfill from the owning customer when seeding
+            # a fresh row.
+            customer = (
+                await self._db.execute(
+                    select(Customer.tenant_id).where(Customer.id == customer_id)
+                )
+            ).scalar_one_or_none()
+            row = AccountEnrichment(
+                customer_id=customer_id, tenant_id=customer, **payload
+            )
             self._db.add(row)
         else:
             for k, v in payload.items():

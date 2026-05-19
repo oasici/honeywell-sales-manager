@@ -98,6 +98,9 @@ async def materialize_deal_replay_snapshot(
 
     row = DealReplaySnapshot(
         opportunity_id=opportunity_id,
+        # Round-15 Sprint 15n cohort 4 — tenant_id NOT NULL. Mirror the
+        # parent opportunity (NOT NULL since cohort 1).
+        tenant_id=opp.tenant_id,
         snapshot_date=snapshot_date,
         frames_json=frames_json,
         meta_json=meta_json,

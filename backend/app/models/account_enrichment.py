@@ -26,7 +26,10 @@ class AccountEnrichment(Base):
     )
     # Round-15 Sprint 15j cohort 10 — defense-in-depth tenant scoping
     # (backfilled from parent customer).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15n cohort 4 — promoted to NOT NULL.
+    # customer_id is NOT NULL on this row and ``customers.tenant_id``
+    # is NOT NULL since Sprint 15k cohort 1; clean FK chain.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
     # Round-11 R11-DB-CCY — currency Float→NUMERIC(19, 2).
     pipeline_open_amount: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), default=0.0)

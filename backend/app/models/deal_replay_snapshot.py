@@ -19,7 +19,10 @@ class DealReplaySnapshot(Base):
     opportunity_id: Mapped[int] = mapped_column(Integer, ForeignKey("opportunities.id"), nullable=False)
     # Round-15 Sprint 15j cohort 8 — defense-in-depth tenant scoping
     # (backfilled from parent opportunity).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15n cohort 4 — promoted to NOT NULL.
+    # opportunity_id is NOT NULL on this row and
+    # ``opportunities.tenant_id`` is NOT NULL since Sprint 15k cohort 1.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     snapshot_date: Mapped[date] = mapped_column(Date, nullable=False)
 
     frames_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")

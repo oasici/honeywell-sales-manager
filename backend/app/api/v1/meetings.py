@@ -110,6 +110,8 @@ async def create_link(
     slug = _generate_slug(current_user.full_name)
     link = MeetingLink(
         user_id=current_user.id,
+        # Round-15 Sprint 15n cohort 4 — meeting_links.tenant_id NOT NULL.
+        tenant_id=current_user.tenant_id,
         slug=slug,
         title=body.title,
         duration_minutes=body.duration_minutes,

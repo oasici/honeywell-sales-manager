@@ -17,7 +17,10 @@ class SharedDocument(Base):
     # the leak is theoretical today, but adding tenant_id is defense in
     # depth and lines up with the project-wide convention. Backfilled
     # from users.tenant_id by 20260518_phase12_tenant_columns.
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15n cohort 4 — promoted to NOT NULL.
+    # created_by is NOT NULL on this row and ``users.tenant_id`` is
+    # NOT NULL since R11; the FK chain is clean.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     quote_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("quotes.id"), nullable=True, index=True
     )

@@ -55,6 +55,16 @@ NOT_NULL_TENANT_ALLOWLIST: set[str] = {
     "opportunity_signals",
     "decision_gaps",
     "forecast_adjustments",
+    # Round-15 Sprint 15n cohort 4 — engagement add-ons with clean
+    # parent FK chains (users / customers / opportunities — all
+    # NOT NULL on tenant_id by this point). Promoted by migration
+    # ``20260607_phase13_tenant_not_null_cohort4.py``.
+    "comments",
+    "shared_documents",
+    "meeting_links",
+    "webhook_subscriptions",
+    "account_enrichments",
+    "v4_deal_replay_snapshots",
 }
 
 

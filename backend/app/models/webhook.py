@@ -18,7 +18,10 @@ class WebhookSubscription(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-10 — tenant_id added; backfilled by alembic
     # 20260504_phase4_tenant (PHASE 4 follow-up).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)  # noqa: E501 — sole index; no dup
+    # Round-15 Sprint 15n cohort 4 — promoted to NOT NULL.
+    # created_by is NOT NULL on this row and ``users.tenant_id`` is
+    # NOT NULL since R11; clean FK chain.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)  # noqa: E501 — sole index; no dup
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     event_types: Mapped[str] = mapped_column(

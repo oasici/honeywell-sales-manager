@@ -14,7 +14,10 @@ class Comment(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-4 R4-TEN-18 — tenant boundary on comments. Backfilled by alembic
     # 20260504_phase4_tenant (PHASE 4 follow-up).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15n cohort 4 — promoted to NOT NULL.
+    # user_id is NOT NULL on this row and ``users.tenant_id`` has been
+    # NOT NULL since R11, so the FK chain is clean.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     entity_type: Mapped[str] = mapped_column(
         String(30), nullable=False
     )  # opportunity, customer, lead

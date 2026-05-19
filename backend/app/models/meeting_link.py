@@ -17,7 +17,10 @@ class MeetingLink(Base):
     )
     # Round-15 Sprint 15j cohort 9 — defense-in-depth tenant scoping
     # (backfilled from the owning user.tenant_id).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15n cohort 4 — promoted to NOT NULL.
+    # user_id is NOT NULL on this row and ``users.tenant_id`` is
+    # NOT NULL since R11; clean FK chain.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     # R7-DB-1 — UNIQUE auto-creates a btree index.
     slug: Mapped[str] = mapped_column(
         String(50), unique=True, nullable=False
