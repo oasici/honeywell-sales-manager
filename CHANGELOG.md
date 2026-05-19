@@ -9,6 +9,40 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.19.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.18.0...v1.19.0) (2026-05-19)
+
+
+### Added
+
+* **round-15-15m:** openapi-typescript skeleton + F-012 TR-string scoping ([82a463f](https://github.com/oasici/honeywell-sales-manager/commit/82a463f3bb9bd1e57fd9b467b1ea33ea4fcdc566))
+* **round-15:** resume sprint plan post v1.18.0 — 15g cohort 3 + 15j cohort 3 + 15i continuation ([56557d6](https://github.com/oasici/honeywell-sales-manager/commit/56557d65cb81aa6a97043f96fcd1542253ae3763))
+* **round-15:** sprint 15g cohort 4 + 15j cohort 4 + 15i continuation ([8bb53f8](https://github.com/oasici/honeywell-sales-manager/commit/8bb53f868b938456c07648b832bde47300940c2f))
+* **round-15:** sprint 15i — QueryErrorBanner on QuoteListPage ([70001c7](https://github.com/oasici/honeywell-sales-manager/commit/70001c7ca1ac644e02868c36c35ab8d359ae593d))
+* **round-15:** sprint 15j cohort 12 + park 15k/15l ([b300842](https://github.com/oasici/honeywell-sales-manager/commit/b30084233abadd9dab0d358e6aea781729a962f9))
+* **round-15:** sprint 15j cohort 13 + start 15k/15l unblocker (test fixture factory) ([ae6313d](https://github.com/oasici/honeywell-sales-manager/commit/ae6313de171e34c43e5e04d855b6e187e69955c9))
+* **round-15:** Sprint 15k cohort 1 — promote tenant_id to NOT NULL on top-tier CRM tables ([a20bf1d](https://github.com/oasici/honeywell-sales-manager/commit/a20bf1d35048aaab8824d02689db23f31e50dd8f))
+* **round-15:** Sprint 15l cohort 2 — promote tenant_id to NOT NULL on billing + campaigns ([7386d5c](https://github.com/oasici/honeywell-sales-manager/commit/7386d5c78e48f07170dc7ca795f53ddcfb65c1b8))
+* **round-15:** Sprint 15m cohort 3 — promote tenant_id NOT NULL on opportunity-derived tables ([d826001](https://github.com/oasici/honeywell-sales-manager/commit/d826001720d710d5800bd082d6b1d04716116ffd))
+* **round-15:** Sprint 15n cohort 4 — promote tenant_id NOT NULL on engagement add-ons ([e110f1c](https://github.com/oasici/honeywell-sales-manager/commit/e110f1c4b5f538b91f3089f2d9e33adf48ed709f))
+* **round-15:** sprint cohort 10 — cache helpers + tenant_id + isError continuation ([a58066b](https://github.com/oasici/honeywell-sales-manager/commit/a58066b964824701ff113b02a453de6591defb7b))
+* **round-15:** sprint cohort 11 — cache helper + tenant_id + isError continuation ([e02ff41](https://github.com/oasici/honeywell-sales-manager/commit/e02ff41065eb03db79abcbbeb3ee5cc956a53eb6))
+* **round-15:** sprint cohort 5 — cache helpers + tenant_id + isError continuation ([b0c6c74](https://github.com/oasici/honeywell-sales-manager/commit/b0c6c743bfc9818717b16d21972fe597f5f09496))
+* **round-15:** sprint cohort 6 — cache helpers + tenant_id + isError continuation ([cec7ffb](https://github.com/oasici/honeywell-sales-manager/commit/cec7ffb91fea06aba002eab51a29dced94efbd7f))
+* **round-15:** sprint cohort 7 — cache helpers + tenant_id + isError continuation ([4fc9087](https://github.com/oasici/honeywell-sales-manager/commit/4fc9087c2ef849ebcf8d65c0c0549653ae3f3362))
+* **round-15:** sprint cohort 8 — cache helpers + tenant_id + isError continuation ([bf7804f](https://github.com/oasici/honeywell-sales-manager/commit/bf7804fb45a315dfa742164341e60b148b9bd896))
+* **round-15:** sprint cohort 9 — cache helpers + tenant_id + isError continuation ([afec8c9](https://github.com/oasici/honeywell-sales-manager/commit/afec8c98ef654d6b5e3c009e15aa29f3029c4cf5))
+
+
+### Fixed
+
+* **ci:** tolerate transient upload-artifact@v7 outages ([a310161](https://github.com/oasici/honeywell-sales-manager/commit/a310161e6710eab859901883d71fb05222a116cc))
+
+
+### Documentation
+
+* **round-15-15n:** notifications SSE technical design ([7081f79](https://github.com/oasici/honeywell-sales-manager/commit/7081f7997fa6117e5541174b563f76ab6c5496b6))
+* **round-15:** F-015 feature flag categorization audit ([ab70c5e](https://github.com/oasici/honeywell-sales-manager/commit/ab70c5eab7a9904652abbf79441aeae795f6d232))
+
 ## [1.18.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.17.0...v1.18.0) (2026-05-14)
 
 
