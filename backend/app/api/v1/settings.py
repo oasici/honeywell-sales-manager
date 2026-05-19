@@ -444,6 +444,8 @@ async def create_api_key(
         key_hash=key_hash,
         name=body.name,
         user_id=current_user.id,
+        # Round-15 Sprint 15q cohort 7 — api_keys.tenant_id NOT NULL.
+        tenant_id=current_user.tenant_id,
         scopes_json=body.scopes_json,
         rate_limit=body.rate_limit,
     )

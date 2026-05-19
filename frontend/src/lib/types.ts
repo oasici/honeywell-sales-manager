@@ -30,8 +30,12 @@ export interface Customer {
   tenant_id?: number | null;
   name: string;
   company: string;
-  email: string;
-  phone: string;
+  /** Round-15 audit F-024 — email/phone are masked to ``null`` by
+   * ``apply_request_perms('customer')`` for sales_rep when the admin has
+   * configured a masking rule. Pre-fix these were typed as required
+   * ``string`` and the SPA crashed if masking ever turned on. */
+  email: string | null;
+  phone: string | null;
   address: string;
   tax_id: string;
   preferred_lang: string;

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthGuard } from '../features/auth/AuthGuard';
+import { RoleGuard } from '../features/auth/RoleGuard';
 import { LoginPage } from '../features/auth/LoginPage';
 import { ForcePasswordChangePage } from '../features/auth/ForcePasswordChangePage';
 import { Layout } from '../components/layout/Layout';
@@ -389,44 +390,56 @@ export default function App() {
             </FeatureFlagGate>
           }
         />
+        {/* Round-15 audit F-032 — admin pages are wrapped in RoleGuard so
+            a sales_rep typing the URL gets redirected to / instead of a
+            half-rendered admin shell. Backend still enforces role at the
+            API layer; RoleGuard closes the UX hole. */}
         <Route
           path="users"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <UserManagementPage />
-              </ErrorBoundary>
-            </Suspense>
+            <RoleGuard role="sales_manager">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <UserManagementPage />
+                </ErrorBoundary>
+              </Suspense>
+            </RoleGuard>
           }
         />
         <Route
           path="audit"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <AuditLogPage />
-              </ErrorBoundary>
-            </Suspense>
+            <RoleGuard role="sales_manager">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <AuditLogPage />
+                </ErrorBoundary>
+              </Suspense>
+            </RoleGuard>
           }
         />
         <Route
           path="admin/system-health"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <SystemHealthPage />
-              </ErrorBoundary>
-            </Suspense>
+            <RoleGuard role="sales_manager">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <SystemHealthPage />
+                </ErrorBoundary>
+              </Suspense>
+            </RoleGuard>
           }
         />
         <Route
           path="admin/event-audit"
           element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ErrorBoundary>
-                <EventAuditLogPage />
-              </ErrorBoundary>
-            </Suspense>
+            <RoleGuard role="sales_manager">
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <EventAuditLogPage />
+                </ErrorBoundary>
+              </Suspense>
+            </RoleGuard>
           }
         />
         <Route

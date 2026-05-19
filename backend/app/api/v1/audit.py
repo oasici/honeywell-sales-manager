@@ -41,7 +41,7 @@ CSV_EXPORT_HARD_LIMIT = 10_000
 @router.get("/", response_model=PaginatedResponse[dict])
 async def list_audit_logs(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     user_id: int | None = Query(None, description="Filter by user ID"),
     entity_type: str | None = Query(None, description="Filter by entity type"),
     entity_id: int | None = Query(None, description="Filter by entity ID"),

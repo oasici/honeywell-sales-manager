@@ -42,7 +42,7 @@ class _CsvRow(BaseModel):
 @router.get("/", response_model=PaginatedResponse[dict])
 async def list_users(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):

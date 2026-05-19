@@ -22,7 +22,7 @@ router = APIRouter(prefix="/parts", tags=["Spare Parts"])
 @router.get("/", response_model=PaginatedResponse[dict])
 async def list_parts(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     search: str | None = Query(None, description="Search by code or name"),
     category: str | None = Query(None, description="Filter by category"),
     current_user: User = Depends(get_current_user),

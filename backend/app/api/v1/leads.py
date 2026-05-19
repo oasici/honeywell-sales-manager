@@ -258,7 +258,7 @@ async def web_lead_form(
 @router.get("/", response_model=PaginatedResponse[LeadResponse])
 async def list_leads(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     status: str | None = Query(None),
     owner_id: int | None = Query(None),
     min_score: int | None = Query(None, ge=0, le=100),

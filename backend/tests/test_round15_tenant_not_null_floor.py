@@ -84,6 +84,11 @@ NOT_NULL_TENANT_ALLOWLIST: set[str] = {
     # ``20260609_phase13_tenant_not_null_cohort6.py``.
     "objections",
     "workflow_rules",
+    # Round-15 Sprint 15q cohort 7 — api_keys (user-derived) +
+    # deal_similarity_links (opp-derived). Promoted by migration
+    # ``20260611_phase13_tenant_not_null_cohort7.py``.
+    "api_keys",
+    "deal_similarity_links",
 }
 
 

@@ -39,6 +39,13 @@ export function useCockpitTick() {
 
     const invalidate = () => {
       qc.invalidateQueries({ queryKey: ['cockpit'] });
+      // Round-15 audit F-030 — kanban/board read from independent
+      // queryKeys, so a concurrent stage move by another user used to
+      // sit stale on the kanban for up to ``staleTime: 30_000`` until
+      // the next refetch. SSE ticks now invalidate both keys so the
+      // kanban is as live as the cockpit panels.
+      qc.invalidateQueries({ queryKey: ['board'] });
+      qc.invalidateQueries({ queryKey: ['kanban'] });
     };
 
     const stopFallback = () => {

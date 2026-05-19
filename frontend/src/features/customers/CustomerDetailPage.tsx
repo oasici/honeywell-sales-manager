@@ -244,7 +244,9 @@ export default function CustomerDetailPage() {
         force: true,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-customer-changes', customerId, 7] });
+      // Round-15 F-025 — helper now covers ai-customer-changes by
+      // predicate so every (customerId, days) variant is dropped.
+      onCustomerChanged(queryClient, customerId);
       toast.success(t('settings.operation_success'));
       setChangesOpen(true);
     },

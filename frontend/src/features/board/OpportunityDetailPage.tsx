@@ -263,7 +263,8 @@ export default function OpportunityDetailPage() {
     },
     onSuccess: () => {
       toast.success(t('opp_detail.meeting_placeholder_ok'));
-      queryClient.invalidateQueries({ queryKey: ['activity-summary', oppId] });
+      // Round-15 F-025 — route through the canonical helper.
+      onOpportunityChanged(queryClient, oppId);
     },
     onError: () => toast.error(t('opp_detail.meeting_placeholder_fail')),
   });
@@ -399,7 +400,9 @@ export default function OpportunityDetailPage() {
     mutationFn: () =>
       aiApi.summarize({ entity_type: 'opportunity', entity_id: oppId, force: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-opp-summary', oppId] });
+      // Round-15 F-025 — route through the canonical helper, which
+      // invalidates ai-opp-summary among 18 other opp-coupled keys.
+      onOpportunityChanged(queryClient, oppId);
       toast.success(t('settings.operation_success'));
       setSummaryOpen(true);
     },
@@ -428,7 +431,9 @@ export default function OpportunityDetailPage() {
         force: true,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-opp-changes', oppId, 7] });
+      // Round-15 F-025 — helper now invalidates ai-opp-changes by
+      // predicate so every (oppId, days) variant is dropped.
+      onOpportunityChanged(queryClient, oppId);
       toast.success(t('settings.operation_success'));
       setChangesOpen(true);
     },
@@ -477,8 +482,9 @@ export default function OpportunityDetailPage() {
       // notifications + nba; cockpit + intelligence stay inline since
       // they're not part of the AI-task cohort.
       onAiTaskChanged(queryClient, oppId);
-      queryClient.invalidateQueries({ queryKey: ['cockpit'] });
-      queryClient.invalidateQueries({ queryKey: ['opportunity-intelligence', oppId] });
+      // Round-15 F-025 — cockpit + opportunity-intelligence are both
+      // covered by onOpportunityChanged. Replaces two ad-hoc calls.
+      onOpportunityChanged(queryClient, oppId);
     },
     onError: () => toast.error(t('settings.operation_failed')),
   });
@@ -488,7 +494,8 @@ export default function OpportunityDetailPage() {
       aiApi.updateTask(id, payload),
     onSuccess: () => {
       // Round-15 Sprint 15g cohort 4 — helper covers ai-tasks fan-out.
-      queryClient.invalidateQueries({ queryKey: ['opportunity-intelligence', oppId] });
+      // Round-15 F-025 — opportunity-intelligence inside onOpportunityChanged.
+      onOpportunityChanged(queryClient, oppId);
       onAiTaskChanged(queryClient, oppId);
       toast.success(t('settings.operation_success'));
     },

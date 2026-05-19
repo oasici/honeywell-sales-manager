@@ -18,6 +18,8 @@ from app.models.user import User
 async def api_key_user(db: AsyncSession) -> User:
     """Seed a real owner so api_keys.user_id FK is satisfied on PG."""
     user = User(
+        # Round-15 Sprint 15q cohort 7 — users.tenant_id is NOT NULL since R11.
+        tenant_id=1,
         email="api-key-owner@test.com",
         full_name="API Key Owner",
         hashed_password=hash_password("x"),
@@ -59,6 +61,8 @@ class TestApiKeyModel:
             key_hash=key_hash,
             name="Test Entegrasyon",
             user_id=api_key_user.id,
+            # Round-15 Sprint 15q cohort 7 — api_keys.tenant_id NOT NULL.
+            tenant_id=api_key_user.tenant_id,
             scopes_json='["read:quotes"]',
         )
         db.add(api_key)
@@ -77,6 +81,7 @@ class TestApiKeyModel:
             key_hash=key_hash,
             name="Silinecek Anahtar",
             user_id=api_key_user.id,
+            tenant_id=api_key_user.tenant_id,
         )
         db.add(api_key)
         await db.commit()
@@ -94,8 +99,8 @@ class TestApiKeyModel:
     ):
         _, key_hash = generate_api_key()
 
-        key1 = ApiKey(key_hash=key_hash, name="Key 1", user_id=api_key_user.id)
-        key2 = ApiKey(key_hash=key_hash, name="Key 2", user_id=api_key_user.id)
+        key1 = ApiKey(key_hash=key_hash, name="Key 1", user_id=api_key_user.id, tenant_id=api_key_user.tenant_id)
+        key2 = ApiKey(key_hash=key_hash, name="Key 2", user_id=api_key_user.id, tenant_id=api_key_user.tenant_id)
 
         db.add(key1)
         await db.flush()

@@ -32,6 +32,15 @@ export function onOpportunityChanged(qc: QueryClient, opportunityId: number): vo
   qc.invalidateQueries({ queryKey: ['opportunity-intelligence', opportunityId] });
   qc.invalidateQueries({ queryKey: ['ai-deal-risk', opportunityId] });
   qc.invalidateQueries({ queryKey: ['ai-opp-summary', opportunityId] });
+  // Round-15 F-025 — AI ``summarize-changes`` for opps; tuple key
+  // includes a ``days`` window so invalidate by predicate.
+  qc.invalidateQueries({
+    predicate: (q) =>
+      Array.isArray(q.queryKey) &&
+      q.queryKey[0] === 'ai-opp-changes' &&
+      q.queryKey[1] === opportunityId,
+  });
+  qc.invalidateQueries({ queryKey: ['activity-summary', opportunityId] });
   qc.invalidateQueries({ queryKey: ['v4-opp-features-latest', opportunityId] });
   qc.invalidateQueries({ queryKey: ['decision-gaps', opportunityId] });
   qc.invalidateQueries({ queryKey: ['decision-graph', opportunityId] });
@@ -58,6 +67,14 @@ export function onCustomerChanged(qc: QueryClient, customerId: number): void {
   qc.invalidateQueries({ queryKey: ['customer-intelligence', customerId] });
   qc.invalidateQueries({ queryKey: ['team-members', customerId] });
   qc.invalidateQueries({ queryKey: ['high-intent-accounts'] });
+  // Round-15 F-025 — the AI ``summarize-changes`` widget caches under
+  // a (customerId, days) tuple. Include all variants by predicate.
+  qc.invalidateQueries({
+    predicate: (q) =>
+      Array.isArray(q.queryKey) &&
+      q.queryKey[0] === 'ai-customer-changes' &&
+      q.queryKey[1] === customerId,
+  });
 }
 
 /**

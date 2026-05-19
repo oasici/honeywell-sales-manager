@@ -22,7 +22,7 @@ router = APIRouter(prefix="/prices", tags=["Prices"])
 @router.get("/", response_model=PaginatedResponse[dict])
 async def list_prices(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     spare_part_id: int | None = Query(None, description="Filter by spare part"),
     currency: str | None = Query(None, description="Filter by currency"),
     current_user: User = Depends(get_current_user),

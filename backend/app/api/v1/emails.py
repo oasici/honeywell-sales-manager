@@ -61,7 +61,7 @@ def _check_email_ownership(email: EmailRequest, user: User) -> None:
 @router.get("/", response_model=PaginatedResponse[dict])
 async def list_emails(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     is_read: bool | None = Query(None, description="Filter by read status"),
     status: str | None = Query(None, description="Filter by processing status"),
     review_status: str | None = Query(None, description="Filter by review status"),

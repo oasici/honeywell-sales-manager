@@ -45,7 +45,8 @@ class DealSimilarityLink(Base):
     )
     # Round-15 Sprint 15j cohort 7 — defense-in-depth tenant scoping
     # (backfilled from parent opportunity).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Round-15 Sprint 15q cohort 7 — promoted to NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     similarity_score: Mapped[float] = mapped_column(Float, nullable=False)
     similarity_reason_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

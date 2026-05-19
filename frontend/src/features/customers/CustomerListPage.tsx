@@ -133,7 +133,8 @@ function CustomerCard({
               {c.name}
             </h3>
             {c.company && <p className="mt-0.5 truncate text-[13px] text-slate-500">{c.company}</p>}
-            <p className="mt-0.5 truncate text-xs text-slate-400">{c.email}</p>
+            {/* Round-15 F-024 — email may be null when masked. */}
+            {c.email && <p className="mt-0.5 truncate text-xs text-slate-400">{c.email}</p>}
             {/* Enrichment metadata — surfaces industry + an "AI" badge
                 when the customer has been auto-enriched (audit F-2). */}
             {(c.industry || c.enriched_at) && (

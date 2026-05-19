@@ -26,6 +26,7 @@ from app.models.user import User
 from app.core.event_bus import event_bus
 from app.schemas.common import PaginatedResponse
 from app.schemas.opportunity import OpportunityResponse
+from app.schemas.opportunity_intelligence import OpportunityIntelligenceResponse
 from app.services.activity_logger import log_activity
 from app.services.audit_service import log_action
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
@@ -189,7 +190,7 @@ def _opp_to_dict(
 @router.get("/opportunities/", response_model=PaginatedResponse[OpportunityResponse])
 async def list_opportunities(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     stage: str | None = None,
     owner_id: int | None = None,
     status: str | None = Query("active"),
@@ -407,14 +408,21 @@ async def get_opportunity(
     return data
 
 
-@router.get("/opportunities/{opp_id}/intelligence")
+@router.get(
+    "/opportunities/{opp_id}/intelligence",
+    response_model=OpportunityIntelligenceResponse,
+)
 async def get_opportunity_intelligence(
     opp_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_v2_board),
 ):
-    """Unified intelligence payload for Opportunity Detail + Board (Sprint 1)."""
+    """Unified intelligence payload for Opportunity Detail + Board (Sprint 1).
+
+    Round-15 audit F-019 — ``response_model`` wired. See
+    ``app/schemas/opportunity_intelligence.py`` for the contract.
+    """
     opp = (
         await db.execute(select(Opportunity).where(Opportunity.id == opp_id))
     ).scalar_one_or_none()

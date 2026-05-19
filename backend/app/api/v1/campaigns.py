@@ -136,7 +136,8 @@ def _member_to_dict(member: CampaignMember) -> dict:
 @router.get("/", response_model=PaginatedResponse[CampaignResponse])
 async def list_campaigns(
     page: int = 1,
-    page_size: int = 20,
+    # Round-15 audit F-023 — default flipped from 20 to 50 to match CLAUDE.md.
+    page_size: int = 50,
     status: Optional[str] = None,
     type: Optional[str] = None,
     current_user: User = Depends(get_current_user),
@@ -152,7 +153,7 @@ async def list_campaigns(
     if page < 1:
         page = 1
     if page_size < 1 or page_size > 200:
-        page_size = 20
+        page_size = 50
     query = select(Campaign).order_by(Campaign.created_at.desc())
     # R6-API-1 — tenant scoping. Pre-R6, every authenticated user saw
     # every other tenant's campaigns. Mirrors the round-4 fix for

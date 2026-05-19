@@ -13,8 +13,14 @@ import type { ChatSession, ChatMessage } from '../../lib/types';
 import { useT } from '../../hooks/useT';
 import { translateChatSessionStatus } from '../../lib/labelTranslations';
 
-const SESSIONS_POLL_MS = 10_000;
-const MESSAGES_POLL_MS = 5_000;
+// Round-15 audit F-029 — polling cadence bumped 2x to cut DB load.
+// Pre-fix the agent dashboard polled at 5s + 10s simultaneously (~18
+// reqs/min per active operator). For a B2B CRM with 50+ operators
+// that scales poorly. Bumped to 15s + 30s; pairs naturally with the
+// notifications-SSE design (docs/audits/2026-05-19-15n-notifications-sse-design.md)
+// — when SSE lands, AgentChat is the second consumer queued to migrate.
+const SESSIONS_POLL_MS = 30_000;
+const MESSAGES_POLL_MS = 15_000;
 
 /**
  * Map session status → Badge variant. Open = success (live), assigned =

@@ -439,7 +439,8 @@ export default function SegmentsPage() {
                   <tr key={customer.id} className="border-b border-slate-100 last:border-b-0">
                     <td className="px-4 py-3 font-medium text-slate-900">{customer.name}</td>
                     <td className="px-4 py-3 text-slate-600">{customer.company || '-'}</td>
-                    <td className="px-4 py-3 text-slate-600">{customer.email}</td>
+                    {/* Round-15 F-024 — email may be null when masked. */}
+                    <td className="px-4 py-3 text-slate-600">{customer.email ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -32,7 +32,7 @@ router = APIRouter(prefix="/customers", tags=["Customers"])
 @router.get("/", response_model=PaginatedResponse[CustomerResponse])
 async def list_customers(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     search: str | None = Query(None, description="Search by name, company, or email"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

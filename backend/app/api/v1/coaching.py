@@ -229,8 +229,19 @@ async def coaching_benchmarks(
     )
     snapshots = result.scalars().all()
 
+    # Round-15 audit F-022 — canonical pagination envelope.
+    # Pre-fix shape was {benchmarks, total}; the SPA had to special-case
+    # this endpoint. ``benchmarks`` alias is kept for one release so
+    # frontend code can migrate without coordinated deploy.
     if not snapshots:
-        return {"benchmarks": [], "total": 0}
+        return {
+            "items": [],
+            "total": 0,
+            "page": 1,
+            "page_size": 0,
+            "pages": 0,
+            "benchmarks": [],  # legacy alias — drop in v1.21+
+        }
 
     total = len(snapshots)
     benchmarks = []
@@ -245,7 +256,14 @@ async def coaching_benchmarks(
             "snapshot_date": snap.created_at.isoformat() if snap.created_at else None,
         })
 
-    return {"benchmarks": benchmarks, "total": total}
+    return {
+        "items": benchmarks,
+        "total": total,
+        "page": 1,
+        "page_size": total,
+        "pages": 1 if total > 0 else 0,
+        "benchmarks": benchmarks,  # legacy alias — drop in v1.21+
+    }
 
 
 @router.get("/rep/{user_id}")

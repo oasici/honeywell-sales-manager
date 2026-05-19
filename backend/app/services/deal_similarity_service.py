@@ -451,10 +451,19 @@ async def refresh_similarity_links(
         await db.delete(link)
     await db.flush()
 
+    # Round-15 Sprint 15q cohort 7 — deal_similarity_links.tenant_id NOT NULL.
+    # One parent-opp lookup per refresh pass.
+    link_tenant_id = (
+        await db.execute(
+            select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+        )
+    ).scalar_one_or_none()
+
     for sim_id, score, cos, seq, text_cos, xfm_cos in top:
         db.add(
             DealSimilarityLink(
                 opportunity_id=opportunity_id,
+                tenant_id=link_tenant_id,
                 similar_opportunity_id=sim_id,
                 similarity_score=score,
                 similarity_reason_json=json.dumps(

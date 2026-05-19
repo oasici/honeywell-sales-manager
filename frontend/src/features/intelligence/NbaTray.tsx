@@ -9,7 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { nbaApi } from '../../lib/api';
-import { onAiTaskChanged } from '../../lib/cacheInvalidation';
+import { onAiTaskChanged, onOpportunityChanged } from '../../lib/cacheInvalidation';
 import { formatDate } from '../../lib/formatters';
 
 /**
@@ -40,7 +40,8 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
       // onAiTaskChanged retires the 3 inline invalidations that
       // R11-FE-4 had to enumerate by hand.
       onAiTaskChanged(qc, opportunityId);
-      qc.invalidateQueries({ queryKey: ['opportunity', opportunityId] });
+      // Round-15 F-025 — opportunity detail key is part of onOpportunityChanged.
+      onOpportunityChanged(qc, opportunityId);
     },
     onError: () => toast.error('Öneri üretilemedi'),
     onSettled: () => setGenerating(false),

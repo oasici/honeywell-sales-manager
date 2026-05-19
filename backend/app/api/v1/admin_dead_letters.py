@@ -47,7 +47,7 @@ def _to_dict(row: DeadLetterEvent) -> dict:
 @router.get("/", response_model=PaginatedResponse[dict])
 async def list_dead_letters(
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(50, ge=1, le=100),
     event_type: str | None = Query(None),
     handler_name: str | None = Query(None),
     only_unreplayed: bool = Query(False, description="Hide rows already replayed"),
