@@ -18,10 +18,12 @@ class Objection(Base):
     ``20260525_phase12_tenant_did_cohort4``.
     """
 
+    # Round-15 Sprint 15p cohort 6 — promoted to NOT NULL.
+    # opportunity_id is NOT NULL and ``opportunities.tenant_id`` NOT NULL.
     __tablename__ = "objections"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     opportunity_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("opportunities.id", ondelete="CASCADE"), index=True
     )

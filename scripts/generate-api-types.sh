@@ -22,7 +22,10 @@
 #
 # Prerequisites:
 #   - Python venv with backend/requirements.txt installed
-#   - frontend deps installed (`pnpm i` or `npm ci` in frontend/)
+#   - Node 20+ with `npx` on PATH (the openapi-typescript generator is
+#     fetched on-demand by npx so it doesn't have to live in
+#     frontend/package.json — that avoids the v7-needs-TS-5 peer dep
+#     conflict with the project's pinned TypeScript ~6.0.3).
 
 set -euo pipefail
 
@@ -58,7 +61,7 @@ cd "${REPO_ROOT}/frontend"
 if [[ "${CHECK_MODE}" -eq 1 ]]; then
   TMP_OUT="$(mktemp)"
   trap 'rm -f "${TMP_OUT}"' EXIT
-  npx --no-install openapi-typescript "${SPEC_PATH}" -o "${TMP_OUT}"
+  npx --yes openapi-typescript@^7 "${SPEC_PATH}" -o "${TMP_OUT}"
   if ! diff -u "${OUT_PATH}" "${TMP_OUT}" > /dev/null; then
     echo "::error::api-types.gen.ts is out of date. Run 'npm run gen:api-types' and commit the result." >&2
     diff -u "${OUT_PATH}" "${TMP_OUT}" | head -80 >&2 || true
@@ -66,6 +69,6 @@ if [[ "${CHECK_MODE}" -eq 1 ]]; then
   fi
   echo "api-types.gen.ts is up to date."
 else
-  npx --no-install openapi-typescript "${SPEC_PATH}" -o "${OUT_PATH}"
+  npx --yes openapi-typescript@^7 "${SPEC_PATH}" -o "${OUT_PATH}"
   echo "Regenerated ${OUT_PATH}"
 fi

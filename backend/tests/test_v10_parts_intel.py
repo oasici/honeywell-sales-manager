@@ -255,12 +255,18 @@ async def test_stale_pricing_includes_parts_without_price_entries(db: AsyncSessi
 @pytest.mark.asyncio
 async def test_stale_pricing_detects_expired_valid_until(db: AsyncSession):
     part = await _seed_part(db, code="HW-EXPIRED")
+    # Use UTC date so the seed matches the service's
+    # ``datetime.now(timezone.utc).date()`` reference. Pre-fix the test
+    # used local ``date.today()`` which produced an off-by-one
+    # ``age_days`` when the run crossed UTC midnight from a timezone
+    # ahead of UTC (Istanbul, etc).
+    today_utc = datetime.now(timezone.utc).date()
     pe = PriceEntry(
         spare_part_id=part.id,
         list_price=100.0,
         net_price=80.0,
         currency="USD",
-        valid_until=date.today() - timedelta(days=5),
+        valid_until=today_utc - timedelta(days=5),
     )
     db.add(pe)
     await db.flush()

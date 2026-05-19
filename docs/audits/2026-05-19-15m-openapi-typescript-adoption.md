@@ -38,7 +38,7 @@ spans ~40 feature directories.
 
 | Artifact | Purpose |
 |---|---|
-| `frontend/package.json` — `openapi-typescript@^7.10.0` devDep | Generator. Pinned to ^7 (current major; supports OpenAPI 3.1). |
+| `frontend/package.json` — `gen:api-types[:check]` scripts (no devDep) | Generator runs via `npx --yes openapi-typescript@^7`. The package is NOT in `devDependencies` because v7.x pins peer `typescript: ^5.x`, which conflicts with the project's `typescript: ~6.0.3`. Letting npx fetch the generator on demand sidesteps the peer-dep resolver entirely. |
 | `frontend/package.json` — `gen:api-types` / `gen:api-types:check` scripts | Local developer affordance + CI hook. |
 | `scripts/generate-api-types.sh` | Wrapper that boots FastAPI, dumps `/openapi.json`, runs `openapi-typescript`. Supports `--check` mode for CI. |
 | `frontend/src/lib/api-types.gen.ts` | Placeholder. First real `npm run gen:api-types` run overwrites it. |

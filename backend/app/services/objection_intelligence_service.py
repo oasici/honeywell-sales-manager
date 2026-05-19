@@ -155,8 +155,16 @@ async def record_objection(
     if existing is not None:
         return existing
 
+    # Round-15 Sprint 15p cohort 6 — objections.tenant_id NOT NULL.
+    from app.models.opportunity import Opportunity
+    opp_tenant_id = (
+        await db.execute(
+            select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+        )
+    ).scalar_one_or_none()
     obj = Objection(
         opportunity_id=opportunity_id,
+        tenant_id=opp_tenant_id,
         event_id=event_id,
         objection_type=detection.objection_type,
         severity=detection.severity,

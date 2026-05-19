@@ -743,9 +743,9 @@ async def _run_seed(results: dict) -> dict:
         from app.models.territory import Territory
         terr_count = (await db.execute(select(func.count(Territory.id)))).scalar() or 0
         if terr_count == 0:
-            t1 = Territory(name="Marmara Bolgesi", description="Istanbul, Bursa, Kocaeli", region="Marmara", created_by=admin.id if admin else 1)
-            t2 = Territory(name="Ege-Akdeniz Bolgesi", description="Izmir, Antalya, Mugla", region="Ege", created_by=admin.id if admin else 1)
-            t3 = Territory(name="Ic Anadolu", description="Ankara, Konya, Eskisehir", region="Ic Anadolu", created_by=admin.id if admin else 1)
+            t1 = Territory(name="Marmara Bolgesi", description="Istanbul, Bursa, Kocaeli", region="Marmara", created_by=admin.id if admin else 1, tenant_id=admin.tenant_id if admin else 1)
+            t2 = Territory(name="Ege-Akdeniz Bolgesi", description="Izmir, Antalya, Mugla", region="Ege", created_by=admin.id if admin else 1, tenant_id=admin.tenant_id if admin else 1)
+            t3 = Territory(name="Ic Anadolu", description="Ankara, Konya, Eskisehir", region="Ic Anadolu", created_by=admin.id if admin else 1, tenant_id=admin.tenant_id if admin else 1)
             db.add_all([t1, t2, t3])
             await db.flush()
             results["territories"] = "created 3"
@@ -767,9 +767,14 @@ async def _run_seed(results: dict) -> dict:
         # ── Contracts ──
         from app.models.contract import Contract
         ct_count = (await db.execute(select(func.count(Contract.id)))).scalar() or 0
+        # Round-15 — every seeded row needs ``tenant_id`` since most parent
+        # tables flipped to NOT NULL via cohort 1-6 promotions. Cache the
+        # admin's tenant locally so each ctor below stays compact.
+        _seed_tenant_id = admin.tenant_id if admin else 1
+
         if ct_count == 0 and all_customers:
             for title, cust_idx, val in [("Anadolu HVAC Bakim", 0, 250000), ("Ege Sensor Tedarikat", 1, 180000)]:
-                db.add(Contract(title=title, customer_id=all_customers[cust_idx].id if len(all_customers) > cust_idx else 1, value=val, status="active", start_date=date.today() - timedelta(days=90), end_date=date.today() + timedelta(days=275), created_by=admin.id if admin else 1))
+                db.add(Contract(title=title, customer_id=all_customers[cust_idx].id if len(all_customers) > cust_idx else 1, value=val, status="active", start_date=date.today() - timedelta(days=90), end_date=date.today() + timedelta(days=275), created_by=admin.id if admin else 1, tenant_id=_seed_tenant_id))
             await db.flush()
             results["contracts"] = "created 2"
 
@@ -777,7 +782,7 @@ async def _run_seed(results: dict) -> dict:
         from app.models.workflow_rule import WorkflowRule
         wf_count = (await db.execute(select(func.count(WorkflowRule.id)))).scalar() or 0
         if wf_count == 0:
-            db.add(WorkflowRule(name="Yuksek Deger Firsat Bildirimi", entity_type="opportunity", trigger_event="stage_change", conditions_json='{"conditions":[{"field":"amount","operator":"gt","value":100000}]}', actions_json='{"actions":[{"type":"notification","target":"manager"}]}', flow_json='{"nodes":[],"edges":[]}', is_active=True, created_by=admin.id if admin else 1))
+            db.add(WorkflowRule(name="Yuksek Deger Firsat Bildirimi", entity_type="opportunity", trigger_event="stage_change", conditions_json='{"conditions":[{"field":"amount","operator":"gt","value":100000}]}', actions_json='{"actions":[{"type":"notification","target":"manager"}]}', flow_json='{"nodes":[],"edges":[]}', is_active=True, created_by=admin.id if admin else 1, tenant_id=_seed_tenant_id))
             await db.flush()
             results["workflow_rules"] = "created 1"
 

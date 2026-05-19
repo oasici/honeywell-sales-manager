@@ -79,6 +79,11 @@ NOT_NULL_TENANT_ALLOWLIST: set[str] = {
     "opportunity_embeddings",
     "action_experiments",
     "revenue_schedules",
+    # Round-15 Sprint 15p cohort 6 — objections (opp-derived) and
+    # workflow_rules (user-derived). Promoted by migration
+    # ``20260609_phase13_tenant_not_null_cohort6.py``.
+    "objections",
+    "workflow_rules",
 }
 
 
