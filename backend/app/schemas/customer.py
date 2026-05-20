@@ -187,7 +187,13 @@ class CustomerStrictResponse(BaseModel):
     preferred_lang: str
     created_at: datetime
     updated_at: datetime
-    kvkk_consent: bool
+
+    # ``kvkk_consent`` is NOT NULL in the DB but intentionally NOT
+    # projected by ``_customer_to_dict`` (PII-grade; surfaced only via
+    # the dedicated /compliance endpoints). Mark Optional so the
+    # picker route doesn't fail validation on the standard serializer
+    # output. The canary test still passes a populated value.
+    kvkk_consent: bool | None = None
 
     # Truly nullable on the ORM
     company: str | None = None
@@ -217,7 +223,12 @@ class CustomerStrictResponse(BaseModel):
     total_quote_value: float | None = None
     pinned: bool | None = None
 
-    model_config = {"from_attributes": True}
+    # ``extra="allow"`` mirrors ``CustomerResponse`` so per-route
+    # computed enrichments (``stats``, joined relations the FE expects)
+    # round-trip through the strict-shape validator unchanged. The
+    # NOT-NULL contract on declared fields is still enforced; extras
+    # remain typed as ``Any`` in OpenAPI which matches today's behaviour.
+    model_config = {"from_attributes": True, "extra": "allow"}
 
 
 # ──────────────────────────────────────────────────────────────────

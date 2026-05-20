@@ -30,11 +30,13 @@ from app.schemas.customer import (
     CustomerPinResponse,
     CustomerResponse,
     CustomerRollupResponse,
+    CustomerStrictResponse,
     CustomerTimelineResponse,
     CustomerUpdate,
     HighIntentAccountResponse,
 )
 from app.services.enrichment_service import EnrichmentService
+from app.services.response_model_picker import has_masking_rules_for
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
@@ -206,7 +208,10 @@ async def unpin_customer(
     return {"pinned": False, "customer_id": customer_id}
 
 
-@router.get("/{customer_id}", response_model=CustomerResponse)
+@router.get(
+    "/{customer_id}",
+    response_model=CustomerStrictResponse | CustomerResponse,
+)
 async def get_customer(
     customer_id: int,
     current_user: User = Depends(get_current_user),
@@ -218,6 +223,16 @@ async def get_customer(
     detail GET shows up in OpenAPI with the same shape as the list
     endpoint. ``CustomerResponse`` is extras-tolerant (R10-API-6), so
     the caller-specific ``pinned`` / ``stats`` extras still round-trip.
+
+    Round-16 N15-API-3 (C3) — first canary route for the polymorphic
+    picker pattern (see ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).
+    When no field-permission masking rule is active for ``customer``
+    on the current request, the response is validated through
+    ``CustomerStrictResponse`` so NOT-NULL fields are guaranteed
+    present. When masking IS active, the response falls back to the
+    loose ``CustomerResponse`` shape — masking can remove fields
+    entirely, so the SDK can't rely on presence. The OpenAPI
+    ``oneOf`` documents both possibilities.
     """
     result = await db.execute(
         select(Customer).where(Customer.id == customer_id)
@@ -265,7 +280,16 @@ async def get_customer(
         "total_value": round(total_value, 2),
         "sent_quotes": sent_count,
     }
-    return data
+
+    # Round-16 N15-API-3 (C3) — picker decides which Pydantic shape to
+    # serialize through. ``_customer_to_dict`` already calls
+    # ``apply_request_perms`` (see line 1093+), so by the time we get
+    # here ``data`` reflects masking. When no rule is active, the
+    # strict shape's NOT-NULL contract holds and we surface that to
+    # the SDK.
+    if has_masking_rules_for("customer"):
+        return CustomerResponse.model_validate(data).model_dump()
+    return CustomerStrictResponse.model_validate(data).model_dump()
 
 
 @router.get("/{customer_id}/intelligence", response_model=CustomerIntelligenceResponse)

@@ -1942,6 +1942,16 @@ export interface paths {
          *     detail GET shows up in OpenAPI with the same shape as the list
          *     endpoint. ``CustomerResponse`` is extras-tolerant (R10-API-6), so
          *     the caller-specific ``pinned`` / ``stats`` extras still round-trip.
+         *
+         *     Round-16 N15-API-3 (C3) — first canary route for the polymorphic
+         *     picker pattern (see ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).
+         *     When no field-permission masking rule is active for ``customer``
+         *     on the current request, the response is validated through
+         *     ``CustomerStrictResponse`` so NOT-NULL fields are guaranteed
+         *     present. When masking IS active, the response falls back to the
+         *     loose ``CustomerResponse`` shape — masking can remove fields
+         *     entirely, so the SDK can't rely on presence. The OpenAPI
+         *     ``oneOf`` documents both possibilities.
          */
         get: operations["get_customer_api_v1_customers__customer_id__get"];
         /**
@@ -12144,6 +12154,96 @@ export interface components {
             total_quotes: number;
             /** Total Quote Value */
             total_quote_value: number;
+        };
+        /**
+         * CustomerStrictResponse
+         * @description C2 canary — Round-16 (N15-API-3 RFC Option A).
+         *
+         *     Strong-contract variant of ``CustomerResponse`` for routes where
+         *     field-permission masking is NOT active. Every NOT-NULL column on
+         *     the Customer ORM is declared Required; only genuinely nullable
+         *     columns stay Optional.
+         *
+         *     Per the RFC at ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,
+         *     this schema is the canary deliverable. Routes opt in via the picker
+         *     at ``backend/app/services/response_model_picker.py``; if any
+         *     field-permission rule is active for ``customer`` on the current
+         *     request, the picker falls back to ``CustomerResponse`` so masking
+         *     behaviour is preserved.
+         *
+         *     Compatibility note: additive only. No existing route uses it yet;
+         *     existing routes continue to return ``CustomerResponse``. Round-17
+         *     will wire the picker on /customers/{id} as the first canary route.
+         */
+        CustomerStrictResponse: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id: number;
+            /** Name */
+            name: string;
+            /** Email */
+            email: string;
+            /** Preferred Lang */
+            preferred_lang: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Kvkk Consent */
+            kvkk_consent?: boolean | null;
+            /** Company */
+            company?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Tax Id */
+            tax_id?: string | null;
+            /** Created By */
+            created_by?: number | null;
+            /** Kvkk Consent Date */
+            kvkk_consent_date?: string | null;
+            /** Kvkk Consent Method */
+            kvkk_consent_method?: string | null;
+            /** Data Processing Purpose */
+            data_processing_purpose?: string | null;
+            /** Data Retention Until */
+            data_retention_until?: string | null;
+            /** Deletion Requested At */
+            deletion_requested_at?: string | null;
+            /** Data Classification */
+            data_classification?: ("public" | "internal" | "confidential" | "restricted") | null;
+            /** Industry */
+            industry?: string | null;
+            /** Employee Count */
+            employee_count?: number | null;
+            /** Annual Revenue */
+            annual_revenue?: string | null;
+            /** Website */
+            website?: string | null;
+            /** Linkedin Url */
+            linkedin_url?: string | null;
+            /** Enriched At */
+            enriched_at?: string | null;
+            /** Territory Id */
+            territory_id?: number | null;
+            /** Parent Id */
+            parent_id?: number | null;
+            /** Quote Count */
+            quote_count?: number | null;
+            /** Total Quote Value */
+            total_quote_value?: number | null;
+            /** Pinned */
+            pinned?: boolean | null;
+        } & {
+            [key: string]: unknown;
         };
         /** CustomerTimelineEvent */
         CustomerTimelineEvent: {
@@ -22846,7 +22946,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CustomerResponse"];
+                    "application/json": components["schemas"]["CustomerStrictResponse"] | components["schemas"]["CustomerResponse"];
                 };
             };
             /** @description Validation Error */

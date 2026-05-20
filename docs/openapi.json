@@ -485,7 +485,7 @@
           "config"
         ],
         "summary": "Get Feature Flags",
-        "description": "Return the live feature-flag state for the current deployment.\n\nAuth-gated so unauthenticated probes can't enumerate which\nsprints we're shipping. Auth-only is sufficient — no role check\nbecause the frontend needs this on every page (even sales_rep).",
+        "description": "Return the live feature-flag state for the current deployment.\n\nAuth-gated so unauthenticated probes can't enumerate which\nsprints we're shipping. Auth-only is sufficient \u2014 no role check\nbecause the frontend needs this on every page (even sales_rep).",
         "operationId": "get_feature_flags_api_v1_config_feature_flags_get",
         "security": [
           {
@@ -542,7 +542,7 @@
           "Dashboard"
         ],
         "summary": "Get Dashboard Stats",
-        "description": "Dashboard KPIs for the current user's tenant.\n\nN15-AUTH-3 (Round-15) — every aggregate is scoped to ``current_user.tenant_id``.\n``SparePart`` has no ``tenant_id`` column by design (catalog is Honeywell-wide,\nnot per-tenant), so ``total_parts`` remains a global catalog count.",
+        "description": "Dashboard KPIs for the current user's tenant.\n\nN15-AUTH-3 (Round-15) \u2014 every aggregate is scoped to ``current_user.tenant_id``.\n``SparePart`` has no ``tenant_id`` column by design (catalog is Honeywell-wide,\nnot per-tenant), so ``total_parts`` remains a global catalog count.",
         "operationId": "get_dashboard_stats_api_v1_dashboard_stats_get",
         "security": [
           {
@@ -1732,7 +1732,7 @@
           "Spare Parts"
         ],
         "summary": "List Categories",
-        "description": "List distinct part categories.\n\nRound-5 Phase 7 — wrapped in canonical envelope so SPA list\nconsumers don't need a parts-specific shape. Total count is the\ndistinct-category count (no real pagination needed since the\ncardinality is bounded by the catalog's category vocabulary).",
+        "description": "List distinct part categories.\n\nRound-5 Phase 7 \u2014 wrapped in canonical envelope so SPA list\nconsumers don't need a parts-specific shape. Total count is the\ndistinct-category count (no real pagination needed since the\ncardinality is bounded by the catalog's category vocabulary).",
         "operationId": "list_categories_api_v1_parts_categories_get",
         "security": [
           {
@@ -2299,7 +2299,7 @@
           "Customer Health"
         ],
         "summary": "Get Health Overview",
-        "description": "Tum musterilerin saglik skoru ozeti.\n\nN15-AUTH-4 (Round-15) — scope to ``current_user.tenant_id`` so the\noverview never leaks foreign-tenant customers.",
+        "description": "Tum musterilerin saglik skoru ozeti.\n\nN15-AUTH-4 (Round-15) \u2014 scope to ``current_user.tenant_id`` so the\noverview never leaks foreign-tenant customers.",
         "operationId": "get_health_overview_api_v1_customers_health_overview_get",
         "security": [
           {
@@ -2354,7 +2354,7 @@
           "Customer Health"
         ],
         "summary": "Get At Risk Customers",
-        "description": "Risk altindaki musteri listesi.\n\nN15-AUTH-4 — scope to ``current_user.tenant_id``.",
+        "description": "Risk altindaki musteri listesi.\n\nN15-AUTH-4 \u2014 scope to ``current_user.tenant_id``.",
         "operationId": "get_at_risk_customers_api_v1_customers_health_at_risk_get",
         "security": [
           {
@@ -2421,7 +2421,7 @@
           "Customer Health"
         ],
         "summary": "Get Customer Health",
-        "description": "Tek bir musterinin saglik raporu. ?explain=true ile skor aciklamalari eklenir.\n\nN15-AUTH-4 — cross-tenant lookups collapse to 404 (CLAUDE.md convention).",
+        "description": "Tek bir musterinin saglik raporu. ?explain=true ile skor aciklamalari eklenir.\n\nN15-AUTH-4 \u2014 cross-tenant lookups collapse to 404 (CLAUDE.md convention).",
         "operationId": "get_customer_health_api_v1_customers_health__customer_id__get",
         "security": [
           {
@@ -3479,10 +3479,10 @@
                   "type": "null"
                 }
               ],
-              "description": "UTC takvim günü; boşsa bugün (UTC).",
+              "description": "UTC takvim g\u00fcn\u00fc; bo\u015fsa bug\u00fcn (UTC).",
               "title": "Snapshot Date"
             },
-            "description": "UTC takvim günü; boşsa bugün (UTC)."
+            "description": "UTC takvim g\u00fcn\u00fc; bo\u015fsa bug\u00fcn (UTC)."
           },
           {
             "name": "include_signals",
@@ -3810,10 +3810,10 @@
                   "type": "null"
                 }
               ],
-              "description": "UTC takvim günü; boşsa bugün (UTC).",
+              "description": "UTC takvim g\u00fcn\u00fc; bo\u015fsa bug\u00fcn (UTC).",
               "title": "Snapshot Date"
             },
-            "description": "UTC takvim günü; boşsa bugün (UTC)."
+            "description": "UTC takvim g\u00fcn\u00fc; bo\u015fsa bug\u00fcn (UTC)."
           },
           {
             "name": "access_token",
@@ -7490,7 +7490,7 @@
           "Customers"
         ],
         "summary": "Create Customer",
-        "description": "Create a new customer.\n\nRound-13 Sprint 6a — response_model added so the 201 surface is\ntyped in OpenAPI; CustomerResponse is extras-tolerant.",
+        "description": "Create a new customer.\n\nRound-13 Sprint 6a \u2014 response_model added so the 201 surface is\ntyped in OpenAPI; CustomerResponse is extras-tolerant.",
         "operationId": "create_customer_api_v1_customers__post",
         "security": [
           {
@@ -7555,7 +7555,7 @@
           "Customers"
         ],
         "summary": "List High Intent Accounts",
-        "description": "Sprint 4 — rule-based high-intent customers (+ pinned first).",
+        "description": "Sprint 4 \u2014 rule-based high-intent customers (+ pinned first).",
         "operationId": "list_high_intent_accounts_api_v1_customers_high_intent_get",
         "security": [
           {
@@ -7746,7 +7746,7 @@
           "Customers"
         ],
         "summary": "Get Customer",
-        "description": "Get customer detail with quote statistics.\n\nRound-13 Sprint 6a — wires ``response_model=CustomerResponse`` so\ndetail GET shows up in OpenAPI with the same shape as the list\nendpoint. ``CustomerResponse`` is extras-tolerant (R10-API-6), so\nthe caller-specific ``pinned`` / ``stats`` extras still round-trip.",
+        "description": "Get customer detail with quote statistics.\n\nRound-13 Sprint 6a \u2014 wires ``response_model=CustomerResponse`` so\ndetail GET shows up in OpenAPI with the same shape as the list\nendpoint. ``CustomerResponse`` is extras-tolerant (R10-API-6), so\nthe caller-specific ``pinned`` / ``stats`` extras still round-trip.\n\nRound-16 N15-API-3 (C3) \u2014 first canary route for the polymorphic\npicker pattern (see ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).\nWhen no field-permission masking rule is active for ``customer``\non the current request, the response is validated through\n``CustomerStrictResponse`` so NOT-NULL fields are guaranteed\npresent. When masking IS active, the response falls back to the\nloose ``CustomerResponse`` shape \u2014 masking can remove fields\nentirely, so the SDK can't rely on presence. The OpenAPI\n``oneOf`` documents both possibilities.",
         "operationId": "get_customer_api_v1_customers__customer_id__get",
         "security": [
           {
@@ -7786,7 +7786,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CustomerStrictResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CustomerResponse"
+                    }
+                  ],
+                  "title": "Response Get Customer Api V1 Customers  Customer Id  Get"
                 }
               }
             }
@@ -8020,7 +8028,7 @@
           "Customers"
         ],
         "summary": "Get Account 360",
-        "description": "Sprint 3 — Account360: rollup + coklu firsat zaman cizelgesi + acik deal + risk + son temas.",
+        "description": "Sprint 3 \u2014 Account360: rollup + coklu firsat zaman cizelgesi + acik deal + risk + son temas.",
         "operationId": "get_account_360_api_v1_customers__customer_id__account_360_get",
         "security": [
           {
@@ -8237,7 +8245,7 @@
           "Customers"
         ],
         "summary": "Get Customer Timeline",
-        "description": "Feature-10: Customer 360 timeline — chronological emails + quotes.",
+        "description": "Feature-10: Customer 360 timeline \u2014 chronological emails + quotes.",
         "operationId": "get_customer_timeline_api_v1_customers__customer_id__timeline_get",
         "security": [
           {
@@ -8313,7 +8321,7 @@
           "Customers"
         ],
         "summary": "Get Customer Activity Timeline",
-        "description": "Unified activity timeline — auto-captured events from all entity types.",
+        "description": "Unified activity timeline \u2014 auto-captured events from all entity types.",
         "operationId": "get_customer_activity_timeline_api_v1_customers__customer_id__activity_timeline_get",
         "security": [
           {
@@ -8842,7 +8850,7 @@
           "Quotes"
         ],
         "summary": "Get Quote",
-        "description": "Get quote detail with items. Non-managers can only see their own quotes.\n\nRound-13 Sprint 6a — response_model wired. QuoteResponse is\nextras-tolerant so per-item joins (e.g. ``items``) round-trip.",
+        "description": "Get quote detail with items. Non-managers can only see their own quotes.\n\nRound-13 Sprint 6a \u2014 response_model wired. QuoteResponse is\nextras-tolerant so per-item joins (e.g. ``items``) round-trip.",
         "operationId": "get_quote_api_v1_quotes__quote_id__get",
         "security": [
           {
@@ -9252,7 +9260,7 @@
           "Quotes"
         ],
         "summary": "Download Quote Pdf",
-        "description": "Download quote PDF — regenerates on-the-fly if file is missing.",
+        "description": "Download quote PDF \u2014 regenerates on-the-fly if file is missing.",
         "operationId": "download_quote_pdf_api_v1_quotes__quote_id__pdf_get",
         "security": [
           {
@@ -9529,7 +9537,7 @@
           "Analytics"
         ],
         "summary": "Get Top Parts",
-        "description": "Top requested parts by quote item count — single JOIN query (no N+1).",
+        "description": "Top requested parts by quote item count \u2014 single JOIN query (no N+1).",
         "operationId": "get_top_parts_api_v1_analytics_top_parts_get",
         "security": [
           {
@@ -9762,7 +9770,7 @@
           "Analytics"
         ],
         "summary": "Get Parts Without Price",
-        "description": "Parts requested in quotes that have no pricing (supplier_price AND transfer_price both null).\n\nRound-15 audit F-027 — ``response_model`` wired. Two row variants:\n  * ``no_price``     — part exists, pricing fields are NULL.\n  * ``unknown_part`` — quoted SKU absent from the catalog.",
+        "description": "Parts requested in quotes that have no pricing (supplier_price AND transfer_price both null).\n\nRound-15 audit F-027 \u2014 ``response_model`` wired. Two row variants:\n  * ``no_price``     \u2014 part exists, pricing fields are NULL.\n  * ``unknown_part`` \u2014 quoted SKU absent from the catalog.",
         "operationId": "get_parts_without_price_api_v1_analytics_parts_without_price_get",
         "security": [
           {
@@ -9876,7 +9884,7 @@
           "Analytics"
         ],
         "summary": "Get Ai Quality",
-        "description": "AI quality analytics: success/failure ratio, fallback rate, correction trends.\n\nReports only — does not change parser behavior.",
+        "description": "AI quality analytics: success/failure ratio, fallback rate, correction trends.\n\nReports only \u2014 does not change parser behavior.",
         "operationId": "get_ai_quality_api_v1_analytics_ai_quality_get",
         "security": [
           {
@@ -10148,7 +10156,7 @@
           "Analytics"
         ],
         "summary": "Get Rep Scorecards",
-        "description": "Feature-5: Rep performance scorecards — single aggregate query (no N+1).",
+        "description": "Feature-5: Rep performance scorecards \u2014 single aggregate query (no N+1).",
         "operationId": "get_rep_scorecards_api_v1_analytics_rep_scorecards_get",
         "security": [
           {
@@ -10550,7 +10558,7 @@
           "Analytics"
         ],
         "summary": "Get Discount Guardrails",
-        "description": "Discount guardrails: quotes exceeding threshold → needs approval routing.",
+        "description": "Discount guardrails: quotes exceeding threshold \u2192 needs approval routing.",
         "operationId": "get_discount_guardrails_api_v1_analytics_discount_guardrails_get",
         "security": [
           {
@@ -11413,7 +11421,7 @@
           "Settings"
         ],
         "summary": "Get Settings",
-        "description": "Get all settings as a key-value map (sales_manager only).\n\nR5-PII-4 — every key matching ``_SENSITIVE_SUBSTRINGS`` is masked\nin the response. Pre-R5 this was only ``email_password``; the\nesign provider webhook secret and any other DB-stored credential\nleaked in cleartext.",
+        "description": "Get all settings as a key-value map (sales_manager only).\n\nR5-PII-4 \u2014 every key matching ``_SENSITIVE_SUBSTRINGS`` is masked\nin the response. Pre-R5 this was only ``email_password``; the\nesign provider webhook secret and any other DB-stored credential\nleaked in cleartext.",
         "operationId": "get_settings_api_v1_settings__get",
         "security": [
           {
@@ -11466,7 +11474,7 @@
           "Settings"
         ],
         "summary": "Update Settings",
-        "description": "Update settings from a validated request body.\n\nR5-PII-5 — values for keys matching ``_SENSITIVE_SUBSTRINGS`` are\nencrypted at rest with Fernet. Read sites in this module use\n``decrypt_str_or_legacy_plaintext`` so values written before\nencryption was wired (legacy plaintext) keep working.",
+        "description": "Update settings from a validated request body.\n\nR5-PII-5 \u2014 values for keys matching ``_SENSITIVE_SUBSTRINGS`` are\nencrypted at rest with Fernet. Read sites in this module use\n``decrypt_str_or_legacy_plaintext`` so values written before\nencryption was wired (legacy plaintext) keep working.",
         "operationId": "update_settings_api_v1_settings__put",
         "security": [
           {
@@ -11774,7 +11782,7 @@
           "Settings"
         ],
         "summary": "Create Api Key",
-        "description": "Generate a new API key. Returns the plain key ONCE — store it securely.",
+        "description": "Generate a new API key. Returns the plain key ONCE \u2014 store it securely.",
         "operationId": "create_api_key_api_v1_settings_api_keys_post",
         "security": [
           {
@@ -12745,10 +12753,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by action prefix (e.g. 'kvkk_') — exclusive with action",
+              "description": "Filter by action prefix (e.g. 'kvkk_') \u2014 exclusive with action",
               "title": "Action Prefix"
             },
-            "description": "Filter by action prefix (e.g. 'kvkk_') — exclusive with action"
+            "description": "Filter by action prefix (e.g. 'kvkk_') \u2014 exclusive with action"
           },
           {
             "name": "since",
@@ -12764,10 +12772,10 @@
                   "type": "null"
                 }
               ],
-              "description": "ISO 8601 — only events on/after this time",
+              "description": "ISO 8601 \u2014 only events on/after this time",
               "title": "Since"
             },
-            "description": "ISO 8601 — only events on/after this time"
+            "description": "ISO 8601 \u2014 only events on/after this time"
           },
           {
             "name": "until",
@@ -12783,10 +12791,10 @@
                   "type": "null"
                 }
               ],
-              "description": "ISO 8601 — only events strictly before this time",
+              "description": "ISO 8601 \u2014 only events strictly before this time",
               "title": "Until"
             },
-            "description": "ISO 8601 — only events strictly before this time"
+            "description": "ISO 8601 \u2014 only events strictly before this time"
           },
           {
             "name": "access_token",
@@ -13002,7 +13010,7 @@
           "Audit"
         ],
         "summary": "Export User Data",
-        "description": "KVKK Article 15 — return everything we hold about a single user.\n\nBundles: the user record, audit events tied to them, customers they\ncreated, and opportunities they own. Output is a single JSON document\nthe compliance officer can hand to the data subject.\n\nWrites its own audit row so the disclosure itself is logged.",
+        "description": "KVKK Article 15 \u2014 return everything we hold about a single user.\n\nBundles: the user record, audit events tied to them, customers they\ncreated, and opportunities they own. Output is a single JSON document\nthe compliance officer can hand to the data subject.\n\nWrites its own audit row so the disclosure itself is logged.",
         "operationId": "export_user_data_api_v1_audit_data_export__target_user_id__get",
         "security": [
           {
@@ -13191,7 +13199,7 @@
           "Admin"
         ],
         "summary": "Replay Dead Letter",
-        "description": "Re-invoke the original handler with the stored payload.\n\nThe replay goes through ``event_bus.publish`` so all subscribers\nof the event_type re-run, not just the originally-failing handler\n— this matches operator intent when an external dependency\nrecovers (e.g. webhook URL came back online and we want all the\nqueued events to fire). Mark the row as replayed regardless of\nwhether the replay raised.",
+        "description": "Re-invoke the original handler with the stored payload.\n\nThe replay goes through ``event_bus.publish`` so all subscribers\nof the event_type re-run, not just the originally-failing handler\n\u2014 this matches operator intent when an external dependency\nrecovers (e.g. webhook URL came back online and we want all the\nqueued events to fire). Mark the row as replayed regardless of\nwhether the replay raised.",
         "operationId": "replay_dead_letter_api_v1_admin_dead_letter_events__entry_id__replay_post",
         "security": [
           {
@@ -13511,7 +13519,7 @@
           "Operations"
         ],
         "summary": "Get Feature Flags",
-        "description": "Return public feature-flag states (allowlisted).\n\nN15-OPS-1 (Round-15) — previously this endpoint returned every\n``FEATURE_*`` attribute on the settings object, including\nexperimental / internal flags that ``backend/app/api/v1/config.py``\ndeliberately withholds via ``_PUBLIC_FEATURE_FLAGS``. Now both\nendpoints honor the same allowlist so the SPA never sees roadmap\nflags the company hasn't announced.",
+        "description": "Return public feature-flag states (allowlisted).\n\nN15-OPS-1 (Round-15) \u2014 previously this endpoint returned every\n``FEATURE_*`` attribute on the settings object, including\nexperimental / internal flags that ``backend/app/api/v1/config.py``\ndeliberately withholds via ``_PUBLIC_FEATURE_FLAGS``. Now both\nendpoints honor the same allowlist so the SPA never sees roadmap\nflags the company hasn't announced.",
         "operationId": "get_feature_flags_api_v1_ops_feature_flags_get",
         "security": [
           {
@@ -13621,7 +13629,7 @@
           "Saved Views"
         ],
         "summary": "List Saved Views",
-        "description": "List current user's saved views.\n\nRound-13 R13-API-1 → Sprint 7b — legacy ``views`` alias dropped.\nPlanningStudioPage and SavedViewsBar both read ``items`` first\n(R13 Sprint 1b migration), making the alias dead weight.",
+        "description": "List current user's saved views.\n\nRound-13 R13-API-1 \u2192 Sprint 7b \u2014 legacy ``views`` alias dropped.\nPlanningStudioPage and SavedViewsBar both read ``items`` first\n(R13 Sprint 1b migration), making the alias dead weight.",
         "operationId": "list_saved_views_api_v1_saved_views__get",
         "security": [
           {
@@ -13739,7 +13747,7 @@
           "Saved Views"
         ],
         "summary": "Delete Saved View",
-        "description": "Delete a saved view (own only).\n\nRound-11 R11-AUTH-4 — additionally scope by ``tenant_id`` so that a\nuser_id collision across tenants cannot delete foreign-tenant views.\nMissing/foreign-tenant views return 404 (never 403) to avoid leaking\nexistence per the project convention.",
+        "description": "Delete a saved view (own only).\n\nRound-11 R11-AUTH-4 \u2014 additionally scope by ``tenant_id`` so that a\nuser_id collision across tenants cannot delete foreign-tenant views.\nMissing/foreign-tenant views return 404 (never 403) to avoid leaking\nexistence per the project convention.",
         "operationId": "delete_saved_view_api_v1_saved_views__view_id__delete",
         "security": [
           {
@@ -14067,7 +14075,7 @@
           "Opportunities (v2)"
         ],
         "summary": "Get Opportunity",
-        "description": "Get opportunity detail with quotes and computed fields.\n\nRound-13 Sprint 6a — response_model wired. OpportunityResponse is\nextras-tolerant so per-item joins (``quotes``, ``customer``, etc.)\nround-trip.",
+        "description": "Get opportunity detail with quotes and computed fields.\n\nRound-13 Sprint 6a \u2014 response_model wired. OpportunityResponse is\nextras-tolerant so per-item joins (``quotes``, ``customer``, etc.)\nround-trip.",
         "operationId": "get_opportunity_api_v1_opportunities__opp_id__get",
         "security": [
           {
@@ -14203,7 +14211,7 @@
           "Opportunities (v2)"
         ],
         "summary": "Get Opportunity Intelligence",
-        "description": "Unified intelligence payload for Opportunity Detail + Board (Sprint 1).\n\nRound-15 audit F-019 — ``response_model`` wired. See\n``app/schemas/opportunity_intelligence.py`` for the contract.",
+        "description": "Unified intelligence payload for Opportunity Detail + Board (Sprint 1).\n\nRound-15 audit F-019 \u2014 ``response_model`` wired. See\n``app/schemas/opportunity_intelligence.py`` for the contract.",
         "operationId": "get_opportunity_intelligence_api_v1_opportunities__opp_id__intelligence_get",
         "security": [
           {
@@ -14833,7 +14841,7 @@
           "AI (v2)"
         ],
         "summary": "Summarize Changes",
-        "description": "Sprint 6 — digest of what changed on the account/opportunity in the last N days.",
+        "description": "Sprint 6 \u2014 digest of what changed on the account/opportunity in the last N days.",
         "operationId": "summarize_changes_api_v1_ai_summarize_changes_post",
         "security": [
           {
@@ -14898,7 +14906,7 @@
           "AI (v2)"
         ],
         "summary": "Meeting Prep",
-        "description": "Sprint 3 — Account Intelligence: toplantı öncesi kısa brifing (PII maskeli).",
+        "description": "Sprint 3 \u2014 Account Intelligence: toplant\u0131 \u00f6ncesi k\u0131sa brifing (PII maskeli).",
         "operationId": "meeting_prep_api_v1_ai_meeting_prep_post",
         "security": [
           {
@@ -15616,7 +15624,7 @@
           "AI (v2)"
         ],
         "summary": "Competitive Intel Dashboard",
-        "description": "Competitive intelligence dashboard — aggregate competitor mention data.",
+        "description": "Competitive intelligence dashboard \u2014 aggregate competitor mention data.",
         "operationId": "competitive_intel_dashboard_api_v1_ai_competitive_intel_get",
         "security": [
           {
@@ -17223,7 +17231,7 @@
           "Engagement"
         ],
         "summary": "Variant Metrics",
-        "description": "A/B variant performance metrics — aggregated by variant key per step.",
+        "description": "A/B variant performance metrics \u2014 aggregated by variant key per step.",
         "operationId": "variant_metrics_api_v1_sequences_variant_metrics_get",
         "security": [
           {
@@ -17886,7 +17894,7 @@
           "Engagement"
         ],
         "summary": "Get Coaching Scorecards",
-        "description": "Coaching scorecards — rep performance + signal handling + response patterns.",
+        "description": "Coaching scorecards \u2014 rep performance + signal handling + response patterns.",
         "operationId": "get_coaching_scorecards_api_v1_coaching_scorecards_get",
         "security": [
           {
@@ -18936,7 +18944,7 @@
           "Engagement"
         ],
         "summary": "Variant Metrics",
-        "description": "A/B variant performance metrics — aggregated by variant key per step.",
+        "description": "A/B variant performance metrics \u2014 aggregated by variant key per step.",
         "operationId": "variant_metrics_api_v1_engagement_sequences_variant_metrics_get",
         "deprecated": true,
         "security": [
@@ -19619,7 +19627,7 @@
           "Engagement"
         ],
         "summary": "Get Coaching Scorecards",
-        "description": "Coaching scorecards — rep performance + signal handling + response patterns.",
+        "description": "Coaching scorecards \u2014 rep performance + signal handling + response patterns.",
         "operationId": "get_coaching_scorecards_api_v1_engagement_coaching_scorecards_get",
         "deprecated": true,
         "security": [
@@ -19990,7 +19998,7 @@
           "Integrations (v2)"
         ],
         "summary": "Sync Calendar",
-        "description": "Trigger calendar sync (stub — actual sync requires provider API).\n\nWhen connected, this endpoint would:\n1. Fetch recent calendar events from provider API\n2. Match attendee emails to customers\n3. Auto-link events to opportunities\n4. Create timeline entries",
+        "description": "Trigger calendar sync (stub \u2014 actual sync requires provider API).\n\nWhen connected, this endpoint would:\n1. Fetch recent calendar events from provider API\n2. Match attendee emails to customers\n3. Auto-link events to opportunities\n4. Create timeline entries",
         "operationId": "sync_calendar_api_v1_integrations_calendar_sync_post",
         "security": [
           {
@@ -20285,7 +20293,7 @@
           "Integrations (v2)"
         ],
         "summary": "Send For Signature",
-        "description": "Send a quote PDF for e-signature (stub — actual send requires provider API).\n\nWhen connected, this endpoint would:\n1. Get quote PDF path\n2. Upload to e-sign provider\n3. Create signing request with signer details\n4. Return signing URL for redirect\n5. Track status via webhook callback",
+        "description": "Send a quote PDF for e-signature (stub \u2014 actual send requires provider API).\n\nWhen connected, this endpoint would:\n1. Get quote PDF path\n2. Upload to e-sign provider\n3. Create signing request with signer details\n4. Return signing URL for redirect\n5. Track status via webhook callback",
         "operationId": "send_for_signature_api_v1_integrations_esign_send_post",
         "security": [
           {
@@ -22124,7 +22132,7 @@
           "Forecast"
         ],
         "summary": "Create Adjustment",
-        "description": "Create a forecast adjustment (manager only).\n\nRound-14 R14-AUTH-1 — ``current_user`` is threaded into the service\nso the underlying opportunity tenant boundary is enforced before\nthe mutation lands. Pre-fix, a tenant A manager could mutate any\ntenant B opportunity's forecast by knowing the id.",
+        "description": "Create a forecast adjustment (manager only).\n\nRound-14 R14-AUTH-1 \u2014 ``current_user`` is threaded into the service\nso the underlying opportunity tenant boundary is enforced before\nthe mutation lands. Pre-fix, a tenant A manager could mutate any\ntenant B opportunity's forecast by knowing the id.",
         "operationId": "create_adjustment_api_v1_forecast_adjustments_post",
         "security": [
           {
@@ -22187,7 +22195,7 @@
           "Forecast"
         ],
         "summary": "List Adjustments",
-        "description": "Get adjustment history for an opportunity.\n\nRound-14 R14-AUTH-1 — verify the opportunity belongs to the\ncaller's tenant before disclosing adjustment history. Pre-fix,\nany tenant could read any other tenant's adjustment trail.",
+        "description": "Get adjustment history for an opportunity.\n\nRound-14 R14-AUTH-1 \u2014 verify the opportunity belongs to the\ncaller's tenant before disclosing adjustment history. Pre-fix,\nany tenant could read any other tenant's adjustment trail.",
         "operationId": "list_adjustments_api_v1_forecast_adjustments_get",
         "security": [
           {
@@ -22467,7 +22475,7 @@
           "Forecast"
         ],
         "summary": "Team Forecast Rollup",
-        "description": "Forecast rollup by rep — manager view of team pipeline.",
+        "description": "Forecast rollup by rep \u2014 manager view of team pipeline.",
         "operationId": "team_forecast_rollup_api_v1_forecast_team_rollup_get",
         "security": [
           {
@@ -22617,7 +22625,7 @@
           "Reports V2"
         ],
         "summary": "List Folders",
-        "description": "List report folders: user's own + shared, scoped to caller's tenant.\n\nRound-5 Phase 7 — canonical pagination envelope. ``data`` is kept\nadditively to bridge in-flight SPA builds.",
+        "description": "List report folders: user's own + shared, scoped to caller's tenant.\n\nRound-5 Phase 7 \u2014 canonical pagination envelope. ``data`` is kept\nadditively to bridge in-flight SPA builds.",
         "operationId": "list_folders_api_v1_reports_folders_get",
         "security": [
           {
@@ -22887,7 +22895,7 @@
           "Reports V2"
         ],
         "summary": "List Templates",
-        "description": "List report templates: user's own + public + system (tenant-scoped).\n\nRound-5 Phase 7 — canonical pagination envelope. ``data`` is kept\nadditively to bridge in-flight SPA builds.",
+        "description": "List report templates: user's own + public + system (tenant-scoped).\n\nRound-5 Phase 7 \u2014 canonical pagination envelope. ``data`` is kept\nadditively to bridge in-flight SPA builds.",
         "operationId": "list_templates_api_v1_reports_templates_get",
         "security": [
           {
@@ -23960,7 +23968,7 @@
           "Webhooks"
         ],
         "summary": "List Webhooks",
-        "description": "Tum webhook aboneliklerini listele.\n\nRound-13 R13-API-1 → Sprint 7b — emit only the canonical pagination\nenvelope. The legacy ``count`` / ``webhooks`` aliases that R13-API-1\nkept for migration were dropped here after every SPA consumer\nconfirmed it reads ``items`` first (WebhookSettings.tsx reads\n``data?.items ?? data?.webhooks``, so the second fallback is now\ndead code).",
+        "description": "Tum webhook aboneliklerini listele.\n\nRound-13 R13-API-1 \u2192 Sprint 7b \u2014 emit only the canonical pagination\nenvelope. The legacy ``count`` / ``webhooks`` aliases that R13-API-1\nkept for migration were dropped here after every SPA consumer\nconfirmed it reads ``items`` first (WebhookSettings.tsx reads\n``data?.items ?? data?.webhooks``, so the second fallback is now\ndead code).",
         "operationId": "list_webhooks_api_v1_webhooks__get",
         "security": [
           {
@@ -25857,7 +25865,7 @@
           "KVKK Compliance"
         ],
         "summary": "List Retention Policies",
-        "description": "List all data retention policies.\n\nRound-5 Phase 7 — canonical pagination envelope. ``policies`` is\npreserved additively for in-flight consumers.",
+        "description": "List all data retention policies.\n\nRound-5 Phase 7 \u2014 canonical pagination envelope. ``policies`` is\npreserved additively for in-flight consumers.",
         "operationId": "list_retention_policies_api_v1_compliance_retention_policies_get",
         "security": [
           {
@@ -26266,7 +26274,7 @@
           "KVKK Compliance"
         ],
         "summary": "List Breach Notifications",
-        "description": "List breach notifications scoped to the caller's tenant.\n\nRound-5 Phase 7 — canonical pagination envelope. ``breaches`` is\npreserved additively for in-flight consumers.",
+        "description": "List breach notifications scoped to the caller's tenant.\n\nRound-5 Phase 7 \u2014 canonical pagination envelope. ``breaches`` is\npreserved additively for in-flight consumers.",
         "operationId": "list_breach_notifications_api_v1_compliance_breaches_get",
         "security": [
           {
@@ -27390,7 +27398,7 @@
           "Dashboard Builder"
         ],
         "summary": "List Dashboards",
-        "description": "List user's dashboards.\n\nRound-13 R13-API-1 → Sprint 7b — legacy ``data`` alias dropped.\nAll SPA consumers (DashboardListPage, DashboardEditorPage,\nDashboardViewerPage) now read ``items`` first per the R13 Sprint 1b\nmigration; the fallback to ``data`` was kept for one release and is\nnow dead code.",
+        "description": "List user's dashboards.\n\nRound-13 R13-API-1 \u2192 Sprint 7b \u2014 legacy ``data`` alias dropped.\nAll SPA consumers (DashboardListPage, DashboardEditorPage,\nDashboardViewerPage) now read ``items`` first per the R13 Sprint 1b\nmigration; the fallback to ``data`` was kept for one release and is\nnow dead code.",
         "operationId": "list_dashboards_api_v1_dashboards__get",
         "security": [
           {
@@ -28303,7 +28311,7 @@
           "Activities"
         ],
         "summary": "Log Activity",
-        "description": "Log a manual activity (call, meeting, or note).\n\nRound-12 R12-AUTH-3 — verify any ``opportunity_id`` or\n``customer_id`` link belongs to the caller's tenant before\npersisting. Pre-fix a user could attach activity logs to\nforeign-tenant opportunities/customers, polluting their timelines\nand bypassing audit boundaries.",
+        "description": "Log a manual activity (call, meeting, or note).\n\nRound-12 R12-AUTH-3 \u2014 verify any ``opportunity_id`` or\n``customer_id`` link belongs to the caller's tenant before\npersisting. Pre-fix a user could attach activity logs to\nforeign-tenant opportunities/customers, polluting their timelines\nand bypassing audit boundaries.",
         "operationId": "log_activity_api_v1_activities__post",
         "security": [
           {
@@ -28607,7 +28615,7 @@
           "Activities"
         ],
         "summary": "Get Activity Feed",
-        "description": "Return recent activities across all entities for the dashboard feed.\n\n`source_ref` is excluded from the SELECT list via ``defer()`` because\nit's an INSERT-side dedupe key with no read path in the feed\nserializer — and a partially-applied migration once left this column\nmissing on production, which crashed the entire feed endpoint\n(Sentry HONEYWELL-BACKEND-2/7/8/9). Skipping it from the default\ncolumn list keeps the feed healthy regardless of schema drift, and\nit can still be loaded explicitly in code paths that need it.\n\nRound-10 R10-API-1 — wrapped in canonical {items, total, page,\npage_size, pages} envelope and scoped to current_user.tenant_id.\nThe previous bare-array shape silently leaked cross-tenant activity\nonce a second tenant lands; single-tenant prod was masking the bug.",
+        "description": "Return recent activities across all entities for the dashboard feed.\n\n`source_ref` is excluded from the SELECT list via ``defer()`` because\nit's an INSERT-side dedupe key with no read path in the feed\nserializer \u2014 and a partially-applied migration once left this column\nmissing on production, which crashed the entire feed endpoint\n(Sentry HONEYWELL-BACKEND-2/7/8/9). Skipping it from the default\ncolumn list keeps the feed healthy regardless of schema drift, and\nit can still be loaded explicitly in code paths that need it.\n\nRound-10 R10-API-1 \u2014 wrapped in canonical {items, total, page,\npage_size, pages} envelope and scoped to current_user.tenant_id.\nThe previous bare-array shape silently leaked cross-tenant activity\nonce a second tenant lands; single-tenant prod was masking the bug.",
         "operationId": "get_activity_feed_api_v1_activities_feed_get",
         "security": [
           {
@@ -29394,7 +29402,7 @@
           "Email Templates"
         ],
         "summary": "List Email Templates",
-        "description": "List email templates visible to the current user (own + shared).\n\nRound-12 R12-AUTH-1 — shared templates are now bounded to the\ncaller's tenant via ``tenant_id``.",
+        "description": "List email templates visible to the current user (own + shared).\n\nRound-12 R12-AUTH-1 \u2014 shared templates are now bounded to the\ncaller's tenant via ``tenant_id``.",
         "operationId": "list_email_templates_api_v1_email_templates__get",
         "security": [
           {
@@ -30330,7 +30338,7 @@
           "Documents"
         ],
         "summary": "Share Document",
-        "description": "Create a shared document with a unique tracking token.\n\nRound-12 R12-AUTH-2 — when a ``quote_id`` is supplied, verify the\nquote belongs to the caller's tenant before linking. Otherwise a\nuser could attach foreign-tenant quote links to public tracking\ntokens. The document row inherits the caller's ``tenant_id``.",
+        "description": "Create a shared document with a unique tracking token.\n\nRound-12 R12-AUTH-2 \u2014 when a ``quote_id`` is supplied, verify the\nquote belongs to the caller's tenant before linking. Otherwise a\nuser could attach foreign-tenant quote links to public tracking\ntokens. The document row inherits the caller's ``tenant_id``.",
         "operationId": "share_document_api_v1_documents_share_post",
         "security": [
           {
@@ -30438,7 +30446,7 @@
           "Documents"
         ],
         "summary": "List Documents",
-        "description": "List shared documents for the current user, scoped by tenant.\n\nRound-13 R13-API-1 → Sprint 7b — legacy ``data`` alias dropped. The\nGET /documents/ endpoint has no SPA consumer today, so the alias\nwas unused dead weight; new consumers should read ``items``.",
+        "description": "List shared documents for the current user, scoped by tenant.\n\nRound-13 R13-API-1 \u2192 Sprint 7b \u2014 legacy ``data`` alias dropped. The\nGET /documents/ endpoint has no SPA consumer today, so the alias\nwas unused dead weight; new consumers should read ``items``.",
         "operationId": "list_documents_api_v1_documents__get",
         "security": [
           {
@@ -31008,7 +31016,7 @@
           "Subscriptions"
         ],
         "summary": "Upcoming Renewals",
-        "description": "Round-5 Phase 7 — canonical pagination envelope.\n\nService still returns the full filtered list; we slice in Python\nbecause the renewal window is bounded (max ~365 days, single\ntenant) and the row count is naturally small. Adding cursor-level\npagination would require a service rewrite without measurable win.",
+        "description": "Round-5 Phase 7 \u2014 canonical pagination envelope.\n\nService still returns the full filtered list; we slice in Python\nbecause the renewal window is bounded (max ~365 days, single\ntenant) and the row count is naturally small. Adding cursor-level\npagination would require a service rewrite without measurable win.",
         "operationId": "upcoming_renewals_api_v1_subscriptions_renewals_get",
         "security": [
           {
@@ -31098,7 +31106,7 @@
           "Subscriptions"
         ],
         "summary": "List Subscriptions",
-        "description": "Round-5 Phase 7 — canonical pagination envelope.",
+        "description": "Round-5 Phase 7 \u2014 canonical pagination envelope.",
         "operationId": "list_subscriptions_api_v1_subscriptions__get",
         "security": [
           {
@@ -31331,7 +31339,7 @@
           "Subscriptions"
         ],
         "summary": "Update Subscription",
-        "description": "R7-FORM-2 — partial subscription update. The service helper runs\n`assert_same_tenant` internally, so cross-tenant access maps to 404.",
+        "description": "R7-FORM-2 \u2014 partial subscription update. The service helper runs\n`assert_same_tenant` internally, so cross-tenant access maps to 404.",
         "operationId": "update_subscription_api_v1_subscriptions__sub_id__patch",
         "security": [
           {
@@ -32048,7 +32056,7 @@
           "Contracts"
         ],
         "summary": "Expiring Contracts",
-        "description": "Get contracts expiring within the next N days.\n\nRound-5 Phase 7 — standardized to canonical pagination envelope\n``{items,total,page,page_size,pages}`` so the SPA list components\ndon't need a contracts-specific shape. ``count`` is preserved\nadditively for any in-flight consumers.",
+        "description": "Get contracts expiring within the next N days.\n\nRound-5 Phase 7 \u2014 standardized to canonical pagination envelope\n``{items,total,page,page_size,pages}`` so the SPA list components\ndon't need a contracts-specific shape. ``count`` is preserved\nadditively for any in-flight consumers.",
         "operationId": "expiring_contracts_api_v1_contracts_expiring_get",
         "security": [
           {
@@ -33610,7 +33618,7 @@
           "Invoices"
         ],
         "summary": "Download Invoice Pdf",
-        "description": "Download invoice PDF — regenerates on-the-fly if file is missing.\n\nR6-API-3 — paired with the ``pdf_path`` → ``has_pdf`` swap in\n``_invoice_to_dict``. SPA must hit this endpoint to fetch the\nbinary; the server filesystem path is no longer leaked.",
+        "description": "Download invoice PDF \u2014 regenerates on-the-fly if file is missing.\n\nR6-API-3 \u2014 paired with the ``pdf_path`` \u2192 ``has_pdf`` swap in\n``_invoice_to_dict``. SPA must hit this endpoint to fetch the\nbinary; the server filesystem path is no longer leaked.",
         "operationId": "download_invoice_pdf_api_v1_invoices__invoice_id__pdf_get",
         "security": [
           {
@@ -34079,7 +34087,7 @@
           "Pipelines"
         ],
         "summary": "List Pipelines",
-        "description": "List pipelines visible to the caller's tenant.\n\nRound-5 Phase 7 — canonical pagination envelope. ``pipelines`` is\npreserved additively to bridge in-flight SPA builds.",
+        "description": "List pipelines visible to the caller's tenant.\n\nRound-5 Phase 7 \u2014 canonical pagination envelope. ``pipelines`` is\npreserved additively to bridge in-flight SPA builds.",
         "operationId": "list_pipelines_api_v1_pipelines__get",
         "security": [
           {
@@ -35189,7 +35197,7 @@
           "Revenue Recognition"
         ],
         "summary": "List Schedules",
-        "description": "List revenue schedules, optionally filtered by contract.\n\nRound-5 Phase 7 — canonical pagination envelope. Bounded at\n``page_size <= 100`` to keep the per-row entries-fan-out under\ncontrol (each schedule does an additional entries query).",
+        "description": "List revenue schedules, optionally filtered by contract.\n\nRound-5 Phase 7 \u2014 canonical pagination envelope. Bounded at\n``page_size <= 100`` to keep the per-row entries-fan-out under\ncontrol (each schedule does an additional entries query).",
         "operationId": "list_schedules_api_v1_revenue_schedules__get",
         "security": [
           {
@@ -35553,7 +35561,7 @@
           "Revenue Recognition"
         ],
         "summary": "Recognition Dashboard",
-        "description": "Summary dashboard — tenant-scoped (R4-TEN-8).",
+        "description": "Summary dashboard \u2014 tenant-scoped (R4-TEN-8).",
         "operationId": "recognition_dashboard_api_v1_revenue_recognition_dashboard_get",
         "security": [
           {
@@ -35913,7 +35921,7 @@
           "Live Chat"
         ],
         "summary": "Send Message",
-        "description": "Send a message to a session. Auto-response fires for visitor messages.\n\nR7-TEN-4 — public visitor endpoint; ``sender_type`` ∈ {agent, bot}\nis reserved for authenticated agent flows. Pre-fix, an anonymous\ncaller could spoof ``sender_type=agent, sender_id=42`` and the\ntranscript rendered as if agent #42 sent the message.",
+        "description": "Send a message to a session. Auto-response fires for visitor messages.\n\nR7-TEN-4 \u2014 public visitor endpoint; ``sender_type`` \u2208 {agent, bot}\nis reserved for authenticated agent flows. Pre-fix, an anonymous\ncaller could spoof ``sender_type=agent, sender_id=42`` and the\ntranscript rendered as if agent #42 sent the message.",
         "operationId": "send_message_api_v1_chat_sessions__session_id__messages_post",
         "parameters": [
           {
@@ -40163,7 +40171,7 @@
           "api_key"
         ],
         "title": "ApiKeyCreateResponse",
-        "description": "POST /settings/api-keys — returns plain key ONCE."
+        "description": "POST /settings/api-keys \u2014 returns plain key ONCE."
       },
       "ApiKeyItem": {
         "properties": {
@@ -40262,7 +40270,7 @@
           "pages"
         ],
         "title": "ApiKeyListResponse",
-        "description": "GET /settings/api-keys — canonical pagination envelope."
+        "description": "GET /settings/api-keys \u2014 canonical pagination envelope."
       },
       "ApiKeyRevokeResponse": {
         "properties": {
@@ -40281,7 +40289,7 @@
           "id"
         ],
         "title": "ApiKeyRevokeResponse",
-        "description": "DELETE /settings/api-keys/{id} — revoke ack."
+        "description": "DELETE /settings/api-keys/{id} \u2014 revoke ack."
       },
       "ApprovalDecision": {
         "properties": {
@@ -41077,7 +41085,7 @@
           "data"
         ],
         "title": "AvailableColumnsResponse",
-        "description": "GET /reports/available-columns — column metadata."
+        "description": "GET /reports/available-columns \u2014 column metadata."
       },
       "AvgDealSizeBucket": {
         "properties": {
@@ -41755,7 +41763,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "CalendarEventCreateResponse",
-        "description": "Provider-shaped event payload — passthrough with optional link id."
+        "description": "Provider-shaped event payload \u2014 passthrough with optional link id."
       },
       "CalendarEventLink": {
         "properties": {
@@ -42667,7 +42675,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "ChatMessageSendResponse",
-        "description": "`/chat/sessions/{id}/messages` POST response — always returns ``message``,\noptionally ``auto_response`` when a rule fires."
+        "description": "`/chat/sessions/{id}/messages` POST response \u2014 always returns ``message``,\noptionally ``auto_response`` when a rule fires."
       },
       "ChatSessionResponse": {
         "properties": {
@@ -45201,7 +45209,7 @@
           "activities"
         ],
         "title": "CustomerActivityTimelineResponse",
-        "description": "GET /customers/{id}/activity-timeline — unified activity feed."
+        "description": "GET /customers/{id}/activity-timeline \u2014 unified activity feed."
       },
       "CustomerBulkActionResponse": {
         "properties": {
@@ -45242,7 +45250,7 @@
           "message"
         ],
         "title": "CustomerBulkActionResponse",
-        "description": "POST /customers/bulk-action — applies to delete/assign/export."
+        "description": "POST /customers/bulk-action \u2014 applies to delete/assign/export."
       },
       "CustomerCreate": {
         "properties": {
@@ -45416,7 +45424,7 @@
           "email"
         ],
         "title": "CustomerCreate",
-        "description": "Customer create payload.\n\nR5-FORM-3 — the SPA's create modal already submits ``website`` and\n``linkedin_url`` (CustomerListPage.tsx:283-296). Pre-Round-5 these\nfields were silently dropped because Pydantic ignores extras by\ndefault. The full enrichment field set is also accepted so manual\noverrides aren't blown away by the AI enrichment pipeline."
+        "description": "Customer create payload.\n\nR5-FORM-3 \u2014 the SPA's create modal already submits ``website`` and\n``linkedin_url`` (CustomerListPage.tsx:283-296). Pre-Round-5 these\nfields were silently dropped because Pydantic ignores extras by\ndefault. The full enrichment field set is also accepted so manual\noverrides aren't blown away by the AI enrichment pipeline."
       },
       "CustomerDataExportResponse": {
         "properties": {
@@ -45480,7 +45488,7 @@
           "message"
         ],
         "title": "CustomerDeleteResponse",
-        "description": "DELETE /customers/{id} — single-line ack."
+        "description": "DELETE /customers/{id} \u2014 single-line ack."
       },
       "CustomerEnrichResponse": {
         "properties": {
@@ -45500,7 +45508,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "CustomerEnrichResponse",
-        "description": "POST /customers/{id}/enrich — wraps service payload in ``data``."
+        "description": "POST /customers/{id}/enrich \u2014 wraps service payload in ``data``."
       },
       "CustomerHealthReportResponse": {
         "properties": {
@@ -45642,7 +45650,7 @@
           "subsidiaries"
         ],
         "title": "CustomerHierarchyResponse",
-        "description": "GET /customers/{id}/hierarchy — parents + subsidiaries."
+        "description": "GET /customers/{id}/hierarchy \u2014 parents + subsidiaries."
       },
       "CustomerImportResponse": {
         "properties": {
@@ -45682,7 +45690,7 @@
           "skipped"
         ],
         "title": "CustomerImportResponse",
-        "description": "POST /customers/import — bulk import summary."
+        "description": "POST /customers/import \u2014 bulk import summary."
       },
       "CustomerIntelligenceOpportunity": {
         "properties": {
@@ -45818,7 +45826,7 @@
           "signals"
         ],
         "title": "CustomerIntelligenceResponse",
-        "description": "GET /customers/{id}/intelligence — operational rollup."
+        "description": "GET /customers/{id}/intelligence \u2014 operational rollup."
       },
       "CustomerIntelligenceSignal": {
         "properties": {
@@ -45945,7 +45953,7 @@
           "status"
         ],
         "title": "CustomerParentResponse",
-        "description": "PATCH /customers/{id}/parent — reparent ack."
+        "description": "PATCH /customers/{id}/parent \u2014 reparent ack."
       },
       "CustomerPinResponse": {
         "properties": {
@@ -45964,7 +45972,7 @@
           "customer_id"
         ],
         "title": "CustomerPinResponse",
-        "description": "POST/DELETE /customers/{id}/pin — pinned-state ack."
+        "description": "POST/DELETE /customers/{id}/pin \u2014 pinned-state ack."
       },
       "CustomerPricingCreate": {
         "properties": {
@@ -46441,7 +46449,7 @@
           "id"
         ],
         "title": "CustomerResponse",
-        "description": "Customer response surface.\n\nR6-API-9 — pre-R6 the canonical ``_customer_to_dict`` emitted 17\nfields while the schema declared 7, leaving 11 fields invisible to\nOpenAPI / SDK codegen consumers. Mirrors R5-FORM-3/4 which widened\nthe input side; this brings the output side back in sync.\n\nRound-10 R10-API-6 — Sprint 11 turned this from a documentation-\nonly schema into the runtime response_model for /customers/ and\n/customers/high-intent. To stay non-breaking against the four\nrealities of the live serializer:\n\n  1. ``apply_request_perms`` can strip any field (``hidden`` rule).\n  2. ``apply_request_perms`` can mask any field to ``\"***\"``\n     (``masked`` rule).\n  3. Callers add caller-specific extras (``pinned``, ``stats``,\n     ``health_score``, …) on top of the dict.\n  4. Pre-bootstrap rows still exist with ``created_at`` / ``email``\n     /etc. set to None.\n\nThe schema is therefore extras-tolerant (``extra='allow'``) and\nevery field nullable."
+        "description": "Customer response surface.\n\nR6-API-9 \u2014 pre-R6 the canonical ``_customer_to_dict`` emitted 17\nfields while the schema declared 7, leaving 11 fields invisible to\nOpenAPI / SDK codegen consumers. Mirrors R5-FORM-3/4 which widened\nthe input side; this brings the output side back in sync.\n\nRound-10 R10-API-6 \u2014 Sprint 11 turned this from a documentation-\nonly schema into the runtime response_model for /customers/ and\n/customers/high-intent. To stay non-breaking against the four\nrealities of the live serializer:\n\n  1. ``apply_request_perms`` can strip any field (``hidden`` rule).\n  2. ``apply_request_perms`` can mask any field to ``\"***\"``\n     (``masked`` rule).\n  3. Callers add caller-specific extras (``pinned``, ``stats``,\n     ``health_score``, \u2026) on top of the dict.\n  4. Pre-bootstrap rows still exist with ``created_at`` / ``email``\n     /etc. set to None.\n\nThe schema is therefore extras-tolerant (``extra='allow'``) and\nevery field nullable."
       },
       "CustomerRollupResponse": {
         "properties": {
@@ -46480,7 +46488,317 @@
           "total_quote_value"
         ],
         "title": "CustomerRollupResponse",
-        "description": "GET /customers/{id}/rollup — aggregate metrics across subsidiaries."
+        "description": "GET /customers/{id}/rollup \u2014 aggregate metrics across subsidiaries."
+      },
+      "CustomerStrictResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "integer",
+            "title": "Tenant Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "preferred_lang": {
+            "type": "string",
+            "title": "Preferred Lang"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "kvkk_consent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kvkk Consent"
+          },
+          "company": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "tax_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Id"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "kvkk_consent_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kvkk Consent Date"
+          },
+          "kvkk_consent_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kvkk Consent Method"
+          },
+          "data_processing_purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Processing Purpose"
+          },
+          "data_retention_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Retention Until"
+          },
+          "deletion_requested_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deletion Requested At"
+          },
+          "data_classification": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "public",
+                  "internal",
+                  "confidential",
+                  "restricted"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Classification"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "employee_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Count"
+          },
+          "annual_revenue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Revenue"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "linkedin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedin Url"
+          },
+          "enriched_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enriched At"
+          },
+          "territory_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Territory Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "quote_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Count"
+          },
+          "total_quote_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Quote Value"
+          },
+          "pinned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "name",
+          "email",
+          "preferred_lang",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CustomerStrictResponse",
+        "description": "C2 canary \u2014 Round-16 (N15-API-3 RFC Option A).\n\nStrong-contract variant of ``CustomerResponse`` for routes where\nfield-permission masking is NOT active. Every NOT-NULL column on\nthe Customer ORM is declared Required; only genuinely nullable\ncolumns stay Optional.\n\nPer the RFC at ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,\nthis schema is the canary deliverable. Routes opt in via the picker\nat ``backend/app/services/response_model_picker.py``; if any\nfield-permission rule is active for ``customer`` on the current\nrequest, the picker falls back to ``CustomerResponse`` so masking\nbehaviour is preserved.\n\nCompatibility note: additive only. No existing route uses it yet;\nexisting routes continue to return ``CustomerResponse``. Round-17\nwill wire the picker on /customers/{id} as the first canary route."
       },
       "CustomerTimelineEvent": {
         "properties": {
@@ -46565,7 +46883,7 @@
           "events"
         ],
         "title": "CustomerTimelineResponse",
-        "description": "GET /customers/{id}/timeline — chronological events."
+        "description": "GET /customers/{id}/timeline \u2014 chronological events."
       },
       "CustomerUpdate": {
         "properties": {
@@ -46755,7 +47073,7 @@
         },
         "type": "object",
         "title": "CustomerUpdate",
-        "description": "Customer update payload — same writable surface as CustomerCreate\nminus ``email`` (which has a separate uniqueness check path)."
+        "description": "Customer update payload \u2014 same writable surface as CustomerCreate\nminus ``email`` (which has a separate uniqueness check path)."
       },
       "DashboardConfigResponse": {
         "properties": {
@@ -46836,7 +47154,7 @@
           "id"
         ],
         "title": "DashboardConfigResponse",
-        "description": "User-customizable dashboard layout (dashboard_builder).\n\nRound-13 Sprint 6b — separate from ``DashboardStats`` (which serves\nthe analytics surface) and from the existing dashboard_builder\nhandlers' dict shape. ``extra='allow'`` keeps caller-specific\nextras (e.g. widget count, last-executed timestamps) round-tripping."
+        "description": "User-customizable dashboard layout (dashboard_builder).\n\nRound-13 Sprint 6b \u2014 separate from ``DashboardStats`` (which serves\nthe analytics surface) and from the existing dashboard_builder\nhandlers' dict shape. ``extra='allow'`` keeps caller-specific\nextras (e.g. widget count, last-executed timestamps) round-tripping."
       },
       "DashboardCreate": {
         "properties": {
@@ -46926,7 +47244,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "DataHealthResponse",
-        "description": "Master-data completeness — shape varies; passthrough."
+        "description": "Master-data completeness \u2014 shape varies; passthrough."
       },
       "DataQualityCustomers": {
         "properties": {
@@ -47250,7 +47568,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "DealRiskResponse",
-        "description": "Free-form payload from\n``ai_deal_risk_service.assess_deal_risk``. Schema currently includes\n``risk_score``, ``factors``, ``recommendations`` but is allowed to\nevolve service-side — ``extra='allow'`` keeps the contract loose."
+        "description": "Free-form payload from\n``ai_deal_risk_service.assess_deal_risk``. Schema currently includes\n``risk_score``, ``factors``, ``recommendations`` but is allowed to\nevolve service-side \u2014 ``extra='allow'`` keeps the contract loose."
       },
       "DealRoomCreate": {
         "properties": {
@@ -47988,7 +48306,7 @@
           "event_type"
         ],
         "title": "DomainEventItem",
-        "description": "Domain event row — ``payload`` is loaded from JSON so its shape is\npolymorphic. ``extra='allow'`` lets us round-trip unknown payload\ncolumns without losing data."
+        "description": "Domain event row \u2014 ``payload`` is loaded from JSON so its shape is\npolymorphic. ``extra='allow'`` lets us round-trip unknown payload\ncolumns without losing data."
       },
       "DomainEventListResponse": {
         "properties": {
@@ -48159,7 +48477,7 @@
           "is_configured"
         ],
         "title": "EmailCredentialsReadResponse",
-        "description": "GET /settings/email-credentials — masked password roundtrip."
+        "description": "GET /settings/email-credentials \u2014 masked password roundtrip."
       },
       "EmailCredentialsSaveResponse": {
         "properties": {
@@ -48178,7 +48496,7 @@
           "email_setup_completed"
         ],
         "title": "EmailCredentialsSaveResponse",
-        "description": "POST /settings/email-credentials — save ack."
+        "description": "POST /settings/email-credentials \u2014 save ack."
       },
       "EmailDraftRequest": {
         "properties": {
@@ -48597,7 +48915,7 @@
           "created_at"
         ],
         "title": "EmailResponse",
-        "description": "Email request response surface.\n\nR6-API-8 — pre-R6 the schema declared 19 fields while the router\nemitted 32. The schema isn't currently used as a runtime return\nannotation (so no functional bug), but OpenAPI / SDK codegen drift\nsilently spread to every consumer of the spec. Same shape as\nR5-API-2 fix on UserResponse."
+        "description": "Email request response surface.\n\nR6-API-8 \u2014 pre-R6 the schema declared 19 fields while the router\nemitted 32. The schema isn't currently used as a runtime return\nannotation (so no functional bug), but OpenAPI / SDK codegen drift\nsilently spread to every consumer of the spec. Same shape as\nR5-API-2 fix on UserResponse."
       },
       "EmailReviewRequest": {
         "properties": {
@@ -48955,7 +49273,7 @@
           "message"
         ],
         "title": "EmailTestResponse",
-        "description": "POST /settings/email-credentials/test — connection probe result."
+        "description": "POST /settings/email-credentials/test \u2014 connection probe result."
       },
       "EngagementTranscriptRow": {
         "properties": {
@@ -49417,7 +49735,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "EolRiskResponse",
-        "description": "Per-part risk envelope — shape varies per service version."
+        "description": "Per-part risk envelope \u2014 shape varies per service version."
       },
       "EsignConnectRequest": {
         "properties": {
@@ -49899,7 +50217,7 @@
           "data"
         ],
         "title": "FolderEnvelope",
-        "description": "POST/PUT /folders[/{id}] — ``{\"data\": {...}}`` wrapper."
+        "description": "POST/PUT /folders[/{id}] \u2014 ``{\"data\": {...}}`` wrapper."
       },
       "FolderItem": {
         "properties": {
@@ -49969,7 +50287,7 @@
           "id"
         ],
         "title": "FolderItem",
-        "description": "Single folder row — used inside POST/PUT folder responses.\n\nThe ``data`` wrapping envelope reflects the legacy SPA shape; new\nconsumers should treat ``data`` as the canonical payload."
+        "description": "Single folder row \u2014 used inside POST/PUT folder responses.\n\nThe ``data`` wrapping envelope reflects the legacy SPA shape; new\nconsumers should treat ``data`` as the canonical payload."
       },
       "ForecastAdjustmentRow": {
         "properties": {
@@ -50317,7 +50635,7 @@
           "count"
         ],
         "title": "GenerateActionsResponse",
-        "description": "``actions`` is whatever ``ai_action_generator.generate_actions``\nreturns — keep ``Any`` so service-side schema evolutions don't\nrequire coordinated changes here."
+        "description": "``actions`` is whatever ``ai_action_generator.generate_actions``\nreturns \u2014 keep ``Any`` so service-side schema evolutions don't\nrequire coordinated changes here."
       },
       "GenerateBody": {
         "properties": {
@@ -50698,7 +51016,7 @@
           "weight"
         ],
         "title": "HealthIndicatorResponse",
-        "description": "One row of ``CustomerHealthReport.indicators``.\n\n``weight`` is a fractional float (e.g. 0.2 = 20% of total) — NOT an\ninteger percentage. The original v1 hand-written FE interface\ndeclared it as ``number`` which works either way."
+        "description": "One row of ``CustomerHealthReport.indicators``.\n\n``weight`` is a fractional float (e.g. 0.2 = 20% of total) \u2014 NOT an\ninteger percentage. The original v1 hand-written FE interface\ndeclared it as ``number`` which works either way."
       },
       "HeatmapResponse": {
         "properties": {
@@ -50774,14 +51092,14 @@
           "score"
         ],
         "title": "HighIntentAccountResponse",
-        "description": "Wire shape for ``GET /api/v1/customers/high-intent``.\n\nRound-15 N15-API-1 quick-win 5 — pre-Round-15 the endpoint was typed\nas ``PaginatedResponse[dict]`` even though ``ProspectingAgent`` already\nemits this exact 6-field shape (``customers.py:115-125``). The schema\ncloses that contract gap without changing the wire payload."
+        "description": "Wire shape for ``GET /api/v1/customers/high-intent``.\n\nRound-15 N15-API-1 quick-win 5 \u2014 pre-Round-15 the endpoint was typed\nas ``PaginatedResponse[dict]`` even though ``ProspectingAgent`` already\nemits this exact 6-field shape (``customers.py:115-125``). The schema\ncloses that contract gap without changing the wire payload."
       },
       "InflationTaxResponse": {
         "properties": {},
         "additionalProperties": true,
         "type": "object",
         "title": "InflationTaxResponse",
-        "description": "Drift × open-pipeline exposure — shape varies; passthrough."
+        "description": "Drift \u00d7 open-pipeline exposure \u2014 shape varies; passthrough."
       },
       "InlineReportRequest": {
         "properties": {
@@ -52695,7 +53013,7 @@
           "status"
         ],
         "title": "MissingPricePartResponse",
-        "description": "Round-15 audit F-027 — typed row for ``/analytics/parts-without-price``.\n\nTwo variants share the same shape:\n  * ``status == \"no_price\"``    — part exists in the catalog but\n    both ``supplier_price`` and ``transfer_price`` are NULL.\n  * ``status == \"unknown_part\"`` — quoted SKU that doesn't exist in\n    the catalog at all; ``id`` and the name fields are NULL.\n\nPre-fix the endpoint returned a bare list of dicts. The SPA had to\ncast via ``as unknown as`` because the dict shape wasn't surfaced\nin OpenAPI."
+        "description": "Round-15 audit F-027 \u2014 typed row for ``/analytics/parts-without-price``.\n\nTwo variants share the same shape:\n  * ``status == \"no_price\"``    \u2014 part exists in the catalog but\n    both ``supplier_price`` and ``transfer_price`` are NULL.\n  * ``status == \"unknown_part\"`` \u2014 quoted SKU that doesn't exist in\n    the catalog at all; ``id`` and the name fields are NULL.\n\nPre-fix the endpoint returned a bare list of dicts. The SPA had to\ncast via ``as unknown as`` because the dict shape wasn't surfaced\nin OpenAPI."
       },
       "MomentumHistoryRow": {
         "properties": {
@@ -53167,7 +53485,7 @@
           "data"
         ],
         "title": "NotificationChannelsResponse",
-        "description": "GET /settings/notification-channels — wraps data in canonical envelope."
+        "description": "GET /settings/notification-channels \u2014 wraps data in canonical envelope."
       },
       "NotificationChannelsTestResponse": {
         "properties": {
@@ -53184,7 +53502,7 @@
           "data"
         ],
         "title": "NotificationChannelsTestResponse",
-        "description": "POST /settings/notification-channels/test — per-channel send result."
+        "description": "POST /settings/notification-channels/test \u2014 per-channel send result."
       },
       "NotificationResponse": {
         "properties": {
@@ -56694,7 +57012,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "PartsSummaryResponse",
-        "description": "Combined dashboard payload — shape varies; passthrough."
+        "description": "Combined dashboard payload \u2014 shape varies; passthrough."
       },
       "PasswordResetRequest": {
         "properties": {
@@ -57256,7 +57574,7 @@
           "data"
         ],
         "title": "PredictCloseResponse",
-        "description": "Service payload nested under ``data``. Payload schema lives in\n``ai_deal_risk_service.predict_close_probability`` — kept open."
+        "description": "Service payload nested under ``data``. Payload schema lives in\n``ai_deal_risk_service.predict_close_probability`` \u2014 kept open."
       },
       "PriceEntryResponse": {
         "properties": {
@@ -57378,7 +57696,7 @@
           "honeywell_code"
         ],
         "title": "PriceEntrySparePartSummary",
-        "description": "Inline spare-part summary the price list embeds for each row.\n\nRound-15 N15-API-1 quick-win 2 — pre-Round-15 ``/prices/`` was typed\nas ``PaginatedResponse[dict]`` and ``_price_to_dict`` embedded this\n3-field summary inside each price row. Declaring it explicitly keeps\nthe contract honest instead of relying on ``extra='allow'``."
+        "description": "Inline spare-part summary the price list embeds for each row.\n\nRound-15 N15-API-1 quick-win 2 \u2014 pre-Round-15 ``/prices/`` was typed\nas ``PaginatedResponse[dict]`` and ``_price_to_dict`` embedded this\n3-field summary inside each price row. Declaring it explicitly keeps\nthe contract honest instead of relying on ``extra='allow'``."
       },
       "PriceTierCreate": {
         "properties": {
@@ -58301,7 +58619,7 @@
           "id"
         ],
         "title": "QuoteResponse",
-        "description": "Quote response surface.\n\nR5-API-6 — ``pdf_path`` is no longer returned by the handler\n(round-4 swapped to a boolean ``has_pdf``); declaring it on the\nschema would only mislead codegen consumers.\nR5-API-3 — ``revision_no`` and ``superseded_by`` exposed so the\nV9 revision tree UI can render the v1→v2→v3 chain.\n\nRound-10 R10-API-6 — Sprint 11 wires this as the response_model\nitem type for PaginatedResponse on /quotes/. Same four realities\nas CustomerResponse (see customer.py): masking can strip/mask,\ncallers add extras, legacy rows have NULL columns. Schema is\ntherefore extras-tolerant and every field is nullable."
+        "description": "Quote response surface.\n\nR5-API-6 \u2014 ``pdf_path`` is no longer returned by the handler\n(round-4 swapped to a boolean ``has_pdf``); declaring it on the\nschema would only mislead codegen consumers.\nR5-API-3 \u2014 ``revision_no`` and ``superseded_by`` exposed so the\nV9 revision tree UI can render the v1\u2192v2\u2192v3 chain.\n\nRound-10 R10-API-6 \u2014 Sprint 11 wires this as the response_model\nitem type for PaginatedResponse on /quotes/. Same four realities\nas CustomerResponse (see customer.py): masking can strip/mask,\ncallers add extras, legacy rows have NULL columns. Schema is\ntherefore extras-tolerant and every field is nullable."
       },
       "QuoteRevisionsResponse": {
         "properties": {
@@ -58557,7 +58875,7 @@
           "data"
         ],
         "title": "RecordQualityResponse",
-        "description": "Per-record DQ score — service returns a free-form payload."
+        "description": "Per-record DQ score \u2014 service returns a free-form payload."
       },
       "RefreshRequest": {
         "properties": {
@@ -58870,7 +59188,7 @@
           "data"
         ],
         "title": "ReportExecutionEnvelope",
-        "description": "POST /templates/{id}/execute and /preview — ``{\"data\": {...}}`` wrapper."
+        "description": "POST /templates/{id}/execute and /preview \u2014 ``{\"data\": {...}}`` wrapper."
       },
       "ReportExecutionResult": {
         "properties": {
@@ -58940,7 +59258,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "ReportExecutionResult",
-        "description": "Free-form execution payload from ``ReportEngine`` — typed as\nextras-allowed so engine-specific fields (rows, columns, totals,\nmetadata, chart hints, …) flow through without breaking the\ncontract."
+        "description": "Free-form execution payload from ``ReportEngine`` \u2014 typed as\nextras-allowed so engine-specific fields (rows, columns, totals,\nmetadata, chart hints, \u2026) flow through without breaking the\ncontract."
       },
       "ReportFolderCreate": {
         "properties": {
@@ -59196,7 +59514,7 @@
           "data"
         ],
         "title": "ReportTemplateEnvelope",
-        "description": "POST/PUT /templates[/{id}] — ``{\"data\": {...}}`` wrapper."
+        "description": "POST/PUT /templates[/{id}] \u2014 ``{\"data\": {...}}`` wrapper."
       },
       "ReportTemplateOut": {
         "properties": {
@@ -59882,7 +60200,7 @@
           "data"
         ],
         "title": "RevenueLeaksResponse",
-        "description": "Service returns a free-form ``LeakDetectionService.detect_leaks``\npayload — keep ``extra='allow'`` for the same reason."
+        "description": "Service returns a free-form ``LeakDetectionService.detect_leaks``\npayload \u2014 keep ``extra='allow'`` for the same reason."
       },
       "RevenueScheduleRow": {
         "properties": {
@@ -60656,7 +60974,7 @@
           "id"
         ],
         "title": "SavedViewResponse",
-        "description": "Saved board / list view shape.\n\nRound-13 Sprint 7b — promote saved_views from PaginatedResponse[dict]\nto a typed per-item shape. Used by PlanningStudioPage + SavedViewsBar."
+        "description": "Saved board / list view shape.\n\nRound-13 Sprint 7b \u2014 promote saved_views from PaginatedResponse[dict]\nto a typed per-item shape. Used by PlanningStudioPage + SavedViewsBar."
       },
       "ScheduleCreate": {
         "properties": {
@@ -60735,7 +61053,7 @@
           "start_at"
         ],
         "title": "SchedulePlaceholderBody",
-        "description": "Sprint 4 — calendar adapter stub: records intent without external calendar write."
+        "description": "Sprint 4 \u2014 calendar adapter stub: records intent without external calendar write."
       },
       "ScheduleRequest": {
         "properties": {
@@ -60779,7 +61097,7 @@
           "data"
         ],
         "title": "ScheduleResponse",
-        "description": "PATCH /templates/{id}/schedule — schedule update ack."
+        "description": "PATCH /templates/{id}/schedule \u2014 schedule update ack."
       },
       "ScheduleResultPayload": {
         "properties": {
@@ -61584,7 +61902,7 @@
           "id"
         ],
         "title": "SequenceResponseParsed",
-        "description": "Sequence with JSON fields pre-parsed server-side.\n\nReturned by:\n  * ``GET /sequences/`` (list — minus ``auto_enroll_rules``)\n  * ``GET /sequences/{id}`` (detail — full)"
+        "description": "Sequence with JSON fields pre-parsed server-side.\n\nReturned by:\n  * ``GET /sequences/`` (list \u2014 minus ``auto_enroll_rules``)\n  * ``GET /sequences/{id}`` (detail \u2014 full)"
       },
       "SequenceUpdate": {
         "properties": {
@@ -61817,7 +62135,7 @@
           "settings"
         ],
         "title": "SettingsMapResponse",
-        "description": "GET /settings/ — masked key/value map."
+        "description": "GET /settings/ \u2014 masked key/value map."
       },
       "SettingsUpdateRequest": {
         "properties": {
@@ -61904,7 +62222,7 @@
           "settings"
         ],
         "title": "SettingsUpdateResponse",
-        "description": "PUT /settings/ — ack + refreshed (masked) settings map."
+        "description": "PUT /settings/ \u2014 ack + refreshed (masked) settings map."
       },
       "ShadowBackfillBody": {
         "properties": {
@@ -62492,7 +62810,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "SlippageEnvelope",
-        "description": "Slippage summary varies in shape — passthrough."
+        "description": "Slippage summary varies in shape \u2014 passthrough."
       },
       "SlippageResponse": {
         "properties": {
@@ -62841,7 +63159,7 @@
           "is_active"
         ],
         "title": "SparePartResponse",
-        "description": "Public spare-part shape returned by /parts/*.\n\nRound-15 N15-API-1 quick-win 1 — pre-Round-15 ``/parts/`` was typed\nas ``PaginatedResponse[dict]``. The hand-built ``_part_to_dict``\nalready emits this exact set of fields, so wiring this schema as\nthe ``response_model`` is a 1-line swap with no shape change. Pricing\ncolumns ride explicitly so SDK consumers don't need ``[key: string]:\nunknown`` extras to read them."
+        "description": "Public spare-part shape returned by /parts/*.\n\nRound-15 N15-API-1 quick-win 1 \u2014 pre-Round-15 ``/parts/`` was typed\nas ``PaginatedResponse[dict]``. The hand-built ``_part_to_dict``\nalready emits this exact set of fields, so wiring this schema as\nthe ``response_model`` is a 1-line swap with no shape change. Pricing\ncolumns ride explicitly so SDK consumers don't need ``[key: string]:\nunknown`` extras to read them."
       },
       "SparePartUpdate": {
         "properties": {
@@ -63011,7 +63329,7 @@
         },
         "type": "object",
         "title": "SparePartUpdate",
-        "description": "All fields optional — only provided fields are updated."
+        "description": "All fields optional \u2014 only provided fields are updated."
       },
       "StageConfigBulkUpdate": {
         "properties": {
@@ -63132,7 +63450,7 @@
           "total"
         ],
         "title": "StageConfigListResponse",
-        "description": "GET /settings/stage-config — pipeline stage definitions."
+        "description": "GET /settings/stage-config \u2014 pipeline stage definitions."
       },
       "StageConfigUpdateResponse": {
         "properties": {
@@ -63151,7 +63469,7 @@
           "updated"
         ],
         "title": "StageConfigUpdateResponse",
-        "description": "PUT /settings/stage-config — bulk-update ack."
+        "description": "PUT /settings/stage-config \u2014 bulk-update ack."
       },
       "StageConversionRate": {
         "properties": {
@@ -64136,7 +64454,7 @@
         },
         "type": "object",
         "title": "SubscriptionUpdate",
-        "description": "R7-FORM-2 — pre-fix the SPA had no Subscription edit path; the\nbackend was missing the schema and PATCH route entirely.\n\nAll fields are optional so partial updates work the way the inline\nedit panel needs (only fields the user touches go on the wire)."
+        "description": "R7-FORM-2 \u2014 pre-fix the SPA had no Subscription edit path; the\nbackend was missing the schema and PATCH route entirely.\n\nAll fields are optional so partial updates work the way the inline\nedit panel needs (only fields the user touches go on the wire)."
       },
       "SubstitutionsResponse": {
         "properties": {
@@ -64299,7 +64617,7 @@
           "summary"
         ],
         "title": "SummarizeResponse",
-        "description": "``summary`` endpoint result. Sources may be dicts or strings —\nkeep ``list[Any]`` and rely on the handler-side normalization."
+        "description": "``summary`` endpoint result. Sources may be dicts or strings \u2014\nkeep ``list[Any]`` and rely on the handler-side normalization."
       },
       "SystemConfigCompany": {
         "properties": {
@@ -64451,7 +64769,7 @@
           "quote_defaults"
         ],
         "title": "SystemConfigResponse",
-        "description": "GET /settings/system-config — feature flags + rate limits + company."
+        "description": "GET /settings/system-config \u2014 feature flags + rate limits + company."
       },
       "SystemConfigUpdate": {
         "properties": {
@@ -64488,7 +64806,7 @@
           "value"
         ],
         "title": "SystemConfigUpdateResponse",
-        "description": "PUT /settings/system-config/{key} — single-setting update ack."
+        "description": "PUT /settings/system-config/{key} \u2014 single-setting update ack."
       },
       "TaskCreate": {
         "properties": {
@@ -64913,7 +65231,7 @@
           "role"
         ],
         "title": "TerritoryAssignmentItem",
-        "description": "Single assignment row — matches ``_serialize_assignment`` + user info."
+        "description": "Single assignment row \u2014 matches ``_serialize_assignment`` + user info."
       },
       "TerritoryCreate": {
         "properties": {
@@ -64994,7 +65312,7 @@
           "assignments"
         ],
         "title": "TerritoryDetailResponse",
-        "description": "GET /territories/{id} — detail + assignments."
+        "description": "GET /territories/{id} \u2014 detail + assignments."
       },
       "TerritoryItem": {
         "properties": {
@@ -65108,7 +65426,7 @@
           "id"
         ],
         "title": "TerritoryItem",
-        "description": "Flat territory row — matches ``_serialize_territory``."
+        "description": "Flat territory row \u2014 matches ``_serialize_territory``."
       },
       "TerritoryListRow": {
         "properties": {
@@ -65222,7 +65540,7 @@
           "currency"
         ],
         "title": "TerritoryMetricsResponse",
-        "description": "GET /territories/{id}/metrics — lightweight KPIs."
+        "description": "GET /territories/{id}/metrics \u2014 lightweight KPIs."
       },
       "TerritoryTreeNode": {
         "properties": {
@@ -65277,7 +65595,7 @@
           "id"
         ],
         "title": "TerritoryTreeNode",
-        "description": "Recursive tree node — used by /tree endpoint."
+        "description": "Recursive tree node \u2014 used by /tree endpoint."
       },
       "TerritoryTreeResponse": {
         "properties": {
@@ -65294,7 +65612,7 @@
           "tree"
         ],
         "title": "TerritoryTreeResponse",
-        "description": "GET /territories/tree — nested territory hierarchy."
+        "description": "GET /territories/tree \u2014 nested territory hierarchy."
       },
       "TerritoryUpdate": {
         "properties": {
@@ -65919,7 +66237,7 @@
           "updated_at"
         ],
         "title": "UserResponse",
-        "description": "Auth-flow user surface.\n\nR5-API-2 / R5-TS-4 — adds tenant_id and manager_id so the SPA's\n/auth/me + /auth/login responses carry the same identity surface\nas /api/v1/users/* (and so the auth store can populate org-chart\nUI without a second round-trip)."
+        "description": "Auth-flow user surface.\n\nR5-API-2 / R5-TS-4 \u2014 adds tenant_id and manager_id so the SPA's\n/auth/me + /auth/login responses carry the same identity surface\nas /api/v1/users/* (and so the auth store can populate org-chart\nUI without a second round-trip)."
       },
       "UserRow": {
         "properties": {
@@ -66167,7 +66485,7 @@
           "total"
         ],
         "title": "VelocityResponse",
-        "description": "A/B/C tier list — service dataclasses passed through asdict()."
+        "description": "A/B/C tier list \u2014 service dataclasses passed through asdict()."
       },
       "WaterfallResponse": {
         "properties": {
@@ -66181,7 +66499,7 @@
           "data"
         ],
         "title": "WaterfallResponse",
-        "description": "Service returns a free-form ``RevenueWaterfallService.get_waterfall``\npayload — keep ``extra='allow'`` to round-trip it untouched."
+        "description": "Service returns a free-form ``RevenueWaterfallService.get_waterfall``\npayload \u2014 keep ``extra='allow'`` to round-trip it untouched."
       },
       "WebLeadFormRequest": {
         "properties": {

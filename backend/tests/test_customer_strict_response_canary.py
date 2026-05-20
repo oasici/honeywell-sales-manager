@@ -86,6 +86,10 @@ def test_strict_schema_accepts_full_dict() -> None:
     assert parsed.name == "Acme Corp"
     assert parsed.email == "ops@acme.example"
     assert parsed.preferred_lang == "tr"
+    # kvkk_consent is Optional on the strict schema even though it's
+    # NOT NULL in the DB — the serializer intentionally omits it
+    # (PII; surfaced only via /compliance). Test still passes when
+    # caller populates it explicitly.
     assert parsed.kvkk_consent is True
     assert parsed.created_at is not None
     assert parsed.updated_at is not None
