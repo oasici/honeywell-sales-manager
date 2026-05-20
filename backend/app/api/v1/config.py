@@ -29,79 +29,98 @@ router = APIRouter(prefix="/config", tags=["config"])
 # Allow-list of FEATURE_* settings the frontend is allowed to read.
 # Adding a new flag to this set is an explicit decision so we don't
 # accidentally leak experimental flags via a wildcard.
+#
+# Sprint 16e A2 (Round-16 deferred-plan) — each flag is annotated with
+# its verified-intent classification:
+#
+#   * ``# spa-gated``       — FE renders a ``<FeatureFlagGate>`` or
+#                             ``isEnabled()`` check before showing UI;
+#                             allowlist entry is load-bearing.
+#   * ``# backend-only``    — backend gates the route via ``_require_*``;
+#                             FE just calls the API and renders the
+#                             response. Allowlist exposes the flag so
+#                             the SPA *could* render an "off" panel, but
+#                             nothing breaks if it doesn't.
+#   * ``# admin-only``      — admin/ops surfaces that are role-gated; the
+#                             flag tightens that further. Useful for
+#                             ops/release toggles.
+#   * ``# deferred-fe-gate``— a known audit finding (Round-15 N15-FLAG-X)
+#                             — backend has the gate but the SPA still
+#                             shows the affordance unconditionally. Wire
+#                             a ``<FeatureFlagGate>`` in the follow-up.
 _PUBLIC_FEATURE_FLAGS: set[str] = {
-    "FEATURE_RAG",
-    "FEATURE_V2_BOARD",
-    "FEATURE_V4_FEATURE_STORE",
-    "FEATURE_V4_ADDITIVE_READMODEL",
-    "FEATURE_V4_SALES_EVENTS_SHADOW",
-    "FEATURE_V4_DEAL_REPLAY",
-    "FEATURE_V4_SALES_DNA",
-    "FEATURE_V5_INTELLIGENCE",
-    "FEATURE_V6_REALTIME",
-    "FEATURE_V7_LLM_OBJECTION",
-    "FEATURE_V9_CRM_SYNC",
-    "FEATURE_V9_CALENDAR_OAUTH",
-    "FEATURE_V9_NL_SEARCH",
+    "FEATURE_RAG",  # backend-only — /api/v1/rag/* index/search; SPA just calls API
+    "FEATURE_V2_BOARD",  # spa-gated — wraps board routes in App.tsx
+    "FEATURE_V4_FEATURE_STORE",  # backend-only — feature_store service internal
+    "FEATURE_V4_ADDITIVE_READMODEL",  # backend-only — sales-events shadow read model
+    "FEATURE_V4_SALES_EVENTS_SHADOW",  # backend-only — sales-events shadow writer
+    "FEATURE_V4_DEAL_REPLAY",  # spa-gated — DealReplay panel route
+    "FEATURE_V4_SALES_DNA",  # spa-gated — SalesDna page route
+    "FEATURE_V5_INTELLIGENCE",  # spa-gated — intelligence routes
+    "FEATURE_V6_REALTIME",  # backend-only — cockpit SSE infra
+    "FEATURE_V7_LLM_OBJECTION",  # backend-only — LLM objection detection in scoring
+    "FEATURE_V9_CRM_SYNC",  # spa-gated — CRM-sync admin page
+    "FEATURE_V9_CALENDAR_OAUTH",  # spa-gated — Integrations page Google/Outlook tiles
+    "FEATURE_V9_NL_SEARCH",  # spa-gated — NL search bar in chrome
     # R5-FLAG-18 — FEATURE_TRANSFORMER_SEQ_EMBEDDING is consumed only
     # inside deal_similarity_service; there's no SPA action gated on
     # it, so dropping from the public list reduces noise on the
     # frontend's flag-fetch response. Service still reads it from
     # settings directly.
-    "FEATURE_V10_PARTS_INTEL",
-    "FEATURE_TASKS",
-    "FEATURE_AI_SUMMARIES",
-    "FEATURE_AI_PIPELINE_SUGGESTIONS",
-    "FEATURE_BUYER_MAP",
+    "FEATURE_V10_PARTS_INTEL",  # spa-gated — V10 parts-intel routes
+    "FEATURE_TASKS",  # spa-gated — Tasks affordance in App.tsx
+    "FEATURE_AI_SUMMARIES",  # backend-only — /ai/summarize endpoints; FE renders result inline
+    "FEATURE_AI_PIPELINE_SUGGESTIONS",  # backend-only — /ai/suggest-pipeline-update; result rendered inline
+    "FEATURE_BUYER_MAP",  # deferred-fe-gate — BuyerRelationshipMap renders unconditionally; wire <FeatureFlagGate> in Round-16
     # Round-4 R4-FLAG-1 — expose the 17 backend-gated features that
     # the frontend was unable to gate before. With these listed, the
     # SPA can render <FeatureFlagGate> properly instead of letting
     # users navigate to routes that 404 silently.
-    "FEATURE_REVENUE_COCKPIT",
-    "FEATURE_LEAD_LIFECYCLE",
-    "FEATURE_APPROVAL_ROUTING",
-    "FEATURE_DASHBOARD_BUILDER",
-    "FEATURE_REPORT_BUILDER",
-    "FEATURE_CUSTOM_FIELDS",
-    "FEATURE_FIELD_PERMISSIONS",
-    "FEATURE_PRODUCT_RULES",
-    "FEATURE_WORKFLOW_RULES",
-    "FEATURE_TERRITORIES",
-    "FEATURE_LIVE_CHAT",
-    "FEATURE_MULTI_PIPELINE",
-    "FEATURE_INVOICING",
+    "FEATURE_REVENUE_COCKPIT",  # spa-gated — Cockpit route
+    "FEATURE_LEAD_LIFECYCLE",  # spa-gated — Lead module routes
+    "FEATURE_APPROVAL_ROUTING",  # spa-gated — Approvals routes
+    "FEATURE_DASHBOARD_BUILDER",  # spa-gated — Dashboard builder routes
+    "FEATURE_REPORT_BUILDER",  # spa-gated — Reports routes
+    "FEATURE_CUSTOM_FIELDS",  # spa-gated — admin custom-fields page
+    "FEATURE_FIELD_PERMISSIONS",  # admin-only — field-permissions admin tool
+    "FEATURE_PRODUCT_RULES",  # spa-gated — product-rules admin page
+    "FEATURE_WORKFLOW_RULES",  # spa-gated — workflow-rules admin page
+    "FEATURE_TERRITORIES",  # spa-gated — territories page
+    "FEATURE_LIVE_CHAT",  # spa-gated — Chat routes
+    "FEATURE_MULTI_PIPELINE",  # spa-gated — pipeline switcher UI
+    "FEATURE_INVOICING",  # spa-gated — Invoicing routes
     # R5-FLAG-19 — FEATURE_INVOICE_PAID_EVENT drives the in-process
     # event_bus.publish('invoice.paid') side effect; expose so the SPA
     # can render an "auto-rollup enabled" hint near the mark-paid CTA.
-    "FEATURE_INVOICE_PAID_EVENT",
-    "FEATURE_CONTRACTS",  # Round-5 R5-FLAG-15
-    "FEATURE_SUBSCRIPTIONS",  # Round-5 R5-FLAG-15
-    "FEATURE_REV_REC",
-    "FEATURE_CAMPAIGNS",
-    "FEATURE_BREACH_WORKFLOW",  # backs /compliance/* (R4-FLAG-3)
-    "FEATURE_DEAL_HEALTH",
-    "FEATURE_GUIDED_SELLING",
-    "FEATURE_AI_TRIAGE",
-    "FEATURE_AI_DEAL_RISK",
-    "FEATURE_AI_COMPETITIVE_INTEL",
-    "FEATURE_AI_PREDICTIONS",
-    "FEATURE_TEAM_ACCESS",
-    "FEATURE_SESSION_MANAGEMENT",
-    "FEATURE_WEBHOOKS",
-    "FEATURE_PUBLIC_API",
-    "FEATURE_ESIGN",
-    "FEATURE_SEQUENCES_V2",
-    "FEATURE_BEHAVIORAL_SCORING",
-    "FEATURE_PWA",
+    "FEATURE_INVOICE_PAID_EVENT",  # backend-only — event bus internal; allowlisted per R5-FLAG-19 hint rationale
+    "FEATURE_CONTRACTS",  # spa-gated — Contracts routes (R5-FLAG-15)
+    "FEATURE_SUBSCRIPTIONS",  # spa-gated — Subscriptions routes (R5-FLAG-15)
+    "FEATURE_REV_REC",  # spa-gated — RevenueRecognition page
+    "FEATURE_CAMPAIGNS",  # spa-gated — Campaigns routes
+    "FEATURE_BREACH_WORKFLOW",  # spa-gated — Compliance routes (R4-FLAG-3)
+    "FEATURE_DEAL_HEALTH",  # backend-only — deal_health_service; FE renders health badges on opps when present
+    "FEATURE_GUIDED_SELLING",  # backend-only — stage_validation_service; FE renders stage warnings when present
+    "FEATURE_AI_TRIAGE",  # backend-only — AI triage on email parsing; FE renders triage badges
+    "FEATURE_AI_DEAL_RISK",  # backend-only — /ai/deal-risk; FE calls endpoint, renders result
+    "FEATURE_AI_COMPETITIVE_INTEL",  # backend-only — /ai/competitive-intel; same pattern
+    "FEATURE_AI_PREDICTIONS",  # backend-only — predict-close/predict-churn endpoints
+    "FEATURE_TEAM_ACCESS",  # deferred-fe-gate — admin team-access surfaces unconditionally; wire in Round-16
+    "FEATURE_SESSION_MANAGEMENT",  # deferred-fe-gate — admin session-management surfaces unconditionally; wire in Round-16
+    "FEATURE_WEBHOOKS",  # deferred-fe-gate — webhook settings panel renders unconditionally; wire in Round-16
+    "FEATURE_PUBLIC_API",  # deferred-fe-gate — api-keys admin renders unconditionally; wire in Round-16
+    "FEATURE_ESIGN",  # backend-only — signing service; FE renders signature affordance on quotes when present
+    "FEATURE_SEQUENCES_V2",  # spa-gated — Sequences V2 routes
+    "FEATURE_BEHAVIORAL_SCORING",  # backend-only — scoring_service internal
+    "FEATURE_PWA",  # backend-only — PWA manifest endpoints; SPA serves manifest regardless
     # Round-8 plan-adoption flags. Allowlisted so the SPA's
     # ``<FeatureFlagGate>`` can read them — without this entry the
     # flag is omitted from the public response, ``isEnabled`` returns
     # ``Boolean(undefined) === false`` and the page surfaces the
     # generic "Bu özellik bu hesap için kapalı" panel even when the
     # backend has the feature on.
-    "FEATURE_NETWORK_INTELLIGENCE",
-    "FEATURE_AI_ATTRIBUTES",
-    "FEATURE_DECISION_GRAPH",
+    "FEATURE_NETWORK_INTELLIGENCE",  # spa-gated — NetworkInsight page route
+    "FEATURE_AI_ATTRIBUTES",  # spa-gated — admin AI-attributes page
+    "FEATURE_DECISION_GRAPH",  # deferred-fe-gate — DecisionGraph panel renders unconditionally; wire in Round-16
 }
 
 
