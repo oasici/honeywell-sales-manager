@@ -26,7 +26,7 @@ def _require_v4_feature_store():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.post("/feature-store/build")
+@router.post("/feature-store/build", response_model=dict)
 async def build_feature_store(
     snapshot_date: date | None = Query(default=None),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS)),
@@ -43,7 +43,7 @@ async def build_feature_store(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/features/latest")
+@router.get("/opportunities/{opportunity_id}/features/latest", response_model=dict)
 async def get_latest_opportunity_features(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),

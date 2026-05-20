@@ -73,7 +73,7 @@ async def list_users(
     }
 
 
-@router.patch("/{user_id}/toggle-active")
+@router.patch("/{user_id}/toggle-active", response_model=dict)
 async def toggle_user_active(
     user_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -113,7 +113,7 @@ async def toggle_user_active(
     return _user_to_dict(user)
 
 
-@router.patch("/{user_id}/role")
+@router.patch("/{user_id}/role", response_model=dict)
 async def change_user_role(
     user_id: int,
     data: RoleUpdate,
@@ -158,7 +158,7 @@ async def change_user_role(
     return _user_to_dict(user)
 
 
-@router.patch("/{user_id}/reset-password")
+@router.patch("/{user_id}/reset-password", response_model=dict)
 async def reset_user_password(
     user_id: int,
     data: PasswordResetRequest,
@@ -186,6 +186,7 @@ async def reset_user_password(
 @router.post(
     "/bulk-import",
     dependencies=[Depends(enforce_upload_rate_limit)],
+    response_model=dict,
 )
 async def bulk_import_users(
     file: UploadFile,

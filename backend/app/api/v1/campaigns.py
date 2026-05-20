@@ -275,7 +275,7 @@ async def update_campaign(
     return {"message": "Kampanya guncellendi", "id": campaign.id}
 
 
-@router.delete("/{campaign_id}")
+@router.delete("/{campaign_id}", response_model=dict)
 async def delete_campaign(
     campaign_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -294,7 +294,7 @@ async def delete_campaign(
     return {"message": "Kampanya iptal edildi", "id": campaign_id}
 
 
-@router.get("/{campaign_id}/roi")
+@router.get("/{campaign_id}/roi", response_model=dict)
 async def get_campaign_roi(
     campaign_id: int,
     current_user: User = Depends(get_current_user),
@@ -354,7 +354,7 @@ async def get_campaign_roi(
     }
 
 
-@router.get("/{campaign_id}/members")
+@router.get("/{campaign_id}/members", response_model=dict)
 async def list_campaign_members(
     campaign_id: int,
     skip: int = 0,
@@ -394,7 +394,7 @@ async def list_campaign_members(
     }
 
 
-@router.post("/{campaign_id}/members", status_code=201)
+@router.post("/{campaign_id}/members", status_code=201, response_model=dict)
 async def add_campaign_members(
     campaign_id: int,
     body: list[MemberAdd],
@@ -438,7 +438,7 @@ async def add_campaign_members(
     return {"message": "Uyeler eklendi", "added": added, "invalid": invalid}
 
 
-@router.delete("/{campaign_id}/members/{member_id}")
+@router.delete("/{campaign_id}/members/{member_id}", response_model=dict)
 async def remove_campaign_member(
     campaign_id: int,
     member_id: int,
@@ -465,7 +465,7 @@ async def remove_campaign_member(
     return {"message": "Uye kaldirildi", "id": member_id}
 
 
-@router.patch("/{campaign_id}/members/{member_id}/status")
+@router.patch("/{campaign_id}/members/{member_id}/status", response_model=dict)
 async def update_member_status(
     campaign_id: int,
     member_id: int,

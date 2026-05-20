@@ -114,7 +114,7 @@ async def list_rules(
     }
 
 
-@router.post("/rules", status_code=201)
+@router.post("/rules", status_code=201, response_model=dict)
 async def create_rule(
     data: RuleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -140,7 +140,7 @@ async def create_rule(
     return _rule_to_dict(rule)
 
 
-@router.put("/rules/{rule_id}")
+@router.put("/rules/{rule_id}", response_model=dict)
 async def update_rule(
     rule_id: int,
     data: RuleUpdate,
@@ -209,7 +209,7 @@ async def list_pending(
     }
 
 
-@router.post("/{request_id}/approve")
+@router.post("/{request_id}/approve", response_model=dict)
 async def approve_request(
     request_id: int,
     data: ApprovalDecision | None = None,
@@ -224,7 +224,7 @@ async def approve_request(
     return _request_to_dict(approval_request)
 
 
-@router.post("/{request_id}/reject")
+@router.post("/{request_id}/reject", response_model=dict)
 async def reject_request(
     request_id: int,
     data: ApprovalDecision | None = None,
@@ -265,7 +265,7 @@ async def approval_history(
     }
 
 
-@router.post("/quick-approve/{request_id}")
+@router.post("/quick-approve/{request_id}", response_model=dict)
 async def quick_approve(
     request_id: int,
     current_user: User = Depends(get_current_user),
@@ -284,7 +284,7 @@ class DelegateRequest(BaseModel):
     delegate_until: str | None = None  # ISO datetime
 
 
-@router.post("/delegate")
+@router.post("/delegate", response_model=dict)
 async def delegate_approval(
     data: DelegateRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

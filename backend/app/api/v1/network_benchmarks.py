@@ -23,7 +23,7 @@ def _require_v4():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/segments/latest")
+@router.get("/segments/latest", response_model=dict)
 async def get_latest_segment_benchmarks(
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
@@ -66,7 +66,7 @@ async def get_latest_segment_benchmarks(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/gap")
+@router.get("/opportunities/{opportunity_id}/gap", response_model=dict)
 async def get_opportunity_benchmark_gap(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),

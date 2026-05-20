@@ -495,6 +495,7 @@ async def preview_report(
     return {"data": result}
 
 
+# Round-15 N15-API-1: response_model exempt (returns non-JSON: file/redirect/stream)
 @router.get("/templates/{template_id}/export")
 async def export_template(
     template_id: int,
@@ -515,6 +516,7 @@ async def export_template(
     )
 
 
+# Round-15 N15-API-1: response_model exempt (returns non-JSON: file/redirect/stream)
 @router.get("/templates/{template_id}/export-excel")
 async def export_template_excel(
     template_id: int,

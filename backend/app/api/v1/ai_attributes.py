@@ -65,7 +65,7 @@ async def list_definitions(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.post("/definitions", status_code=201)
+@router.post("/definitions", status_code=201, response_model=dict)
 async def create_definition(
     body: DefinitionCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -85,7 +85,7 @@ async def create_definition(
     )
 
 
-@router.patch("/definitions/{definition_id}")
+@router.patch("/definitions/{definition_id}", response_model=dict)
 async def update_definition(
     definition_id: int,
     body: DefinitionPatch,
@@ -112,7 +112,7 @@ async def list_values(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.post("/definitions/{definition_id}/generate", status_code=201)
+@router.post("/definitions/{definition_id}/generate", status_code=201, response_model=dict)
 async def generate(
     definition_id: int,
     body: GenerateBody,

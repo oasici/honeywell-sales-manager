@@ -75,6 +75,7 @@ class CompetitorSearchPayload(BaseModel):
     # Round-4 R4-RL-3 — vector search + embedding gen is expensive;
     # /answer also burns the Anthropic budget.
     dependencies=[Depends(enforce_ai_rate_limit)],
+    response_model=dict,
 )
 async def search_deals(
     payload: DealSearchPayload,
@@ -90,6 +91,7 @@ async def search_deals(
 @router.post(
     "/search/interactions",
     dependencies=[Depends(enforce_ai_rate_limit)],
+    response_model=dict,
 )
 async def search_interactions(
     payload: InteractionSearchPayload,
@@ -107,6 +109,7 @@ async def search_interactions(
 @router.post(
     "/search/competitors",
     dependencies=[Depends(enforce_ai_rate_limit)],
+    response_model=dict,
 )
 async def search_competitors(
     payload: CompetitorSearchPayload,
@@ -133,6 +136,7 @@ class RagAnswerPayload(BaseModel):
 @router.post(
     "/answer",
     dependencies=[Depends(enforce_ai_rate_limit)],
+    response_model=dict,
 )
 async def rag_answer(
     payload: RagAnswerPayload,
@@ -159,7 +163,7 @@ async def rag_answer(
 # ─────────────────────── collections / reindex ──────────────────────
 
 
-@router.get("/collections")
+@router.get("/collections", response_model=dict)
 async def list_collections(
     current_user: User = Depends(get_current_user),
     _flag=Depends(_require_rag),
@@ -184,7 +188,7 @@ async def list_collections(
 _VALID_BACKFILL_NAMES = {"deals", "interactions", "competitors", "all"}
 
 
-@router.post("/reindex/{name}")
+@router.post("/reindex/{name}", response_model=dict)
 async def reindex_collection(
     name: str,
     since_hours: int | None = Query(None, ge=1, le=720),

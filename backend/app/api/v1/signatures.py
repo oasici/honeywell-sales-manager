@@ -225,7 +225,7 @@ async def _apply_document_status_update(
 # ── Authenticated Endpoints ──
 
 
-@router.post("/request", status_code=201)
+@router.post("/request", status_code=201, response_model=dict)
 async def create_signature_request(
     body: SignatureRequestCreate,
     current_user: User = Depends(get_current_user),
@@ -270,7 +270,7 @@ async def create_signature_request(
     }
 
 
-@router.get("/")
+@router.get("/", response_model=dict)
 async def list_signature_requests(
     skip: int = 0,
     limit: int = 20,
@@ -309,7 +309,7 @@ async def list_signature_requests(
     }
 
 
-@router.get("/{sig_id}")
+@router.get("/{sig_id}", response_model=dict)
 async def get_signature_request(
     sig_id: int,
     current_user: User = Depends(get_current_user),
@@ -327,7 +327,7 @@ async def get_signature_request(
     return _sig_to_dict(sig)
 
 
-@router.delete("/{sig_id}")
+@router.delete("/{sig_id}", response_model=dict)
 async def cancel_signature_request(
     sig_id: int,
     current_user: User = Depends(get_current_user),
@@ -356,7 +356,7 @@ async def cancel_signature_request(
 # ── Public Endpoints (no auth) ──
 
 
-@router.get("/sign/{token}")
+@router.get("/sign/{token}", response_model=dict)
 async def get_signing_page(
     token: str,
     db: AsyncSession = Depends(get_db),
@@ -400,7 +400,7 @@ async def get_signing_page(
     }
 
 
-@router.post("/sign/{token}")
+@router.post("/sign/{token}", response_model=dict)
 async def submit_signature(
     token: str,
     body: SignatureSubmit,
@@ -447,7 +447,7 @@ async def submit_signature(
     }
 
 
-@router.post("/sign/{token}/decline")
+@router.post("/sign/{token}/decline", response_model=dict)
 async def decline_signature(
     token: str,
     db: AsyncSession = Depends(get_db),

@@ -37,7 +37,7 @@ async def list_segments(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.get("/overview")
+@router.get("/overview", response_model=dict)
 async def get_overview(
     segment_key: str | None = Query(None, description="Segment key (e.g. 'stage:qualified')"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

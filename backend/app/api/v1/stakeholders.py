@@ -169,7 +169,7 @@ async def list_by_customer(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=dict)
 async def create_stakeholder(
     body: StakeholderCreate,
     _: None = Depends(_require_buyer_map),
@@ -215,7 +215,7 @@ async def create_stakeholder(
     return _serialize(stakeholder)
 
 
-@router.put("/{stakeholder_id}")
+@router.put("/{stakeholder_id}", response_model=dict)
 async def update_stakeholder(
     stakeholder_id: int,
     body: StakeholderUpdate,
@@ -275,7 +275,7 @@ async def delete_stakeholder(
     await db.commit()
 
 
-@router.get("/opportunity/{opportunity_id}/alerts")
+@router.get("/opportunity/{opportunity_id}/alerts", response_model=dict)
 async def coverage_alerts(
     opportunity_id: int,
     _: None = Depends(_require_buyer_map),

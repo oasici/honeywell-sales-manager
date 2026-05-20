@@ -46,7 +46,7 @@ async def _ensure_opp_access(
     return opp
 
 
-@router.get("/opportunities/{opportunity_id}/snapshots")
+@router.get("/opportunities/{opportunity_id}/snapshots", response_model=dict)
 async def list_dna_snapshots(
     opportunity_id: int,
     limit: int = Query(60, ge=1, le=365),
@@ -81,7 +81,7 @@ async def list_dna_snapshots(
     return {"opportunity_id": opportunity_id, "items": items, "total": len(items)}
 
 
-@router.get("/opportunities/{opportunity_id}/latest")
+@router.get("/opportunities/{opportunity_id}/latest", response_model=dict)
 async def get_latest_dna(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -116,7 +116,7 @@ async def get_latest_dna(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/snapshots/{snapshot_date}")
+@router.get("/opportunities/{opportunity_id}/snapshots/{snapshot_date}", response_model=dict)
 async def get_dna_snapshot(
     opportunity_id: int,
     snapshot_date: date,
@@ -152,7 +152,7 @@ async def get_dna_snapshot(
     }
 
 
-@router.post("/opportunities/{opportunity_id}/materialize")
+@router.post("/opportunities/{opportunity_id}/materialize", response_model=dict)
 async def post_materialize_dna(
     opportunity_id: int,
     snapshot_date: date | None = Query(None, description="UTC takvim günü; boşsa bugün (UTC)."),

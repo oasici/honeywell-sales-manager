@@ -81,7 +81,7 @@ async def list_actions(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.post("/{opportunity_id}/generate", status_code=201)
+@router.post("/{opportunity_id}/generate", status_code=201, response_model=dict)
 async def generate(
     opportunity_id: int,
     body: GenerateRequest = GenerateRequest(),
@@ -98,7 +98,7 @@ async def generate(
     }
 
 
-@router.post("/{opportunity_id}/{task_id}/dismiss")
+@router.post("/{opportunity_id}/{task_id}/dismiss", response_model=dict)
 async def dismiss(
     opportunity_id: int,
     task_id: int,

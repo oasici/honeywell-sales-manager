@@ -142,6 +142,7 @@ async def create_quote(
     "/from-pdf",
     status_code=201,
     dependencies=[Depends(enforce_upload_rate_limit)],
+    response_model=dict,
 )
 async def create_quote_from_pdf(
     file: UploadFile = File(...),
@@ -233,7 +234,7 @@ async def create_quote_from_pdf(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.post("/from-email/{email_id}", status_code=201)
+@router.post("/from-email/{email_id}", status_code=201, response_model=dict)
 async def create_quote_from_email(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -283,7 +284,7 @@ async def update_quote(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.patch("/{quote_id}/approve")
+@router.patch("/{quote_id}/approve", response_model=dict)
 async def approve_quote(
     quote_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -338,7 +339,7 @@ class SendQuoteRequest(BaseModel):
     message: str | None = None
 
 
-@router.post("/{quote_id}/send")
+@router.post("/{quote_id}/send", response_model=dict)
 async def send_quote(
     quote_id: int,
     data: SendQuoteRequest | None = None,
@@ -454,6 +455,7 @@ async def send_quote(
     return {"message": f"Teklif {quote.quote_number} basariyla gonderildi: {recipient}"}
 
 
+# Round-15 N15-API-1: response_model exempt (returns non-JSON: file/redirect/stream)
 @router.get("/{quote_id}/pdf")
 async def download_quote_pdf(
     quote_id: int,
@@ -516,7 +518,7 @@ class ConvertCurrencyRequest(BaseModel):
     target_currency: str
 
 
-@router.post("/{quote_id}/convert-currency")
+@router.post("/{quote_id}/convert-currency", response_model=dict)
 async def convert_quote_currency(
     quote_id: int,
     data: ConvertCurrencyRequest,
@@ -574,7 +576,7 @@ async def convert_quote_currency(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.get("/{quote_id}/versions")
+@router.get("/{quote_id}/versions", response_model=dict)
 async def get_quote_versions(
     quote_id: int,
     current_user: User = Depends(get_current_user),
@@ -659,7 +661,7 @@ async def get_quote_versions(
     }
 
 
-@router.get("/{quote_id}/compare/{other_id}")
+@router.get("/{quote_id}/compare/{other_id}", response_model=dict)
 async def compare_quotes(
     quote_id: int,
     other_id: int,

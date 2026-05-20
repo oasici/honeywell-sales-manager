@@ -118,6 +118,7 @@ async def list_emails(
     }
 
 
+# Round-15 N15-API-1: response_model exempt (returns non-JSON: file/redirect/stream)
 @router.get("/training-data", status_code=200)
 async def get_training_data(
     page: int = Query(1, ge=1),
@@ -186,7 +187,7 @@ async def get_training_data(
     }
 
 
-@router.get("/{email_id}")
+@router.get("/{email_id}", response_model=dict)
 async def get_email(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -208,7 +209,7 @@ async def get_email(
     return _email_to_dict(email, include_body=True)
 
 
-@router.post("/manual", status_code=201)
+@router.post("/manual", status_code=201, response_model=dict)
 async def create_manual_email(
     data: ManualEmailCreate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -244,7 +245,7 @@ async def create_manual_email(
     return _email_to_dict(email, include_body=True)
 
 
-@router.post("/poll", status_code=200)
+@router.post("/poll", status_code=200, response_model=dict)
 async def poll_emails(
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -439,7 +440,7 @@ async def get_email_thread(
     }
 
 
-@router.patch("/{email_id}/opportunity", status_code=200)
+@router.patch("/{email_id}/opportunity", status_code=200, response_model=dict)
 async def link_email_to_opportunity(
     email_id: int,
     body: EmailOpportunityLinkBody,
@@ -491,7 +492,7 @@ async def link_email_to_opportunity(
     return _email_to_dict(email)
 
 
-@router.patch("/{email_id}/read", status_code=200)
+@router.patch("/{email_id}/read", status_code=200, response_model=dict)
 async def mark_email_read(
     email_id: int,
     current_user: User = Depends(get_current_user),
@@ -509,7 +510,7 @@ async def mark_email_read(
     return {"message": "OK"}
 
 
-@router.post("/{email_id}/reparse", status_code=200)
+@router.post("/{email_id}/reparse", status_code=200, response_model=dict)
 async def reparse_email(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -562,7 +563,7 @@ class CorrectParseRequest(BaseModel):
     parsed_data: dict
 
 
-@router.patch("/{email_id}/correct-parse", status_code=200)
+@router.patch("/{email_id}/correct-parse", status_code=200, response_model=dict)
 async def correct_parse(
     email_id: int,
     body: CorrectParseRequest,
@@ -619,7 +620,7 @@ async def correct_parse(
     }
 
 
-@router.get("/{email_id}/matches")
+@router.get("/{email_id}/matches", response_model=dict)
 async def get_email_matches(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -650,7 +651,7 @@ async def get_email_matches(
     }
 
 
-@router.patch("/{email_id}/review")
+@router.patch("/{email_id}/review", response_model=dict)
 async def review_email(
     email_id: int,
     data: EmailReviewRequest,

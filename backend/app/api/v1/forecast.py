@@ -42,7 +42,7 @@ class AdjustmentCreate(BaseModel):
 # Hybrid Forecast (Sprint 5.4)
 # ══════════════════════════════════════════
 
-@router.get("/hybrid")
+@router.get("/hybrid", response_model=dict)
 async def get_hybrid_forecast(
     owner_id: int | None = Query(None, description="Rep owner filter (manager only)"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -130,7 +130,7 @@ async def get_hybrid_forecast(
 
 # -- Adjustment Endpoints --
 
-@router.post("/adjustments", status_code=201)
+@router.post("/adjustments", status_code=201, response_model=dict)
 async def create_adjustment(
     data: AdjustmentCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -210,7 +210,7 @@ async def list_snapshots(
     }
 
 
-@router.post("/snapshot", status_code=201)
+@router.post("/snapshot", status_code=201, response_model=dict)
 async def take_snapshot(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -222,7 +222,7 @@ async def take_snapshot(
     return {"items": [_snapshot_to_dict(s) for s in snapshots]}
 
 
-@router.get("/wow")
+@router.get("/wow", response_model=dict)
 async def week_over_week(
     weeks: int = Query(4, ge=1, le=12),
     current_user: User = Depends(get_current_user),
@@ -264,7 +264,7 @@ async def week_over_week(
     }
 
 
-@router.get("/team-rollup")
+@router.get("/team-rollup", response_model=dict)
 async def team_forecast_rollup(
     manager_id: int | None = Query(None, description="Filter to reps managed by this user"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -278,7 +278,7 @@ async def team_forecast_rollup(
 
 # -- Forecast Accuracy (Modul 12) --
 
-@router.get("/accuracy")
+@router.get("/accuracy", response_model=dict)
 async def get_forecast_accuracy(
     quarter: str | None = Query(None, description="Quarter in YYYY-QN format, e.g. 2026-Q1"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

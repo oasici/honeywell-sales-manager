@@ -718,6 +718,7 @@ async def get_trends(
 # stateful per-user buffering — it's a heartbeat, not a transport.
 
 
+# Round-15 N15-API-1: response_model exempt (returns non-JSON: file/redirect/stream)
 @router.get("/stream")
 async def cockpit_stream(
     _: None = Depends(_require_cockpit),

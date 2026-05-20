@@ -118,7 +118,7 @@ async def list_tiers(
     }
 
 
-@router.post("/tiers", status_code=201)
+@router.post("/tiers", status_code=201, response_model=dict)
 async def create_tier(
     body: PriceTierCreate,
     current_user: User = Depends(get_current_user),
@@ -182,7 +182,7 @@ async def _load_customer_for_tenant(
     return customer
 
 
-@router.get("/customer/{customer_id}")
+@router.get("/customer/{customer_id}", response_model=dict)
 async def list_customer_pricing(
     customer_id: int,
     current_user: User = Depends(get_current_user),
@@ -204,7 +204,7 @@ async def list_customer_pricing(
     }
 
 
-@router.post("/customer/{customer_id}", status_code=201)
+@router.post("/customer/{customer_id}", status_code=201, response_model=dict)
 async def create_customer_pricing(
     customer_id: int,
     body: CustomerPricingCreate,
@@ -231,7 +231,7 @@ async def create_customer_pricing(
     return _serialize_customer_pricing(cp)
 
 
-@router.put("/customer/{customer_id}/{pricing_id}")
+@router.put("/customer/{customer_id}/{pricing_id}", response_model=dict)
 async def update_customer_pricing(
     customer_id: int,
     pricing_id: int,
@@ -294,7 +294,7 @@ class MarginUpdate(BaseModel):
     min_margin_pct: float
 
 
-@router.patch("/margin/{spare_part_id}")
+@router.patch("/margin/{spare_part_id}", response_model=dict)
 async def update_margin(
     spare_part_id: int,
     body: MarginUpdate,
@@ -321,7 +321,7 @@ async def update_margin(
 # PRICE LOOKUP
 # ══════════════════════════════════════════
 
-@router.get("/lookup")
+@router.get("/lookup", response_model=dict)
 async def lookup_price(
     spare_part_id: int,
     customer_id: int,

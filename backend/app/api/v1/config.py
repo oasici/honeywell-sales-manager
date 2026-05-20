@@ -105,7 +105,7 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
 }
 
 
-@router.get("/feature-flags")
+@router.get("/feature-flags", response_model=dict)
 async def get_feature_flags(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:

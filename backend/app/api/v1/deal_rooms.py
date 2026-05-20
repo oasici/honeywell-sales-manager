@@ -108,7 +108,7 @@ async def list_deal_rooms(
     }
 
 
-@router.post("/deal-rooms/", status_code=201)
+@router.post("/deal-rooms/", status_code=201, response_model=dict)
 async def create_deal_room(
     body: DealRoomCreate,
     current_user: User = Depends(get_current_user),
@@ -130,7 +130,7 @@ async def create_deal_room(
     return _serialize(room)
 
 
-@router.get("/deal-rooms/{room_id}")
+@router.get("/deal-rooms/{room_id}", response_model=dict)
 async def get_deal_room(
     room_id: int,
     _current_user: User = Depends(get_current_user),
@@ -145,7 +145,7 @@ async def get_deal_room(
     return _serialize(room)
 
 
-@router.put("/deal-rooms/{room_id}")
+@router.put("/deal-rooms/{room_id}", response_model=dict)
 async def update_deal_room(
     room_id: int,
     body: DealRoomUpdate,
@@ -170,7 +170,7 @@ async def update_deal_room(
     return _serialize(room)
 
 
-@router.delete("/deal-rooms/{room_id}")
+@router.delete("/deal-rooms/{room_id}", response_model=dict)
 async def deactivate_deal_room(
     room_id: int,
     _current_user: User = Depends(get_current_user),
@@ -191,7 +191,7 @@ async def deactivate_deal_room(
 # ── Public (no auth) ────────────────────────────────────
 
 
-@router.get("/deal-rooms/public/{token}")
+@router.get("/deal-rooms/public/{token}", response_model=dict)
 async def get_public_deal_room(
     token: str,
     db: AsyncSession = Depends(get_db),
@@ -212,7 +212,7 @@ async def get_public_deal_room(
     return _serialize(room)
 
 
-@router.post("/deal-rooms/public/{token}/action")
+@router.post("/deal-rooms/public/{token}/action", response_model=dict)
 async def buyer_action(
     token: str,
     body: BuyerActionBody,

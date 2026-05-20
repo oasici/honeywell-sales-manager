@@ -268,7 +268,7 @@ async def list_opportunities(
 STALE_THRESHOLD_DAYS = 7
 
 
-@router.get("/opportunities/pipeline-inspection")
+@router.get("/opportunities/pipeline-inspection", response_model=dict)
 async def pipeline_inspection(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -547,7 +547,7 @@ async def get_opportunity_intelligence(
     }
 
 
-@router.get("/opportunities/{opp_id}/stage-requirements")
+@router.get("/opportunities/{opp_id}/stage-requirements", response_model=dict)
 async def get_stage_requirements(
     opp_id: int,
     current_user: User = Depends(get_current_user),
@@ -746,6 +746,7 @@ async def update_opportunity(
     "/opportunities/bulk-action",
     # Round-4 R4-RL-2 — DoS + audit-log flood guard.
     dependencies=[Depends(enforce_bulk_rate_limit)],
+    response_model=dict,
 )
 async def bulk_action_opportunities(
     body: dict,
@@ -842,7 +843,7 @@ async def bulk_action_opportunities(
 # OPPORTUNITY TIMELINE
 # ══════════════════════════════════════════
 
-@router.get("/opportunities/{opp_id}/timeline")
+@router.get("/opportunities/{opp_id}/timeline", response_model=dict)
 async def get_opportunity_timeline(
     opp_id: int,
     limit: int = Query(50, ge=1, le=200),
@@ -951,7 +952,7 @@ async def get_opportunity_timeline(
 KANBAN_STAGES = [s.value for s in OpportunityStage]
 
 
-@router.get("/board/kanban")
+@router.get("/board/kanban", response_model=dict)
 async def get_board_kanban(
     owner_id: int | None = None,
     stages: str | None = None,
@@ -1071,7 +1072,7 @@ async def get_board_kanban(
 # ACTIVITY SUMMARY (Modul 6)
 # ══════════════════════════════════════════
 
-@router.get("/opportunities/{opp_id}/activity-summary")
+@router.get("/opportunities/{opp_id}/activity-summary", response_model=dict)
 async def get_activity_summary(
     opp_id: int,
     current_user: User = Depends(get_current_user),
@@ -1153,7 +1154,7 @@ async def get_activity_summary(
     }
 
 
-@router.get("/board/summary")
+@router.get("/board/summary", response_model=dict)
 async def get_board_summary(
     window: int = Query(30, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

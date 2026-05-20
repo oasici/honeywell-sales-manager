@@ -45,6 +45,24 @@ from app.services import (
     parts_pricing_intel_service,
     parts_substitution_service,
 )
+from app.schemas.v10_parts_intel import (
+    CrossCustomerResponse,
+    DataHealthResponse,
+    DeadStockResponse,
+    DuplicatesResponse,
+    EolRiskResponse,
+    HeatmapResponse,
+    InflationTaxResponse,
+    LastTimeBuyResponse,
+    MarginHealthResponse,
+    ObsolescenceWatchResponse,
+    OrphanPricingResponse,
+    PartsSummaryResponse,
+    SegmentAffinityResponse,
+    StalePricingResponse,
+    SubstitutionsResponse,
+    VelocityResponse,
+)
 
 
 router = APIRouter(prefix="/v10/parts-intel", tags=["V10 Spare Parts Intelligence"])
@@ -82,7 +100,7 @@ def _manager_or_admin_only(user: User) -> None:
 # ─────────────────────── Sprint AA — foundation ───────────────────────
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=PartsSummaryResponse)
 async def get_summary(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -94,7 +112,7 @@ async def get_summary(
     )
 
 
-@router.get("/velocity")
+@router.get("/velocity", response_model=VelocityResponse)
 async def get_velocity(
     tier: str | None = Query(None, pattern="^[ABC]$"),
     current_user: User = Depends(get_current_user),
@@ -110,7 +128,7 @@ async def get_velocity(
     return {"items": [asdict(r) for r in rows], "total": len(rows)}
 
 
-@router.get("/heatmap")
+@router.get("/heatmap", response_model=HeatmapResponse)
 async def get_heatmap(
     window_days: int = Query(180, ge=30, le=720),
     part_id: int | None = Query(None),
@@ -127,7 +145,7 @@ async def get_heatmap(
     return {"items": [asdict(c) for c in cells], "total": len(cells)}
 
 
-@router.get("/dead-stock")
+@router.get("/dead-stock", response_model=DeadStockResponse)
 async def get_dead_stock(
     min_idle_days: int = Query(180, ge=30, le=720),
     limit: int = Query(100, ge=1, le=500),
@@ -163,7 +181,7 @@ async def get_dead_stock(
 # ─────────────────────── Sprint BB — pricing intel ─────────────────────
 
 
-@router.get("/inflation-tax")
+@router.get("/inflation-tax", response_model=InflationTaxResponse)
 async def get_inflation_tax(
     months: int = Query(12, ge=3, le=36),
     current_user: User = Depends(get_current_user),
@@ -176,7 +194,7 @@ async def get_inflation_tax(
     )
 
 
-@router.get("/stale-pricing")
+@router.get("/stale-pricing", response_model=StalePricingResponse)
 async def get_stale_pricing(
     max_age_days: int = Query(180, ge=30, le=720),
     limit: int = Query(100, ge=1, le=500),
@@ -207,7 +225,7 @@ async def get_stale_pricing(
     }
 
 
-@router.get("/margin-health")
+@router.get("/margin-health", response_model=MarginHealthResponse)
 async def get_margin_health(
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
@@ -223,7 +241,7 @@ async def get_margin_health(
 # ─────────────────────── Sprint CC — obsolescence watch ───────────────
 
 
-@router.get("/obsolescence-watch")
+@router.get("/obsolescence-watch", response_model=ObsolescenceWatchResponse)
 async def get_obsolescence_watch(
     top_n: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -237,7 +255,7 @@ async def get_obsolescence_watch(
     return {"items": [asdict(r) for r in rows], "total": len(rows)}
 
 
-@router.get("/parts/{part_id}/eol-risk")
+@router.get("/parts/{part_id}/eol-risk", response_model=EolRiskResponse)
 async def get_eol_risk(
     part_id: int,
     current_user: User = Depends(get_current_user),
@@ -249,7 +267,7 @@ async def get_eol_risk(
     )
 
 
-@router.get("/last-time-buy")
+@router.get("/last-time-buy", response_model=LastTimeBuyResponse)
 async def get_last_time_buy(
     decay_threshold: float = Query(0.5, ge=0.0, le=1.0),
     pipeline_value_threshold: float = Query(5_000.0, ge=0.0),
@@ -270,7 +288,7 @@ async def get_last_time_buy(
 # ─────────────────────── Sprint DD — data quality ──────────────────────
 
 
-@router.get("/data-health")
+@router.get("/data-health", response_model=DataHealthResponse)
 async def get_data_health(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -282,7 +300,7 @@ async def get_data_health(
     )
 
 
-@router.get("/duplicates")
+@router.get("/duplicates", response_model=DuplicatesResponse)
 async def get_duplicates(
     threshold: float = Query(0.85, ge=0.0, le=1.0),
     limit: int = Query(100, ge=1, le=500),
@@ -300,7 +318,7 @@ async def get_duplicates(
     return {"items": [asdict(r) for r in rows], "total": len(rows)}
 
 
-@router.get("/orphan-pricing")
+@router.get("/orphan-pricing", response_model=OrphanPricingResponse)
 async def get_orphan_pricing(
     limit: int = Query(200, ge=1, le=1000),
     current_user: User = Depends(get_current_user),
@@ -327,7 +345,7 @@ async def get_orphan_pricing(
 # ─────────────────────── Sprint EE — substitution + segment ───────────
 
 
-@router.get("/parts/{part_id}/substitutions")
+@router.get("/parts/{part_id}/substitutions", response_model=SubstitutionsResponse)
 async def get_substitutions(
     part_id: int,
     limit: int = Query(20, ge=1, le=100),
@@ -341,7 +359,7 @@ async def get_substitutions(
     return {"items": [asdict(r) for r in rows], "total": len(rows)}
 
 
-@router.get("/parts/{part_id}/cross-customer")
+@router.get("/parts/{part_id}/cross-customer", response_model=CrossCustomerResponse)
 async def get_cross_customer(
     part_id: int,
     months: int = Query(12, ge=1, le=36),
@@ -375,7 +393,7 @@ async def get_cross_customer(
     }
 
 
-@router.get("/parts/{part_id}/segment-affinity")
+@router.get("/parts/{part_id}/segment-affinity", response_model=SegmentAffinityResponse)
 async def get_segment_affinity(
     part_id: int,
     months: int = Query(12, ge=1, le=36),

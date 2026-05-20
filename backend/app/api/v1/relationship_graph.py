@@ -43,7 +43,7 @@ async def list_edges(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.get("/score/{kind}/{entity_id}")
+@router.get("/score/{kind}/{entity_id}", response_model=dict)
 async def get_score(
     kind: str,
     entity_id: int,
@@ -75,7 +75,7 @@ async def list_strongest(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.post("/rebuild/opportunity/{opportunity_id}")
+@router.post("/rebuild/opportunity/{opportunity_id}", response_model=dict)
 async def rebuild_opportunity(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),

@@ -96,7 +96,7 @@ async def set_field_permission(
     )
 
 
-@router.delete("/{permission_id}")
+@router.delete("/{permission_id}", response_model=dict)
 async def delete_field_permission(
     permission_id: int,
     current_user: Annotated[User, Depends(require_role(UserRole.SALES_MANAGER))],

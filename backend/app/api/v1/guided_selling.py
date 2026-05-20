@@ -72,7 +72,7 @@ async def list_guides(
     }
 
 
-@router.post("/guided-selling/", status_code=201)
+@router.post("/guided-selling/", status_code=201, response_model=dict)
 async def create_guide(
     body: GuideCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -92,7 +92,7 @@ async def create_guide(
     return {"id": guide.id, "name": guide.name}
 
 
-@router.get("/guided-selling/{guide_id}")
+@router.get("/guided-selling/{guide_id}", response_model=dict)
 async def get_guide(
     guide_id: int,
     current_user: User = Depends(get_current_user),
@@ -106,7 +106,7 @@ async def get_guide(
     return guide
 
 
-@router.delete("/guided-selling/{guide_id}")
+@router.delete("/guided-selling/{guide_id}", response_model=dict)
 async def delete_guide(
     guide_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -121,7 +121,7 @@ async def delete_guide(
     return {"message": "Rehber silindi"}
 
 
-@router.post("/guided-selling/{guide_id}/evaluate")
+@router.post("/guided-selling/{guide_id}/evaluate", response_model=dict)
 async def evaluate_guide(
     guide_id: int,
     body: EvaluateBody,

@@ -74,7 +74,7 @@ class SharingRuleResponse(BaseModel):
 # ── Team Member Endpoints ──
 
 
-@router.get("/customers/{customer_id}/team")
+@router.get("/customers/{customer_id}/team", response_model=dict)
 async def list_team_members(
     customer_id: int,
     current_user: User = Depends(get_current_user),
@@ -112,7 +112,7 @@ async def list_team_members(
     }
 
 
-@router.post("/customers/{customer_id}/team", status_code=201)
+@router.post("/customers/{customer_id}/team", status_code=201, response_model=dict)
 async def add_team_member(
     customer_id: int,
     body: TeamMemberCreate,
@@ -216,7 +216,7 @@ async def list_sharing_rules(
     }
 
 
-@router.post("/sharing-rules/", status_code=201)
+@router.post("/sharing-rules/", status_code=201, response_model=dict)
 async def create_sharing_rule(
     body: SharingRuleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

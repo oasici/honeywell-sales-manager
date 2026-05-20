@@ -14,7 +14,7 @@ from app.models.user import User
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
-@router.get("/stats")
+@router.get("/stats", response_model=dict)
 async def get_dashboard_stats(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

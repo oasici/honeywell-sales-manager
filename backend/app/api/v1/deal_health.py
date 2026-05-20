@@ -45,7 +45,7 @@ def _report_to_dict(report) -> dict:
     }
 
 
-@router.get("/{opportunity_id}")
+@router.get("/{opportunity_id}", response_model=dict)
 async def get_deal_health(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -63,7 +63,7 @@ async def get_deal_health(
     return _report_to_dict(report)
 
 
-@router.get("/overview/all")
+@router.get("/overview/all", response_model=dict)
 async def get_deal_health_overview(
     owner_id: int | None = Query(None, description="Sahip ID ile filtrele"),
     current_user: User = Depends(get_current_user),
@@ -94,7 +94,7 @@ async def get_deal_health_overview(
     }
 
 
-@router.get("/at-risk/list")
+@router.get("/at-risk/list", response_model=dict)
 async def get_at_risk_deals(
     threshold: int = Query(40, ge=0, le=100, description="Saglik skoru esik degeri"),
     current_user: User = Depends(get_current_user),

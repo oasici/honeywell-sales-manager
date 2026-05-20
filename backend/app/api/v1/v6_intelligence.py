@@ -89,7 +89,7 @@ def _safe_loads(raw: str | None):
 # ─────────────────────── replay deltas ───────────────────────────────
 
 
-@router.get("/opportunities/{opportunity_id}/replay-deltas")
+@router.get("/opportunities/{opportunity_id}/replay-deltas", response_model=dict)
 async def list_replay_deltas(
     opportunity_id: int,
     refresh: bool = Query(False, description="Recompute deltas before listing"),
@@ -130,7 +130,7 @@ async def list_replay_deltas(
 # ─────────────────────── DNA → Playbook promote ──────────────────────
 
 
-@router.post("/playbooks/promote-from-dna")
+@router.post("/playbooks/promote-from-dna", response_model=dict)
 async def promote_from_dna(
     min_lift: float = Query(1.5, ge=1.0, le=10.0),
     min_support: int = Query(10, ge=1),
@@ -150,7 +150,7 @@ async def promote_from_dna(
     return {"promoted": written}
 
 
-@router.get("/playbooks/{playbook_id}/adherence")
+@router.get("/playbooks/{playbook_id}/adherence", response_model=dict)
 async def get_playbook_adherence(
     playbook_id: int,
     window_days: int = Query(30, ge=1, le=365),

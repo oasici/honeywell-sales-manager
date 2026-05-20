@@ -74,7 +74,7 @@ async def list_custom_fields(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=dict)
 async def create_custom_field(
     body: CustomFieldCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -118,7 +118,7 @@ async def create_custom_field(
     }
 
 
-@router.delete("/{field_id}")
+@router.delete("/{field_id}", response_model=dict)
 async def delete_custom_field(
     field_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -133,7 +133,7 @@ async def delete_custom_field(
     return {"message": "Ozel alan silindi", "id": field_id}
 
 
-@router.get("/values/{entity_type}/{entity_id}")
+@router.get("/values/{entity_type}/{entity_id}", response_model=dict)
 async def get_custom_field_values(
     entity_type: str,
     entity_id: int,
@@ -153,7 +153,7 @@ async def get_custom_field_values(
     return {"entity_type": entity_type, "entity_id": entity_id, "values": values}
 
 
-@router.post("/values/{entity_type}/{entity_id}")
+@router.post("/values/{entity_type}/{entity_id}", response_model=dict)
 async def set_custom_field_value(
     entity_type: str,
     entity_id: int,

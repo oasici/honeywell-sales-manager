@@ -51,7 +51,7 @@ class WorkflowRuleUpdate(BaseModel):
 # ── Endpoints ──
 
 
-@router.get("/")
+@router.get("/", response_model=dict)
 async def list_workflow_rules(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -69,7 +69,7 @@ async def list_workflow_rules(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=dict)
 async def create_workflow_rule(
     body: WorkflowRuleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -98,7 +98,7 @@ async def create_workflow_rule(
     }
 
 
-@router.put("/{rule_id}")
+@router.put("/{rule_id}", response_model=dict)
 async def update_workflow_rule(
     rule_id: int,
     body: WorkflowRuleUpdate,
@@ -127,7 +127,7 @@ async def update_workflow_rule(
     return {"message": "Is kurali guncellendi", "id": rule.id}
 
 
-@router.delete("/{rule_id}")
+@router.delete("/{rule_id}", response_model=dict)
 async def delete_workflow_rule(
     rule_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

@@ -159,7 +159,7 @@ async def list_schedules(
     }
 
 
-@router.post("/revenue-schedules/", status_code=201)
+@router.post("/revenue-schedules/", status_code=201, response_model=dict)
 async def create_schedule(
     body: ScheduleCreate,
     _: None = Depends(_require_rev_rec),
@@ -200,7 +200,7 @@ async def create_schedule(
     return _serialize_schedule(schedule)
 
 
-@router.get("/revenue-schedules/{schedule_id}")
+@router.get("/revenue-schedules/{schedule_id}", response_model=dict)
 async def get_schedule(
     schedule_id: int,
     _: None = Depends(_require_rev_rec),
@@ -228,7 +228,7 @@ async def get_schedule(
     return data
 
 
-@router.post("/revenue-schedules/{schedule_id}/generate-entries", status_code=201)
+@router.post("/revenue-schedules/{schedule_id}/generate-entries", status_code=201, response_model=dict)
 async def generate_entries(
     schedule_id: int,
     _: None = Depends(_require_rev_rec),
@@ -280,7 +280,7 @@ async def generate_entries(
     return {"generated": len(entries), "entries": [_serialize_entry(e) for e in entries]}
 
 
-@router.patch("/revenue-schedules/{schedule_id}/entries/{entry_id}/recognize")
+@router.patch("/revenue-schedules/{schedule_id}/entries/{entry_id}/recognize", response_model=dict)
 async def recognize_entry(
     schedule_id: int,
     entry_id: int,
@@ -328,7 +328,7 @@ async def recognize_entry(
     }
 
 
-@router.get("/revenue-recognition/dashboard")
+@router.get("/revenue-recognition/dashboard", response_model=dict)
 async def recognition_dashboard(
     _: None = Depends(_require_rev_rec),
     current_user: User = Depends(get_current_user),

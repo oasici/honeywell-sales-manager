@@ -130,7 +130,7 @@ async def create_playbook(
     }
 
 
-@router.get("/analytics")
+@router.get("/analytics", response_model=dict)
 async def playbook_analytics(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -268,7 +268,7 @@ async def playbook_analytics(
     }
 
 
-@router.get("/templates")
+@router.get("/templates", response_model=dict)
 async def get_templates(
     current_user: User = Depends(get_current_user),
     _flag=Depends(_require_cockpit),
@@ -277,7 +277,7 @@ async def get_templates(
     return {"items": SEED_TEMPLATES, "total": len(SEED_TEMPLATES)}
 
 
-@router.get("/executions")
+@router.get("/executions", response_model=dict)
 async def list_executions(
     opportunity_id: int | None = Query(None),
     current_user: User = Depends(get_current_user),
@@ -337,7 +337,7 @@ async def update_playbook(
     return {"message": "Playbook guncellendi", "id": playbook.id}
 
 
-@router.delete("/{playbook_id}")
+@router.delete("/{playbook_id}", response_model=dict)
 async def deactivate_playbook(
     playbook_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -352,7 +352,7 @@ async def deactivate_playbook(
     return {"message": "Playbook devre disi birakildi", "id": playbook_id}
 
 
-@router.post("/executions/{execution_id}/cancel")
+@router.post("/executions/{execution_id}/cancel", response_model=dict)
 async def cancel_execution(
     execution_id: int,
     current_user: User = Depends(get_current_user),

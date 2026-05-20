@@ -315,7 +315,7 @@ async def get_territory_metrics(
     }
 
 
-@router.get("/{territory_id}/opportunities")
+@router.get("/{territory_id}/opportunities", response_model=dict)
 async def list_territory_opportunities(
     territory_id: int,
     limit: int = Query(50, ge=1, le=200),
@@ -368,7 +368,7 @@ async def list_territory_opportunities(
     }
 
 
-@router.put("/{territory_id}")
+@router.put("/{territory_id}", response_model=dict)
 async def update_territory(
     territory_id: int,
     body: TerritoryUpdate,
@@ -437,7 +437,7 @@ async def delete_territory(
     await db.delete(territory)
 
 
-@router.post("/{territory_id}/assignments", status_code=201)
+@router.post("/{territory_id}/assignments", status_code=201, response_model=dict)
 async def assign_user(
     territory_id: int,
     body: AssignmentCreate,
@@ -520,7 +520,7 @@ async def remove_assignment(
     await db.delete(assignment)
 
 
-@router.post("/auto-assign")
+@router.post("/auto-assign", response_model=dict)
 async def auto_assign_territories(
     _: None = Depends(_require_territories),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

@@ -62,7 +62,7 @@ async def list_prices(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=dict)
 async def create_price(
     data: dict,
     current_user: User = Depends(require_role(UserRole.OPERATIONS)),
@@ -108,6 +108,7 @@ async def create_price(
     "/import",
     status_code=201,
     dependencies=[Depends(enforce_upload_rate_limit)],
+    response_model=dict,
 )
 async def import_prices(
     file: UploadFile = File(...),

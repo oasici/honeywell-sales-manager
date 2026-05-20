@@ -82,7 +82,7 @@ async def list_dead_letters(
     }
 
 
-@router.post("/{entry_id}/replay")
+@router.post("/{entry_id}/replay", response_model=dict)
 async def replay_dead_letter(
     entry_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -151,7 +151,7 @@ async def delete_dead_letter(
     return None
 
 
-@router.get("/stats")
+@router.get("/stats", response_model=dict)
 async def dead_letter_stats(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),

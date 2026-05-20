@@ -92,7 +92,7 @@ async def list_dashboards(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=dict)
 async def create_dashboard(
     body: DashboardCreate,
     current_user: User = Depends(get_current_user),
@@ -127,7 +127,7 @@ async def create_dashboard(
     }
 
 
-@router.put("/{dashboard_id}")
+@router.put("/{dashboard_id}", response_model=dict)
 async def update_dashboard(
     dashboard_id: int,
     body: DashboardUpdate,
@@ -175,7 +175,7 @@ async def delete_dashboard(
     await db.delete(dashboard)
 
 
-@router.get("/{dashboard_id}/execute")
+@router.get("/{dashboard_id}/execute", response_model=dict)
 async def execute_dashboard(
     dashboard_id: int,
     current_user: User = Depends(get_current_user),

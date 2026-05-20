@@ -41,7 +41,7 @@ class ShadowBackfillBody(BaseModel):
     days: int = Field(default=7, ge=1, le=365)
 
 
-@router.post("/shadow/sync-window")
+@router.post("/shadow/sync-window", response_model=dict)
 async def shadow_sync_manual_backfill(
     body: ShadowBackfillBody,
     db: AsyncSession = Depends(get_db),
@@ -55,7 +55,7 @@ async def shadow_sync_manual_backfill(
     return {"ok": True, "window_days": body.days, "counts": counts}
 
 
-@router.get("/opportunities/{opportunity_id}/normalized-timeline")
+@router.get("/opportunities/{opportunity_id}/normalized-timeline", response_model=dict)
 async def normalized_sales_event_timeline(
     opportunity_id: int,
     limit: int = Query(300, ge=1, le=1000),
@@ -112,7 +112,7 @@ async def normalized_sales_event_timeline(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/conversation-signals")
+@router.get("/opportunities/{opportunity_id}/conversation-signals", response_model=dict)
 async def conversation_signals_projection(
     opportunity_id: int,
     limit: int = Query(200, ge=1, le=1000),
@@ -183,7 +183,7 @@ async def conversation_signals_projection(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/shadow-timeline")
+@router.get("/opportunities/{opportunity_id}/shadow-timeline", response_model=dict)
 async def shadow_sales_events_timeline(
     opportunity_id: int,
     limit: int = Query(500, ge=1, le=2000),

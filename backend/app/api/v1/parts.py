@@ -70,7 +70,7 @@ async def list_parts(
     }
 
 
-@router.get("/categories")
+@router.get("/categories", response_model=dict)
 async def list_categories(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -93,7 +93,7 @@ async def list_categories(
     return {"items": categories, "total": len(categories)}
 
 
-@router.get("/{part_id}")
+@router.get("/{part_id}", response_model=dict)
 async def get_part(
     part_id: int,
     current_user: User = Depends(get_current_user),
@@ -124,7 +124,7 @@ async def get_part(
     return data
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=dict)
 async def create_part(
     data: SparePartCreate,
     current_user: User = Depends(require_role(UserRole.OPERATIONS)),
@@ -146,7 +146,7 @@ async def create_part(
     return _part_to_dict(part)
 
 
-@router.put("/{part_id}")
+@router.put("/{part_id}", response_model=dict)
 async def update_part(
     part_id: int,
     data: SparePartUpdate,
@@ -170,7 +170,7 @@ async def update_part(
     return _part_to_dict(part)
 
 
-@router.delete("/{part_id}", status_code=200)
+@router.delete("/{part_id}", status_code=200, response_model=dict)
 async def delete_part(
     part_id: int,
     current_user: User = Depends(require_role(UserRole.OPERATIONS)),
@@ -194,6 +194,7 @@ async def delete_part(
     "/import",
     status_code=201,
     dependencies=[Depends(enforce_upload_rate_limit)],
+    response_model=dict,
 )
 async def import_catalog(
     file: UploadFile = File(...),

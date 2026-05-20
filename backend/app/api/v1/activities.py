@@ -41,7 +41,7 @@ class ActivityCreate(BaseModel):
 
 # ── POST /activities/ ──
 
-@router.post("/")
+@router.post("/", response_model=dict)
 async def log_activity(
     payload: ActivityCreate,
     db: AsyncSession = Depends(get_db),
@@ -181,7 +181,7 @@ async def list_activities(
 
 # ── GET /activities/metrics ──
 
-@router.get("/metrics")
+@router.get("/metrics", response_model=dict)
 async def activity_metrics(
     window: int = Query(default=30, ge=1, le=365),
     db: AsyncSession = Depends(get_db),

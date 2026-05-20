@@ -109,7 +109,7 @@ def _check_web_lead_rate(client_ip: str) -> None:
 
 # ── Endpoints ──
 
-@router.get("/analytics")
+@router.get("/analytics", response_model=dict)
 async def lead_analytics(
     window: int = Query(90, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -209,7 +209,7 @@ async def lead_analytics(
     }
 
 
-@router.post("/web-form", status_code=201)
+@router.post("/web-form", status_code=201, response_model=dict)
 async def web_lead_form(
     data: WebLeadFormRequest,
     request: Request,
@@ -363,7 +363,7 @@ async def list_scoring_configs(
     }
 
 
-@router.put("/scoring-config/{factor_name}")
+@router.put("/scoring-config/{factor_name}", response_model=dict)
 async def update_scoring_config(
     factor_name: str,
     data: ScoringConfigUpdate,
@@ -416,6 +416,7 @@ async def update_scoring_config(
     "/bulk-action",
     # Round-4 R4-RL-2 — DoS + audit-log flood guard.
     dependencies=[Depends(enforce_bulk_rate_limit)],
+    response_model=dict,
 )
 async def bulk_action_leads(
     body: dict,
@@ -551,7 +552,7 @@ async def update_lead(
     return _lead_to_dict(lead)
 
 
-@router.post("/{lead_id}/convert")
+@router.post("/{lead_id}/convert", response_model=dict)
 async def convert_lead(
     lead_id: int,
     data: LeadConvertRequest,
@@ -582,7 +583,7 @@ async def convert_lead(
     return result
 
 
-@router.post("/{lead_id}/rescore")
+@router.post("/{lead_id}/rescore", response_model=dict)
 async def rescore_lead(
     lead_id: int,
     current_user: User = Depends(get_current_user),

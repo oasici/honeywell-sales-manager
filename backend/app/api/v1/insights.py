@@ -25,7 +25,7 @@ def _require_insights():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/signals")
+@router.get("/signals", response_model=dict)
 async def signals_dashboard(
     window: int = Query(30, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -99,7 +99,7 @@ async def signals_dashboard(
     }
 
 
-@router.get("/signals/trends")
+@router.get("/signals/trends", response_model=dict)
 async def signals_trends(
     window: int = Query(30, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -112,7 +112,7 @@ async def signals_trends(
     return await signal_trends(db, window_days=window)
 
 
-@router.get("/conversation-insights")
+@router.get("/conversation-insights", response_model=dict)
 async def conversation_insights(
     window: int = Query(30, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -125,7 +125,7 @@ async def conversation_insights(
     return await conversation_insights_keywords(db, window_days=window)
 
 
-@router.get("/conversation-search")
+@router.get("/conversation-search", response_model=dict)
 async def conversation_search_endpoint(
     q: str = Query(..., min_length=2, max_length=200),
     stage: str | None = Query(None, max_length=40),

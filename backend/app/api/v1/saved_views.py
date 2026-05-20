@@ -89,7 +89,7 @@ async def create_saved_view(
     }
 
 
-@router.delete("/{view_id}", status_code=200)
+@router.delete("/{view_id}", status_code=200, response_model=dict)
 async def delete_saved_view(
     view_id: int,
     current_user: User = Depends(get_current_user),

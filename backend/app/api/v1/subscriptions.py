@@ -99,7 +99,7 @@ def _serialize(sub) -> dict:
     return apply_request_perms(data, "subscription")
 
 
-@router.get("/mrr-dashboard")
+@router.get("/mrr-dashboard", response_model=dict)
 async def mrr_dashboard(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -237,7 +237,7 @@ async def update_subscription(
     return _serialize(sub)
 
 
-@router.post("/{sub_id}/cancel")
+@router.post("/{sub_id}/cancel", response_model=dict)
 async def cancel_subscription(
     sub_id: int,
     current_user: User = Depends(get_current_user),
@@ -252,7 +252,7 @@ async def cancel_subscription(
     return {"status": "cancelled"}
 
 
-@router.post("/{sub_id}/renew")
+@router.post("/{sub_id}/renew", response_model=dict)
 async def renew_subscription(
     sub_id: int,
     current_user: User = Depends(get_current_user),

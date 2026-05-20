@@ -26,7 +26,7 @@ class ShareRequest(BaseModel):
     shared_with_email: str
 
 
-@router.post("/share")
+@router.post("/share", response_model=dict)
 async def share_document(
     body: ShareRequest,
     current_user: User = Depends(get_current_user),
@@ -72,7 +72,7 @@ async def share_document(
     }
 
 
-@router.get("/track/{token}")
+@router.get("/track/{token}", response_model=dict)
 async def track_document(
     token: str,
     db: AsyncSession = Depends(get_db),
@@ -142,7 +142,7 @@ async def list_documents(
     }
 
 
-@router.get("/{document_id}/analytics")
+@router.get("/{document_id}/analytics", response_model=dict)
 async def get_document_analytics(
     document_id: int,
     current_user: User = Depends(get_current_user),

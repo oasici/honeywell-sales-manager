@@ -382,7 +382,7 @@ async def summarize(
     }
 
 
-@router.post("/summarize/changes")
+@router.post("/summarize/changes", response_model=SummarizeChangesResponse)
 async def summarize_changes(
     body: SummarizeChangesRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -493,7 +493,7 @@ async def summarize_changes(
     }
 
 
-@router.post("/meeting-prep")
+@router.post("/meeting-prep", response_model=MeetingPrepResponse)
 async def meeting_prep(
     body: MeetingPrepRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -572,7 +572,7 @@ async def meeting_prep(
 # 2. SUGGEST PIPELINE UPDATE
 # ══════════════════════════════════════════
 
-@router.post("/suggest-pipeline-update")
+@router.post("/suggest-pipeline-update", response_model=PipelineSuggestResponse)
 async def suggest_pipeline_update(
     body: PipelineSuggestRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -690,7 +690,7 @@ SIGNAL_KEYWORDS = {
 }
 
 
-@router.post("/extract-signals")
+@router.post("/extract-signals", response_model=ExtractSignalsResponse)
 async def extract_signals(
     body: ExtractSignalsRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -801,7 +801,7 @@ async def extract_signals(
 # 4. SIGNALS CRUD (read)
 # ══════════════════════════════════════════
 
-@router.get("/signals/{opportunity_id}")
+@router.get("/signals/{opportunity_id}", response_model=GetSignalsResponse)
 async def get_signals(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -859,7 +859,7 @@ class TaskUpdate(BaseModel):
     due_at: str | None = None
 
 
-@router.get("/tasks")
+@router.get("/tasks", response_model=TaskListResponse)
 async def list_tasks(
     status: str = "open",
     current_user: User = Depends(get_current_user),
@@ -901,7 +901,7 @@ async def list_tasks(
     }
 
 
-@router.post("/tasks", status_code=201)
+@router.post("/tasks", status_code=201, response_model=TaskCreateResponse)
 async def create_task(
     body: TaskCreate,
     current_user: User = Depends(get_current_user),
@@ -925,7 +925,7 @@ async def create_task(
     return {"id": task.id, "title": task.title, "status": task.status}
 
 
-@router.patch("/tasks/{task_id}")
+@router.patch("/tasks/{task_id}", response_model=TaskUpdateResponse)
 async def update_task(
     task_id: int,
     body: TaskUpdate,
@@ -959,7 +959,7 @@ def _require_revenue_cockpit():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.post("/generate-actions")
+@router.post("/generate-actions", response_model=GenerateActionsResponse)
 async def generate_actions_endpoint(
     body: GenerateActionsRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -990,7 +990,7 @@ def _require_ai_deal_risk():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.post("/deal-risk/{opportunity_id}")
+@router.post("/deal-risk/{opportunity_id}", response_model=DealRiskResponse)
 async def deal_risk_endpoint(
     opportunity_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -1029,7 +1029,7 @@ def _require_ai_predictions():
 # ══════════════════════════════════════════
 
 
-@router.post("/predict-close/{opportunity_id}")
+@router.post("/predict-close/{opportunity_id}", response_model=PredictCloseResponse)
 async def predict_close(
     opportunity_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -1058,7 +1058,7 @@ async def predict_close(
 # ══════════════════════════════════════════
 
 
-@router.post("/predict-churn/{customer_id}")
+@router.post("/predict-churn/{customer_id}", response_model=PredictChurnResponse)
 async def predict_churn(
     customer_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -1097,7 +1097,7 @@ def _require_ai_competitive_intel():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/competitive-intel")
+@router.get("/competitive-intel", response_model=CompetitiveIntelResponse)
 async def competitive_intel_dashboard(
     days: int = 90,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -1111,7 +1111,7 @@ async def competitive_intel_dashboard(
     return result
 
 
-@router.post("/crawl-competitors")
+@router.post("/crawl-competitors", response_model=CrawlCompetitorsResponse)
 async def crawl_competitors_endpoint(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     _flag=Depends(_require_ai_competitive_intel),
@@ -1123,7 +1123,7 @@ async def crawl_competitors_endpoint(
     return {"data": result}
 
 
-@router.post("/crawl-competitor/{competitor_name}")
+@router.post("/crawl-competitor/{competitor_name}", response_model=CrawlSingleCompetitorResponse)
 async def crawl_single_competitor(
     competitor_name: str,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -1151,7 +1151,7 @@ async def crawl_single_competitor(
 # ══════════════════════════════════════════
 
 
-@router.get("/rag/status")
+@router.get("/rag/status", response_model=RAGStatusResponse)
 async def rag_status(
     current_user: User = Depends(get_current_user),
 ):
@@ -1193,7 +1193,7 @@ _EMAIL_DRAFT_FALLBACK = (
 )
 
 
-@router.post("/email/draft-reply")
+@router.post("/email/draft-reply", response_model=EmailDraftResponse)
 async def draft_email_reply(
     body: EmailDraftRequest,
     current_user: User = Depends(get_current_user),

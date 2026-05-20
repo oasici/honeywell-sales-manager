@@ -285,7 +285,7 @@ async def update_contract(
     return _serialize_contract(contract)
 
 
-@router.post("/contracts/{contract_id}/amend")
+@router.post("/contracts/{contract_id}/amend", response_model=dict)
 async def amend_contract(
     contract_id: int,
     body: AmendmentCreate,
@@ -322,7 +322,7 @@ async def amend_contract(
     }
 
 
-@router.post("/contracts/{contract_id}/activate")
+@router.post("/contracts/{contract_id}/activate", response_model=dict)
 async def activate_contract(
     contract_id: int,
     current_user: User = Depends(get_current_user),

@@ -236,7 +236,7 @@ async def refresh_token_endpoint(
     )
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=dict)
 async def logout(
     request: Request,
     response: Response,
@@ -279,6 +279,7 @@ class ChangePasswordRequest(BaseModel):
 @router.post(
     "/change-password",
     dependencies=[Depends(enforce_login_rate_limit)],
+    response_model=dict,
 )
 async def change_password(
     body: ChangePasswordRequest,
@@ -334,7 +335,7 @@ async def list_sessions(
     ]
 
 
-@router.delete("/sessions/{jti}")
+@router.delete("/sessions/{jti}", response_model=dict)
 async def kill_session(
     jti: str,
     current_user: Annotated[User, Depends(get_current_user)],

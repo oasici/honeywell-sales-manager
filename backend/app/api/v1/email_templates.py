@@ -76,7 +76,7 @@ def _serialize(template: object) -> dict:
 # ── Endpoints ──
 
 
-@router.get("/variables")
+@router.get("/variables", response_model=dict)
 async def get_available_variables(
     current_user: User = Depends(get_current_user),
 ):
@@ -148,7 +148,7 @@ async def update_email_template(
     return _serialize(template)
 
 
-@router.delete("/{template_id}")
+@router.delete("/{template_id}", response_model=dict)
 async def delete_email_template(
     template_id: int,
     current_user: User = Depends(get_current_user),
@@ -164,7 +164,7 @@ async def delete_email_template(
     return {"message": "Sablon silindi", "id": template_id}
 
 
-@router.post("/{template_id}/send")
+@router.post("/{template_id}/send", response_model=dict)
 async def send_email_template(
     template_id: int,
     body: EmailTemplateSend,

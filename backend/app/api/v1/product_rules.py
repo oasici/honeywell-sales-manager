@@ -66,7 +66,7 @@ async def list_product_rules(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=dict)
 async def create_product_rule(
     data: ProductRuleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -87,7 +87,7 @@ async def create_product_rule(
     return _rule_to_dict(rule)
 
 
-@router.delete("/{rule_id}")
+@router.delete("/{rule_id}", response_model=dict)
 async def delete_product_rule(
     rule_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -100,7 +100,7 @@ async def delete_product_rule(
     return {"message": "Urun kurali silindi"}
 
 
-@router.post("/evaluate")
+@router.post("/evaluate", response_model=dict)
 async def evaluate_rules(
     data: ProductRuleEvaluateItem,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),

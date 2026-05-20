@@ -20,7 +20,7 @@ from app.models.user import User
 router = APIRouter(prefix="/ops", tags=["Operations"])
 
 
-@router.get("/queues")
+@router.get("/queues", response_model=dict)
 async def get_queues(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -86,7 +86,7 @@ async def get_queues(
     }
 
 
-@router.get("/feature-usage")
+@router.get("/feature-usage", response_model=dict)
 async def get_feature_usage(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -127,7 +127,7 @@ async def get_feature_usage(
     }
 
 
-@router.get("/feature-flags")
+@router.get("/feature-flags", response_model=dict)
 async def get_feature_flags(
     current_user: User = Depends(get_current_user),
 ):
@@ -149,7 +149,7 @@ async def get_feature_flags(
     return {"data": flags}
 
 
-@router.get("/dashboard")
+@router.get("/dashboard", response_model=dict)
 async def get_ops_dashboard(
     current_user: User = Depends(get_current_user),
 ):

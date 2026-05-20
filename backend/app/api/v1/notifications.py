@@ -52,7 +52,7 @@ async def list_notifications(
     }
 
 
-@router.get("/unread-count")
+@router.get("/unread-count", response_model=dict)
 async def get_unread_count(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -72,7 +72,7 @@ async def get_unread_count(
     return {"unread_count": count}
 
 
-@router.patch("/{notification_id}/read")
+@router.patch("/{notification_id}/read", response_model=dict)
 async def mark_notification_read(
     notification_id: int,
     current_user: User = Depends(get_current_user),
@@ -97,7 +97,7 @@ class PushSubscribeRequest(BaseModel):
     keys_json: str = Field(..., min_length=2)
 
 
-@router.post("/push-subscribe", status_code=201)
+@router.post("/push-subscribe", status_code=201, response_model=dict)
 async def push_subscribe(
     body: PushSubscribeRequest,
     current_user: User = Depends(get_current_user),
@@ -125,7 +125,7 @@ async def push_subscribe(
     return {"message": "Push aboneligi kaydedildi", "id": subscription.id}
 
 
-@router.delete("/push-unsubscribe")
+@router.delete("/push-unsubscribe", response_model=dict)
 async def push_unsubscribe(
     endpoint: str = Query(...),
     current_user: User = Depends(get_current_user),
@@ -148,7 +148,7 @@ async def push_unsubscribe(
     return {"message": "Push aboneligi kaldirildi"}
 
 
-@router.patch("/read-all")
+@router.patch("/read-all", response_model=dict)
 async def mark_all_notifications_read(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

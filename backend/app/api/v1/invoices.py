@@ -300,7 +300,7 @@ async def update_invoice(
     return {"message": "Fatura guncellendi", "id": invoice.id}
 
 
-@router.patch("/{invoice_id}/status")
+@router.patch("/{invoice_id}/status", response_model=dict)
 async def update_invoice_status(
     invoice_id: int,
     body: StatusUpdate,
@@ -365,7 +365,7 @@ async def update_invoice_status(
     return {"message": "Fatura durumu guncellendi", "id": invoice_id, "status": body.status}
 
 
-@router.post("/from-quote/{quote_id}", status_code=201)
+@router.post("/from-quote/{quote_id}", status_code=201, response_model=dict)
 async def create_invoice_from_quote(
     quote_id: int,
     current_user: User = Depends(get_current_user),
@@ -432,6 +432,7 @@ async def create_invoice_from_quote(
     }
 
 
+# Round-15 N15-API-1: response_model exempt (returns non-JSON: file/redirect/stream)
 @router.get("/{invoice_id}/pdf")
 async def download_invoice_pdf(
     invoice_id: int,

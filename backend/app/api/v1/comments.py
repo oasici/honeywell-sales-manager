@@ -133,7 +133,7 @@ async def list_comments(
     }
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=dict)
 async def create_comment(
     body: CommentCreate,
     current_user: User = Depends(get_current_user),
@@ -204,7 +204,7 @@ async def create_comment(
     return _serialize_comment(comment)
 
 
-@router.delete("/{comment_id}")
+@router.delete("/{comment_id}", response_model=dict)
 async def delete_comment(
     comment_id: int,
     current_user: User = Depends(get_current_user),

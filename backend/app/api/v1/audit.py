@@ -101,6 +101,7 @@ async def list_audit_logs(
     }
 
 
+# Round-15 N15-API-1: response_model exempt (returns non-JSON: file/redirect/stream)
 @router.get(
     "/export/csv",
     # Round-4 R4-RL-5 — bulk PII export must be rate-limited.
@@ -176,6 +177,7 @@ async def export_audit_logs_csv(
     "/data-export/{target_user_id}",
     # Round-4 R4-RL-5 — KVKK Article 15 disclosure path.
     dependencies=[Depends(enforce_kvkk_export_rate_limit)],
+    response_model=dict,
 )
 async def export_user_data(
     target_user_id: int,

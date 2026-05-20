@@ -29,7 +29,7 @@ class BundleCreate(BaseModel):
     discount_pct: float = 0.0
 
 
-@router.get("/bundles/")
+@router.get("/bundles/", response_model=dict)
 async def list_bundles(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -61,7 +61,7 @@ async def list_bundles(
     }
 
 
-@router.post("/bundles/", status_code=201)
+@router.post("/bundles/", status_code=201, response_model=dict)
 async def create_bundle(
     body: BundleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -82,7 +82,7 @@ async def create_bundle(
     return {"id": bundle.id, "name": bundle.name}
 
 
-@router.delete("/bundles/{bundle_id}")
+@router.delete("/bundles/{bundle_id}", response_model=dict)
 async def delete_bundle(
     bundle_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -101,7 +101,7 @@ async def delete_bundle(
     return {"message": "Paket silindi"}
 
 
-@router.post("/bundles/{bundle_id}/to-quote-items")
+@router.post("/bundles/{bundle_id}/to-quote-items", response_model=dict)
 async def expand_bundle_to_quote_items(
     bundle_id: int,
     current_user: User = Depends(get_current_user),

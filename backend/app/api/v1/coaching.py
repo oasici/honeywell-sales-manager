@@ -41,7 +41,7 @@ def _require_cockpit():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/overview")
+@router.get("/overview", response_model=dict)
 async def coaching_overview(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -81,7 +81,7 @@ class CoachingPlanCreate(BaseModel):
 # ── Plan Endpoints ──
 
 
-@router.get("/plans")
+@router.get("/plans", response_model=dict)
 async def list_coaching_plans(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -112,7 +112,7 @@ async def list_coaching_plans(
     }
 
 
-@router.post("/plans", status_code=201)
+@router.post("/plans", status_code=201, response_model=dict)
 async def create_coaching_plan(
     body: CoachingPlanCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -161,7 +161,7 @@ async def create_coaching_plan(
 # ── Trend & Benchmark Endpoints ──
 
 
-@router.get("/rep/{user_id}/trends")
+@router.get("/rep/{user_id}/trends", response_model=dict)
 async def coaching_rep_trends(
     user_id: int,
     current_user: User = Depends(get_current_user),
@@ -201,7 +201,7 @@ async def coaching_rep_trends(
     }
 
 
-@router.get("/benchmarks")
+@router.get("/benchmarks", response_model=dict)
 async def coaching_benchmarks(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -266,7 +266,7 @@ async def coaching_benchmarks(
     }
 
 
-@router.get("/rep/{user_id}")
+@router.get("/rep/{user_id}", response_model=dict)
 async def coaching_rep(
     user_id: int,
     current_user: User = Depends(get_current_user),

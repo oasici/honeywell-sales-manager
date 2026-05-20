@@ -229,7 +229,7 @@ async def delete_webhook(
     await db.delete(subscription)
 
 
-@router.get("/{webhook_id}/deliveries")
+@router.get("/{webhook_id}/deliveries", response_model=dict)
 async def get_webhook_deliveries(
     webhook_id: int,
     limit: int = Query(20, ge=1, le=100),
@@ -263,7 +263,7 @@ async def get_webhook_deliveries(
     }
 
 
-@router.post("/deliveries/{delivery_id}/retry")
+@router.post("/deliveries/{delivery_id}/retry", response_model=dict)
 async def retry_webhook_delivery(
     delivery_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -344,7 +344,7 @@ async def retry_webhook_delivery(
         }
 
 
-@router.post("/{webhook_id}/test")
+@router.post("/{webhook_id}/test", response_model=dict)
 async def test_webhook(
     webhook_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

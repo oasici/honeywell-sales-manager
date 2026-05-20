@@ -47,7 +47,7 @@ async def _ensure_opp_access(
     return opp
 
 
-@router.get("/opportunities/{opportunity_id}/snapshots")
+@router.get("/opportunities/{opportunity_id}/snapshots", response_model=dict)
 async def list_replay_snapshots(
     opportunity_id: int,
     limit: int = Query(60, ge=1, le=365),
@@ -82,7 +82,7 @@ async def list_replay_snapshots(
     return {"opportunity_id": opportunity_id, "items": items, "total": len(items)}
 
 
-@router.get("/opportunities/{opportunity_id}/snapshots/{snapshot_date}")
+@router.get("/opportunities/{opportunity_id}/snapshots/{snapshot_date}", response_model=dict)
 async def get_replay_snapshot(
     opportunity_id: int,
     snapshot_date: date,
@@ -119,7 +119,7 @@ async def get_replay_snapshot(
     }
 
 
-@router.post("/opportunities/{opportunity_id}/materialize")
+@router.post("/opportunities/{opportunity_id}/materialize", response_model=dict)
 async def post_materialize_replay_snapshot(
     opportunity_id: int,
     snapshot_date: date | None = Query(
