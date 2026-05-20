@@ -273,9 +273,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Logout Api V1 Auth Logout Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -340,9 +338,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Change Password Api V1 Auth Change Password Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -465,9 +461,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Kill Session Api V1 Auth Sessions  Jti  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -936,9 +930,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Email Api V1 Emails  Email Id  Get"
+                  "$ref": "#/components/schemas/EmailResponse"
                 }
               }
             }
@@ -1003,9 +995,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Manual Email Api V1 Emails Manual Post"
+                  "$ref": "#/components/schemas/EmailResponse"
                 }
               }
             }
@@ -1060,9 +1050,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Poll Emails Api V1 Emails Poll Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -1200,9 +1188,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Link Email To Opportunity Api V1 Emails  Email Id  Opportunity Patch"
+                  "$ref": "#/components/schemas/EmailResponse"
                 }
               }
             }
@@ -1266,9 +1252,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Mark Email Read Api V1 Emails  Email Id  Read Patch"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -1332,9 +1316,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Reparse Email Api V1 Emails  Email Id  Reparse Post"
+                  "$ref": "#/components/schemas/EmailResponse"
                 }
               }
             }
@@ -1408,9 +1390,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Correct Parse Api V1 Emails  Email Id  Correct Parse Patch"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -1550,9 +1530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Review Email Api V1 Emails  Email Id  Review Patch"
+                  "$ref": "#/components/schemas/EmailResponse"
                 }
               }
             }
@@ -1730,9 +1708,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Part Api V1 Parts  Post"
+                  "$ref": "#/components/schemas/SparePartResponse"
                 }
               }
             }
@@ -1787,9 +1763,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Categories Api V1 Parts Categories Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -1927,9 +1901,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Part Api V1 Parts  Part Id  Put"
+                  "$ref": "#/components/schemas/SparePartResponse"
                 }
               }
             }
@@ -1991,9 +1963,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Part Api V1 Parts  Part Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -2240,9 +2210,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Price Api V1 Prices  Post"
+                  "$ref": "#/components/schemas/PriceEntryResponse"
                 }
               }
             }
@@ -2307,9 +2275,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Import Prices Api V1 Prices Import Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -2645,9 +2611,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Latest Opportunity Features Api V1 V4 Opportunities  Opportunity Id  Features Latest Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -2917,9 +2881,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Latest Segment Benchmarks Api V1 V4 Benchmarks Segments Latest Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -2982,9 +2944,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Opportunity Benchmark Gap Api V1 V4 Benchmarks Opportunities  Opportunity Id  Gap Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -3151,9 +3111,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Normalized Sales Event Timeline Api V1 V4 Alignment Opportunities  Opportunity Id  Normalized Timeline Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -3241,9 +3199,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Conversation Signals Projection Api V1 V4 Alignment Opportunities  Opportunity Id  Conversation Signals Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -3319,9 +3275,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Shadow Sales Events Timeline Api V1 V4 Alignment Opportunities  Opportunity Id  Shadow Timeline Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -3396,9 +3350,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Replay Snapshots Api V1 V4 Replay Opportunities  Opportunity Id  Snapshots Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -3664,9 +3616,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Dna Snapshots Api V1 V4 Dna Opportunities  Opportunity Id  Snapshots Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -4673,9 +4623,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Replay Deltas Api V1 V6 Opportunities  Opportunity Id  Replay Deltas Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -7092,9 +7040,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Search Deals Api V1 Rag Search Deals Post"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -7158,9 +7104,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Search Interactions Api V1 Rag Search Interactions Post"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -7224,9 +7168,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Search Competitors Api V1 Rag Search Competitors Post"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -7346,9 +7288,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Collections Api V1 Rag Collections Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -9079,9 +9019,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Quote From Pdf Api V1 Quotes From Pdf Post"
+                  "$ref": "#/components/schemas/QuoteResponse"
                 }
               }
             }
@@ -9145,9 +9083,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Quote From Email Api V1 Quotes From Email  Email Id  Post"
+                  "$ref": "#/components/schemas/QuoteResponse"
                 }
               }
             }
@@ -9211,9 +9147,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Approve Quote Api V1 Quotes  Quote Id  Approve Patch"
+                  "$ref": "#/components/schemas/QuoteResponse"
                 }
               }
             }
@@ -9294,9 +9228,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Send Quote Api V1 Quotes  Quote Id  Send Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -9432,9 +9364,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Convert Quote Currency Api V1 Quotes  Quote Id  Convert Currency Post"
+                  "$ref": "#/components/schemas/QuoteResponse"
                 }
               }
             }
@@ -11275,9 +11205,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Mark Notification Read Api V1 Notifications  Notification Id  Read Patch"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -11342,9 +11270,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Push Subscribe Api V1 Notifications Push Subscribe Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -11408,9 +11334,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Push Unsubscribe Api V1 Notifications Push Unsubscribe Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -11465,9 +11389,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Mark All Notifications Read Api V1 Notifications Read All Patch"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -12469,9 +12391,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Toggle User Active Api V1 Users  User Id  Toggle Active Patch"
+                  "$ref": "#/components/schemas/UserRow"
                 }
               }
             }
@@ -12545,9 +12465,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Change User Role Api V1 Users  User Id  Role Patch"
+                  "$ref": "#/components/schemas/UserRow"
                 }
               }
             }
@@ -12621,9 +12539,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Reset User Password Api V1 Users  User Id  Reset Password Patch"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -12688,9 +12604,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Bulk Import Users Api V1 Users Bulk Import Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -13628,9 +13542,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Feature Flags Api V1 Ops Feature Flags Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -13685,9 +13597,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Ops Dashboard Api V1 Ops Dashboard Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -13869,9 +13779,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Saved View Api V1 Saved Views  View Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -14399,9 +14307,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Stage Requirements Api V1 Opportunities  Opp Id  Stage Requirements Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -14468,9 +14374,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Bulk Action Opportunities Api V1 Opportunities Bulk Action Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -20555,9 +20459,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Web Lead Form Api V1 Leads Web Form Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -20965,9 +20867,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Bulk Action Leads Api V1 Leads Bulk Action Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -21363,9 +21263,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Rule Api V1 Approvals Rules Post"
+                  "$ref": "#/components/schemas/ApprovalRuleResponseRow"
                 }
               }
             }
@@ -21439,9 +21337,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Rule Api V1 Approvals Rules  Rule Id  Put"
+                  "$ref": "#/components/schemas/ApprovalRuleResponseRow"
                 }
               }
             }
@@ -21632,9 +21528,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Approve Request Api V1 Approvals  Request Id  Approve Post"
+                  "$ref": "#/components/schemas/ApprovalRequestRow"
                 }
               }
             }
@@ -21715,9 +21609,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Reject Request Api V1 Approvals  Request Id  Reject Post"
+                  "$ref": "#/components/schemas/ApprovalRequestRow"
                 }
               }
             }
@@ -21856,9 +21748,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Quick Approve Api V1 Approvals Quick Approve  Request Id  Post"
+                  "$ref": "#/components/schemas/ApprovalRequestRow"
                 }
               }
             }
@@ -21923,9 +21813,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delegate Approval Api V1 Approvals Delegate Post"
+                  "$ref": "#/components/schemas/ApprovalRuleResponseRow"
                 }
               }
             }
@@ -22277,9 +22165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Adjustment Api V1 Forecast Adjustments Post"
+                  "$ref": "#/components/schemas/ForecastAdjustmentRow"
                 }
               }
             }
@@ -23737,9 +23623,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Team Members Api V1 Customers  Customer Id  Team Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -23811,9 +23695,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Add Team Member Api V1 Customers  Customer Id  Team Post"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -23997,9 +23879,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Sharing Rule Api V1 Sharing Rules  Post"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -25320,9 +25200,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Coaching Plans Api V1 Coaching Plans Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -25385,9 +25263,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Coaching Plan Api V1 Coaching Plans Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -25508,9 +25384,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Coaching Benchmarks Api V1 Coaching Benchmarks Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -26692,9 +26566,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Templates Api V1 Playbooks Templates Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -26765,9 +26637,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Executions Api V1 Playbooks Executions Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -26965,9 +26835,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Deactivate Playbook Api V1 Playbooks  Playbook Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -27031,9 +26899,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Cancel Execution Api V1 Playbooks Executions  Execution Id  Cancel Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -27251,9 +27117,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Field Permission Api V1 Field Permissions  Permission Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -27371,9 +27235,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Product Rule Api V1 Product Rules  Post"
+                  "$ref": "#/components/schemas/ProductRuleRow"
                 }
               }
             }
@@ -27437,9 +27299,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Product Rule Api V1 Product Rules  Rule Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -27624,9 +27484,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Dashboard Api V1 Dashboards  Post"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -27700,9 +27558,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Dashboard Api V1 Dashboards  Dashboard Id  Put"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -27821,9 +27677,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Execute Dashboard Api V1 Dashboards  Dashboard Id  Execute Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -27951,9 +27805,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Custom Field Api V1 Custom Fields  Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -28017,9 +27869,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Custom Field Api V1 Custom Fields  Field Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -28175,9 +28025,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Set Custom Field Value Api V1 Custom Fields Values  Entity Type   Entity Id  Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -28232,9 +28080,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Workflow Rules Api V1 Workflow Rules  Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -28297,9 +28143,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Workflow Rule Api V1 Workflow Rules  Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -28373,9 +28217,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Workflow Rule Api V1 Workflow Rules  Rule Id  Put"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -28437,9 +28279,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Workflow Rule Api V1 Workflow Rules  Rule Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -28504,9 +28344,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Log Activity Api V1 Activities  Post"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -28745,9 +28583,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Activity Metrics Api V1 Activities Metrics Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -28895,9 +28731,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Check Duplicates Api V1 Duplicates Check Post"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -28962,9 +28796,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Merge Preview Api V1 Duplicates Merge Preview Post"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -29029,9 +28861,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Merge Records Api V1 Duplicates Merge Post"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -29217,9 +29047,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Bundle Api V1 Bundles  Bundle Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -29421,9 +29249,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Comment Api V1 Comments  Post"
+                  "$ref": "#/components/schemas/CommentRow"
                 }
               }
             }
@@ -29487,9 +29313,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Comment Api V1 Comments  Comment Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -29800,9 +29624,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Email Template Api V1 Email Templates  Template Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -29876,9 +29698,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Send Email Template Api V1 Email Templates  Template Id  Send Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -30192,9 +30012,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Deal Room Api V1 Deal Rooms  Post"
+                  "$ref": "#/components/schemas/DealRoomRow"
                 }
               }
             }
@@ -30258,9 +30076,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Deal Room Api V1 Deal Rooms  Room Id  Get"
+                  "$ref": "#/components/schemas/DealRoomRow"
                 }
               }
             }
@@ -30332,9 +30148,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Deal Room Api V1 Deal Rooms  Room Id  Put"
+                  "$ref": "#/components/schemas/DealRoomRow"
                 }
               }
             }
@@ -30396,9 +30210,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Deactivate Deal Room Api V1 Deal Rooms  Room Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -30441,9 +30253,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Public Deal Room Api V1 Deal Rooms Public  Token  Get"
+                  "$ref": "#/components/schemas/DealRoomRow"
                 }
               }
             }
@@ -30496,9 +30306,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Buyer Action Api V1 Deal Rooms Public  Token  Action Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -30563,9 +30371,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Share Document Api V1 Documents Share Post"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -30608,9 +30414,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Track Document Api V1 Documents Track  Token  Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -30729,9 +30533,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Document Analytics Api V1 Documents  Document Id  Analytics Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -31126,9 +30928,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Bookings Api V1 Meetings Bookings Get"
+                  "$ref": "#/components/schemas/GenericDataResponse"
                 }
               }
             }
@@ -31959,9 +31759,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Guide Api V1 Guided Selling  Guide Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -32962,9 +32760,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Campaign Api V1 Campaigns  Campaign Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -33114,9 +32910,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Campaign Members Api V1 Campaigns  Campaign Id  Members Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -33192,9 +32986,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Add Campaign Members Api V1 Campaigns  Campaign Id  Members Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -33267,9 +33059,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Remove Campaign Member Api V1 Campaigns  Campaign Id  Members  Member Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -33352,9 +33142,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Member Status Api V1 Campaigns  Campaign Id  Members  Member Id  Status Patch"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -33734,9 +33522,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Invoice Status Api V1 Invoices  Invoice Id  Status Patch"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -33800,9 +33586,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Invoice From Quote Api V1 Invoices From Quote  Quote Id  Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -33929,9 +33713,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Signature Request Api V1 Signatures Request Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -34006,9 +33788,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Signature Requests Api V1 Signatures  Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -34136,9 +33916,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Cancel Signature Request Api V1 Signatures  Sig Id  Delete"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -34234,9 +34012,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Submit Signature Api V1 Signatures Sign  Token  Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -34279,9 +34055,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Decline Signature Api V1 Signatures Sign  Token  Decline Post"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -34422,9 +34196,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Pipeline Api V1 Pipelines  Post"
+                  "$ref": "#/components/schemas/PipelineRow"
                 }
               }
             }
@@ -34488,9 +34260,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Pipeline Api V1 Pipelines  Pipeline Id  Get"
+                  "$ref": "#/components/schemas/PipelineRow"
                 }
               }
             }
@@ -34562,9 +34332,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Pipeline Api V1 Pipelines  Pipeline Id  Put"
+                  "$ref": "#/components/schemas/PipelineRow"
                 }
               }
             }
@@ -34683,9 +34451,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Set Default Pipeline Api V1 Pipelines  Pipeline Id  Set Default Patch"
+                  "$ref": "#/components/schemas/PipelineRow"
                 }
               }
             }
@@ -34994,9 +34760,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Territory Api V1 Territories  Territory Id  Put"
+                  "$ref": "#/components/schemas/TerritoryListRow"
                 }
               }
             }
@@ -35202,9 +34966,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Territory Opportunities Api V1 Territories  Territory Id  Opportunities Get"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -35560,9 +35322,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Schedule Api V1 Revenue Schedules  Post"
+                  "$ref": "#/components/schemas/RevenueScheduleRow"
                 }
               }
             }
@@ -36558,9 +36318,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Tier Api V1 Pricing Tiers Post"
+                  "$ref": "#/components/schemas/PriceTierRow"
                 }
               }
             }
@@ -37260,9 +37018,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Stakeholder Api V1 Stakeholders  Post"
+                  "$ref": "#/components/schemas/StakeholderRow"
                 }
               }
             }
@@ -37336,9 +37092,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Stakeholder Api V1 Stakeholders  Stakeholder Id  Put"
+                  "$ref": "#/components/schemas/StakeholderRow"
                 }
               }
             }
@@ -37810,9 +37564,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Generate Api V1 Next Best Actions  Opportunity Id  Generate Post"
+                  "$ref": "#/components/schemas/ItemsResponse"
                 }
               }
             }
@@ -50607,6 +50359,23 @@
         "type": "object",
         "title": "GenerateRequest"
       },
+      "GenericDataResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "GenericDataResponse",
+        "description": "Generic ``{data: ...}`` envelope used by ad-hoc endpoints."
+      },
       "GetSignalsResponse": {
         "properties": {
           "items": {
@@ -52841,6 +52610,25 @@
           "sender_type"
         ],
         "title": "MessageCreate"
+      },
+      "MessageResponse": {
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "MessageResponse",
+        "description": "Generic ``{message: str, ...}`` response used by many write endpoints.\n\nExtras-tolerant so callers can attach IDs, counts, or whatever\nauxiliary data the handler decides to return."
       },
       "MissingPricePartResponse": {
         "properties": {
