@@ -113,12 +113,23 @@ class CustomerHealthService:
         self._db = db
 
     async def calculate_health_score(
-        self, customer_id: int,
+        self,
+        customer_id: int,
+        tenant_id: int | None = None,
     ) -> CustomerHealthReport | None:
-        """Tek bir musteri icin saglik raporu olusturur."""
-        result = await self._db.execute(
-            select(Customer).where(Customer.id == customer_id)
-        )
+        """Tek bir musteri icin saglik raporu olusturur.
+
+        N15-AUTH-4 (Round-15) — when ``tenant_id`` is supplied, the customer
+        lookup is scoped to that tenant. Cross-tenant lookups collapse to
+        ``None`` (callers convert to 404). ``tenant_id`` is optional only to
+        preserve backwards-compat with internal callers (e.g. churn replay
+        jobs that already know the row exists); router callers must always
+        pass it.
+        """
+        stmt = select(Customer).where(Customer.id == customer_id)
+        if tenant_id is not None:
+            stmt = stmt.where(Customer.tenant_id == tenant_id)
+        result = await self._db.execute(stmt)
         customer = result.scalar_one_or_none()
         if not customer:
             return None
@@ -142,7 +153,10 @@ class CustomerHealthService:
             recommendations=recommendations,
         )
 
-    async def get_all_health_scores(self) -> list[CustomerHealthReport]:
+    async def get_all_health_scores(
+        self,
+        tenant_id: int | None = None,
+    ) -> list[CustomerHealthReport]:
         """Tum musteriler icin saglik skorlarini hesaplar.
 
         Optimized: loads all customers in a single query, then computes
@@ -153,8 +167,15 @@ class CustomerHealthService:
         bad row (missing FK target, unexpected null, mid-migration drift,
         etc.) cannot take down the whole cockpit. Broken customers are
         logged and skipped rather than 500'ing the endpoint.
+
+        N15-AUTH-4 (Round-15) — when ``tenant_id`` is supplied, the customer
+        scan is scoped to that tenant. Router callers MUST pass it; the
+        parameter is optional only for internal admin / replay paths.
         """
-        result = await self._db.execute(select(Customer))
+        stmt = select(Customer)
+        if tenant_id is not None:
+            stmt = stmt.where(Customer.tenant_id == tenant_id)
+        result = await self._db.execute(stmt)
         customers = result.scalars().all()
 
         reports = []
@@ -190,10 +211,15 @@ class CustomerHealthService:
         return reports
 
     async def get_at_risk_customers(
-        self, limit: int = 10,
+        self,
+        limit: int = 10,
+        tenant_id: int | None = None,
     ) -> list[CustomerHealthReport]:
-        """Risk altindaki musterileri dondurur."""
-        all_reports = await self.get_all_health_scores()
+        """Risk altindaki musterileri dondurur.
+
+        N15-AUTH-4 — tenant filter forwarded to ``get_all_health_scores``.
+        """
+        all_reports = await self.get_all_health_scores(tenant_id=tenant_id)
         at_risk = [r for r in all_reports if r.risk_level != "healthy"]
         return at_risk[:limit]
 
@@ -223,12 +249,21 @@ class CustomerHealthService:
         ]
         return indicators
 
-    async def predict_churn_risk(self, customer_id: int) -> dict:
+    async def predict_churn_risk(
+        self,
+        customer_id: int,
+        tenant_id: int | None = None,
+    ) -> dict:
         """Predict churn risk for a customer using Claude AI or rule-based fallback.
 
         Returns {churn_probability, risk_level, risk_factors, retention_actions}.
+
+        N15-AUTH-4 — ``tenant_id`` forwarded into the health-score lookup so
+        cross-tenant churn prediction is impossible.
         """
-        health_report = await self.calculate_health_score(customer_id)
+        health_report = await self.calculate_health_score(
+            customer_id, tenant_id=tenant_id
+        )
         if not health_report:
             return {"error": "Musteri bulunamadi"}
 

@@ -323,8 +323,11 @@ async def get_risky_accounts(
     if current_user.role == UserRole.SALES_REP.value:
         owner_filter = current_user.id
 
+    # N15-AUTH-4 — tenant scope on the at-risk fan-out.
     health = CustomerHealthService(db)
-    reports = await health.get_at_risk_customers(limit=max(limit * 3, limit))
+    reports = await health.get_at_risk_customers(
+        limit=max(limit * 3, limit), tenant_id=current_user.tenant_id,
+    )
 
     # Rep: only customers where they still have active pipeline
     if owner_filter is not None:

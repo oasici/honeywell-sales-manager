@@ -1048,8 +1048,12 @@ async def predict_churn(
     """AI-powered churn risk prediction for a customer."""
     from app.services.customer_health_service import CustomerHealthService
 
+    # N15-AUTH-4 — scope churn prediction to the caller's tenant; the
+    # ``predict-churn`` endpoint must never reveal foreign-tenant customers.
     service = CustomerHealthService(db)
-    result = await service.predict_churn_risk(customer_id)
+    result = await service.predict_churn_risk(
+        customer_id, tenant_id=current_user.tenant_id,
+    )
     if "error" in result:
         raise NotFoundException(result["error"])
 

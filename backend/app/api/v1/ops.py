@@ -131,12 +131,21 @@ async def get_feature_usage(
 async def get_feature_flags(
     current_user: User = Depends(get_current_user),
 ):
-    """Return all feature flag states."""
-    flags = {
-        k: v
-        for k, v in settings.__dict__.items()
-        if k.startswith("FEATURE_")
-    }
+    """Return public feature-flag states (allowlisted).
+
+    N15-OPS-1 (Round-15) — previously this endpoint returned every
+    ``FEATURE_*`` attribute on the settings object, including
+    experimental / internal flags that ``backend/app/api/v1/config.py``
+    deliberately withholds via ``_PUBLIC_FEATURE_FLAGS``. Now both
+    endpoints honor the same allowlist so the SPA never sees roadmap
+    flags the company hasn't announced.
+    """
+    from app.api.v1.config import _PUBLIC_FEATURE_FLAGS
+
+    flags: dict[str, bool] = {}
+    for name in _PUBLIC_FEATURE_FLAGS:
+        if hasattr(settings, name):
+            flags[name] = bool(getattr(settings, name))
     return {"data": flags}
 
 

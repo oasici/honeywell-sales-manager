@@ -124,7 +124,11 @@ class AccountAggregateService:
         closed_won_revenue = sum(float(o.amount or 0) for o in won)
         display_currency = await self.infer_display_currency(customer_id, active_pipeline, all_opps)
 
-        health = await CustomerHealthService(self._db).calculate_health_score(customer_id)
+        # N15-AUTH-4 — scope to caller's tenant so refresh_enrichment cannot
+        # be coerced into computing on a foreign-tenant customer.
+        health = await CustomerHealthService(self._db).calculate_health_score(
+            customer_id, tenant_id=user.tenant_id,
+        )
         health_score = float(health.score) if health else 50.0
         risk_index = max(0.0, min(100.0, 100.0 - health_score))
 
@@ -314,7 +318,10 @@ class AccountAggregateService:
     async def risk_summary(self, customer_id: int, user: User) -> dict:
         from app.services.customer_health_service import CustomerHealthService
 
-        report = await CustomerHealthService(self._db).calculate_health_score(customer_id)
+        # N15-AUTH-4 — scope to caller's tenant.
+        report = await CustomerHealthService(self._db).calculate_health_score(
+            customer_id, tenant_id=user.tenant_id,
+        )
         base = and_(*_opp_conditions(customer_id, user))
         id_rows = (await self._db.execute(select(Opportunity.id).where(base))).all()
         opp_ids = [int(r[0]) for r in id_rows]

@@ -62,9 +62,13 @@ async def get_health_overview(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Tum musterilerin saglik skoru ozeti."""
+    """Tum musterilerin saglik skoru ozeti.
+
+    N15-AUTH-4 (Round-15) — scope to ``current_user.tenant_id`` so the
+    overview never leaks foreign-tenant customers.
+    """
     service = CustomerHealthService(db)
-    reports = await service.get_all_health_scores()
+    reports = await service.get_all_health_scores(tenant_id=current_user.tenant_id)
 
     healthy_count = sum(1 for r in reports if r.risk_level == "healthy")
     at_risk_count = sum(1 for r in reports if r.risk_level == "at_risk")
@@ -106,11 +110,16 @@ async def get_at_risk_customers(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Risk altindaki musteri listesi."""
+    """Risk altindaki musteri listesi.
+
+    N15-AUTH-4 — scope to ``current_user.tenant_id``.
+    """
     import logging
     try:
         service = CustomerHealthService(db)
-        reports = await service.get_at_risk_customers(limit=limit)
+        reports = await service.get_at_risk_customers(
+            limit=limit, tenant_id=current_user.tenant_id,
+        )
         items = [_report_to_dict(r) for r in reports]
         total = len(items)
         # R7-API-4 — canonical pagination envelope. ``count``/``customers``
@@ -144,9 +153,14 @@ async def get_customer_health(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Tek bir musterinin saglik raporu. ?explain=true ile skor aciklamalari eklenir."""
+    """Tek bir musterinin saglik raporu. ?explain=true ile skor aciklamalari eklenir.
+
+    N15-AUTH-4 — cross-tenant lookups collapse to 404 (CLAUDE.md convention).
+    """
     service = CustomerHealthService(db)
-    report = await service.calculate_health_score(customer_id)
+    report = await service.calculate_health_score(
+        customer_id, tenant_id=current_user.tenant_id,
+    )
 
     if not report:
         raise NotFoundException(f"Musteri bulunamadi: {customer_id}")
