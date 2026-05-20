@@ -24,6 +24,7 @@ from app.models.user import User
 from app.services.ai_action_generator import generate_actions
 from app.services.tenant_context import assert_same_tenant
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import NextBestActionRow
 
 router = APIRouter(prefix="/next-best-actions", tags=["Next Best Actions"])
 
@@ -57,7 +58,7 @@ async def _load_opp(db: AsyncSession, opportunity_id: int, current_user: User) -
     return opp
 
 
-@router.get("/{opportunity_id}", response_model=PaginatedResponse[dict])
+@router.get("/{opportunity_id}", response_model=PaginatedResponse[NextBestActionRow])
 async def list_actions(
     opportunity_id: int,
     include_done: bool = Query(False, description="Include completed actions"),

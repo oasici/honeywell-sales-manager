@@ -22,6 +22,7 @@ from app.models.enums import UserRole
 from app.models.lead import Lead
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import LeadScoringConfigRow
 from app.schemas.lead import LeadResponse
 from app.core.event_bus import event_bus
 from app.services.lead_service import LeadService
@@ -326,7 +327,7 @@ class ScoringConfigUpdate(BaseModel):
     description: str | None = None
 
 
-@router.get("/scoring-config", response_model=PaginatedResponse[dict])
+@router.get("/scoring-config", response_model=PaginatedResponse[LeadScoringConfigRow])
 async def list_scoring_configs(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),

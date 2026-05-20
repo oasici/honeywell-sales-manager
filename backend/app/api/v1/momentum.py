@@ -15,6 +15,7 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.services import momentum_service
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import MomentumHistoryRow
 
 router = APIRouter(prefix="/momentum", tags=["Momentum"])
 
@@ -38,7 +39,7 @@ async def get_current(
     return await momentum_service.get_current_momentum(db, opportunity_id, current_user)
 
 
-@router.get("/{opportunity_id}/history", response_model=PaginatedResponse[dict])
+@router.get("/{opportunity_id}/history", response_model=PaginatedResponse[MomentumHistoryRow])
 async def get_history(
     opportunity_id: int,
     days: int = Query(30, ge=1, le=365),

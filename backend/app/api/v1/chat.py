@@ -23,6 +23,7 @@ from app.schemas.chat import (
     ChatMessageSendResponse,
     ChatSessionResponse,
 )
+from app.schemas.round15_pagination import ChatAutoResponseRuleRow
 
 router = APIRouter(prefix="/chat", tags=["Live Chat"])
 
@@ -377,7 +378,7 @@ async def _try_auto_response(
 # ── Auto-Response Rule Endpoints (admin only) ──
 
 
-@router.get("/auto-response-rules/", response_model=PaginatedResponse[dict])
+@router.get("/auto-response-rules/", response_model=PaginatedResponse[ChatAutoResponseRuleRow])
 async def list_auto_rules(
     _: None = Depends(_require_live_chat),
     current_user: User = Depends(require_role(*ADMIN_ROLES)),

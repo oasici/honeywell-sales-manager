@@ -21,6 +21,7 @@ from app.models.sequence_v2 import Stakeholder
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import StakeholderRow
 
 router = APIRouter(prefix="/stakeholders", tags=["Buyer Relationship Map"])
 
@@ -108,7 +109,7 @@ def _serialize(s: Stakeholder) -> dict:
     }
 
 
-@router.get("/opportunity/{opportunity_id}", response_model=PaginatedResponse[dict])
+@router.get("/opportunity/{opportunity_id}", response_model=PaginatedResponse[StakeholderRow])
 async def list_by_opportunity(
     opportunity_id: int,
     _: None = Depends(_require_buyer_map),
@@ -138,7 +139,7 @@ async def list_by_opportunity(
     }
 
 
-@router.get("/customer/{customer_id}", response_model=PaginatedResponse[dict])
+@router.get("/customer/{customer_id}", response_model=PaginatedResponse[StakeholderRow])
 async def list_by_customer(
     customer_id: int,
     _: None = Depends(_require_buyer_map),

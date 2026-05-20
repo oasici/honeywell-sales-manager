@@ -17,6 +17,7 @@ from app.models.activity_log import ActivityLog
 from app.models.customer import Customer
 from app.models.opportunity import Opportunity, OpportunityEvent
 from app.models.user import User
+from app.schemas.activity import ActivityResponse
 from app.schemas.common import PaginatedResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
@@ -119,7 +120,7 @@ async def log_activity(
 
 # ── GET /activities/ ──
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[ActivityResponse])
 async def list_activities(
     entity_type: str | None = None,
     entity_id: int | None = None,
@@ -234,7 +235,7 @@ async def activity_metrics(
 # ── GET /activities/feed ──
 
 # Round-10 R10-API-5 — canonical pagination envelope on OpenAPI.
-@router.get("/feed", response_model=PaginatedResponse[dict])
+@router.get("/feed", response_model=PaginatedResponse[ActivityResponse])
 async def get_activity_feed(
     since: str | None = None,
     limit: int = Query(default=50, ge=1, le=200),

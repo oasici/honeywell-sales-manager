@@ -388,7 +388,7 @@ async def poll_emails(
     }
 
 
-@router.get("/{email_id}/thread", response_model=PaginatedResponse[dict])
+@router.get("/{email_id}/thread", response_model=PaginatedResponse[EmailResponse])
 async def get_email_thread(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),

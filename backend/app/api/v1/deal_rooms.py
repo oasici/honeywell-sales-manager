@@ -19,6 +19,7 @@ from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import DealRoomRow
 
 
 async def _assert_opp_in_tenant(
@@ -82,7 +83,7 @@ def _serialize(room: DealRoom) -> dict:
 # ── Internal (auth required) ────────────────────────────
 
 
-@router.get("/deal-rooms/", response_model=PaginatedResponse[dict])
+@router.get("/deal-rooms/", response_model=PaginatedResponse[DealRoomRow])
 async def list_deal_rooms(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

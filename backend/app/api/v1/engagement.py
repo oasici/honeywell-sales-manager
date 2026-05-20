@@ -30,6 +30,7 @@ from app.models.quote import Quote
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import EngagementTranscriptRow
 from app.schemas.sequence import SequenceResponse, SequenceResponseParsed
 from app.schemas.engagement import (
     AutoEnrollResponse,
@@ -160,7 +161,7 @@ async def create_transcript(
     }
 
 
-@router.get("/transcripts/", response_model=PaginatedResponse[dict])
+@router.get("/transcripts/", response_model=PaginatedResponse[EngagementTranscriptRow])
 async def list_transcripts(
     opportunity_id: int | None = None,
     customer_id: int | None = None,

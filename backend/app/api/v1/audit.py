@@ -31,6 +31,7 @@ from app.models.enums import UserRole
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import AuditLogRow
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
@@ -38,7 +39,7 @@ router = APIRouter(prefix="/audit", tags=["Audit"])
 CSV_EXPORT_HARD_LIMIT = 10_000
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[AuditLogRow])
 async def list_audit_logs(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),

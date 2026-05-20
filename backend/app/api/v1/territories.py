@@ -21,6 +21,7 @@ from app.models.territory import Territory, TerritoryAssignment
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import TerritoryListRow
 from app.schemas.territory import (
     AutoAssignResponse,
     TerritoryAssignmentItem,
@@ -153,7 +154,7 @@ def _customer_matches_territory(customer: Customer, territory: Territory) -> boo
 # ── Endpoints ──
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[TerritoryListRow])
 async def list_territories(
     _: None = Depends(_require_territories),
     current_user: User = Depends(get_current_user),

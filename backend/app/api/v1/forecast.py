@@ -18,6 +18,7 @@ from app.models.user import User
 from app.services.forecast_service import ForecastService
 from app.services.tenant_context import scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import ForecastAdjustmentRow, ForecastSnapshotRow
 
 router = APIRouter(prefix="/forecast", tags=["Forecast"])
 
@@ -155,7 +156,7 @@ async def create_adjustment(
     return _adjustment_to_dict(adjustment)
 
 
-@router.get("/adjustments", response_model=PaginatedResponse[dict])
+@router.get("/adjustments", response_model=PaginatedResponse[ForecastAdjustmentRow])
 async def list_adjustments(
     opportunity_id: int = Query(..., ge=1),
     current_user: User = Depends(get_current_user),
@@ -186,7 +187,7 @@ async def list_adjustments(
 
 # -- Snapshot Endpoints --
 
-@router.get("/snapshots", response_model=PaginatedResponse[dict])
+@router.get("/snapshots", response_model=PaginatedResponse[ForecastSnapshotRow])
 async def list_snapshots(
     start_date: date | None = Query(None),
     end_date: date | None = Query(None),

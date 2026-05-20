@@ -23,6 +23,7 @@ from app.models.dead_letter_event import DeadLetterEvent
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import DeadLetterEventRow
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ def _to_dict(row: DeadLetterEvent) -> dict:
     }
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[DeadLetterEventRow])
 async def list_dead_letters(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),

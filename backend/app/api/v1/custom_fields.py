@@ -13,6 +13,7 @@ from app.models.enums import UserRole
 from app.models.user import User
 from app.services.custom_field_service import CustomFieldService
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import CustomFieldDefinitionRow
 
 router = APIRouter(prefix="/custom-fields", tags=["Custom Fields"])
 
@@ -46,7 +47,7 @@ class CustomFieldValueSet(BaseModel):
 # ── Endpoints ──
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[CustomFieldDefinitionRow])
 async def list_custom_fields(
     entity_type: str = "customer",
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

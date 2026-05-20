@@ -29,6 +29,7 @@ from app.models.retention_policy import RetentionPolicy
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.compliance import RetentionPolicyResponse, BreachResponse
 from app.schemas.compliance import (
     AuditTrailResponse,
     BreachResponse,
@@ -480,7 +481,7 @@ async def customer_audit_trail(
 # ══════════════════════════════════════════
 
 
-@router.get("/retention-policies", response_model=PaginatedResponse[dict])
+@router.get("/retention-policies", response_model=PaginatedResponse[RetentionPolicyResponse])
 async def list_retention_policies(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
@@ -733,7 +734,7 @@ async def update_breach_notification(
     }
 
 
-@router.get("/breaches", response_model=PaginatedResponse[dict])
+@router.get("/breaches", response_model=PaginatedResponse[BreachResponse])
 async def list_breach_notifications(
     status: str | None = None,
     page: int = Query(1, ge=1),

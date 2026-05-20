@@ -15,6 +15,7 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.services import relationship_service
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import RelationshipEdgeRow
 
 router = APIRouter(prefix="/relationships", tags=["Relationships"])
 
@@ -27,7 +28,7 @@ def _validate_kind(kind: str) -> str:
     return kind
 
 
-@router.get("/edges/{kind}/{entity_id}", response_model=PaginatedResponse[dict])
+@router.get("/edges/{kind}/{entity_id}", response_model=PaginatedResponse[RelationshipEdgeRow])
 async def list_edges(
     kind: str,
     entity_id: int,
@@ -55,7 +56,7 @@ async def get_score(
     )
 
 
-@router.get("/strongest/{kind}/{entity_id}", response_model=PaginatedResponse[dict])
+@router.get("/strongest/{kind}/{entity_id}", response_model=PaginatedResponse[RelationshipEdgeRow])
 async def list_strongest(
     kind: str,
     entity_id: int,

@@ -19,6 +19,7 @@ from app.models.user import User
 from app.services.approval_service import ApprovalService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import ApprovalRuleResponseRow, ApprovalRequestRow
 
 
 # Map of supported entity_type values to their owning model. Used to
@@ -88,7 +89,7 @@ class ApprovalDecision(BaseModel):
 
 # -- Rule Endpoints (manager only) --
 
-@router.get("/rules", response_model=PaginatedResponse[dict])
+@router.get("/rules", response_model=PaginatedResponse[ApprovalRuleResponseRow])
 async def list_rules(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -187,7 +188,7 @@ async def delete_rule(
 
 # -- Approval Workflow Endpoints --
 
-@router.get("/pending", response_model=PaginatedResponse[dict])
+@router.get("/pending", response_model=PaginatedResponse[ApprovalRequestRow])
 async def list_pending(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -238,7 +239,7 @@ async def reject_request(
     return _request_to_dict(approval_request)
 
 
-@router.get("/history", response_model=PaginatedResponse[dict])
+@router.get("/history", response_model=PaginatedResponse[ApprovalRequestRow])
 async def approval_history(
     entity_type: str = Query(..., min_length=1),
     entity_id: int = Query(..., ge=1),

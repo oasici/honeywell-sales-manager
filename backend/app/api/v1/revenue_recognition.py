@@ -18,6 +18,7 @@ from app.models.revenue_recognition import RevenueSchedule, RevenueScheduleEntry
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.round15_pagination import RevenueScheduleRow
 
 # Routes use mixed-path convention (/revenue-schedules/ and /revenue-recognition/dashboard)
 # rather than a shared router prefix, which is intentional for semantic clarity.
@@ -97,7 +98,7 @@ def _months_between(start: datetime, end: datetime) -> list[str]:
 # ── Endpoints ──
 
 
-@router.get("/revenue-schedules/", response_model=PaginatedResponse[dict])
+@router.get("/revenue-schedules/", response_model=PaginatedResponse[RevenueScheduleRow])
 async def list_schedules(
     contract_id: int | None = None,
     page: int = Query(1, ge=1),
