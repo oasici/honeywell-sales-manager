@@ -9,7 +9,7 @@ See `CLAUDE.md` for stack overview, design tokens, backend conventions, and work
 | Service | How to start | Port | Notes |
 |---|---|---|---|
 | PostgreSQL 16 | `sudo docker start honeywell-db` (or create via Docker — see below) | 5432 | Required. Dev DB. |
-| Backend (FastAPI) | `cd backend && DATABASE_URL=... .venv/bin/uvicorn app.main:app --reload --port 8000` | 8000 | Health check: `GET /api/health` |
+| Backend (FastAPI) | `cd backend && DATABASE_URL=postgresql+asyncpg://honeywell:devpassword123@localhost:5432/honeywell_sales .venv/bin/uvicorn app.main:app --reload --port 8000` | 8000 | Health check: `GET /api/health` |
 | Frontend (Vite) | `cd frontend && npm run dev` | 5173 | Proxies `/api` → `localhost:8000` |
 | Test DB | `sudo docker start honeywell-db-test` | 5434 | For pytest. Password: `honeywell_test_2026` |
 
