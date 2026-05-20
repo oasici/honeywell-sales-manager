@@ -55,6 +55,7 @@ from app.core.rate_limit import (
     enforce_ai_rate_limit as _enforce_ai_rl,
     enforce_tenant_ai_rate_limit as _enforce_tenant_ai_rl,
 )
+from app.schemas.common import ItemsResponse
 
 router = APIRouter(
     prefix="/v6",
@@ -89,7 +90,7 @@ def _safe_loads(raw: str | None):
 # ─────────────────────── replay deltas ───────────────────────────────
 
 
-@router.get("/opportunities/{opportunity_id}/replay-deltas", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/replay-deltas", response_model=ItemsResponse)
 async def list_replay_deltas(
     opportunity_id: int,
     refresh: bool = Query(False, description="Recompute deltas before listing"),

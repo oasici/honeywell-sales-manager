@@ -15,6 +15,7 @@ from app.models.enums import UserRole
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.deal_replay_snapshot_service import materialize_deal_replay_snapshot
+from app.schemas.common import ItemsResponse
 
 router = APIRouter(prefix="/v4/replay", tags=["V4 Deal Replay"])
 
@@ -47,7 +48,7 @@ async def _ensure_opp_access(
     return opp
 
 
-@router.get("/opportunities/{opportunity_id}/snapshots", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/snapshots", response_model=ItemsResponse)
 async def list_replay_snapshots(
     opportunity_id: int,
     limit: int = Query(60, ge=1, le=365),

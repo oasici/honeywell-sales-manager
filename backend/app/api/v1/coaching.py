@@ -21,7 +21,7 @@ from app.models.user import User
 from app.core.exceptions import NotFoundException
 from app.services.coaching_service import CoachingService
 from app.services.tenant_context import assert_same_tenant
-from app.schemas.common import MessageResponse
+from app.schemas.common import ItemsResponse, MessageResponse
 
 # R5-RL-8 — coaching surfaces call into V5/V6/V7 services that may
 # proxy through Claude. Without router-level rate limits, a scripted
@@ -82,7 +82,7 @@ class CoachingPlanCreate(BaseModel):
 # ── Plan Endpoints ──
 
 
-@router.get("/plans", response_model=dict)
+@router.get("/plans", response_model=ItemsResponse)
 async def list_coaching_plans(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -202,7 +202,7 @@ async def coaching_rep_trends(
     }
 
 
-@router.get("/benchmarks", response_model=dict)
+@router.get("/benchmarks", response_model=ItemsResponse)
 async def coaching_benchmarks(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),

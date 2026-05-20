@@ -15,7 +15,7 @@ from app.models.playbook import PlaybookExecution
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.playbook_service import PlaybookService
-from app.schemas.common import MessageResponse, PaginatedResponse
+from app.schemas.common import ItemsResponse, MessageResponse, PaginatedResponse
 from app.schemas.playbook import PlaybookResponse
 
 router = APIRouter(prefix="/playbooks", tags=["Playbooks"])
@@ -268,7 +268,7 @@ async def playbook_analytics(
     }
 
 
-@router.get("/templates", response_model=dict)
+@router.get("/templates", response_model=ItemsResponse)
 async def get_templates(
     current_user: User = Depends(get_current_user),
     _flag=Depends(_require_cockpit),
@@ -277,7 +277,7 @@ async def get_templates(
     return {"items": SEED_TEMPLATES, "total": len(SEED_TEMPLATES)}
 
 
-@router.get("/executions", response_model=dict)
+@router.get("/executions", response_model=ItemsResponse)
 async def list_executions(
     opportunity_id: int | None = Query(None),
     current_user: User = Depends(get_current_user),

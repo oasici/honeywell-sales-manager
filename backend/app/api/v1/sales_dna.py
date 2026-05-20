@@ -15,6 +15,7 @@ from app.models.opportunity import Opportunity
 from app.models.sales_dna_snapshot import SalesDnaSnapshot
 from app.models.user import User
 from app.services.sales_dna_service import materialize_sales_dna_snapshot
+from app.schemas.common import ItemsResponse
 
 router = APIRouter(prefix="/v4/dna", tags=["V4 Sales DNA"])
 
@@ -46,7 +47,7 @@ async def _ensure_opp_access(
     return opp
 
 
-@router.get("/opportunities/{opportunity_id}/snapshots", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/snapshots", response_model=ItemsResponse)
 async def list_dna_snapshots(
     opportunity_id: int,
     limit: int = Query(60, ge=1, le=365),

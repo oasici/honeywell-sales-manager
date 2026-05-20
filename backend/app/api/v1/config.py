@@ -71,7 +71,7 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
     "FEATURE_TASKS",  # spa-gated — Tasks affordance in App.tsx
     "FEATURE_AI_SUMMARIES",  # backend-only — /ai/summarize endpoints; FE renders result inline
     "FEATURE_AI_PIPELINE_SUGGESTIONS",  # backend-only — /ai/suggest-pipeline-update; result rendered inline
-    "FEATURE_BUYER_MAP",  # deferred-fe-gate — BuyerRelationshipMap renders unconditionally; wire <FeatureFlagGate> in Round-16
+    "FEATURE_BUYER_MAP",  # spa-gated — BuyerRelationshipMap wrapped in <FeatureFlagGate> on OpportunityDetailPage (Round-16 A2)
     # Round-4 R4-FLAG-1 — expose the 17 backend-gated features that
     # the frontend was unable to gate before. With these listed, the
     # SPA can render <FeatureFlagGate> properly instead of letting
@@ -104,10 +104,10 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
     "FEATURE_AI_DEAL_RISK",  # backend-only — /ai/deal-risk; FE calls endpoint, renders result
     "FEATURE_AI_COMPETITIVE_INTEL",  # backend-only — /ai/competitive-intel; same pattern
     "FEATURE_AI_PREDICTIONS",  # backend-only — predict-close/predict-churn endpoints
-    "FEATURE_TEAM_ACCESS",  # deferred-fe-gate — admin team-access surfaces unconditionally; wire in Round-16
-    "FEATURE_SESSION_MANAGEMENT",  # deferred-fe-gate — admin session-management surfaces unconditionally; wire in Round-16
-    "FEATURE_WEBHOOKS",  # deferred-fe-gate — webhook settings panel renders unconditionally; wire in Round-16
-    "FEATURE_PUBLIC_API",  # deferred-fe-gate — api-keys admin renders unconditionally; wire in Round-16
+    "FEATURE_TEAM_ACCESS",  # backend-only — Round-16 A2 sweep found no FE consumer; backend gates /teams/* endpoints
+    "FEATURE_SESSION_MANAGEMENT",  # backend-only — Round-16 A2 sweep found no FE consumer; backend gates /auth/sessions/* endpoints
+    "FEATURE_WEBHOOKS",  # spa-gated — SettingsPage wraps WebhookSettings in <FeatureFlagGate> (Round-16 A2)
+    "FEATURE_PUBLIC_API",  # backend-only — Round-16 A2 sweep found no FE consumer; backend gates /api-keys endpoints
     "FEATURE_ESIGN",  # backend-only — signing service; FE renders signature affordance on quotes when present
     "FEATURE_SEQUENCES_V2",  # spa-gated — Sequences V2 routes
     "FEATURE_BEHAVIORAL_SCORING",  # backend-only — scoring_service internal
@@ -120,7 +120,7 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
     # backend has the feature on.
     "FEATURE_NETWORK_INTELLIGENCE",  # spa-gated — NetworkInsight page route
     "FEATURE_AI_ATTRIBUTES",  # spa-gated — admin AI-attributes page
-    "FEATURE_DECISION_GRAPH",  # deferred-fe-gate — DecisionGraph panel renders unconditionally; wire in Round-16
+    "FEATURE_DECISION_GRAPH",  # spa-gated — OpportunityDetailPage wraps DecisionGraphPanel in <FeatureFlagGate> (Round-16 A2)
 }
 
 

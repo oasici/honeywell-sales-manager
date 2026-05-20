@@ -142,7 +142,7 @@ async def create_quote(
     "/from-pdf",
     status_code=201,
     dependencies=[Depends(enforce_upload_rate_limit)],
-    response_model=dict,
+    response_model=QuoteResponse,
 )
 async def create_quote_from_pdf(
     file: UploadFile = File(...),
@@ -234,7 +234,7 @@ async def create_quote_from_pdf(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.post("/from-email/{email_id}", status_code=201, response_model=dict)
+@router.post("/from-email/{email_id}", status_code=201, response_model=QuoteResponse)
 async def create_quote_from_email(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -284,7 +284,7 @@ async def update_quote(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.patch("/{quote_id}/approve", response_model=dict)
+@router.patch("/{quote_id}/approve", response_model=QuoteResponse)
 async def approve_quote(
     quote_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -518,7 +518,7 @@ class ConvertCurrencyRequest(BaseModel):
     target_currency: str
 
 
-@router.post("/{quote_id}/convert-currency", response_model=dict)
+@router.post("/{quote_id}/convert-currency", response_model=QuoteResponse)
 async def convert_quote_currency(
     quote_id: int,
     data: ConvertCurrencyRequest,

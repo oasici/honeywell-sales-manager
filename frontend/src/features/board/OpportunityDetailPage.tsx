@@ -27,6 +27,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
+import { FeatureFlagGate } from '../../contexts/FeatureFlagContext';
 import { formatCurrency, formatDateTime, formatDate } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
 import { useT } from '../../hooks/useT';
@@ -1132,10 +1133,16 @@ export default function OpportunityDetailPage() {
         <OpportunityIntelligencePanel opportunityId={oppId} />
       </div>
 
-      {/* v1.13 plan-adoption — NBA + decision graph side-by-side */}
+      {/* v1.13 plan-adoption — NBA + decision graph side-by-side.
+          Round-16 A2: DecisionGraphPanel gated on FEATURE_DECISION_GRAPH
+          per the deferred-fe-gate audit finding. Backend already enforces
+          via _require_decision_graph; FE rendering an empty panel when
+          the flag is off looked like "no data" rather than "feature off". */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <NbaTray opportunityId={oppId} />
-        <DecisionGraphPanel opportunityId={oppId} />
+        <FeatureFlagGate flag="FEATURE_DECISION_GRAPH">
+          <DecisionGraphPanel opportunityId={oppId} />
+        </FeatureFlagGate>
       </div>
       {/* Round-8 R8-DEAD-1 — momentum + relationship coverage in a paired row. */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -2287,12 +2294,18 @@ export default function OpportunityDetailPage() {
         </Card>
       </div>
 
-      {/* Buyer Relationship Map */}
-      <div className="mt-6">
-        <Card title={t('opp_detail.buying_map')}>
-          <BuyerRelationshipMap opportunityId={oppId} />
-        </Card>
-      </div>
+      {/* Buyer Relationship Map — Round-16 A2: gated on FEATURE_BUYER_MAP
+          per the deferred-fe-gate audit finding. Backend already enforces
+          via _require_buyer_map on /api/v1/stakeholders/*; rendering the
+          panel + endpoint 404s looked like "no stakeholders" rather than
+          "feature off". */}
+      <FeatureFlagGate flag="FEATURE_BUYER_MAP">
+        <div className="mt-6">
+          <Card title={t('opp_detail.buying_map')}>
+            <BuyerRelationshipMap opportunityId={oppId} />
+          </Card>
+        </div>
+      </FeatureFlagGate>
 
       {/* Activity Log Section */}
       <div className="mt-6">

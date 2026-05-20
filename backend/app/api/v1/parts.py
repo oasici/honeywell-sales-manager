@@ -14,7 +14,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.spare_part import SparePart
 from app.models.user import User
 from app.schemas.spare_part import SparePartCreate, SparePartResponse, SparePartUpdate
-from app.schemas.common import MessageResponse, PaginatedResponse
+from app.schemas.common import ItemsResponse, MessageResponse, PaginatedResponse
 
 router = APIRouter(prefix="/parts", tags=["Spare Parts"])
 
@@ -70,7 +70,7 @@ async def list_parts(
     }
 
 
-@router.get("/categories", response_model=dict)
+@router.get("/categories", response_model=ItemsResponse)
 async def list_categories(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

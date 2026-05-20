@@ -17,7 +17,7 @@ from app.models.campaign import Campaign, CampaignMember
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.campaign import CampaignResponse
-from app.schemas.common import MessageResponse, PaginatedResponse
+from app.schemas.common import ItemsResponse, MessageResponse, PaginatedResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
@@ -354,7 +354,7 @@ async def get_campaign_roi(
     }
 
 
-@router.get("/{campaign_id}/members", response_model=dict)
+@router.get("/{campaign_id}/members", response_model=ItemsResponse)
 async def list_campaign_members(
     campaign_id: int,
     skip: int = 0,

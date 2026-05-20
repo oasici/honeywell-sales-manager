@@ -20,6 +20,7 @@ from app.models.opportunity import Opportunity, OpportunitySignal
 from app.models.revenue_signal import RevenueSignal
 from app.models.sales_event_shadow import SalesEventShadow
 from app.models.user import User
+from app.schemas.common import ItemsResponse
 
 
 router = APIRouter(prefix="/v4/alignment", tags=["V4 Additive Alignment"])
@@ -55,7 +56,7 @@ async def shadow_sync_manual_backfill(
     return {"ok": True, "window_days": body.days, "counts": counts}
 
 
-@router.get("/opportunities/{opportunity_id}/normalized-timeline", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/normalized-timeline", response_model=ItemsResponse)
 async def normalized_sales_event_timeline(
     opportunity_id: int,
     limit: int = Query(300, ge=1, le=1000),
@@ -112,7 +113,7 @@ async def normalized_sales_event_timeline(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/conversation-signals", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/conversation-signals", response_model=ItemsResponse)
 async def conversation_signals_projection(
     opportunity_id: int,
     limit: int = Query(200, ge=1, le=1000),
@@ -183,7 +184,7 @@ async def conversation_signals_projection(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/shadow-timeline", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/shadow-timeline", response_model=ItemsResponse)
 async def shadow_sales_events_timeline(
     opportunity_id: int,
     limit: int = Query(500, ge=1, le=2000),

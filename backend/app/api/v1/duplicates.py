@@ -12,7 +12,7 @@ from app.core.exceptions import BadRequestException
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.record_duplicate_service import RecordDuplicateService
-from app.schemas.common import GenericDataResponse
+from app.schemas.common import GenericDataResponse, ItemsResponse
 
 router = APIRouter(prefix="/duplicates", tags=["Duplicate Management"])
 
@@ -37,7 +37,7 @@ class MergeRequest(BaseModel):
     loser_id: int
 
 
-@router.post("/check", response_model=dict)
+@router.post("/check", response_model=ItemsResponse)
 async def check_duplicates(
     payload: DuplicateCheckRequest,
     current_user: User = Depends(get_current_user),

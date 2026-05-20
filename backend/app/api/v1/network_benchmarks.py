@@ -13,7 +13,7 @@ from app.models.feature_store_daily import OpportunityFeaturesDaily
 from app.models.network_benchmarks import SegmentBenchmarksDaily
 from app.models.opportunity import Opportunity
 from app.models.user import User
-from app.schemas.common import GenericDataResponse
+from app.schemas.common import GenericDataResponse, ItemsResponse
 
 
 router = APIRouter(prefix="/v4/benchmarks", tags=["V4 Benchmarks"])
@@ -24,7 +24,7 @@ def _require_v4():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/segments/latest", response_model=dict)
+@router.get("/segments/latest", response_model=ItemsResponse)
 async def get_latest_segment_benchmarks(
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),

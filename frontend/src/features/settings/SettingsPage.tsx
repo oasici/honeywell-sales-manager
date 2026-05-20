@@ -21,6 +21,7 @@ import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
+import { FeatureFlagGate } from '../../contexts/FeatureFlagContext';
 import { settingsApi, meetingsApi, opsApi } from '../../lib/api';
 import {
   onEmailCredentialChanged,
@@ -184,9 +185,18 @@ export default function SettingsPage() {
         {/* Stage Configuration — sales_manager only */}
         {user?.role === 'sales_manager' && <StageConfigSection />}
 
-        {/* Sharing Rules & Webhooks — sales_manager only */}
+        {/* Sharing Rules & Webhooks — sales_manager only.
+            Round-16 A2: WebhookSettings additionally gated on
+            FEATURE_WEBHOOKS per deferred-fe-gate audit finding —
+            backend's _require_webhooks() returns 404 on disabled
+            tenants; pre-gate the SPA panel rendered, then every
+            "Add webhook" call 404'd silently. */}
         {user?.role === 'sales_manager' && <SharingRulesSection />}
-        {user?.role === 'sales_manager' && <WebhookSettings />}
+        {user?.role === 'sales_manager' && (
+          <FeatureFlagGate flag="FEATURE_WEBHOOKS">
+            <WebhookSettings />
+          </FeatureFlagGate>
+        )}
         {user?.role === 'sales_manager' && <NotificationChannelsSection />}
         {user?.role === 'sales_manager' && <FeatureModulesSection />}
       </div>

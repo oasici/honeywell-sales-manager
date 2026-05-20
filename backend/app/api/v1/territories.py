@@ -20,7 +20,7 @@ from app.models.opportunity import Opportunity
 from app.models.territory import Territory, TerritoryAssignment
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import ItemsResponse, PaginatedResponse
 from app.schemas.round15_pagination import TerritoryListRow
 from app.schemas.territory import (
     AutoAssignResponse,
@@ -315,7 +315,7 @@ async def get_territory_metrics(
     }
 
 
-@router.get("/{territory_id}/opportunities", response_model=dict)
+@router.get("/{territory_id}/opportunities", response_model=ItemsResponse)
 async def list_territory_opportunities(
     territory_id: int,
     limit: int = Query(50, ge=1, le=200),
@@ -368,7 +368,7 @@ async def list_territory_opportunities(
     }
 
 
-@router.put("/{territory_id}", response_model=dict)
+@router.put("/{territory_id}", response_model=TerritoryListRow)
 async def update_territory(
     territory_id: int,
     body: TerritoryUpdate,

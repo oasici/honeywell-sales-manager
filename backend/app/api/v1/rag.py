@@ -32,6 +32,7 @@ from app.core.rate_limit import enforce_ai_rate_limit
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services import rag_answer_service, rag_backfill_service
+from app.schemas.common import ItemsResponse
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class CompetitorSearchPayload(BaseModel):
     # Round-4 R4-RL-3 — vector search + embedding gen is expensive;
     # /answer also burns the Anthropic budget.
     dependencies=[Depends(enforce_ai_rate_limit)],
-    response_model=dict,
+    response_model=ItemsResponse,
 )
 async def search_deals(
     payload: DealSearchPayload,
@@ -91,7 +92,7 @@ async def search_deals(
 @router.post(
     "/search/interactions",
     dependencies=[Depends(enforce_ai_rate_limit)],
-    response_model=dict,
+    response_model=ItemsResponse,
 )
 async def search_interactions(
     payload: InteractionSearchPayload,
@@ -109,7 +110,7 @@ async def search_interactions(
 @router.post(
     "/search/competitors",
     dependencies=[Depends(enforce_ai_rate_limit)],
-    response_model=dict,
+    response_model=ItemsResponse,
 )
 async def search_competitors(
     payload: CompetitorSearchPayload,
@@ -163,7 +164,7 @@ async def rag_answer(
 # ─────────────────────── collections / reindex ──────────────────────
 
 
-@router.get("/collections", response_model=dict)
+@router.get("/collections", response_model=ItemsResponse)
 async def list_collections(
     current_user: User = Depends(get_current_user),
     _flag=Depends(_require_rag),

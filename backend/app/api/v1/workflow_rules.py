@@ -15,7 +15,7 @@ from app.models.enums import UserRole
 from app.models.user import User
 from app.models.workflow_rule import WorkflowRule
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
-from app.schemas.common import MessageResponse
+from app.schemas.common import ItemsResponse, MessageResponse
 
 router = APIRouter(prefix="/workflow-rules", tags=["Workflow Rules"])
 
@@ -52,7 +52,7 @@ class WorkflowRuleUpdate(BaseModel):
 # ── Endpoints ──
 
 
-@router.get("/", response_model=dict)
+@router.get("/", response_model=ItemsResponse)
 async def list_workflow_rules(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),

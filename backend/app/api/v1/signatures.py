@@ -21,7 +21,7 @@ from app.models.quote import Quote
 from app.models.signature import SignatureRequest
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
-from app.schemas.common import MessageResponse
+from app.schemas.common import ItemsResponse, MessageResponse
 
 router = APIRouter(prefix="/signatures", tags=["E-Signatures"])
 
@@ -271,7 +271,7 @@ async def create_signature_request(
     }
 
 
-@router.get("/", response_model=dict)
+@router.get("/", response_model=ItemsResponse)
 async def list_signature_requests(
     skip: int = 0,
     limit: int = 20,

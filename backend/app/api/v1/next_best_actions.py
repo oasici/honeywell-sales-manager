@@ -23,7 +23,7 @@ from app.models.opportunity import Opportunity, Task
 from app.models.user import User
 from app.services.ai_action_generator import generate_actions
 from app.services.tenant_context import assert_same_tenant
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import ItemsResponse, PaginatedResponse
 from app.schemas.round15_pagination import NextBestActionRow
 
 router = APIRouter(prefix="/next-best-actions", tags=["Next Best Actions"])
@@ -81,7 +81,7 @@ async def list_actions(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.post("/{opportunity_id}/generate", status_code=201, response_model=dict)
+@router.post("/{opportunity_id}/generate", status_code=201, response_model=ItemsResponse)
 async def generate(
     opportunity_id: int,
     body: GenerateRequest = GenerateRequest(),
