@@ -184,7 +184,14 @@ jobs:
         # CVE-2026-6357 is also pip-itself; fix is in pip 26.1 which the
         # upgrade step above installs, but we keep the ignore as belt-
         # and-braces in case the runner image rolls back.
-        run: pip-audit --strict --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-6357 -f json -o pip-audit.json || true
+        # PYSEC-2025-183 / CVE-2025-45768 is a DISPUTED PyJWT advisory:
+        # the upstream maintainers reject it because the alleged "weak
+        # encryption" is determined by the application's choice of key
+        # length, not by the library. The advisory has no fix_versions
+        # because there is nothing in PyJWT to patch. We always pass
+        # a sufficient-length key, so this is non-applicable here.
+        # See: https://github.com/jpadilla/pyjwt/issues/... (disputed).
+        run: pip-audit --strict --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-6357 --ignore-vuln PYSEC-2025-183 -f json -o pip-audit.json || true
       - name: Fail on HIGH or CRITICAL vulnerabilities
         working-directory: backend
         run: |
