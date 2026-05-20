@@ -243,8 +243,7 @@ export default function ApprovalRulesPage() {
           );
         }
         const delegateActive =
-          row.delegate_until &&
-          new Date(row.delegate_until).getTime() > Date.now();
+          row.delegate_until && new Date(row.delegate_until).getTime() > Date.now();
         if (delegateActive && row.delegate_to) {
           badges.push(
             <Badge

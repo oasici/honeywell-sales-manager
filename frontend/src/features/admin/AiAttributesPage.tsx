@@ -11,6 +11,7 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { aiAttributesApi } from '../../lib/api';
 import {
   onAiAttributeDefinitionChanged,
@@ -151,7 +152,11 @@ export default function AiAttributesPage() {
         ))}
       </div>
 
-      {listQuery.isLoading && (
+      {listQuery.isError && (
+        <QueryErrorBanner variant="block" onRetry={() => listQuery.refetch()} />
+      )}
+
+      {!listQuery.isError && listQuery.isLoading && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-28" />
@@ -159,7 +164,7 @@ export default function AiAttributesPage() {
         </div>
       )}
 
-      {!listQuery.isLoading && items.length === 0 && (
+      {!listQuery.isError && !listQuery.isLoading && items.length === 0 && (
         <EmptyState
           title="Henüz tanım yok"
           description="Yeni tanım butonuna basarak ilk AI özniteliğini oluştur."

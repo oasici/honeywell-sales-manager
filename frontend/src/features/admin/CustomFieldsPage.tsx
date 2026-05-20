@@ -12,6 +12,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { customFieldsApi } from '../../lib/api';
 import { onCustomFieldChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -48,7 +49,10 @@ export default function CustomFieldsPage() {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [form, setForm] = useState(INITIAL_FORM);
 
-  const { data, isLoading } = useQuery<{ items: CustomFieldDefinition[]; total: number }>({
+  const { data, isLoading, isError, refetch } = useQuery<{
+    items: CustomFieldDefinition[];
+    total: number;
+  }>({
     queryKey: ['customFields', entityType],
     queryFn: () => customFieldsApi.list(entityType),
   });
@@ -220,9 +224,11 @@ export default function CustomFieldsPage() {
         />
       </div>
 
-      {isLoading && <Skeleton variant="table" />}
-
-      {!isLoading && (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
+        <Skeleton variant="table" />
+      ) : (
         <DataTable columns={columns} data={items} emptyMessage="Özel alan bulunamadı" />
       )}
 

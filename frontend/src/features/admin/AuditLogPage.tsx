@@ -8,6 +8,7 @@ import { Select } from '../../components/ui/Select';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { auditApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 
@@ -120,7 +121,7 @@ export default function AuditLogPage() {
 
   const queryParams = buildQueryParams(filters, page);
 
-  const { data, isLoading } = useQuery<PaginatedAuditLogs>({
+  const { data, isLoading, isError, refetch } = useQuery<PaginatedAuditLogs>({
     queryKey: ['audit-logs', queryParams],
     queryFn: () => auditApi.getLogs(queryParams),
   });
@@ -316,15 +317,19 @@ export default function AuditLogPage() {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={logs}
-        loading={isLoading}
-        emptyMessage="Denetim kaydı bulunamadı"
-        page={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-      />
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={logs}
+          loading={isLoading}
+          emptyMessage="Denetim kaydı bulunamadı"
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      )}
 
       <Modal
         isOpen={detailRow !== null}

@@ -23,6 +23,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { sequenceV2Api } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 
@@ -70,7 +71,7 @@ export default function EventAuditLogPage() {
   const [eventType, setEventType] = useState('');
   const [limit, setLimit] = useState(50);
 
-  const { data, isLoading, isFetching, refetch } = useQuery<DomainEventsResponse>({
+  const { data, isLoading, isFetching, isError, refetch } = useQuery<DomainEventsResponse>({
     queryKey: ['admin', 'domain-events', eventType, limit],
     queryFn: () => sequenceV2Api.getDomainEvents(eventType || undefined, limit),
     refetchInterval: 30_000,
@@ -112,7 +113,9 @@ export default function EventAuditLogPage() {
       </Card>
 
       <Card>
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+        ) : isLoading ? (
           <Skeleton variant="table" />
         ) : events.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">

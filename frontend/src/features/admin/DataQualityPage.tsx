@@ -4,6 +4,7 @@ import { AlertCircle } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { analyticsApi } from '../../lib/api';
 import type { DataQualityOverview } from '../../lib/types';
 
@@ -143,7 +144,12 @@ function MissingFieldBar({ label, missing, total }: MissingFieldRow) {
 }
 
 export default function DataQualityPage() {
-  const { data: qualityData, isLoading } = useQuery<DataQualityOverview>({
+  const {
+    data: qualityData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<DataQualityOverview>({
     queryKey: ['data-quality'],
     queryFn: () => analyticsApi.getDataQuality(),
   });
@@ -177,7 +183,9 @@ export default function DataQualityPage() {
         description="Müşteri ve teklif kayıtlarındaki eksiklikleri gözden geçir"
       />
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {[...Array(3)].map((_, i) => (

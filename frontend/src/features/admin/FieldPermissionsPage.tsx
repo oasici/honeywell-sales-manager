@@ -12,6 +12,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { fieldPermissionsApi } from '../../lib/api';
 import { onFieldPermissionChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -80,7 +81,7 @@ export default function FieldPermissionsPage() {
   if (roleFilter) filterParams.role = roleFilter;
   if (entityTypeFilter) filterParams.entity_type = entityTypeFilter;
 
-  const { data, isLoading } = useQuery<FieldPermission[]>({
+  const { data, isLoading, isError, refetch } = useQuery<FieldPermission[]>({
     queryKey: ['fieldPermissions', filterParams],
     queryFn: () =>
       fieldPermissionsApi.list(Object.keys(filterParams).length > 0 ? filterParams : undefined),
@@ -221,9 +222,11 @@ export default function FieldPermissionsPage() {
         </div>
       </div>
 
-      {isLoading && <Skeleton variant="table" />}
-
-      {!isLoading && (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
+        <Skeleton variant="table" />
+      ) : (
         <DataTable columns={columns} data={permissions} emptyMessage="Alan izni bulunamadı" />
       )}
 

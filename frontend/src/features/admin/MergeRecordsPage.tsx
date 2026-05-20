@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { duplicatesApi } from '../../lib/api';
 import { useState } from 'react';
 
@@ -162,7 +163,7 @@ export default function MergeRecordsPage() {
   const queryClient = useQueryClient();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const { data, isLoading, isError } = useQuery<{ data: MergePreviewData }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ data: MergePreviewData }>({
     queryKey: ['merge-preview', entityType, winnerId, loserId],
     queryFn: () =>
       duplicatesApi.mergePreview({
@@ -202,7 +203,21 @@ export default function MergeRecordsPage() {
     );
   }
 
-  if (isError || !data?.data) {
+  if (isError) {
+    return (
+      <div>
+        <PageHeader title="Kayıt Birleştirme" />
+        <QueryErrorBanner
+          variant="block"
+          description="Önizleme yüklenemedi. Kayıtlar bulunamadı."
+          onRetry={() => refetch()}
+          secondaryAction={{ label: 'Geri Dön', onClick: () => navigate(-1) }}
+        />
+      </div>
+    );
+  }
+
+  if (!data?.data) {
     return (
       <div>
         <PageHeader title="Kayıt Birleştirme" />

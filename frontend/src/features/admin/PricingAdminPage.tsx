@@ -5,6 +5,7 @@ import { Trash2, Plus, Pencil, Check, X } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { partsApi, customersApi, pricingApi, pricesApi } from '../../lib/api';
 import { onPricingChanged } from '../../lib/cacheInvalidation';
 import type { SparePart, Customer, PriceTier, CustomerPricing, PriceEntry } from '../../lib/types';
@@ -74,12 +75,17 @@ function PriceTiersTab() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [tierForm, setTierForm] = useState<TierFormState>(EMPTY_TIER_FORM);
 
+  // R14-FE-1 exempt: parts list is a dropdown option source; if it
+  // fails the user sees an empty <select> which is acceptable — the
+  // priceEntry/tier queries below own the visible failure surface.
   const { data: partsData } = useQuery({
     queryKey: ['parts', 'all'],
     queryFn: () => partsApi.getParts({ limit: 500 }),
   });
   const parts: SparePart[] = partsData?.items ?? [];
 
+  // R14-FE-1 exempt: pricesData hydrates the priceEntry pointer used
+  // by the tiers query; tiers query already surfaces an error banner.
   const { data: pricesData } = useQuery({
     queryKey: ['prices', selectedPartId],
     queryFn: () => pricesApi.getPrices({ spare_part_id: selectedPartId, limit: 1 }),
@@ -87,7 +93,12 @@ function PriceTiersTab() {
   });
   const priceEntry: PriceEntry | null = pricesData?.items?.[0] ?? null;
 
-  const { data: tiers = [], isLoading: tiersLoading } = useQuery<PriceTier[]>({
+  const {
+    data: tiers = [],
+    isLoading: tiersLoading,
+    isError: tiersIsError,
+    refetch: refetchTiers,
+  } = useQuery<PriceTier[]>({
     queryKey: ['pricing-tiers', priceEntry?.id],
     queryFn: async () => {
       const res = await pricingApi.getTiers(priceEntry!.id);
@@ -172,7 +183,11 @@ function PriceTiersTab() {
         </p>
       )}
 
-      {priceEntry && (
+      {priceEntry && tiersIsError && (
+        <QueryErrorBanner variant="inline" onRetry={() => refetchTiers()} />
+      )}
+
+      {priceEntry && !tiersIsError && (
         <>
           <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
             <table className="w-full text-left text-sm">
@@ -352,19 +367,28 @@ function CustomerPricingTab() {
   const [isCreateOpen, setAddModalOpen] = useState(false);
   const [cpForm, setCpForm] = useState<CustomerPricingFormState>(EMPTY_CP_FORM);
 
+  // R14-FE-1 exempt: customers list is a dropdown option source; if it
+  // fails the user sees an empty <select> which is acceptable — the
+  // customer-pricing query owns the visible failure surface.
   const { data: customersData } = useQuery({
     queryKey: ['customers', 'all'],
     queryFn: () => customersApi.getCustomers({ limit: 500 }),
   });
   const customers: Customer[] = customersData?.items ?? [];
 
+  // R14-FE-1 exempt: parts list is dropdown option source (see above).
   const { data: partsData } = useQuery({
     queryKey: ['parts', 'all'],
     queryFn: () => partsApi.getParts({ limit: 500 }),
   });
   const parts: SparePart[] = partsData?.items ?? [];
 
-  const { data: customerPricings = [], isLoading: pricingsLoading } = useQuery<CustomerPricing[]>({
+  const {
+    data: customerPricings = [],
+    isLoading: pricingsLoading,
+    isError: pricingsIsError,
+    refetch: refetchPricings,
+  } = useQuery<CustomerPricing[]>({
     queryKey: ['customer-pricing', selectedCustomerId],
     queryFn: async () => {
       const res = await pricingApi.getCustomerPricing(selectedCustomerId!);
@@ -433,7 +457,11 @@ function CustomerPricingTab() {
         </select>
       </div>
 
-      {selectedCustomerId && (
+      {selectedCustomerId && pricingsIsError && (
+        <QueryErrorBanner variant="inline" onRetry={() => refetchPricings()} />
+      )}
+
+      {selectedCustomerId && !pricingsIsError && (
         <>
           <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
             <table className="w-full text-left text-sm">

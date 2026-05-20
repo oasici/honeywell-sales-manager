@@ -28,6 +28,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { workflowRulesApi } from '../../lib/api';
 import { onWorkflowRuleChanged } from '../../lib/cacheInvalidation';
 
@@ -301,7 +302,11 @@ export default function FlowBuilderPage() {
     historyIndexRef.current = truncated.length - 1;
   }, []);
 
-  const { data: ruleData } = useQuery<{ items: WorkflowRule[]; total: number }>({
+  const {
+    data: ruleData,
+    isError: ruleIsError,
+    refetch: refetchRule,
+  } = useQuery<{ items: WorkflowRule[]; total: number }>({
     queryKey: ['workflowRules'],
     queryFn: () => workflowRulesApi.list(),
     enabled: ruleId !== null,
@@ -661,6 +666,12 @@ export default function FlowBuilderPage() {
           Kaydet
         </Button>
       </PageHeader>
+
+      {ruleIsError && (
+        <div className="mb-4">
+          <QueryErrorBanner variant="inline" onRetry={() => refetchRule()} />
+        </div>
+      )}
 
       <div className="mb-4 flex items-center gap-4">
         <div className="w-72">

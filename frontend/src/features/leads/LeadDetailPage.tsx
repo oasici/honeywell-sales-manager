@@ -538,9 +538,7 @@ export default function LeadDetailPage() {
                   operator can see *who* converted the lead at a glance. */}
               {lead.converted_by != null && (
                 <div>
-                  <p className="text-xs text-slate-500">
-                    {t('lead_detail.converted_by')}
-                  </p>
+                  <p className="text-xs text-slate-500">{t('lead_detail.converted_by')}</p>
                   <p className="text-sm font-medium text-slate-900 dark:text-white">
                     #{lead.converted_by}
                   </p>

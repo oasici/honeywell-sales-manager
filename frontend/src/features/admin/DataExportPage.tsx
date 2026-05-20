@@ -4,6 +4,7 @@ import { Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { auditApi, usersApi } from '../../lib/api';
 import { useT } from '../../hooks/useT';
 
@@ -57,7 +58,12 @@ export default function DataExportPage() {
   const [lastExport, setLastExport] = useState<UserDataExport | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { data: usersData, isLoading: usersLoading } = useQuery<UsersListResponse>({
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    isError: usersIsError,
+    refetch: refetchUsers,
+  } = useQuery<UsersListResponse>({
     queryKey: ['users-for-export'],
     queryFn: () => usersApi.getUsers({ page_size: 100 }),
   });
@@ -129,6 +135,12 @@ export default function DataExportPage() {
         </div>
       </div>
 
+      {usersIsError && (
+        <div className="mb-4 max-w-md">
+          <QueryErrorBanner variant="inline" onRetry={() => refetchUsers()} />
+        </div>
+      )}
+
       <div className="mb-4 max-w-md">
         <Select
           label="Veri sahibi (kullanıcı)"
@@ -139,7 +151,7 @@ export default function DataExportPage() {
             setLastExport(null);
             setErrorMsg(null);
           }}
-          disabled={usersLoading}
+          disabled={usersLoading || usersIsError}
         />
       </div>
 
