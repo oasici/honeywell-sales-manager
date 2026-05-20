@@ -13,6 +13,7 @@ from app.models.decision_gap import DecisionGap
 from app.models.enums import UserRole
 from app.models.opportunity import Opportunity
 from app.models.user import User
+from app.schemas.common import ItemsResponse
 
 
 router = APIRouter(prefix="/decision-gaps", tags=["Decision Gaps"])
@@ -28,7 +29,7 @@ def _opp_rbac_guard(current_user: User, opp: Opportunity):
         raise HTTPException(status_code=403, detail="Yetkisiz")
 
 
-@router.get("/opportunities/{opportunity_id}")
+@router.get("/opportunities/{opportunity_id}", response_model=ItemsResponse)
 async def list_opportunity_gaps(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -87,7 +88,7 @@ async def list_opportunity_gaps(
     }
 
 
-@router.get("/cockpit/list")
+@router.get("/cockpit/list", response_model=ItemsResponse)
 async def cockpit_gaps(
     limit: int = Query(30, ge=1, le=200),
     current_user: User = Depends(get_current_user),

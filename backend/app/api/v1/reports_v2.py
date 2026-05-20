@@ -20,6 +20,13 @@ from app.models.report import ReportTemplate
 from app.models.report_folder import ReportFolder
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.report import (
+    AvailableColumnsResponse,
+    FolderEnvelope,
+    ReportExecutionEnvelope,
+    ReportTemplateEnvelope,
+    ScheduleResponse,
+)
 from app.services.report_engine import (
     ALLOWED_COLUMNS,
     ENTITY_JOINS,
@@ -177,7 +184,7 @@ async def list_folders(
     }
 
 
-@router.post("/folders", status_code=201)
+@router.post("/folders", status_code=201, response_model=FolderEnvelope)
 async def create_folder(
     body: ReportFolderCreate,
     current_user: User = Depends(get_current_user),
@@ -220,7 +227,7 @@ async def create_folder(
     }
 
 
-@router.put("/folders/{folder_id}")
+@router.put("/folders/{folder_id}", response_model=FolderEnvelope)
 async def update_folder(
     folder_id: int,
     body: ReportFolderUpdate,
@@ -349,7 +356,7 @@ async def list_templates(
     }
 
 
-@router.post("/templates", status_code=201)
+@router.post("/templates", status_code=201, response_model=ReportTemplateEnvelope)
 async def create_template(
     body: ReportTemplateCreate,
     current_user: User = Depends(get_current_user),
@@ -383,7 +390,7 @@ async def create_template(
     return {"data": ReportTemplateResponse.model_validate(template)}
 
 
-@router.put("/templates/{template_id}")
+@router.put("/templates/{template_id}", response_model=ReportTemplateEnvelope)
 async def update_template(
     template_id: int,
     body: ReportTemplateUpdate,
@@ -435,7 +442,10 @@ async def delete_template(
 # ── Execution ──
 
 
-@router.post("/templates/{template_id}/execute")
+@router.post(
+    "/templates/{template_id}/execute",
+    response_model=ReportExecutionEnvelope,
+)
 async def execute_template(
     template_id: int,
     page: int = Query(default=1, ge=1),
@@ -457,7 +467,7 @@ async def execute_template(
     return {"data": result}
 
 
-@router.post("/preview")
+@router.post("/preview", response_model=ReportExecutionEnvelope)
 async def preview_report(
     body: InlineReportRequest,
     current_user: User = Depends(get_current_user),
@@ -551,7 +561,7 @@ async def export_template_excel(
     )
 
 
-@router.get("/available-columns")
+@router.get("/available-columns", response_model=AvailableColumnsResponse)
 async def available_columns(
     entity_type: str = Query(pattern="^(quote|opportunity|customer|email)$"),
     current_user: User = Depends(get_current_user),
@@ -581,7 +591,7 @@ class ScheduleRequest(BaseModel):
     email_recipients: list[str] | None = None
 
 
-@router.patch("/templates/{template_id}/schedule")
+@router.patch("/templates/{template_id}/schedule", response_model=ScheduleResponse)
 async def schedule_report(
     template_id: int,
     data: ScheduleRequest,

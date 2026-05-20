@@ -27,6 +27,16 @@ from app.services.deal_health_service import DealHealthService
 from app.services.customer_health_service import CustomerHealthService
 from app.services import revenue_signal_service
 from app.api.v1.opportunities import _opportunity_staleness_days
+from app.schemas.cockpit import (
+    CockpitActionsResponse,
+    CockpitKPIsResponse,
+    CockpitMomentumResponse,
+    CockpitRiskyAccountsResponse,
+    CockpitStallingResponse,
+    CockpitTrendsResponse,
+    ResolveSignalResponse,
+    SignalStreamResponse,
+)
 
 router = APIRouter(prefix="/cockpit", tags=["Revenue Cockpit"])
 
@@ -36,7 +46,7 @@ def _require_cockpit():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/signals")
+@router.get("/signals", response_model=SignalStreamResponse)
 async def get_signals(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
@@ -63,7 +73,7 @@ async def get_signals(
     )
 
 
-@router.get("/kpis")
+@router.get("/kpis", response_model=CockpitKPIsResponse)
 async def get_kpis(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -149,7 +159,7 @@ async def get_kpis(
     }
 
 
-@router.get("/actions")
+@router.get("/actions", response_model=CockpitActionsResponse)
 async def get_actions(
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -307,7 +317,7 @@ async def get_actions(
     }
 
 
-@router.get("/risky-accounts")
+@router.get("/risky-accounts", response_model=CockpitRiskyAccountsResponse)
 async def get_risky_accounts(
     limit: int = Query(12, ge=1, le=50),
     current_user: User = Depends(get_current_user),
@@ -458,7 +468,7 @@ async def get_risky_accounts(
     }
 
 
-@router.get("/momentum")
+@router.get("/momentum", response_model=CockpitMomentumResponse)
 async def get_momentum_declining(
     limit: int = Query(20, ge=1, le=200),
     current_user: User = Depends(get_current_user),
@@ -542,7 +552,7 @@ async def get_momentum_declining(
     }
 
 
-@router.get("/buyer-state/stalling")
+@router.get("/buyer-state/stalling", response_model=CockpitStallingResponse)
 async def get_stalling_deals(
     limit: int = Query(20, ge=1, le=200),
     current_user: User = Depends(get_current_user),
@@ -632,7 +642,7 @@ async def get_stalling_deals(
     }
 
 
-@router.post("/signals/{signal_id}/resolve")
+@router.post("/signals/{signal_id}/resolve", response_model=ResolveSignalResponse)
 async def resolve_signal(
     signal_id: int,
     current_user: User = Depends(get_current_user),
@@ -658,7 +668,7 @@ async def resolve_signal(
     return {"message": "Sinyal cozuldu olarak isaretlendi", "signal_id": signal_id}
 
 
-@router.get("/trends")
+@router.get("/trends", response_model=CockpitTrendsResponse)
 async def get_trends(
     weeks: int = Query(12, ge=1, le=52),
     current_user: User = Depends(get_current_user),

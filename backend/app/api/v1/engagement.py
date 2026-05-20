@@ -31,6 +31,28 @@ from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
 from app.schemas.sequence import SequenceResponse, SequenceResponseParsed
+from app.schemas.engagement import (
+    AutoEnrollResponse,
+    CoachingScorecardsResponse,
+    DomainEventListResponse,
+    EnrollResponse,
+    EnrollmentDetailResponse,
+    EnrollmentListResponse,
+    EnrollmentToggleResponse,
+    KeywordPackCreateResponse,
+    KeywordPackListResponse,
+    SegmentCreateResponse,
+    SegmentCustomersResponse,
+    SegmentListResponse,
+    SequenceAnalyticsResponse,
+    SequencePerformanceResponse,
+    SequenceUpdateResponse,
+    StepRunListResponse,
+    TranscriptCreateResponse,
+    TranscriptSearchResponse,
+    TranscriptSummarizeResponse,
+    VariantMetricsResponse,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Engagement"])
@@ -72,7 +94,7 @@ class TranscriptCreate(BaseModel):
     participants: str | None = None
 
 
-@router.post("/transcripts/", status_code=201)
+@router.post("/transcripts/", status_code=201, response_model=TranscriptCreateResponse)
 async def create_transcript(
     body: TranscriptCreate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -185,7 +207,7 @@ async def list_transcripts(
     }
 
 
-@router.post("/transcripts/{transcript_id}/summarize")
+@router.post("/transcripts/{transcript_id}/summarize", response_model=TranscriptSummarizeResponse)
 async def summarize_transcript_endpoint(
     transcript_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -200,7 +222,7 @@ async def summarize_transcript_endpoint(
     return result
 
 
-@router.get("/transcripts/search")
+@router.get("/transcripts/search", response_model=TranscriptSearchResponse)
 async def search_transcripts(
     q: str = Query(..., min_length=2, description="Search query"),
     opportunity_id: int | None = None,
@@ -278,7 +300,7 @@ class KeywordPackCreate(BaseModel):
     keywords: list[str]
 
 
-@router.get("/keyword-packs/")
+@router.get("/keyword-packs/", response_model=KeywordPackListResponse)
 async def list_keyword_packs(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -295,7 +317,7 @@ async def list_keyword_packs(
     }
 
 
-@router.post("/keyword-packs/", status_code=201)
+@router.post("/keyword-packs/", status_code=201, response_model=KeywordPackCreateResponse)
 async def create_keyword_pack(
     body: KeywordPackCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -394,7 +416,7 @@ class EnrollRequest(BaseModel):
     customer_id: int | None = None
 
 
-@router.post("/sequences/enroll", status_code=201)
+@router.post("/sequences/enroll", status_code=201, response_model=EnrollResponse)
 async def enroll_in_sequence(
     body: EnrollRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -422,7 +444,7 @@ async def enroll_in_sequence(
     return {"id": enrollment.id, "status": enrollment.status, "current_step": enrollment.current_step}
 
 
-@router.get("/sequences/enrollments")
+@router.get("/sequences/enrollments", response_model=EnrollmentListResponse)
 async def list_enrollments(
     sequence_id: int | None = None,
     current_user: User = Depends(get_current_user),
@@ -456,7 +478,7 @@ async def list_enrollments(
     }
 
 
-@router.patch("/sequences/enrollments/{enrollment_id}/pause")
+@router.patch("/sequences/enrollments/{enrollment_id}/pause", response_model=EnrollmentToggleResponse)
 async def pause_enrollment(
     enrollment_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -476,7 +498,7 @@ async def pause_enrollment(
     return {"id": enrollment.id, "is_paused": True, "status": "paused"}
 
 
-@router.patch("/sequences/enrollments/{enrollment_id}/resume")
+@router.patch("/sequences/enrollments/{enrollment_id}/resume", response_model=EnrollmentToggleResponse)
 async def resume_enrollment(
     enrollment_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -509,7 +531,7 @@ class SequenceUpdate(BaseModel):
 # ══════════════════════════════════════════
 
 
-@router.get("/sequences/analytics")
+@router.get("/sequences/analytics", response_model=SequenceAnalyticsResponse)
 async def sequence_analytics(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -554,7 +576,7 @@ async def sequence_analytics(
     }
 
 
-@router.get("/sequences/performance")
+@router.get("/sequences/performance", response_model=SequencePerformanceResponse)
 async def sequence_performance(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -628,7 +650,7 @@ async def sequence_performance(
     }
 
 
-@router.get("/sequences/variant-metrics")
+@router.get("/sequences/variant-metrics", response_model=VariantMetricsResponse)
 async def variant_metrics(
     sequence_id: int | None = None,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -674,7 +696,7 @@ async def variant_metrics(
     }
 
 
-@router.get("/sequences/domain-events")
+@router.get("/sequences/domain-events", response_model=DomainEventListResponse)
 async def list_domain_events(
     event_type: str | None = None,
     limit: int = Query(default=50, le=200),
@@ -705,7 +727,7 @@ async def list_domain_events(
     }
 
 
-@router.get("/sequences/enrollments/{enrollment_id}/detail")
+@router.get("/sequences/enrollments/{enrollment_id}/detail", response_model=EnrollmentDetailResponse)
 async def get_enrollment_detail(
     enrollment_id: int,
     current_user: User = Depends(get_current_user),
@@ -766,7 +788,7 @@ async def get_enrollment_detail(
     }
 
 
-@router.get("/sequences/enrollments/{enrollment_id}/step-runs")
+@router.get("/sequences/enrollments/{enrollment_id}/step-runs", response_model=StepRunListResponse)
 async def list_step_runs(
     enrollment_id: int,
     current_user: User = Depends(get_current_user),
@@ -826,7 +848,7 @@ async def get_sequence(
     }
 
 
-@router.patch("/sequences/{sequence_id}")
+@router.patch("/sequences/{sequence_id}", response_model=SequenceUpdateResponse)
 async def update_sequence(
     sequence_id: int,
     body: SequenceUpdate,
@@ -862,7 +884,7 @@ async def update_sequence(
     }
 
 
-@router.post("/sequences/{sequence_id}/auto-enroll")
+@router.post("/sequences/{sequence_id}/auto-enroll", response_model=AutoEnrollResponse)
 async def auto_enroll_sequence(
     sequence_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -965,7 +987,7 @@ class SegmentCreate(BaseModel):
     rules: list[dict]  # [{"field":"company","op":"contains","value":"sanayi"}]
 
 
-@router.get("/segments/")
+@router.get("/segments/", response_model=SegmentListResponse)
 async def list_segments(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -992,7 +1014,7 @@ async def list_segments(
     }
 
 
-@router.post("/segments/", status_code=201)
+@router.post("/segments/", status_code=201, response_model=SegmentCreateResponse)
 async def create_segment(
     body: SegmentCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -1022,7 +1044,7 @@ async def create_segment(
     }
 
 
-@router.get("/segments/{segment_id}/customers")
+@router.get("/segments/{segment_id}/customers", response_model=SegmentCustomersResponse)
 async def get_segment_customers(
     segment_id: int,
     current_user: User = Depends(get_current_user),
@@ -1052,7 +1074,7 @@ async def get_segment_customers(
 # COACHING SCORECARDS
 # ══════════════════════════════════════════
 
-@router.get("/coaching/scorecards")
+@router.get("/coaching/scorecards", response_model=CoachingScorecardsResponse)
 async def get_coaching_scorecards(
     window: int = Query(30, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

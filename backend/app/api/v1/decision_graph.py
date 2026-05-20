@@ -30,7 +30,18 @@ class NodeStatePatch(BaseModel):
     blocker_reason: str | None = None
 
 
-@router.get("/{opportunity_id}")
+class DecisionGraphResponse(BaseModel):
+    """Surface for /decision-graph/{opportunity_id} (and POST/PATCH siblings)."""
+
+    opportunity_id: int | None = None
+    nodes: list[dict] = []
+    edges: list[dict] = []
+    progress: dict | None = None
+
+    model_config = {"extra": "allow"}
+
+
+@router.get("/{opportunity_id}", response_model=DecisionGraphResponse)
 async def get_graph(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -40,7 +51,7 @@ async def get_graph(
     return await decision_graph_service.get_graph(db, opportunity_id, current_user)
 
 
-@router.post("/{opportunity_id}/initialize")
+@router.post("/{opportunity_id}/initialize", response_model=DecisionGraphResponse)
 async def initialize(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -50,7 +61,7 @@ async def initialize(
     return await decision_graph_service.initialize_default(db, opportunity_id, current_user)
 
 
-@router.patch("/{opportunity_id}/nodes/{node_id}")
+@router.patch("/{opportunity_id}/nodes/{node_id}", response_model=DecisionGraphResponse)
 async def patch_node(
     opportunity_id: int,
     node_id: int,

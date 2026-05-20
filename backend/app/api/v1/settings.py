@@ -17,6 +17,22 @@ from app.models.enums import UserRole
 from app.models.setting import Setting
 from app.models.stage_config import StageConfig
 from app.models.user import User
+from app.schemas.setting import (
+    ApiKeyCreateResponse,
+    ApiKeyListResponse,
+    ApiKeyRevokeResponse,
+    EmailCredentialsReadResponse,
+    EmailCredentialsSaveResponse,
+    EmailTestResponse,
+    NotificationChannelsResponse,
+    NotificationChannelsTestResponse,
+    SettingsMapResponse,
+    SettingsUpdateResponse,
+    StageConfigListResponse,
+    StageConfigUpdateResponse,
+    SystemConfigResponse,
+    SystemConfigUpdateResponse,
+)
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 
@@ -132,7 +148,7 @@ def _mask_settings(settings_dict: dict[str, str | None]) -> dict[str, str | None
     }
 
 
-@router.get("/")
+@router.get("/", response_model=SettingsMapResponse)
 async def get_settings(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -150,7 +166,7 @@ async def get_settings(
     return {"settings": _mask_settings(settings_dict)}
 
 
-@router.put("/")
+@router.put("/", response_model=SettingsUpdateResponse)
 async def update_settings(
     data: SettingsUpdateRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -208,7 +224,7 @@ async def update_settings(
 
 # ── Email Credentials ──
 
-@router.post("/email-credentials")
+@router.post("/email-credentials", response_model=EmailCredentialsSaveResponse)
 async def save_email_credentials(
     body: EmailCredentials,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -269,7 +285,7 @@ async def save_email_credentials(
     return {"message": "Email bilgileri kaydedildi", "email_setup_completed": True}
 
 
-@router.get("/email-credentials")
+@router.get("/email-credentials", response_model=EmailCredentialsReadResponse)
 async def get_email_credentials(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -297,7 +313,7 @@ class EmailTestRequest(BaseModel):
     imap_port: int = 993
 
 
-@router.post("/email-credentials/test")
+@router.post("/email-credentials/test", response_model=EmailTestResponse)
 async def test_email_connection(
     body: EmailTestRequest | None = None,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -386,7 +402,7 @@ class ApiKeyCreateRequest(BaseModel):
     rate_limit: int = Field(default=1000, ge=1, le=100000)
 
 
-@router.get("/api-keys")
+@router.get("/api-keys", response_model=ApiKeyListResponse)
 async def list_api_keys(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -425,7 +441,7 @@ async def list_api_keys(
     }
 
 
-@router.post("/api-keys", status_code=201)
+@router.post("/api-keys", status_code=201, response_model=ApiKeyCreateResponse)
 async def create_api_key(
     body: ApiKeyCreateRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -460,7 +476,7 @@ async def create_api_key(
     }
 
 
-@router.delete("/api-keys/{key_id}")
+@router.delete("/api-keys/{key_id}", response_model=ApiKeyRevokeResponse)
 async def revoke_api_key(
     key_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -488,7 +504,7 @@ async def revoke_api_key(
 # ── System Config ──
 
 
-@router.get("/system-config")
+@router.get("/system-config", response_model=SystemConfigResponse)
 async def get_system_config(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -542,7 +558,7 @@ class SystemConfigUpdate(BaseModel):
     value: str
 
 
-@router.put("/system-config/{key}")
+@router.put("/system-config/{key}", response_model=SystemConfigUpdateResponse)
 async def update_system_config(
     key: str,
     body: SystemConfigUpdate,
@@ -604,7 +620,7 @@ class StageConfigBulkUpdate(BaseModel):
     stages: list[StageConfigItem]
 
 
-@router.get("/stage-config")
+@router.get("/stage-config", response_model=StageConfigListResponse)
 async def get_stage_config(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -646,7 +662,7 @@ async def get_stage_config(
 
 # ── Notification Channels (Slack/Teams) ──
 
-@router.get("/notification-channels")
+@router.get("/notification-channels", response_model=NotificationChannelsResponse)
 async def get_notification_channels(
     current_user: User = Depends(get_current_user),
 ):
@@ -661,7 +677,10 @@ async def get_notification_channels(
     }
 
 
-@router.post("/notification-channels/test")
+@router.post(
+    "/notification-channels/test",
+    response_model=NotificationChannelsTestResponse,
+)
 async def test_notification_channel(
     body: dict,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -688,7 +707,7 @@ async def test_notification_channel(
     return {"data": results}
 
 
-@router.put("/stage-config")
+@router.put("/stage-config", response_model=StageConfigUpdateResponse)
 async def update_stage_config(
     body: StageConfigBulkUpdate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

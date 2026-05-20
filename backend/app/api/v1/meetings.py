@@ -18,6 +18,15 @@ from app.models.meeting_booking import MeetingBooking
 from app.models.user import User
 from app.services.activity_logger import log_activity
 from app.services.notification_service import create_notification
+from app.schemas.meeting import (
+    MeetingBookingCreateResponse,
+    MeetingBookingListResponse,
+    MeetingBookingPagePublicResponse,
+    MeetingLinkEnvelope,
+    MeetingLinkListResponse,
+    MeetingMessageResponse,
+    MeetingPlaceholderResponse,
+)
 
 router = APIRouter(prefix="/meetings", tags=["Meetings"])
 
@@ -52,7 +61,7 @@ class SchedulePlaceholderBody(BaseModel):
     opportunity_id: int | None = None
 
 
-@router.post("/schedule-placeholder")
+@router.post("/schedule-placeholder", response_model=MeetingPlaceholderResponse)
 async def schedule_meeting_placeholder(
     body: SchedulePlaceholderBody,
     current_user: User = Depends(get_current_user),
@@ -73,7 +82,7 @@ async def schedule_meeting_placeholder(
     return {"data": payload}
 
 
-@router.get("/links")
+@router.get("/links", response_model=MeetingLinkListResponse)
 async def list_links(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -100,7 +109,7 @@ async def list_links(
     }
 
 
-@router.post("/links")
+@router.post("/links", response_model=MeetingLinkEnvelope)
 async def create_link(
     body: CreateLinkRequest,
     current_user: User = Depends(get_current_user),
@@ -132,7 +141,7 @@ async def create_link(
     }
 
 
-@router.delete("/links/{link_id}")
+@router.delete("/links/{link_id}", response_model=MeetingMessageResponse)
 async def deactivate_link(
     link_id: int,
     current_user: User = Depends(get_current_user),
@@ -154,7 +163,7 @@ async def deactivate_link(
     return {"data": {"message": "Toplanti linki devre disi birakildi"}}
 
 
-@router.get("/book/{slug}")
+@router.get("/book/{slug}", response_model=MeetingBookingPagePublicResponse)
 async def get_booking_page(
     slug: str,
     db: AsyncSession = Depends(get_db),
@@ -179,7 +188,7 @@ async def get_booking_page(
     }
 
 
-@router.post("/book/{slug}")
+@router.post("/book/{slug}", response_model=MeetingBookingCreateResponse)
 async def create_booking(
     slug: str,
     body: BookingRequest,

@@ -21,6 +21,15 @@ from app.models.territory import Territory, TerritoryAssignment
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.territory import (
+    AutoAssignResponse,
+    TerritoryAssignmentItem,
+    TerritoryDetailResponse,
+    TerritoryItem,
+    TerritoryMetricsResponse,
+    TerritoryOpportunitiesResponse,
+    TerritoryTreeResponse,
+)
 
 router = APIRouter(prefix="/territories", tags=["Territories"])
 
@@ -170,7 +179,7 @@ async def list_territories(
     }
 
 
-@router.get("/tree")
+@router.get("/tree", response_model=TerritoryTreeResponse)
 async def territory_tree(
     _: None = Depends(_require_territories),
     current_user: User = Depends(get_current_user),
@@ -187,7 +196,7 @@ async def territory_tree(
     return {"tree": _build_tree(list(territories))}
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=TerritoryItem)
 async def create_territory(
     body: TerritoryCreate,
     _: None = Depends(_require_territories),
@@ -220,7 +229,7 @@ async def create_territory(
     return _serialize_territory(territory)
 
 
-@router.get("/{territory_id}")
+@router.get("/{territory_id}", response_model=TerritoryDetailResponse)
 async def get_territory(
     territory_id: int,
     _: None = Depends(_require_territories),
@@ -254,7 +263,7 @@ async def get_territory(
     }
 
 
-@router.get("/{territory_id}/metrics")
+@router.get("/{territory_id}/metrics", response_model=TerritoryMetricsResponse)
 async def get_territory_metrics(
     territory_id: int,
     _: None = Depends(_require_territories),

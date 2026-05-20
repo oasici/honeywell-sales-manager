@@ -42,6 +42,24 @@ from app.services import (
 from app.services.crm_sync import run_sync_job
 from app.services.crm_sync.factory import get_adapter
 from app.services.tenant_context import assert_same_tenant
+from app.schemas.v9_gap_closure import (
+    BoardWipStatusResponse,
+    CalendarConnectionResponse,
+    CalendarConnectionsListResponse,
+    CrmConnectionCreatedResponse,
+    CrmConnectionTestResponse,
+    CrmConnectionsListResponse,
+    CrmJobsListResponse,
+    CrmSyncJobResponse,
+    MeetingAutoLinkResponse,
+    QuoteRevisionsResponse,
+    ReviewDecideResponse,
+    ReviewQueueResponse,
+    ReviseQuoteResponse,
+    SemanticSearchResponse,
+    SlippageByOwnerResponse,
+    SlippageEnvelope,
+)
 
 
 router = APIRouter(prefix="/v9", tags=["V9 Gap Closure"])
@@ -88,7 +106,7 @@ class CrmConnectionPayload(BaseModel):
     credentials: dict[str, Any] | None = None
 
 
-@router.post("/crm/connections")
+@router.post("/crm/connections", response_model=CrmConnectionCreatedResponse)
 async def create_crm_connection(
     payload: CrmConnectionPayload,
     current_user: User = Depends(get_current_user),
@@ -119,7 +137,7 @@ async def create_crm_connection(
     }
 
 
-@router.get("/crm/connections")
+@router.get("/crm/connections", response_model=CrmConnectionsListResponse)
 async def list_crm_connections(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -145,7 +163,7 @@ async def list_crm_connections(
     }
 
 
-@router.post("/crm/connections/{conn_id}/test")
+@router.post("/crm/connections/{conn_id}/test", response_model=CrmConnectionTestResponse)
 async def test_crm_connection(
     conn_id: int,
     current_user: User = Depends(get_current_user),
@@ -162,7 +180,7 @@ async def test_crm_connection(
     return {"ok": bool(ok), "provider": conn.provider}
 
 
-@router.post("/crm/connections/{conn_id}/sync/{entity_type}")
+@router.post("/crm/connections/{conn_id}/sync/{entity_type}", response_model=CrmSyncJobResponse)
 async def trigger_crm_sync(
     conn_id: int,
     entity_type: str,
@@ -185,7 +203,7 @@ async def trigger_crm_sync(
     }
 
 
-@router.get("/crm/jobs")
+@router.get("/crm/jobs", response_model=CrmJobsListResponse)
 async def list_crm_jobs(
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -226,7 +244,7 @@ class CalendarLinkPayload(BaseModel):
     refresh_token: str | None = None
 
 
-@router.post("/calendar/connect")
+@router.post("/calendar/connect", response_model=CalendarConnectionResponse)
 async def connect_calendar(
     payload: CalendarLinkPayload,
     current_user: User = Depends(get_current_user),
@@ -251,7 +269,7 @@ async def connect_calendar(
     }
 
 
-@router.get("/calendar/connections")
+@router.get("/calendar/connections", response_model=CalendarConnectionsListResponse)
 async def list_calendar_conns(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -275,7 +293,7 @@ async def list_calendar_conns(
     }
 
 
-@router.post("/calendar/auto-log/{booking_id}")
+@router.post("/calendar/auto-log/{booking_id}", response_model=MeetingAutoLinkResponse)
 async def auto_log_booking(
     booking_id: int,
     current_user: User = Depends(get_current_user),
@@ -297,7 +315,7 @@ async def auto_log_booking(
 # ─────────────────────── Sprint M: WIP + review queue ────────────────
 
 
-@router.get("/board/wip-status")
+@router.get("/board/wip-status", response_model=BoardWipStatusResponse)
 async def board_wip_status(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -306,7 +324,7 @@ async def board_wip_status(
     return {"items": await pipeline_review_service.wip_status(db)}
 
 
-@router.get("/board/review-queue")
+@router.get("/board/review-queue", response_model=ReviewQueueResponse)
 async def board_review_queue(
     owner_id: int | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
@@ -345,7 +363,7 @@ class ReviewDecisionPayload(BaseModel):
     decision: str = Field(..., pattern=r"^(applied|dismissed)$")
 
 
-@router.post("/board/review-queue/{entry_id}/decide")
+@router.post("/board/review-queue/{entry_id}/decide", response_model=ReviewDecideResponse)
 async def board_review_decide(
     entry_id: int,
     payload: ReviewDecisionPayload,
@@ -398,7 +416,7 @@ class SemanticSearchPayload(BaseModel):
     limit_per_scope: int = Field(10, ge=1, le=50)
 
 
-@router.post("/search/semantic")
+@router.post("/search/semantic", response_model=SemanticSearchResponse)
 async def search_semantic(
     payload: SemanticSearchPayload,
     current_user: User = Depends(get_current_user),
@@ -417,7 +435,7 @@ async def search_semantic(
 # ─────────────────────── Sprint O: quote revisions ───────────────────
 
 
-@router.get("/opportunities/{opportunity_id}/quote-revisions")
+@router.get("/opportunities/{opportunity_id}/quote-revisions", response_model=QuoteRevisionsResponse)
 async def list_quote_revisions(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -452,7 +470,7 @@ async def list_quote_revisions(
     }
 
 
-@router.post("/quotes/{quote_id}/revise")
+@router.post("/quotes/{quote_id}/revise", response_model=ReviseQuoteResponse)
 async def revise_quote(
     quote_id: int,
     current_user: User = Depends(get_current_user),
@@ -490,7 +508,7 @@ async def revise_quote(
 # ─────────────────────── Sprint P: slippage ──────────────────────────
 
 
-@router.get("/slippage")
+@router.get("/slippage", response_model=SlippageEnvelope)
 async def slippage_envelope(
     owner_id: int | None = Query(None),
     stage: str | None = Query(None),
@@ -511,7 +529,7 @@ async def slippage_envelope(
     )
 
 
-@router.get("/slippage/by-owner")
+@router.get("/slippage/by-owner", response_model=SlippageByOwnerResponse)
 async def slippage_per_owner(
     window_days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),

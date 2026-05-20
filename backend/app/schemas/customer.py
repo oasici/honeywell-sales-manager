@@ -154,6 +154,180 @@ class CustomerResponse(BaseModel):
     model_config = {"from_attributes": True, "extra": "allow"}
 
 
+# ──────────────────────────────────────────────────────────────────
+# Round-15 typing pass — schemas for the remaining JSON endpoints in
+# ``api/v1/customers.py`` that previously returned bare ``dict``.
+# Each schema is extras-tolerant where the handler emits enrichments
+# the contract doesn't try to lock down.
+# ──────────────────────────────────────────────────────────────────
+
+
+class CustomerPinResponse(BaseModel):
+    """POST/DELETE /customers/{id}/pin — pinned-state ack."""
+
+    pinned: bool
+    customer_id: int
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerIntelligenceOpportunity(BaseModel):
+    id: int
+    title: str | None = None
+    stage: str | None = None
+    amount: float | None = None
+    currency: str | None = None
+    owner_id: int | None = None
+    close_date: str | None = None
+    updated_at: str | None = None
+    last_activity_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CustomerIntelligenceSignal(BaseModel):
+    id: int
+    opportunity_id: int | None = None
+    signal_type: str | None = None
+    severity: str | None = None
+    evidence: str | None = None
+    source_type: str | None = None
+    source_id: int | None = None
+    is_resolved: bool | None = None
+    created_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CustomerIntelligenceResponse(BaseModel):
+    """GET /customers/{id}/intelligence — operational rollup."""
+
+    customer: CustomerResponse
+    opportunities: list[CustomerIntelligenceOpportunity]
+    open_tasks_count: int
+    signals: list[CustomerIntelligenceSignal]
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerEnrichResponse(BaseModel):
+    """POST /customers/{id}/enrich — wraps service payload in ``data``."""
+
+    data: dict[str, object] | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CustomerDeleteResponse(BaseModel):
+    """DELETE /customers/{id} — single-line ack."""
+
+    message: str
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerImportResponse(BaseModel):
+    """POST /customers/import — bulk import summary."""
+
+    message: str
+    imported: int
+    skipped: int
+    errors: list[str | dict[str, object]] = []
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerTimelineEvent(BaseModel):
+    type: str
+    id: int
+    title: str | None = None
+    detail: str | None = None
+    status: str | None = None
+    timestamp: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CustomerTimelineResponse(BaseModel):
+    """GET /customers/{id}/timeline — chronological events."""
+
+    customer_id: int
+    events: list[CustomerTimelineEvent]
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerActivity(BaseModel):
+    id: int
+    activity_type: str | None = None
+    entity_type: str | None = None
+    entity_id: int | None = None
+    summary: str | None = None
+    created_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CustomerActivityTimelineResponse(BaseModel):
+    """GET /customers/{id}/activity-timeline — unified activity feed."""
+
+    customer_id: int
+    activities: list[CustomerActivity]
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerBulkActionResponse(BaseModel):
+    """POST /customers/bulk-action — applies to delete/assign/export."""
+
+    message: str
+    affected_count: int | None = None
+    # Only populated by the ``export`` action.
+    data: list[dict[str, object]] | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CustomerHierarchyNode(BaseModel):
+    id: int
+    name: str | None = None
+    company: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CustomerHierarchyResponse(BaseModel):
+    """GET /customers/{id}/hierarchy — parents + subsidiaries."""
+
+    customer_id: int
+    parents: list[CustomerHierarchyNode]
+    subsidiaries: list[CustomerHierarchyNode]
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerParentResponse(BaseModel):
+    """PATCH /customers/{id}/parent — reparent ack."""
+
+    status: str
+    parent_id: int | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerRollupResponse(BaseModel):
+    """GET /customers/{id}/rollup — aggregate metrics across subsidiaries."""
+
+    customer_id: int
+    subsidiary_count: int
+    total_opportunities: int
+    total_opportunity_value: float
+    total_quotes: int
+    total_quote_value: float
+
+    model_config = {"from_attributes": True}
+
+
 class HighIntentAccountResponse(BaseModel):
     """Wire shape for ``GET /api/v1/customers/high-intent``.
 

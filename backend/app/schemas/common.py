@@ -48,3 +48,34 @@ class ErrorResponse(BaseModel):
 class SuccessResponse(BaseModel):
     message: str
     data: Any | None = None
+
+
+class MessageResponse(BaseModel):
+    """Generic ``{message: str, ...}`` response used by many write endpoints.
+
+    Extras-tolerant so callers can attach IDs, counts, or whatever
+    auxiliary data the handler decides to return.
+    """
+
+    message: str | None = None
+
+    model_config = {"extra": "allow"}
+
+
+class GenericDataResponse(BaseModel):
+    """Generic ``{data: ...}`` envelope used by ad-hoc endpoints."""
+
+    data: Any | None = None
+
+    model_config = {"extra": "allow"}
+
+
+class ItemsResponse(BaseModel):
+    """Generic ``{items: [...], total: N, ...}`` envelope for
+    list endpoints that don't fit ``PaginatedResponse`` (no page/page_size).
+    """
+
+    items: list[Any] = []
+    total: int | None = None
+
+    model_config = {"extra": "allow"}

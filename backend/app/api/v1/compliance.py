@@ -29,6 +29,15 @@ from app.models.retention_policy import RetentionPolicy
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
+from app.schemas.compliance import (
+    AuditTrailResponse,
+    BreachResponse,
+    ConsentResponse,
+    CustomerDataExportResponse,
+    DataDeleteResponse,
+    RetentionPolicyResponse,
+    RetentionReportResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +100,7 @@ class BreachUpdate(BaseModel):
     severity: str | None = Field(default=None, max_length=20)
 
 
-@router.post("/consent/{customer_id}")
+@router.post("/consent/{customer_id}", response_model=ConsentResponse)
 async def record_consent(
     customer_id: int,
     body: ConsentRequest,
@@ -151,7 +160,7 @@ async def record_consent(
     }
 
 
-@router.get("/consent/{customer_id}")
+@router.get("/consent/{customer_id}", response_model=ConsentResponse)
 async def get_consent(
     customer_id: int,
     current_user: User = Depends(
@@ -195,6 +204,7 @@ async def get_consent(
     # account) iterates customer_id={1..N} and exfiltrates the entire
     # KVKK PII corpus in minutes.
     dependencies=[Depends(enforce_kvkk_export_rate_limit)],
+    response_model=CustomerDataExportResponse,
 )
 async def export_customer_data(
     customer_id: int,
@@ -323,7 +333,7 @@ async def export_customer_data(
     }
 
 
-@router.post("/data-delete/{customer_id}")
+@router.post("/data-delete/{customer_id}", response_model=DataDeleteResponse)
 async def anonymize_customer_data(
     customer_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -382,7 +392,7 @@ async def anonymize_customer_data(
     }
 
 
-@router.get("/retention-report")
+@router.get("/retention-report", response_model=RetentionReportResponse)
 async def retention_report(
     current_user: User = Depends(
         require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS)
@@ -421,7 +431,7 @@ async def retention_report(
     }
 
 
-@router.get("/audit-trail/{customer_id}")
+@router.get("/audit-trail/{customer_id}", response_model=AuditTrailResponse)
 async def customer_audit_trail(
     customer_id: int,
     current_user: User = Depends(
@@ -520,7 +530,7 @@ async def list_retention_policies(
     }
 
 
-@router.post("/retention-policies", status_code=201)
+@router.post("/retention-policies", status_code=201, response_model=RetentionPolicyResponse)
 async def create_retention_policy(
     body: RetentionPolicyCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -557,7 +567,7 @@ async def create_retention_policy(
     }
 
 
-@router.put("/retention-policies/{policy_id}")
+@router.put("/retention-policies/{policy_id}", response_model=RetentionPolicyResponse)
 async def update_retention_policy(
     policy_id: int,
     body: RetentionPolicyUpdate,
@@ -615,7 +625,7 @@ async def delete_retention_policy(
 # ══════════════════════════════════════════
 
 
-@router.post("/breach", status_code=201)
+@router.post("/breach", status_code=201, response_model=BreachResponse)
 async def create_breach_notification(
     body: BreachCreate,
     current_user: User = Depends(
@@ -668,7 +678,7 @@ async def create_breach_notification(
     }
 
 
-@router.patch("/breach/{breach_id}")
+@router.patch("/breach/{breach_id}", response_model=BreachResponse)
 async def update_breach_notification(
     breach_id: int,
     body: BreachUpdate,

@@ -22,6 +22,20 @@ from app.models.enums import UserRole
 from app.models.opportunity import Opportunity, OpportunityEvent
 from app.models.setting import Setting
 from app.models.user import User
+from app.schemas.integration import (
+    CalendarAuthUrlResponse,
+    CalendarConnectResponse,
+    CalendarEventCreateResponse,
+    CalendarHealthResponse,
+    CalendarLinkEventResponse,
+    CalendarStatusResponse,
+    CalendarSyncResponse,
+    EsignConnectResponse,
+    EsignSendResponse,
+    EsignStatusResponse,
+    EsignWebhookResponse,
+    OAuthCallbackResponse,
+)
 from app.services.tenant_context import assert_same_tenant
 
 logger = logging.getLogger(__name__)
@@ -47,7 +61,7 @@ MICROSOFT_CALENDAR_SCOPES = [
 ]
 
 
-@router.get("/calendar/auth-url")
+@router.get("/calendar/auth-url", response_model=CalendarAuthUrlResponse)
 async def get_calendar_auth_url(
     provider: str = "google",
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -93,7 +107,7 @@ async def get_calendar_auth_url(
     return {"auth_url": url, "provider": provider}
 
 
-@router.get("/calendar/callback")
+@router.get("/calendar/callback", response_model=OAuthCallbackResponse)
 async def calendar_oauth_callback(
     code: str,
     state: str = "google",
@@ -192,7 +206,7 @@ class CalendarEventLink(BaseModel):
     notes: str | None = None
 
 
-@router.post("/calendar/connect")
+@router.post("/calendar/connect", response_model=CalendarConnectResponse)
 async def connect_calendar(
     body: CalendarConnectRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -235,7 +249,7 @@ async def connect_calendar(
     }
 
 
-@router.get("/calendar/status")
+@router.get("/calendar/status", response_model=CalendarStatusResponse)
 async def get_calendar_status(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -259,7 +273,7 @@ async def get_calendar_status(
     }
 
 
-@router.post("/calendar/link-event")
+@router.post("/calendar/link-event", response_model=CalendarLinkEventResponse)
 async def link_calendar_event(
     body: CalendarEventLink,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -297,7 +311,7 @@ async def link_calendar_event(
     }
 
 
-@router.post("/calendar/sync")
+@router.post("/calendar/sync", response_model=CalendarSyncResponse)
 async def sync_calendar(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -371,7 +385,7 @@ async def sync_calendar(
         }
 
 
-@router.get("/calendar/health")
+@router.get("/calendar/health", response_model=CalendarHealthResponse)
 async def calendar_health(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -406,7 +420,7 @@ class CalendarCreateEventRequest(BaseModel):
     opportunity_id: int | None = None
 
 
-@router.post("/calendar/events")
+@router.post("/calendar/events", response_model=CalendarEventCreateResponse)
 async def create_calendar_event(
     body: CalendarCreateEventRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -469,7 +483,7 @@ class EsignSendRequest(BaseModel):
     message: str | None = "Lutfen teklifi inceleyip imzalayiniz."
 
 
-@router.post("/esign/connect")
+@router.post("/esign/connect", response_model=EsignConnectResponse)
 async def connect_esign(
     body: EsignConnectRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -515,7 +529,7 @@ async def connect_esign(
     }
 
 
-@router.get("/esign/status")
+@router.get("/esign/status", response_model=EsignStatusResponse)
 async def get_esign_status(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -534,7 +548,7 @@ async def get_esign_status(
     }
 
 
-@router.post("/esign/send")
+@router.post("/esign/send", response_model=EsignSendResponse)
 async def send_for_signature(
     body: EsignSendRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -579,7 +593,7 @@ async def send_for_signature(
     }
 
 
-@router.post("/esign/webhook")
+@router.post("/esign/webhook", response_model=EsignWebhookResponse)
 async def esign_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),

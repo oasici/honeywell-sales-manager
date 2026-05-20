@@ -38,6 +38,26 @@ from app.models.user import User
 from app.services.audit_service import log_action
 from app.services.tenant_context import assert_same_tenant, is_cross_tenant
 from app.api.v1.opportunities import _last_activity_max_by_opportunity_ids, _opportunity_staleness_days
+from app.schemas.ai import (
+    CompetitiveIntelResponse,
+    CrawlCompetitorsResponse,
+    CrawlSingleCompetitorResponse,
+    DealRiskResponse,
+    EmailDraftResponse,
+    ExtractSignalsResponse,
+    GenerateActionsResponse,
+    GetSignalsResponse,
+    MeetingPrepResponse,
+    PipelineSuggestResponse,
+    PredictChurnResponse,
+    PredictCloseResponse,
+    RAGStatusResponse,
+    SummarizeChangesResponse,
+    SummarizeResponse,
+    TaskCreateResponse,
+    TaskListResponse,
+    TaskUpdateResponse,
+)
 
 
 def _assert_or_404(record, current_user, *, message: str) -> None:
@@ -254,7 +274,7 @@ def _generate_fallback_summary(entity_type: str, entity_id: int, context_text: s
 # 1. SUMMARIZE
 # ══════════════════════════════════════════
 
-@router.post("/summarize")
+@router.post("/summarize", response_model=SummarizeResponse)
 async def summarize(
     body: SummarizeRequest,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),

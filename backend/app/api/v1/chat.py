@@ -17,7 +17,12 @@ from app.models.chat import AutoResponseRule, ChatMessage, ChatSession
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import ItemsResponse, PaginatedResponse
+from app.schemas.chat import (
+    AutoResponseRuleResponse,
+    ChatMessageSendResponse,
+    ChatSessionResponse,
+)
 
 router = APIRouter(prefix="/chat", tags=["Live Chat"])
 
@@ -111,7 +116,7 @@ def _serialize_rule(r: AutoResponseRule) -> dict:
 # ── Session Endpoints ──
 
 
-@router.post("/sessions", status_code=201)
+@router.post("/sessions", status_code=201, response_model=ChatSessionResponse)
 async def create_session(
     body: SessionCreate,
     _: None = Depends(_require_live_chat),
@@ -128,7 +133,7 @@ async def create_session(
     return _serialize_session(session)
 
 
-@router.get("/sessions/")
+@router.get("/sessions/", response_model=ItemsResponse)
 async def list_sessions(
     status: Optional[str] = None,
     _: None = Depends(_require_live_chat),
@@ -156,7 +161,7 @@ async def list_sessions(
     }
 
 
-@router.patch("/sessions/{session_id}/assign")
+@router.patch("/sessions/{session_id}/assign", response_model=ChatSessionResponse)
 async def assign_session(
     session_id: int,
     _: None = Depends(_require_live_chat),
@@ -188,7 +193,7 @@ async def assign_session(
     return _serialize_session(session)
 
 
-@router.patch("/sessions/{session_id}/close")
+@router.patch("/sessions/{session_id}/close", response_model=ChatSessionResponse)
 async def close_session(
     session_id: int,
     _: None = Depends(_require_live_chat),
@@ -216,7 +221,7 @@ async def close_session(
 # ── Message Endpoints ──
 
 
-@router.get("/sessions/{session_id}/messages")
+@router.get("/sessions/{session_id}/messages", response_model=ItemsResponse)
 async def get_messages(
     session_id: int,
     _: None = Depends(_require_live_chat),
@@ -256,7 +261,7 @@ async def get_messages(
     }
 
 
-@router.post("/sessions/{session_id}/messages", status_code=201)
+@router.post("/sessions/{session_id}/messages", status_code=201, response_model=ChatMessageSendResponse)
 async def send_message(
     session_id: int,
     body: MessageCreate,
@@ -399,7 +404,7 @@ async def list_auto_rules(
     }
 
 
-@router.post("/auto-response-rules/", status_code=201)
+@router.post("/auto-response-rules/", status_code=201, response_model=AutoResponseRuleResponse)
 async def create_auto_rule(
     body: AutoRuleCreate,
     _: None = Depends(_require_live_chat),
@@ -422,7 +427,7 @@ async def create_auto_rule(
     return _serialize_rule(rule)
 
 
-@router.patch("/auto-response-rules/{rule_id}")
+@router.patch("/auto-response-rules/{rule_id}", response_model=AutoResponseRuleResponse)
 async def update_auto_rule(
     rule_id: int,
     body: AutoRuleUpdate,

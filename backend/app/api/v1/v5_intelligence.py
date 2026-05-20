@@ -50,6 +50,18 @@ from app.core.rate_limit import (
     enforce_ai_rate_limit as _enforce_ai_rl,
     enforce_tenant_ai_rate_limit as _enforce_tenant_ai_rl,
 )
+from app.schemas.v5_intelligence import (
+    BenchmarkGapResponse,
+    DnaRecommendationsResponse,
+    NetworkAnomaliesResponse,
+    ObjectionDetectResponse,
+    ObjectionsListResponse,
+    RepDnaResponse,
+    ResolutionResponse,
+    SimilarOpportunitiesResponse,
+    TimingWindowDoneResponse,
+    TimingWindowsResponse,
+)
 
 
 # R5-RL-8 — V5 intelligence services hit Claude (objection mining,
@@ -108,7 +120,7 @@ def _safe_json_loads(raw: str | None) -> Any:
 # ─────────────────────── benchmark gap ───────────────────────────────
 
 
-@router.get("/opportunities/{opportunity_id}/benchmark-gap")
+@router.get("/opportunities/{opportunity_id}/benchmark-gap", response_model=BenchmarkGapResponse)
 async def get_benchmark_gap(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -123,7 +135,7 @@ async def get_benchmark_gap(
 # ─────────────────────── timing engine ───────────────────────────────
 
 
-@router.get("/opportunities/{opportunity_id}/timing-windows")
+@router.get("/opportunities/{opportunity_id}/timing-windows", response_model=TimingWindowsResponse)
 async def list_timing_windows(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -153,7 +165,7 @@ async def list_timing_windows(
     }
 
 
-@router.post("/opportunities/{opportunity_id}/timing-windows/{window_id}/done")
+@router.post("/opportunities/{opportunity_id}/timing-windows/{window_id}/done", response_model=TimingWindowDoneResponse)
 async def mark_timing_window_done(
     opportunity_id: int,
     window_id: int,
@@ -184,7 +196,7 @@ class DetectObjectionPayload(BaseModel):
     event_id: int | None = None
 
 
-@router.get("/opportunities/{opportunity_id}/objections")
+@router.get("/opportunities/{opportunity_id}/objections", response_model=ObjectionsListResponse)
 async def list_objections(
     opportunity_id: int,
     include_resolved: bool = Query(False),
@@ -218,7 +230,7 @@ async def list_objections(
     }
 
 
-@router.post("/opportunities/{opportunity_id}/objections/detect")
+@router.post("/opportunities/{opportunity_id}/objections/detect", response_model=ObjectionDetectResponse)
 async def detect_objections(
     opportunity_id: int,
     payload: DetectObjectionPayload,
@@ -259,7 +271,7 @@ class ResolutionPayload(BaseModel):
     mark_resolved: bool = False
 
 
-@router.post("/objections/{objection_id}/resolution")
+@router.post("/objections/{objection_id}/resolution", response_model=ResolutionResponse)
 async def record_resolution(
     objection_id: int,
     payload: ResolutionPayload,
@@ -295,7 +307,7 @@ async def record_resolution(
 # ─────────────────────── similarity ──────────────────────────────────
 
 
-@router.get("/opportunities/{opportunity_id}/similar")
+@router.get("/opportunities/{opportunity_id}/similar", response_model=SimilarOpportunitiesResponse)
 async def list_similar(
     opportunity_id: int,
     limit: int = Query(5, ge=1, le=20),
@@ -314,7 +326,7 @@ async def list_similar(
 # ─────────────────────── DNA + segment recommendations ───────────────
 
 
-@router.get("/segments/{segment_key}/dna-recommendations")
+@router.get("/segments/{segment_key}/dna-recommendations", response_model=DnaRecommendationsResponse)
 async def list_dna_recommendations(
     segment_key: str,
     limit: int = Query(10, ge=1, le=50),
@@ -337,7 +349,7 @@ async def list_dna_recommendations(
 # ─────────────────────── network anomalies ───────────────────────────
 
 
-@router.get("/network/anomalies/recent")
+@router.get("/network/anomalies/recent", response_model=NetworkAnomaliesResponse)
 async def list_recent_network_anomalies(
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),
@@ -379,7 +391,7 @@ async def list_recent_network_anomalies(
 # ─────────────────────── rep DNA ─────────────────────────────────────
 
 
-@router.get("/reps/{rep_id}/dna")
+@router.get("/reps/{rep_id}/dna", response_model=RepDnaResponse)
 async def get_rep_dna(
     rep_id: int,
     current_user: User = Depends(get_current_user),

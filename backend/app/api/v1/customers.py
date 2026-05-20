@@ -18,8 +18,19 @@ from app.models.user import User
 from app.schemas.account_360 import Account360Response
 from app.schemas.common import PaginatedResponse
 from app.schemas.customer import (
+    CustomerActivityTimelineResponse,
+    CustomerBulkActionResponse,
     CustomerCreate,
+    CustomerDeleteResponse,
+    CustomerEnrichResponse,
+    CustomerHierarchyResponse,
+    CustomerImportResponse,
+    CustomerIntelligenceResponse,
+    CustomerParentResponse,
+    CustomerPinResponse,
     CustomerResponse,
+    CustomerRollupResponse,
+    CustomerTimelineResponse,
     CustomerUpdate,
     HighIntentAccountResponse,
 )
@@ -144,7 +155,7 @@ async def list_high_intent_accounts(
     }
 
 
-@router.post("/{customer_id}/pin", status_code=201)
+@router.post("/{customer_id}/pin", status_code=201, response_model=CustomerPinResponse)
 async def pin_customer(
     customer_id: int,
     current_user: User = Depends(get_current_user),
@@ -177,7 +188,7 @@ async def pin_customer(
     return {"pinned": True, "customer_id": customer_id}
 
 
-@router.delete("/{customer_id}/pin", status_code=200)
+@router.delete("/{customer_id}/pin", status_code=200, response_model=CustomerPinResponse)
 async def unpin_customer(
     customer_id: int,
     current_user: User = Depends(get_current_user),
@@ -257,7 +268,7 @@ async def get_customer(
     return data
 
 
-@router.get("/{customer_id}/intelligence")
+@router.get("/{customer_id}/intelligence", response_model=CustomerIntelligenceResponse)
 async def get_customer_intelligence(
     customer_id: int,
     limit: int = Query(20, ge=1, le=100),
@@ -541,7 +552,7 @@ async def update_customer(
     return _customer_to_dict(customer)
 
 
-@router.post("/{customer_id}/enrich")
+@router.post("/{customer_id}/enrich", response_model=CustomerEnrichResponse)
 async def enrich_customer(
     customer_id: int,
     current_user: User = Depends(get_current_user),
@@ -556,7 +567,7 @@ async def enrich_customer(
     return {"data": result}
 
 
-@router.delete("/{customer_id}", status_code=200)
+@router.delete("/{customer_id}", status_code=200, response_model=CustomerDeleteResponse)
 async def delete_customer(
     customer_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -589,7 +600,7 @@ async def delete_customer(
     return {"message": f"Musteri {customer_id} silindi"}
 
 
-@router.post("/import", status_code=201)
+@router.post("/import", status_code=201, response_model=CustomerImportResponse)
 async def import_customers(
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -677,7 +688,7 @@ async def import_customers(
     }
 
 
-@router.get("/{customer_id}/timeline")
+@router.get("/{customer_id}/timeline", response_model=CustomerTimelineResponse)
 async def get_customer_timeline(
     customer_id: int,
     limit: int = Query(50, ge=1, le=200),
@@ -740,7 +751,10 @@ async def get_customer_timeline(
     return {"customer_id": customer_id, "events": events[:limit]}
 
 
-@router.get("/{customer_id}/activity-timeline")
+@router.get(
+    "/{customer_id}/activity-timeline",
+    response_model=CustomerActivityTimelineResponse,
+)
 async def get_customer_activity_timeline(
     customer_id: int,
     limit: int = Query(50, ge=1, le=200),
@@ -791,6 +805,7 @@ async def get_customer_activity_timeline(
     "/bulk-action",
     # Round-4 R4-RL-2 — DoS + audit-log flood guard.
     dependencies=[Depends(enforce_bulk_rate_limit)],
+    response_model=CustomerBulkActionResponse,
 )
 async def bulk_action_customers(
     body: dict,
@@ -876,7 +891,7 @@ async def bulk_action_customers(
     raise BadRequestException(f"Bilinmeyen islem: {action}")
 
 
-@router.get("/{customer_id}/hierarchy")
+@router.get("/{customer_id}/hierarchy", response_model=CustomerHierarchyResponse)
 async def get_customer_hierarchy(
     customer_id: int,
     db: AsyncSession = Depends(get_db),
@@ -930,7 +945,7 @@ async def get_customer_hierarchy(
     }
 
 
-@router.patch("/{customer_id}/parent")
+@router.patch("/{customer_id}/parent", response_model=CustomerParentResponse)
 async def set_customer_parent(
     customer_id: int,
     parent_id: int | None = None,
@@ -982,7 +997,7 @@ async def set_customer_parent(
     return {"status": "ok", "parent_id": parent_id}
 
 
-@router.get("/{customer_id}/rollup")
+@router.get("/{customer_id}/rollup", response_model=CustomerRollupResponse)
 async def get_customer_rollup(
     customer_id: int,
     db: AsyncSession = Depends(get_db),

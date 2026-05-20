@@ -12,6 +12,7 @@ from app.models.buyer_state_history import BuyerStateHistory
 from app.models.enums import UserRole
 from app.models.opportunity import Opportunity
 from app.models.user import User
+from app.schemas.common import ItemsResponse
 
 
 router = APIRouter(prefix="/buyer-state", tags=["Buyer State"])
@@ -22,7 +23,7 @@ def _require_v4():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/opportunities/{opportunity_id}/timeline")
+@router.get("/opportunities/{opportunity_id}/timeline", response_model=ItemsResponse)
 async def get_buyer_state_timeline(
     opportunity_id: int,
     limit: int = Query(30, ge=1, le=365),

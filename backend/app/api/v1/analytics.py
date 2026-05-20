@@ -18,11 +18,34 @@ from app.models.quote_item import QuoteItem
 from app.models.spare_part import SparePart
 from app.models.user import User
 from app.schemas.spare_part import MissingPricePartResponse
+from app.schemas.analytics import (
+    ActivityDroughtResponse,
+    AIQualityResponse,
+    AIUsageResponse,
+    CategoryBreakdownItem,
+    DataQualityResponse,
+    DealVelocityResponse,
+    DiscountGuardrailsResponse,
+    DiscountsResponse,
+    ForecastResponse,
+    FunnelResponse,
+    MonthlyTrendItem,
+    PipelineWeeklyDiffResponse,
+    RecordQualityResponse,
+    RepScorecardsResponse,
+    RevenueLeaksResponse,
+    SLAResponse,
+    SlippageResponse,
+    TopPartItem,
+    WaterfallResponse,
+    WinLossDetailResponse,
+    WinLossReasonsResponse,
+)
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
-@router.get("/top-parts")
+@router.get("/top-parts", response_model=list[TopPartItem])
 async def get_top_parts(
     days: int = Query(30, ge=1, le=365, description="Lookback period in days"),
     limit: int = Query(10, ge=1, le=100, description="Number of results"),
@@ -66,7 +89,7 @@ async def get_top_parts(
     ]
 
 
-@router.get("/monthly-trend")
+@router.get("/monthly-trend", response_model=list[MonthlyTrendItem])
 async def get_monthly_trend(
     months: int = Query(12, ge=1, le=36, description="Number of months to look back"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -111,7 +134,7 @@ async def get_monthly_trend(
     return items
 
 
-@router.get("/category-breakdown")
+@router.get("/category-breakdown", response_model=list[CategoryBreakdownItem])
 async def get_category_breakdown(
     days: int = Query(30, ge=1, le=365, description="Lookback period in days"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -221,7 +244,7 @@ async def get_parts_without_price(
     return items
 
 
-@router.get("/ai-usage")
+@router.get("/ai-usage", response_model=AIUsageResponse)
 async def get_ai_usage(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -230,7 +253,7 @@ async def get_ai_usage(
     return await _compute_ai_metrics(db)
 
 
-@router.get("/ai-quality")
+@router.get("/ai-quality", response_model=AIQualityResponse)
 async def get_ai_quality(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -358,7 +381,7 @@ async def _compute_ai_metrics(db: AsyncSession) -> dict:
 # ══════════════════════════════════════════════════════════════
 
 
-@router.get("/forecast")
+@router.get("/forecast", response_model=ForecastResponse)
 async def get_forecast(
     window: int = Query(30, description="Forecast window: 7, 30, or 90 days"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -417,7 +440,7 @@ async def get_forecast(
     }
 
 
-@router.get("/slippage")
+@router.get("/slippage", response_model=SlippageResponse)
 async def get_slippage(
     no_touch_days: int = Query(7, ge=1, le=90, description="No-touch threshold"),
     limit: int = Query(50, ge=1, le=200),
@@ -478,7 +501,7 @@ async def get_slippage(
     }
 
 
-@router.get("/funnel")
+@router.get("/funnel", response_model=FunnelResponse)
 async def get_funnel(
     window: int = Query(30, ge=1, le=365, description="Lookback days"),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -522,7 +545,7 @@ async def get_funnel(
     return {"window_days": window, "funnel": funnel, "conversions": conversions}
 
 
-@router.get("/rep-scorecards")
+@router.get("/rep-scorecards", response_model=RepScorecardsResponse)
 async def get_rep_scorecards(
     window: int = Query(30, ge=1, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -574,7 +597,7 @@ async def get_rep_scorecards(
     return {"window_days": window, "scorecards": scorecards}
 
 
-@router.get("/discounts")
+@router.get("/discounts", response_model=DiscountsResponse)
 async def get_discounts(
     window: int = Query(90, ge=1, le=365),
     threshold_pct: float = Query(25.0, description="Outlier threshold %"),
@@ -623,7 +646,7 @@ async def get_discounts(
     }
 
 
-@router.get("/sla")
+@router.get("/sla", response_model=SLAResponse)
 async def get_sla(
     window: int = Query(30, ge=1, le=365),
     sla_minutes: int = Query(480, description="SLA target in minutes (default 8h)"),
@@ -677,7 +700,7 @@ async def get_sla(
     }
 
 
-@router.get("/win-loss-reasons")
+@router.get("/win-loss-reasons", response_model=WinLossReasonsResponse)
 async def get_win_loss_reasons(
     window: int = Query(90, ge=1, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -707,7 +730,7 @@ async def get_win_loss_reasons(
     }
 
 
-@router.get("/data-quality")
+@router.get("/data-quality", response_model=DataQualityResponse)
 async def get_data_quality(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -766,7 +789,7 @@ async def get_data_quality(
     }
 
 
-@router.get("/pipeline-weekly-diff")
+@router.get("/pipeline-weekly-diff", response_model=PipelineWeeklyDiffResponse)
 async def get_pipeline_weekly_diff(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -812,7 +835,7 @@ async def get_pipeline_weekly_diff(
     }
 
 
-@router.get("/discount-guardrails")
+@router.get("/discount-guardrails", response_model=DiscountGuardrailsResponse)
 async def get_discount_guardrails(
     window: int = Query(30, ge=1, le=365),
     threshold_pct: float = Query(20.0),
@@ -858,7 +881,7 @@ async def get_discount_guardrails(
 # ══════════════════════════════════════════════════════════════
 
 
-@router.get("/deal-velocity")
+@router.get("/deal-velocity", response_model=DealVelocityResponse)
 async def deal_velocity(
     window: int = Query(90, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -988,7 +1011,7 @@ def _extract_from_stage(description: str | None) -> str | None:
     return None
 
 
-@router.get("/win-loss-detail")
+@router.get("/win-loss-detail", response_model=WinLossDetailResponse)
 async def win_loss_detail(
     window: int = Query(90, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -1108,7 +1131,7 @@ async def win_loss_detail(
 # ══════════════════════════════════════════════════════════════
 
 
-@router.get("/activity-drought")
+@router.get("/activity-drought", response_model=ActivityDroughtResponse)
 async def get_activity_drought(
     days: int = Query(7, ge=1, le=90, description="Days without activity"),
     current_user: User = Depends(get_current_user),
@@ -1196,7 +1219,7 @@ async def get_activity_drought(
 # prevent privilege escalation via route-ordering bugs.
 
 
-@router.get("/data-quality/{entity_type}/{entity_id}")
+@router.get("/data-quality/{entity_type}/{entity_id}", response_model=RecordQualityResponse)
 async def get_record_quality(
     entity_type: str,
     entity_id: int,
@@ -1253,7 +1276,7 @@ async def get_record_quality(
 # ══════════════════════════════════════════════════════════════
 
 
-@router.get("/waterfall")
+@router.get("/waterfall", response_model=WaterfallResponse)
 async def get_revenue_waterfall(
     from_date: str = None,
     to_date: str = None,
@@ -1279,7 +1302,7 @@ async def get_revenue_waterfall(
 # ══════════════════════════════════════════════════════════════
 
 
-@router.get("/revenue-leaks")
+@router.get("/revenue-leaks", response_model=RevenueLeaksResponse)
 async def get_revenue_leaks(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
