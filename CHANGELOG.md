@@ -9,6 +9,23 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.20.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.19.0...v1.20.0) (2026-05-20)
+
+
+### Added
+
+* **round-15-15m:** close the openapi-typescript live migration — 15m-1.5..15m-7 ([5b8a453](https://github.com/oasici/honeywell-sales-manager/commit/5b8a453f1e1ba1e84b547f2d643eb9e82cb61ee8))
+* **round-15:** close remaining backlog — F-027 + F-028 + F-033 ([fe451f1](https://github.com/oasici/honeywell-sales-manager/commit/fe451f168fbc884a5622cf399556bab6baf1d286))
+* **round-15:** execute 2026-05-20 audit plan — F-018..F-032 + cohort 7 ([fc2dec5](https://github.com/oasici/honeywell-sales-manager/commit/fc2dec5e5eb250937516e94c254ad28914f10018))
+* **round-15:** Sprint 15o cohort 5 — promote tenant_id NOT NULL on 11 second-tier tables ([2e35ab1](https://github.com/oasici/honeywell-sales-manager/commit/2e35ab168bb7ce63d0bb4d7c7fad55a23f14576f))
+
+
+### Fixed
+
+* **15m+15p:** drop openapi-typescript devDep + cohort 6 NOT NULL + parts-intel date-flake ([202ec81](https://github.com/oasici/honeywell-sales-manager/commit/202ec812dcf1395cac353a589f722870bf8e0eda))
+* **ci:** ignore disputed PyJWT PYSEC-2025-183 in pip-audit ([48e777b](https://github.com/oasici/honeywell-sales-manager/commit/48e777b44722d5550b1e4ca5ae358af108daa100))
+* **round-15:** unblock production build + cohort 8 NOT NULL + F-009 schemas ([9c3da1b](https://github.com/oasici/honeywell-sales-manager/commit/9c3da1b4903c1492777936416479b36f6673ca8f))
+
 ## [1.19.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.18.0...v1.19.0) (2026-05-19)
 
 
