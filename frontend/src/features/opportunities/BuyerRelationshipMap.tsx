@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { stakeholdersApi } from '../../lib/api';
 import { onStakeholderChanged } from '../../lib/cacheInvalidation';
 import type { Stakeholder, StakeholderAlert } from '../../lib/types';
@@ -48,7 +49,11 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const { data: stakeholderData } = useQuery({
+  const {
+    data: stakeholderData,
+    isError: isStakeholdersError,
+    refetch: refetchStakeholders,
+  } = useQuery({
     queryKey: ['stakeholders', opportunityId],
     queryFn: () => stakeholdersApi.listByOpportunity(opportunityId),
   });
@@ -78,6 +83,10 @@ export default function BuyerRelationshipMap({ opportunityId }: BuyerRelationshi
   const ungrouped = stakeholders.filter(
     (s) => !s.seniority || !SENIORITY_ORDER.includes(s.seniority),
   );
+
+  if (isStakeholdersError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetchStakeholders()} />;
+  }
 
   return (
     <div className="space-y-4">

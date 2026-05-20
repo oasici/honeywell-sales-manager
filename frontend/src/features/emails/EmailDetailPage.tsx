@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { emailsApi, quotesApi, aiApi } from '../../lib/api';
 import { onEmailChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -108,7 +109,12 @@ export default function EmailDetailPage() {
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [draftText, setDraftText] = useState('');
 
-  const { data: email, isLoading } = useQuery<EmailRequest>({
+  const {
+    data: email,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<EmailRequest>({
     queryKey: ['email', emailId],
     queryFn: () => emailsApi.getEmail(emailId),
     enabled: !!emailId,
@@ -157,6 +163,10 @@ export default function EmailDetailPage() {
     },
     onError: () => toast.error(t('emails.detail_toast_ai_failed')),
   });
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return (

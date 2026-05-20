@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { approvalsApi } from '../../lib/api';
 import { onApprovalActionTaken } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -57,7 +58,7 @@ export default function PendingApprovalsPage() {
     [t],
   );
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['approvals', 'pending'],
     queryFn: () => approvalsApi.getPending(),
   });
@@ -223,7 +224,9 @@ export default function PendingApprovalsPage() {
     <div>
       <PageHeader title={t('approvals.title')} description={t('approvals.description')} />
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <Skeleton variant="table" />
       ) : isAllClear ? (
         // "Her şey tamam" state — emerald medallion + reassuring copy.

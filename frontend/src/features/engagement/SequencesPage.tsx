@@ -23,6 +23,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { engagementApi, sequenceV2Api } from '../../lib/api';
 import { onSequenceChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -46,7 +47,7 @@ export default function SequencesPage() {
     customer_id: '',
   });
 
-  const { data, isLoading } = useQuery<{ sequences: Sequence[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ sequences: Sequence[] }>({
     queryKey: ['sequences'],
     queryFn: () => engagementApi.listSequences(),
   });
@@ -225,7 +226,9 @@ export default function SequencesPage() {
         )}
       </PageHeader>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <Skeleton variant="card" count={3} />
       ) : sequences.length === 0 ? (
         // Template-driven empty state — three sequence playbook cards plus

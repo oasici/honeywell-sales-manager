@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { aiAttributesApi } from '../../lib/api';
 import { onAiAttributeValueChanged } from '../../lib/cacheInvalidation';
 import { formatDate } from '../../lib/formatters';
@@ -54,6 +55,21 @@ export function AiAttributeValuesPanel({ entityType, entityId }: AiAttributeValu
   const valueByDefId = new Map(values.map((v) => [v.definition_id, v]));
 
   const isLoading = definitionsQuery.isLoading || valuesQuery.isLoading;
+  const isError = definitionsQuery.isError || valuesQuery.isError;
+
+  if (isError) {
+    return (
+      <Card title="AI öznitelikleri">
+        <QueryErrorBanner
+          variant="block"
+          onRetry={() => {
+            if (definitionsQuery.isError) definitionsQuery.refetch();
+            if (valuesQuery.isError) valuesQuery.refetch();
+          }}
+        />
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (

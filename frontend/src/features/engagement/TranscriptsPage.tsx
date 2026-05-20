@@ -12,6 +12,7 @@ import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { engagementApi, aiApi } from '../../lib/api';
 import { onTranscriptChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -203,6 +204,8 @@ export default function TranscriptsPage() {
 
   const activeData = isSearchMode ? searchQuery.data : listQuery.data;
   const isLoading = isSearchMode ? searchQuery.isLoading : listQuery.isLoading;
+  const isError = isSearchMode ? searchQuery.isError : listQuery.isError;
+  const refetch = () => (isSearchMode ? searchQuery.refetch() : listQuery.refetch());
   const items = activeData?.items ?? [];
   const totalPages = activeData ? Math.ceil(activeData.total / PAGE_SIZE) : 1;
 
@@ -297,7 +300,9 @@ export default function TranscriptsPage() {
         </div>
       )}
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <Skeleton variant="table" />
       ) : items.length === 0 ? (
         <EmptyState

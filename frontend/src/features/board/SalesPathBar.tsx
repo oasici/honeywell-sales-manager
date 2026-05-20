@@ -176,6 +176,7 @@ function ExpandedPanel({ stage }: { stage: StageRequirementStatus }) {
 export default function SalesPathBar({ oppId }: SalesPathBarProps) {
   const [expandedStage, setExpandedStage] = useState<string | null>(null);
 
+  // R14-FE-1 exempt: decorative pipeline progress bar; empty render is acceptable
   const { data, isLoading } = useQuery<{ data: StageRequirementStatus[] }>({
     queryKey: ['stage-requirements', oppId],
     queryFn: () => opportunitiesApi.getStageRequirements(oppId),

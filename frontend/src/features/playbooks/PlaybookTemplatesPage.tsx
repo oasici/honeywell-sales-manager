@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { playbookApi } from '../../lib/api';
 import { onPlaybookChanged } from '../../lib/cacheInvalidation';
 
@@ -26,7 +27,7 @@ export default function PlaybookTemplatesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['playbook-templates'],
     queryFn: () => playbookApi.getTemplates(),
   });
@@ -53,6 +54,18 @@ export default function PlaybookTemplatesPage() {
   });
 
   const templates: PlaybookTemplate[] = data?.items ?? [];
+
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <PageHeader
+          title="Playbook Şablonları"
+          description="Hazir sablonlardan playbook olusturun"
+        />
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

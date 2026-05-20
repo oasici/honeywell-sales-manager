@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Badge } from '../../components/ui/Badge';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { formatCurrency } from '../../lib/formatters';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -126,7 +127,12 @@ export default function SalesAnalyticsPage() {
     [t],
   );
 
-  const { data: forecast, isLoading: fLoading } = useQuery({
+  const {
+    data: forecast,
+    isLoading: fLoading,
+    isError: fError,
+    refetch: fRefetch,
+  } = useQuery({
     queryKey: ['forecast'],
     queryFn: () => analyticsApi.getForecast(30),
   });
@@ -224,6 +230,18 @@ export default function SalesAnalyticsPage() {
     queryFn: () => analyticsApi.getRevenueLeaks(),
   });
   const leaks: RevenueLeakResult | undefined = leaksRaw?.data;
+
+  if (fError) {
+    return (
+      <div>
+        <PageHeader
+          title={t('sales_analytics.title')}
+          description={t('sales_analytics.description')}
+        />
+        <QueryErrorBanner variant="block" onRetry={() => fRefetch()} />
+      </div>
+    );
+  }
 
   if (fLoading) {
     return (

@@ -27,6 +27,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { SafeChart } from '../../components/ui/SafeChart';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import {
   Phone,
   Handshake,
@@ -147,7 +148,12 @@ export default function DashboardPage() {
   );
 
   /* ── data ── */
-  const { data: stats, isLoading } = useQuery<DashboardStats>({
+  const {
+    data: stats,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: dashboardApi.getStats,
   });
@@ -215,6 +221,19 @@ export default function DashboardPage() {
       return next;
     });
   }, []);
+
+  /* ── error ── */
+  if (isError) {
+    return (
+      <div>
+        <PageHeader
+          title="Kontrol Paneli"
+          description="Boru hattı, müşteri sağlığı ve ekip performansı tek panelde."
+        />
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   /* ── loading ── */
   if (isLoading || !stats) {

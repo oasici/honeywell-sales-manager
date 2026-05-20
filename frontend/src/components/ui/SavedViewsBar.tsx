@@ -34,6 +34,7 @@ export function SavedViewsBar({ route, queryJson, onApply }: SavedViewsBarProps)
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [name, setName] = useState('');
 
+  // R14-FE-1 exempt: sidecar saved-views dropdown; empty render is acceptable
   const viewsQuery = useQuery<{
     items?: { id: number; name: string; route: string; query_json: string }[];
     views?: { id: number; name: string; route: string; query_json: string }[];

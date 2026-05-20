@@ -9,6 +9,7 @@ import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { partsApi } from '../../lib/api';
 import { onPartChanged } from '../../lib/cacheInvalidation';
 import { useT } from '../../hooks/useT';
@@ -169,7 +170,7 @@ export default function PartsPage() {
   const [selectedPart, setSelectedPart] = useState<SparePart | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const { data, isLoading } = useQuery<PaginatedResponse<SparePart>>({
+  const { data, isLoading, isError, refetch } = useQuery<PaginatedResponse<SparePart>>({
     queryKey: ['parts', { page, search, category }],
     queryFn: () =>
       partsApi.getParts({
@@ -351,16 +352,20 @@ export default function PartsPage() {
       </div>
 
       {/* Table */}
-      <DataTable
-        columns={columns}
-        data={data?.items || []}
-        loading={isLoading}
-        emptyMessage={t('parts.empty')}
-        page={data?.page || page}
-        totalPages={data?.pages || 1}
-        onPageChange={setPage}
-        onRowClick={handleRowClick}
-      />
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={data?.items || []}
+          loading={isLoading}
+          emptyMessage={t('parts.empty')}
+          page={data?.page || page}
+          totalPages={data?.pages || 1}
+          onPageChange={setPage}
+          onRowClick={handleRowClick}
+        />
+      )}
 
       {/* Product detail modal */}
       <PartDetailModal part={selectedPart} onClose={() => setSelectedPart(null)} />

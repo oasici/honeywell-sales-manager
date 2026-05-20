@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { contractsApi } from '../../lib/api';
 import type { Contract, ContractAmendment } from '../../lib/types';
 import { useT } from '../../hooks/useT';
@@ -42,7 +43,12 @@ export default function ContractDetailPage() {
   const [amendChanges, setAmendChanges] = useState('');
   const [amendDate, setAmendDate] = useState('');
 
-  const { data: contract, isLoading } = useQuery<Contract>({
+  const {
+    data: contract,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<Contract>({
     queryKey: ['contract', contractId],
     queryFn: () => contractsApi.get(contractId),
     enabled: !!contractId,
@@ -142,6 +148,10 @@ export default function ContractDetailPage() {
       })),
     [t],
   );
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return <Skeleton variant="card" count={3} />;

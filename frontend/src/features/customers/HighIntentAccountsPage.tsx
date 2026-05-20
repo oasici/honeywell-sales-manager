@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Badge } from '../../components/ui/Badge';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { customersApi } from '../../lib/api';
 import { onCustomerChanged } from '../../lib/cacheInvalidation';
 import { useT } from '../../hooks/useT';
@@ -17,7 +18,7 @@ export default function HighIntentAccountsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery<HighIntentListResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<HighIntentListResponse>({
     queryKey: ['high-intent-accounts'],
     queryFn: () => customersApi.listHighIntent({ limit: 100 }) as Promise<HighIntentListResponse>,
   });
@@ -43,7 +44,9 @@ export default function HighIntentAccountsPage() {
       </PageHeader>
 
       <Card title={t('high_intent.list_title')}>
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+        ) : isLoading ? (
           <Skeleton variant="card" />
         ) : !data?.items?.length ? (
           <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">

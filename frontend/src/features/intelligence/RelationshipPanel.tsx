@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { relationshipsApi } from '../../lib/api';
 import { onRelationshipMetricChanged, onRelationshipsRebuilt } from '../../lib/cacheInvalidation';
 
@@ -89,13 +90,24 @@ export function RelationshipPanel({
         ) : undefined
       }
     >
-      {(scoreQuery.isLoading || strongestQuery.isLoading) && (
-        <div className="space-y-2">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-10" />
-          ))}
-        </div>
+      {(scoreQuery.isError || strongestQuery.isError) && (
+        <QueryErrorBanner
+          variant="block"
+          onRetry={() => {
+            if (scoreQuery.isError) scoreQuery.refetch();
+            if (strongestQuery.isError) strongestQuery.refetch();
+          }}
+        />
       )}
+
+      {!(scoreQuery.isError || strongestQuery.isError) &&
+        (scoreQuery.isLoading || strongestQuery.isLoading) && (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-10" />
+            ))}
+          </div>
+        )}
 
       {!scoreQuery.isLoading && score && (
         <div className="grid grid-cols-3 gap-3 rounded-lg bg-slate-50 p-3">

@@ -21,6 +21,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { dashboardsApi } from '../../lib/api';
 import { onDashboardChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -186,7 +187,7 @@ export default function DashboardListPage() {
 
   // Round-13 R13-API-1 — list endpoint emits canonical `items` plus
   // legacy `data` alias; prefer items so the alias can be retired.
-  const { data, isLoading } = useQuery<{
+  const { data, isLoading, isError, refetch } = useQuery<{
     items?: DashboardConfig[];
     data?: DashboardConfig[];
   }>({
@@ -229,7 +230,9 @@ export default function DashboardListPage() {
         )}
       </PageHeader>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-[220px] rounded-2xl" />

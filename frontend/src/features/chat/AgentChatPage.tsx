@@ -48,6 +48,7 @@ export default function AgentChatPage() {
     data: sessionsData,
     isLoading: isSessionsLoading,
     isError: isSessionsError,
+  // R14-FE-1 exempt: page has its own bespoke isSessionsError UI at AgentChatPage.tsx:156
   } = useQuery<ChatSession[]>({
     queryKey: ['chat-sessions'],
     queryFn: () => chatApi.listSessions(),

@@ -41,6 +41,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { reportsApi } from '../../lib/api';
 
 const TOTAL_STEPS = 5;
@@ -112,7 +113,12 @@ export default function ReportBuilderPage() {
     is_public: false,
   });
 
-  const { data: columnsData, isLoading: isColumnsLoading } = useQuery<{
+  const {
+    data: columnsData,
+    isLoading: isColumnsLoading,
+    isError: isColumnsError,
+    refetch: refetchColumns,
+  } = useQuery<{
     data: { entity_type: string; columns: string[]; join_columns?: string[] };
   }>({
     queryKey: ['report-columns', entityType],
@@ -330,7 +336,9 @@ export default function ReportBuilderPage() {
       {/* Step 2: Columns */}
       {step === 2 && (
         <Card title="Kolonlari Seçin">
-          {isColumnsLoading ? (
+          {isColumnsError ? (
+            <QueryErrorBanner variant="block" onRetry={() => refetchColumns()} />
+          ) : isColumnsLoading ? (
             <Skeleton variant="line" count={6} />
           ) : availableColumns.length === 0 ? (
             <p className="py-4 text-sm text-slate-500">Kullanilabilir kolon bulunamadi</p>

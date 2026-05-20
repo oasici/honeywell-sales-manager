@@ -100,6 +100,8 @@ export default function WorkflowRulesPage() {
   const [conditions, setConditions] = useState<ConditionRow[]>([]);
   const [actions, setActions] = useState<ActionRow[]>([{ ...EMPTY_ACTION }]);
 
+  // R14-FE-1 exempt: page already renders a bespoke red-tinted isError
+  // block ("İş kuralları yüklenemedi") inline; QueryErrorBanner would duplicate.
   const { data, isLoading, isError } = useQuery<{ items: WorkflowRule[]; total: number }>({
     queryKey: ['workflowRules'],
     queryFn: () => workflowRulesApi.list(),

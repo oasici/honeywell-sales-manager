@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { guidedSellingApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type { SellingGuide, SellingGuideStep, GuidedSellingSuggestion } from '../../lib/types';
@@ -44,7 +45,12 @@ export default function GuidedSellingWizard({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [suggestions, setSuggestions] = useState<GuidedSellingSuggestion | null>(null);
 
-  const { data: guidesData, isLoading: isLoadingGuides } = useQuery({
+  const {
+    data: guidesData,
+    isLoading: isLoadingGuides,
+    isError: isGuidesError,
+    refetch: refetchGuides,
+  } = useQuery({
     queryKey: ['guided-selling-guides'],
     queryFn: () => guidedSellingApi.list(),
     enabled: isOpen,
@@ -161,12 +167,15 @@ export default function GuidedSellingWizard({
           {phase === 'select-guide' && (
             <div className="space-y-4">
               <p className="text-sm text-slate-600">{t('quotes.guided_pick')}</p>
-              {isLoadingGuides && (
+              {isGuidesError && (
+                <QueryErrorBanner variant="block" onRetry={() => refetchGuides()} />
+              )}
+              {!isGuidesError && isLoadingGuides && (
                 <div className="py-8 text-center text-sm text-slate-400">
                   {t('quotes.guided_loading')}
                 </div>
               )}
-              {!isLoadingGuides && guides.length === 0 && (
+              {!isGuidesError && !isLoadingGuides && guides.length === 0 && (
                 <div className="py-8 text-center text-sm text-slate-400">
                   {t('quotes.guided_no_guides')}
                 </div>

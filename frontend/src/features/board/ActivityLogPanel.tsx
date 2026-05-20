@@ -6,6 +6,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { formatDate } from '../../lib/formatters';
 import QuickActivityModal from './QuickActivityModal';
 import { useT } from '../../hooks/useT';
@@ -61,7 +62,7 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
   const t = useT();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data, isLoading } = useQuery<{ items: ActivityLogFull[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ items: ActivityLogFull[] }>({
     queryKey: ['activities', opportunityId],
     queryFn: () => activitiesApi.list({ opportunity_id: opportunityId }),
     enabled: !!opportunityId,
@@ -79,7 +80,9 @@ export default function ActivityLogPanel({ opportunityId }: ActivityLogPanelProp
           </Button>
         </div>
 
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+        ) : isLoading ? (
           <Skeleton variant="card" count={2} />
         ) : activities.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">{t('common.no_activity')}</p>

@@ -10,6 +10,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { dashboardsApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
@@ -281,6 +282,10 @@ export default function DashboardViewerPage() {
       `${slug}-export.csv`,
     );
   };
+
+  if (dashboardQuery.isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => dashboardQuery.refetch()} />;
+  }
 
   if (dashboardQuery.isLoading) {
     return (

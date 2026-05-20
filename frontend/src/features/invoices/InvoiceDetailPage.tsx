@@ -10,6 +10,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { invoicesApi, signaturesApi } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 import { Modal } from '../../components/ui/Modal';
@@ -61,7 +62,12 @@ export default function InvoiceDetailPage() {
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [signForm, setSignForm] = useState<SignatureModalForm>(INITIAL_SIGN_FORM);
 
-  const { data: invoice, isLoading } = useQuery<Invoice>({
+  const {
+    data: invoice,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<Invoice>({
     queryKey: ['invoice', invoiceId],
     queryFn: () => invoicesApi.get(invoiceId),
     enabled: !!invoiceId,
@@ -112,6 +118,10 @@ export default function InvoiceDetailPage() {
       signer_name: signForm.signer_name || undefined,
     });
   }, [signForm, invoiceId, signatureMutation]);
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return <Skeleton variant="card" count={4} />;

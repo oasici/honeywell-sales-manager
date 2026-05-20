@@ -15,6 +15,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { integrationsApi } from '../../lib/api';
 import { onIntegrationChanged } from '../../lib/cacheInvalidation';
 
@@ -316,6 +317,18 @@ export default function IntegrationsPage() {
         title="Entegrasyonlar"
         description="Harici servis entegrasyonlarınızı yönetin ve sağlık durumunu takip edin"
       />
+
+      {(calendarQuery.isError || esignQuery.isError) && (
+        <div className="mb-4">
+          <QueryErrorBanner
+            variant="block"
+            onRetry={() => {
+              if (calendarQuery.isError) calendarQuery.refetch();
+              if (esignQuery.isError) esignQuery.refetch();
+            }}
+          />
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <IntegrationCard

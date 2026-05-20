@@ -22,6 +22,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { reportsApi } from '../../lib/api';
 import type { ReportTemplate } from '../../lib/types';
 
@@ -56,7 +57,12 @@ export default function ReportViewPage() {
   const navigate = useNavigate();
   const reportId = Number(id);
 
-  const { data: templateData, isLoading: isTemplateLoading } = useQuery<ReportTemplate>({
+  const {
+    data: templateData,
+    isLoading: isTemplateLoading,
+    isError: isTemplateError,
+    refetch: refetchTemplate,
+  } = useQuery<ReportTemplate>({
     queryKey: ['report-template', reportId],
     queryFn: async () => {
       const allTemplates = await reportsApi.getTemplates();
@@ -97,6 +103,15 @@ export default function ReportViewPage() {
   const handlePrint = () => {
     window.print();
   };
+
+  if (isTemplateError) {
+    return (
+      <div>
+        <PageHeader title="Rapor" />
+        <QueryErrorBanner variant="block" onRetry={() => refetchTemplate()} />
+      </div>
+    );
+  }
 
   if (isTemplateLoading || isExecuting) {
     return (

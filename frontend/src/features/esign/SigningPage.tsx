@@ -28,6 +28,7 @@ export default function SigningPage() {
   const [isSigned, setIsSigned] = useState(false);
   const [isDeclined, setIsDeclined] = useState(false);
 
+  // R14-FE-1 exempt: public signing page has its own bespoke error UI (per audit §4.1 review)
   const { data, isLoading, isError } = useQuery<PublicSignResponse>({
     queryKey: ['sign', token],
     queryFn: () => signaturesApi.getPublic(token!),

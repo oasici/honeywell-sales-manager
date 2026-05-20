@@ -49,6 +49,7 @@ const FALLBACK_VALUE: FeatureFlagContextValue = {
 };
 
 export function FeatureFlagProvider({ children }: { children: ReactNode }) {
+  // R14-FE-1 exempt: boot-time flag fetch; SPA falls back to FEATURE_DEFAULTS on error so the app keeps booting
   const { data, isSuccess } = useQuery<FeatureFlagsResponse>({
     queryKey: ['config', 'feature-flags'],
     queryFn: () => configApi.getFeatureFlags(),

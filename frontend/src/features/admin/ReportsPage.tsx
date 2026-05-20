@@ -18,6 +18,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { analyticsApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
@@ -91,7 +92,12 @@ export default function ReportsPage() {
   const t = useT();
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
 
-  const { data: trendData, isLoading: isTrendLoading } = useQuery<TrendData[]>({
+  const {
+    data: trendData,
+    isLoading: isTrendLoading,
+    isError: isTrendError,
+    refetch: refetchTrend,
+  } = useQuery<TrendData[]>({
     queryKey: ['reports-monthly-trend', selectedPeriod.months],
     queryFn: () => analyticsApi.getMonthlyTrend(selectedPeriod.months),
   });
@@ -171,7 +177,9 @@ export default function ReportsPage() {
       <div className="space-y-6">
         {/* Section 1: Monthly Trend */}
         <SectionCard title="Aylık Teklif & Gelir Trendi">
-          {isTrendLoading ? (
+          {isTrendError ? (
+            <QueryErrorBanner variant="block" onRetry={() => refetchTrend()} />
+          ) : isTrendLoading ? (
             <div className="flex h-[300px] items-center justify-center">
               <p className="text-[13px] text-slate-400">{t('common.loading')}</p>
             </div>

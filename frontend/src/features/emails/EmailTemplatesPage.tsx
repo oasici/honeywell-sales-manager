@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { emailTemplatesApi } from '../../lib/api';
 import { onEmailTemplateChanged } from '../../lib/cacheInvalidation';
 import { useAuthStore } from '../../stores/authStore';
@@ -54,7 +55,7 @@ export default function EmailTemplatesPage() {
   const [sendContext, setSendContext] = useState<Record<string, string>>({});
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['email-templates'],
     queryFn: emailTemplatesApi.list,
   });
@@ -221,6 +222,10 @@ export default function EmailTemplatesPage() {
       payload: { to_email: sendEmail, context: sendContext },
     });
   };
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return (

@@ -10,6 +10,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { playbookApi } from '../../lib/api';
 import { onPlaybookChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -79,7 +80,12 @@ export default function PlaybookDetailPage() {
   const playbookId = Number(id);
   const queryClient = useQueryClient();
 
-  const { data: playbook, isLoading } = useQuery<Playbook>({
+  const {
+    data: playbook,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<Playbook>({
     queryKey: ['playbooks', playbookId],
     queryFn: () => playbookApi.get(playbookId),
     enabled: !Number.isNaN(playbookId),
@@ -142,6 +148,15 @@ export default function PlaybookDetailPage() {
           'Hata oluştu',
       ),
   });
+
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Playbook Detay" />
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   if (isLoading || !playbook) {
     return (

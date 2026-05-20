@@ -108,6 +108,9 @@ export default function CampaignListPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState<CreateForm>(INITIAL_FORM);
 
+  // R14-FE-1 exempt: page already renders a bespoke red-tinted isError
+  // panel inline (using campaigns.error_loading translation key);
+  // QueryErrorBanner would duplicate.
   const { data, isLoading, isError } = useQuery({
     queryKey: ['campaigns', statusFilter],
     queryFn: () => campaignsApi.list({ ...(statusFilter ? { status: statusFilter } : {}) }),

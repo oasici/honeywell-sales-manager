@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { nbaApi } from '../../lib/api';
 import { onAiTaskChanged, onOpportunityChanged } from '../../lib/cacheInvalidation';
 import { formatDate } from '../../lib/formatters';
@@ -96,7 +97,11 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
         </Button>
       }
     >
-      {listQuery.isLoading && (
+      {listQuery.isError && (
+        <QueryErrorBanner variant="block" onRetry={() => listQuery.refetch()} />
+      )}
+
+      {!listQuery.isError && listQuery.isLoading && (
         <div className="space-y-2">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-12" />
@@ -104,7 +109,7 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
         </div>
       )}
 
-      {!listQuery.isLoading && items.length === 0 && (
+      {!listQuery.isError && !listQuery.isLoading && items.length === 0 && (
         <EmptyState
           title="Henüz öneri yok"
           description="Yenile butonuna basarak ilk önerileri üret."
@@ -113,7 +118,7 @@ export function NbaTray({ opportunityId }: NbaTrayProps) {
         />
       )}
 
-      {!listQuery.isLoading && items.length > 0 && (
+      {!listQuery.isError && !listQuery.isLoading && items.length > 0 && (
         <ul className="divide-y divide-slate-100">
           {items.map((task) => (
             <li key={task.id} className="flex items-start justify-between gap-3 py-3">

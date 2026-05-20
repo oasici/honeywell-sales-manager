@@ -417,6 +417,8 @@ export default function PipelineSettingsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Pipeline | null>(null);
 
+  // R14-FE-1 exempt: page renders its own isError fallback Card inline
+  // with pipelines.load_error copy; QueryErrorBanner would duplicate.
   const {
     data: pipelines = [],
     isLoading,

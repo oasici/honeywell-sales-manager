@@ -662,6 +662,9 @@ export default function TerritoryPage() {
   const [selectedTerritory, setSelectedTerritory] = useState<Territory | null>(null);
   const [isCreateOpen, setNewModalOpen] = useState(false);
 
+  // R14-FE-1 exempt: page renders its own isError fallback Card below
+  // ("Veriler yuklenirken bir hata oluştu") for the primary tree query.
+  // Replacing with QueryErrorBanner would duplicate.
   const {
     data: treeData = [],
     isLoading,

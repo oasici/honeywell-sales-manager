@@ -263,10 +263,7 @@ export default function DataQualityPage() {
                 </p>
                 <p className="mt-0.5 text-[13px] leading-5 text-amber-800/90 dark:text-amber-300/80">
                   Kayıt bazlı veri kalitesi analizi için{' '}
-                  <Link
-                    to="/reports"
-                    className="font-medium underline-offset-2 hover:underline"
-                  >
+                  <Link to="/reports" className="font-medium underline-offset-2 hover:underline">
                     rapor oluşturun
                   </Link>
                   .

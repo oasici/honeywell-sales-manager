@@ -22,6 +22,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import {
   cockpitApi,
   playbookApi,
@@ -215,7 +216,7 @@ function SignalStream() {
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['cockpit', 'signals', severityFilter],
     queryFn: () =>
       cockpitApi.getSignals(severityFilter !== 'all' ? { severity: severityFilter } : undefined),
@@ -250,7 +251,9 @@ function SignalStream() {
         </select>
       }
     >
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <Skeleton variant="line" count={5} />
       ) : signals.length === 0 ? (
         <EmptyState
@@ -317,7 +320,7 @@ function ActionQueue() {
     }),
     [t],
   );
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['cockpit', 'actions'],
     queryFn: cockpitApi.getActions,
   });
@@ -372,7 +375,9 @@ function ActionQueue() {
 
   return (
     <Card title={t('cockpit.ai_tasks_card')}>
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <Skeleton variant="line" count={4} />
       ) : actions.length === 0 ? (
         <p className="py-8 text-center text-sm text-slate-400">{t('cockpit.no_pending_tasks')}</p>

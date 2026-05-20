@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { networkIntelligenceApi } from '../../lib/api';
 import { formatDate } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
@@ -110,7 +111,11 @@ export default function NetworkInsightPage() {
         </div>
       )}
 
-      {overviewQuery.isLoading && (
+      {overviewQuery.isError && (
+        <QueryErrorBanner variant="block" onRetry={() => overviewQuery.refetch()} />
+      )}
+
+      {!overviewQuery.isError && overviewQuery.isLoading && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {[0, 1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-32" />
@@ -118,14 +123,14 @@ export default function NetworkInsightPage() {
         </div>
       )}
 
-      {!overviewQuery.isLoading && overview && overview.metrics.length === 0 && (
+      {!overviewQuery.isError && !overviewQuery.isLoading && overview && overview.metrics.length === 0 && (
         <EmptyState
           title={t('network_intelligence.empty_title')}
           description={t('network_intelligence.empty_description')}
         />
       )}
 
-      {!overviewQuery.isLoading && overview && overview.metrics.length > 0 && (
+      {!overviewQuery.isError && !overviewQuery.isLoading && overview && overview.metrics.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {overview.metrics.map((m) => {
             const verdict = verdictBadge[(m.verdict as VerdictKey)] ?? verdictBadge.unknown;

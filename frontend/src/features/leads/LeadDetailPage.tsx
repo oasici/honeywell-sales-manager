@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { leadsApi, sequenceV2Api } from '../../lib/api';
 import { formatDate } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
@@ -161,7 +162,12 @@ export default function LeadDetailPage() {
     notes: '',
   });
 
-  const { data: lead, isLoading } = useQuery({
+  const {
+    data: lead,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => leadsApi.get(leadId),
     enabled: !!leadId,
@@ -205,6 +211,7 @@ export default function LeadDetailPage() {
     },
   });
 
+  if (isError) return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
   if (isLoading) return <Skeleton variant="card" count={3} />;
   if (!lead) return <p className="p-8 text-center text-slate-500">{t('lead_detail.not_found')}</p>;
 

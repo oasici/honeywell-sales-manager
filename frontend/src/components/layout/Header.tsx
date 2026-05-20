@@ -46,6 +46,7 @@ export function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // R14-FE-1 exempt: chrome notification badge polling — empty badge is acceptable on transient failure
   const { data: unreadData } = useQuery<{ unread_count: number }>({
     queryKey: ['notifications', 'unread-count'],
     queryFn: notificationsApi.getUnreadCount,

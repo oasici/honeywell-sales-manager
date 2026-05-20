@@ -11,6 +11,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { complianceApi } from '../../lib/api';
 import { onComplianceChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -72,7 +73,7 @@ export default function BreachWorkflowPage() {
   // R5-API-8 — backend canonicalized to {items, total, ...}; legacy
   // ``breaches`` retained server-side as additive bridge during the
   // rollout window. Type widened to accept either shape.
-  const { data, isLoading } = useQuery<{
+  const { data, isLoading, isError, refetch } = useQuery<{
     items?: BreachNotification[];
     breaches?: BreachNotification[];
   }>({
@@ -143,16 +144,18 @@ export default function BreachWorkflowPage() {
         />
       </div>
 
-      {isLoading && <Skeleton variant="card" count={3} />}
+      {isError && <QueryErrorBanner variant="block" onRetry={() => refetch()} />}
 
-      {!isLoading && breaches.length === 0 && (
+      {!isError && isLoading && <Skeleton variant="card" count={3} />}
+
+      {!isError && !isLoading && breaches.length === 0 && (
         <EmptyState
           title="Ihlal bildirimi bulunamadi"
           description="Seçilen filtreye uygun ihlal bildirimi yok"
         />
       )}
 
-      {!isLoading && breaches.length > 0 && (
+      {!isError && !isLoading && breaches.length > 0 && (
         <div className="space-y-4">
           {breaches.map((breach) => (
             <Card key={breach.id}>

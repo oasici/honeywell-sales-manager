@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { engagementApi } from '../../lib/api';
 import type { EngagementScorecard } from '../../lib/types';
 
@@ -21,7 +22,10 @@ const WINDOW_OPTIONS = [
 export default function ScorecardsPage() {
   const [window, setWindow] = useState(30);
 
-  const { data, isLoading } = useQuery<{ window_days: number; scorecards: EngagementScorecard[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{
+    window_days: number;
+    scorecards: EngagementScorecard[];
+  }>({
     queryKey: ['coaching-scorecards', window],
     queryFn: () => engagementApi.getCoachingScorecards(window),
   });
@@ -115,7 +119,9 @@ export default function ScorecardsPage() {
         </div>
       </PageHeader>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <Skeleton variant="table" />
       ) : scorecards.length === 0 ? (
         <EmptyState

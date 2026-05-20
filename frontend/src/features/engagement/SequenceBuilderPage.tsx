@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { engagementApi, emailTemplatesApi } from '../../lib/api';
 import { onSequenceChanged } from '../../lib/cacheInvalidation';
 import type { Sequence } from '../../lib/types';
@@ -168,7 +169,12 @@ export default function SequenceBuilderPage() {
   const [isAutoEnroll, setIsAutoEnroll] = useState(false);
   const [scoreThreshold, setScoreThreshold] = useState(50);
 
-  const { data: sequence, isLoading } = useQuery<Sequence>({
+  const {
+    data: sequence,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<Sequence>({
     queryKey: ['sequence', sequenceId],
     queryFn: () => engagementApi.getSequence(sequenceId!),
     enabled: Boolean(sequenceId),
@@ -278,6 +284,10 @@ export default function SequenceBuilderPage() {
     }
 
     saveMutation.mutate(payload);
+  }
+
+  if (isEdit && isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
   }
 
   if (isEdit && isLoading) {

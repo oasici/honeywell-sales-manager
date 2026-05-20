@@ -79,6 +79,7 @@ export function ChatWidget() {
     }
   }, [isOpen, sessionId, createSessionMutation]);
 
+  // R14-FE-1 exempt: floating chat widget; empty render is acceptable on transient failure
   const { data: messagesData } = useQuery<ChatMessage[]>({
     queryKey: ['chat-messages', sessionId],
     queryFn: () => chatApi.getMessages(sessionId!),

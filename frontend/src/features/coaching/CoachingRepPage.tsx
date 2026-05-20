@@ -18,6 +18,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { coachingApi, v5IntelligenceApi } from '../../lib/api';
 import { formatPercent } from '../../lib/formatters';
 
@@ -242,7 +243,12 @@ export default function CoachingRepPage() {
   const navigate = useNavigate();
   const userId = Number(id);
 
-  const { data: rep, isLoading: isRepLoading } = useQuery<CoachingRepScore>({
+  const {
+    data: rep,
+    isLoading: isRepLoading,
+    isError: isRepError,
+    refetch: refetchRep,
+  } = useQuery<CoachingRepScore>({
     queryKey: ['coaching', 'rep', userId],
     queryFn: () => coachingApi.getRepReport(userId),
     enabled: !!userId,
@@ -270,6 +276,10 @@ export default function CoachingRepPage() {
     queryKey: ['coaching', 'overview'],
     queryFn: () => coachingApi.getOverview(),
   });
+
+  if (isRepError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetchRep()} />;
+  }
 
   if (isRepLoading) return <Skeleton variant="card" count={3} />;
 

@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { formatDateTime } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
 import type { DealRoom } from '../../lib/types';
@@ -42,7 +43,12 @@ export default function DealRoomPage() {
   const queryClient = useQueryClient();
   const roomId = Number(id);
 
-  const { data: room, isLoading } = useQuery<DealRoom>({
+  const {
+    data: room,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<DealRoom>({
     queryKey: ['deal-room', roomId],
     queryFn: () => dealRoomsApi.get(roomId),
     enabled: !!roomId,
@@ -117,6 +123,10 @@ export default function DealRoomPage() {
   const handleRemoveAction = (index: number) => {
     setActionPlan((prev) => (prev ?? []).filter((_, i) => i !== index));
   };
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return <Skeleton variant="card" count={3} />;

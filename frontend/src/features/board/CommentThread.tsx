@@ -189,6 +189,7 @@ export default function CommentThread({ entityType, entityId }: CommentThreadPro
 
   // R6-PAGE-1 — backend canonicalized comments to {items, total, …};
   // accept both shapes during the transition window.
+  // R14-FE-1 exempt: polling-driven comments panel — see audit §4.3; empty render is acceptable as a fallback
   const { data: commentsData } = useQuery<{ items?: Comment[]; comments?: Comment[] }>({
     queryKey: ['comments', entityType, entityId],
     queryFn: () => commentsApi.list({ entity_type: entityType, entity_id: entityId }),

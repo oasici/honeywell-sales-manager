@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { quotesApi, customersApi, partsApi, documentsApi } from '../../lib/api';
 import { onQuoteChanged, onQuoteStatusChanged } from '../../lib/cacheInvalidation';
 import BundleSelectorModal from './BundleSelectorModal';
@@ -80,7 +81,12 @@ export default function QuoteEditorPage() {
   const [shareTrackingUrl, setShareTrackingUrl] = useState<string | null>(null);
 
   // ── Queries ────────────────────────────────────────
-  const { data: quote, isLoading: quoteLoading } = useQuery<Quote>({
+  const {
+    data: quote,
+    isLoading: quoteLoading,
+    isError: quoteError,
+    refetch: refetchQuote,
+  } = useQuery<Quote>({
     queryKey: ['quote', quoteId],
     queryFn: () => quotesApi.getQuote(quoteId!),
     enabled: !!quoteId,
@@ -342,6 +348,11 @@ export default function QuoteEditorPage() {
       toast.error(t('quotes.editor_share_failed'));
     }
   }, [quoteId, quote, t]);
+
+  // ── Error state ────────────────────────────────────
+  if (!isNew && quoteError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetchQuote()} />;
+  }
 
   // ── Loading state ──────────────────────────────────
   if (!isNew && quoteLoading) {

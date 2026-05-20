@@ -188,6 +188,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const canSeeApprovals = userRole === 'sales_rep' || userRole === 'sales_manager';
   const canSeeAudit = userRole === 'sales_manager';
 
+  // R14-FE-1 exempt: sidebar approval-count badge — empty badge is acceptable on transient failure
   const { data: pendingData } = useQuery({
     queryKey: ['approvals', 'pending'],
     queryFn: () => approvalsApi.getPending(),

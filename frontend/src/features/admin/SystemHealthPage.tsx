@@ -30,7 +30,10 @@ import { useFeatureFlags } from '../../contexts/FeatureFlagContext';
 interface HealthPayload {
   status: 'healthy' | 'degraded' | 'unhealthy' | string;
   checks: Record<string, string>;
-  circuits: Record<string, { state: 'closed' | 'open' | 'half_open' | string; failure_count: number }>;
+  circuits: Record<
+    string,
+    { state: 'closed' | 'open' | 'half_open' | string; failure_count: number }
+  >;
   version: string;
   uptime_seconds: number;
 }
@@ -74,6 +77,9 @@ const CIRCUIT_LABELS: Record<string, string> = {
 
 export default function SystemHealthPage() {
   const { release, env } = useFeatureFlags();
+  // R14-FE-1 exempt: page already renders a custom isError card with a
+  // Sağlık endpoint'i yanıt vermedi message inline. Wrapping in QueryErrorBanner
+  // would double up the failure UX.
   const { data, isLoading, isError, refetch, isFetching } = useQuery<HealthPayload>({
     queryKey: ['system-health'],
     queryFn: fetchHealth,
@@ -83,11 +89,7 @@ export default function SystemHealthPage() {
   });
 
   const overallTone =
-    data?.status === 'healthy'
-      ? 'success'
-      : data?.status === 'degraded'
-        ? 'warning'
-        : 'danger';
+    data?.status === 'healthy' ? 'success' : data?.status === 'degraded' ? 'warning' : 'danger';
 
   return (
     <div>
@@ -116,11 +118,7 @@ export default function SystemHealthPage() {
           <Card>
             <div className="flex flex-wrap items-center gap-4 p-4">
               <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-honeywell-red/10 text-honeywell-red">
-                {data.status === 'healthy' ? (
-                  <ShieldCheck size={20} />
-                ) : (
-                  <ShieldAlert size={20} />
-                )}
+                {data.status === 'healthy' ? <ShieldCheck size={20} /> : <ShieldAlert size={20} />}
               </span>
               <div className="flex-1">
                 <div className="flex items-center gap-2">

@@ -12,6 +12,7 @@ import { Badge } from '../../components/ui/Badge';
 import { DataTable } from '../../components/ui/DataTable';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { teamsApi } from '../../lib/api';
 import { onSharingRuleChanged } from '../../lib/cacheInvalidation';
 import type { SharingRule } from '../../lib/types';
@@ -87,7 +88,7 @@ export default function SharingRulesSection() {
   const [deleteTarget, setDeleteTarget] = useState<SharingRule | null>(null);
   const [form, setForm] = useState<RuleForm>(INITIAL_FORM);
 
-  const { data, isLoading } = useQuery<{ data: SharingRule[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ data: SharingRule[] }>({
     queryKey: ['sharing-rules'],
     queryFn: teamsApi.getSharingRules,
   });
@@ -132,6 +133,10 @@ export default function SharingRulesSection() {
   const updateField = (field: keyof RuleForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return <Skeleton variant="card" />;

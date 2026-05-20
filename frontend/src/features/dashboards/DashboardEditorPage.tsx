@@ -12,6 +12,7 @@ import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { dashboardsApi, reportsApi } from '../../lib/api';
 import { onDashboardChanged } from '../../lib/cacheInvalidation';
 import { useT } from '../../hooks/useT';
@@ -250,7 +251,12 @@ export default function DashboardEditorPage() {
   const queryClient = useQueryClient();
   const dashboardId = Number(id);
 
-  const { data: dashboardData, isLoading } = useQuery<{ data: DashboardConfig }>({
+  const {
+    data: dashboardData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<{ data: DashboardConfig }>({
     queryKey: ['dashboards', dashboardId],
     queryFn: () =>
       // Round-13 R13-API-1 — list endpoint now ships canonical `items`
@@ -352,6 +358,10 @@ export default function DashboardEditorPage() {
   const updateWidget = (index: number, updates: Partial<WidgetDef>) => {
     setWidgets(widgets.map((w, i) => (i === index ? { ...w, ...updates } : w)));
   };
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return (

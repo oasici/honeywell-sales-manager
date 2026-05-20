@@ -21,6 +21,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { reportsApi } from '../../lib/api';
 import { onSavedReportChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -49,7 +50,7 @@ export default function SavedReportsPage() {
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<ReportTemplate | null>(null);
 
-  const { data, isLoading } = useQuery<{
+  const { data, isLoading, isError, refetch } = useQuery<{
     items?: ReportTemplate[];
     data?: ReportTemplate[];
   }>({
@@ -99,6 +100,15 @@ export default function SavedReportsPage() {
       toast.error('CSV indirilemedi');
     }
   };
+
+  if (isError) {
+    return (
+      <div>
+        <PageHeader title="Raporlar" description="Kaydedilmis raporlarinizi yonetin" />
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

@@ -42,6 +42,8 @@ export function DecisionGraphPanel({ opportunityId }: DecisionGraphPanelProps) {
   const qc = useQueryClient();
   const [actingNodeId, setActingNodeId] = useState<number | null>(null);
 
+  // R14-FE-1 exempt: panel already renders a bespoke isError fallback
+  // inline with a retry button; QueryErrorBanner would duplicate.
   const graphQuery = useQuery({
     queryKey: ['decision-graph', opportunityId],
     queryFn: () => decisionGraphApi.get(opportunityId),

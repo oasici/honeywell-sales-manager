@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { bundlesApi } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 import type { ProductBundle } from '../../lib/types';
@@ -32,7 +33,7 @@ export default function BundleSelectorModal({
   onAddItems,
 }: BundleSelectorModalProps) {
   const t = useT();
-  const { data, isLoading } = useQuery<{ bundles: ProductBundle[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ bundles: ProductBundle[] }>({
     queryKey: ['bundles'],
     queryFn: () => bundlesApi.list(),
     enabled: isOpen,
@@ -57,7 +58,9 @@ export default function BundleSelectorModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('quotes.bundle_title')}>
       <div className="space-y-4">
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+        ) : isLoading ? (
           <Skeleton variant="card" count={3} />
         ) : bundles.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-500">{t('quotes.bundle_empty')}</p>

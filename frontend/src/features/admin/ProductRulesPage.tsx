@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { productRulesApi } from '../../lib/api';
 import { onProductRuleChanged } from '../../lib/cacheInvalidation';
 
@@ -46,7 +47,7 @@ export default function ProductRulesPage() {
   const [evaluateForm, setEvaluateForm] = useState(INITIAL_EVALUATE);
   const [evaluateResults, setEvaluateResults] = useState<string[] | null>(null);
 
-  const { data, isLoading } = useQuery<{ items: ProductRule[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ items: ProductRule[] }>({
     queryKey: ['productRules'],
     queryFn: () => productRulesApi.list(),
   });
@@ -161,9 +162,11 @@ export default function ProductRulesPage() {
         </Button>
       </PageHeader>
 
-      {isLoading && <Skeleton variant="card" count={3} />}
+      {isError && <QueryErrorBanner variant="block" onRetry={() => refetch()} />}
 
-      {!isLoading && rules.length === 0 && (
+      {!isError && isLoading && <Skeleton variant="card" count={3} />}
+
+      {!isError && !isLoading && rules.length === 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white py-2 shadow-(--shadow-xs) dark:border-slate-800 dark:bg-slate-900">
           <EmptyState
             variant="default"
@@ -180,7 +183,7 @@ export default function ProductRulesPage() {
         </div>
       )}
 
-      {!isLoading && rules.length > 0 && (
+      {!isError && !isLoading && rules.length > 0 && (
         <div className="mb-8 space-y-3">
           {rules.map((rule) => (
             <div

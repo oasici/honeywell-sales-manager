@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { teamsApi } from '../../lib/api';
 import { onTeamMemberChanged } from '../../lib/cacheInvalidation';
 import type { TeamMember } from '../../lib/types';
@@ -52,7 +53,7 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
   const [form, setForm] = useState({ user_id: '', role: 'member' });
 
-  const { data, isLoading } = useQuery<{ data: TeamMember[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ data: TeamMember[] }>({
     queryKey: ['team-members', customerId],
     queryFn: () => teamsApi.getMembers(customerId),
     enabled: !!customerId,
@@ -80,6 +81,10 @@ export default function AccountTeamPanel({ customerId }: AccountTeamPanelProps) 
     },
     onError: () => toast.error('Ekip uyesi kaldirilamadi'),
   });
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return <Skeleton variant="card" />;

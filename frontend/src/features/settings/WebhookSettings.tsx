@@ -68,6 +68,8 @@ function StatusCodeBadge({ code }: { code: number }) {
 
 function DeliveryHistory({ webhookId }: { webhookId: number }) {
   const t = useT();
+  // R14-FE-1 exempt: nested per-webhook delivery history; render is gated
+  // to expansion and empty state copy reads acceptably on failure.
   const { data, isLoading } = useQuery<{ data: WebhookDelivery[] }>({
     queryKey: ['webhook-deliveries', webhookId],
     queryFn: () => webhooksApi.getDeliveries(webhookId),

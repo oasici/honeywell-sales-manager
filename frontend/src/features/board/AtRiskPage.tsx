@@ -80,6 +80,8 @@ export default function AtRiskPage() {
   const navigate = useNavigate();
   const [threshold, setThreshold] = useState(40);
 
+  // R14-FE-1 exempt: page renders a bespoke "Veriler yuklenemedi" Card
+  // inline for the isError branch; QueryErrorBanner would duplicate.
   const { data, isLoading, isError } = useQuery<AtRiskResponse>({
     queryKey: ['at-risk-opps', threshold],
     queryFn: () => dealHealthApi.getAtRisk(threshold),

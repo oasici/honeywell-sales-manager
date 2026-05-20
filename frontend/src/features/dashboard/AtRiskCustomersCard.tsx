@@ -5,6 +5,7 @@ import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { customerHealthApi } from '../../lib/api';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import type { AtRiskResponse } from '../../lib/types';
 
 /**
@@ -36,7 +37,11 @@ export function AtRiskCustomersCard() {
   // previous card silently dropped.
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const { data: atRiskData } = useQuery<AtRiskResponse>({
+  const {
+    data: atRiskData,
+    isError,
+    refetch,
+  } = useQuery<AtRiskResponse>({
     queryKey: ['at-risk-customers'],
     queryFn: () => customerHealthApi.getAtRiskCustomers(5),
   });
@@ -60,7 +65,11 @@ export function AtRiskCustomersCard() {
         )}
       </div>
 
-      {customers.length === 0 ? (
+      {isError ? (
+        <div className="px-5 pb-5">
+          <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+        </div>
+      ) : customers.length === 0 ? (
         <div className="px-5 pb-5">
           <EmptyState
             variant="compact"

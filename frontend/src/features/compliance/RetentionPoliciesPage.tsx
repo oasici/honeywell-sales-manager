@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Select } from '../../components/ui/Select';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { complianceApi } from '../../lib/api';
 import { onComplianceChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -47,7 +48,7 @@ export default function RetentionPoliciesPage() {
 
   // R5-API-8 — backend canonicalized to {items, total, ...}; legacy
   // ``policies`` retained server-side as additive bridge.
-  const { data, isLoading } = useQuery<{
+  const { data, isLoading, isError, refetch } = useQuery<{
     items?: RetentionPolicy[];
     policies?: RetentionPolicy[];
   }>({
@@ -250,9 +251,11 @@ export default function RetentionPoliciesPage() {
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Politika</Button>
       </PageHeader>
 
-      {isLoading && <Skeleton variant="table" />}
+      {isError && <QueryErrorBanner variant="block" onRetry={() => refetch()} />}
 
-      {!isLoading && (
+      {!isError && isLoading && <Skeleton variant="table" />}
+
+      {!isError && !isLoading && (
         <DataTable columns={columns} data={policies} emptyMessage="Saklama politikasi bulunamadi" />
       )}
 

@@ -23,6 +23,7 @@ import { Select } from '../../components/ui/Select';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { emailsApi, customersApi, quotesApi } from '../../lib/api';
 import { onCustomerCreated, onEmailChanged } from '../../lib/cacheInvalidation';
 import { getErrorMessage } from '../../lib/utils';
@@ -76,7 +77,7 @@ export default function EmailListPage() {
 
   const isReadFilter = readTab === 'read' ? true : readTab === '' ? false : undefined;
 
-  const { data, isLoading } = useQuery<PaginatedResponse<EmailRequest>>({
+  const { data, isLoading, isError, refetch } = useQuery<PaginatedResponse<EmailRequest>>({
     queryKey: ['emails', { page, search, is_read: isReadFilter, category }],
     queryFn: () =>
       emailsApi.getEmails({
@@ -410,7 +411,9 @@ export default function EmailListPage() {
       </div>
 
       {/* Table - rows clickable */}
-      <DataTable
+      {isError && <QueryErrorBanner variant="block" onRetry={() => refetch()} />}
+      {!isError && (
+        <DataTable
         columns={columns}
         data={data?.items || []}
         loading={isLoading}
@@ -428,6 +431,7 @@ export default function EmailListPage() {
           }
         }}
       />
+      )}
 
       {/* ── Email Detail Popup ─────────────────────────────────────────
           The popup composes:

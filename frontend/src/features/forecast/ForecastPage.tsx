@@ -33,6 +33,8 @@ export default function ForecastPage() {
   const t = useT();
   const [period] = useState<'this_quarter'>('this_quarter');
 
+  // R14-FE-1 exempt: page already renders a bespoke isError surface with
+  // retry button inline; QueryErrorBanner would duplicate.
   const hybridQuery = useQuery({
     queryKey: ['forecast', 'hybrid', period],
     queryFn: () => forecastApi.getHybrid(),

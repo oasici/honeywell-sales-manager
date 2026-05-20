@@ -20,6 +20,7 @@ import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { settingsApi, meetingsApi, opsApi } from '../../lib/api';
 import {
   onEmailCredentialChanged,
@@ -65,7 +66,12 @@ export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
   const [form, setForm] = useState<SettingsData>(DEFAULTS);
 
-  const { data: settings, isLoading } = useQuery<Record<string, unknown>>({
+  const {
+    data: settings,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<Record<string, unknown>>({
     queryKey: ['settings'],
     queryFn: settingsApi.getSettings,
   });
@@ -101,6 +107,15 @@ export default function SettingsPage() {
   const updateField = (field: keyof SettingsData, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  if (isError) {
+    return (
+      <div>
+        <PageHeader title={t('settings.title')} description={t('settings.description')} />
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

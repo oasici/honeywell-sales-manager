@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { leaderboardApi } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { useT } from '../../hooks/useT';
 
 import type { LeaderboardEntry } from '../../lib/types';
@@ -33,7 +34,7 @@ export function LeaderboardCard() {
   const navigate = useNavigate();
   const [metric, setMetric] = useState('revenue');
 
-  const { data } = useQuery<{ data: LeaderboardEntry[] }>({
+  const { data, isError, refetch } = useQuery<{ data: LeaderboardEntry[] }>({
     queryKey: ['leaderboard-card', metric],
     queryFn: () => leaderboardApi.getLeaderboard('month', metric),
     refetchInterval: 120_000,
@@ -62,7 +63,11 @@ export function LeaderboardCard() {
         </select>
       </div>
 
-      {topThree.length === 0 ? (
+      {isError ? (
+        <div className="px-5 pb-5">
+          <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+        </div>
+      ) : topThree.length === 0 ? (
         <p className="px-5 pb-5 text-[13px] text-slate-400">{t('common.no_data')}</p>
       ) : (
         <ul className="divide-y divide-slate-100 px-2 dark:divide-slate-800">

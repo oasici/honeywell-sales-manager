@@ -39,6 +39,9 @@ interface Props {
 const STALE_TIME = 60_000;
 
 function MomentumDriversWidget({ opportunityId }: Props) {
+  // R14-FE-1 exempt: widget gracefully falls back to a friendly "Henüz
+  // hesaplanmış snapshot yok" Card on no-data; nightly job's transient
+  // failure is acceptable to surface as that empty state.
   const { data, isLoading } = useQuery({
     queryKey: ['feature-store-latest', opportunityId],
     queryFn: () => featureStoreApi.getLatest(opportunityId),

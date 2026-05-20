@@ -11,6 +11,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { engagementApi } from '../../lib/api';
 import { onSegmentChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -108,7 +109,7 @@ export default function SegmentsPage() {
   const [ruleMode, setRuleMode] = useState<'structured' | 'json'>('structured');
   const [rulesJsonText, setRulesJsonText] = useState('[]');
 
-  const { data, isLoading } = useQuery<{ segments: Segment[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ segments: Segment[] }>({
     queryKey: ['segments'],
     queryFn: () => engagementApi.listSegments(),
   });
@@ -285,7 +286,9 @@ export default function SegmentsPage() {
         )}
       </PageHeader>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <Skeleton variant="card" count={3} />
       ) : segments.length === 0 ? (
         // Template-driven empty state — three example segment cards make

@@ -251,6 +251,8 @@ export default function RevenueRecognitionPage() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [newScheduleId, setNewScheduleId] = useState<number | null>(null);
 
+  // R14-FE-1 exempt: page renders its own isError fallback Card with
+  // chat.load_error copy inline; QueryErrorBanner would duplicate.
   const {
     data: dashboard,
     isLoading: isDashboardLoading,

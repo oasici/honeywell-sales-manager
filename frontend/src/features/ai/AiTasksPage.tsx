@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { aiApi } from '../../lib/api';
 import { onAiTaskChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -66,7 +67,7 @@ export default function AiTasksPage() {
     [t],
   );
 
-  const { data, isLoading } = useQuery<{ tasks: AiTask[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ tasks: AiTask[] }>({
     queryKey: ['ai-tasks', filter],
     queryFn: () => aiApi.listTasks(filter),
   });
@@ -132,7 +133,9 @@ export default function AiTasksPage() {
       </div>
 
       {/* Task List */}
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} variant="card" />

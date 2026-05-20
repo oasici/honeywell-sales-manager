@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 
 import { playbookApi } from '../../lib/api';
 
@@ -43,10 +44,19 @@ function WinRateCard({
 }
 
 export default function PlaybookAnalyticsPage() {
-  const { data, isLoading } = useQuery<PlaybookAnalytics>({
+  const { data, isLoading, isError, refetch } = useQuery<PlaybookAnalytics>({
     queryKey: ['playbook-analytics'],
     queryFn: () => playbookApi.getAnalytics(),
   });
+
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Playbook Analitikleri" description="Playbook performans istatistikleri" />
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   if (isLoading || !data) {
     return (

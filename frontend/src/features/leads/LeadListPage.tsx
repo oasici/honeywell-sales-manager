@@ -85,6 +85,8 @@ export default function LeadListPage() {
     source: 'manual',
   });
 
+  // R14-FE-1 exempt: page already renders a bespoke red isError surface
+  // with retry button inline (R11-FE-1). QueryErrorBanner would duplicate.
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['leads', page, search, statusFilter],
     queryFn: () =>

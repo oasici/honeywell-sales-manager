@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { campaignsApi, leadsApi, customersApi } from '../../lib/api';
 import { onCampaignChanged } from '../../lib/cacheInvalidation';
 import { formatCurrency, formatDate, currentLocale } from '../../lib/formatters';
@@ -49,7 +50,12 @@ export default function CampaignDetailPage() {
   const [memberType, setMemberType] = useState<'lead' | 'customer'>('customer');
   const [editForm, setEditForm] = useState<Partial<Campaign>>({});
 
-  const { data: campaign, isLoading } = useQuery<Campaign>({
+  const {
+    data: campaign,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<Campaign>({
     queryKey: ['campaign', campaignId],
     queryFn: () => campaignsApi.get(campaignId),
     enabled: !!campaignId,
@@ -155,6 +161,10 @@ export default function CampaignDetailPage() {
     },
     [memberType, addMembersMutation],
   );
+
+  if (isError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return <Skeleton variant="card" count={4} />;

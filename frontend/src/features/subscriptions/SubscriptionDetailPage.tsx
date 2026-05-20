@@ -11,6 +11,7 @@ import { useT } from '../../hooks/useT';
 import type { TranslationKey } from '../../lib/i18n';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -65,7 +66,7 @@ export default function SubscriptionDetailPage() {
     return k ? t(k) : c;
   };
 
-  const { data: sub, isLoading } = useQuery<Subscription>({
+  const { data: sub, isLoading, isError, refetch } = useQuery<Subscription>({
     queryKey: ['subscriptions', id],
     queryFn: () => subscriptionsApi.get(Number(id)),
     enabled: !!id,
@@ -140,6 +141,14 @@ export default function SubscriptionDetailPage() {
     },
     onError: () => toast.error('Abonelik güncellenemedi'),
   });
+
+  if (isError) {
+    return (
+      <div className="py-8">
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

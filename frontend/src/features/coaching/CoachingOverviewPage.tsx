@@ -11,6 +11,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { coachingApi } from '../../lib/api';
 import { onCoachingPlanChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime, formatPercent } from '../../lib/formatters';
@@ -137,7 +138,12 @@ export default function CoachingOverviewPage() {
     return globalThis.Date.now();
   });
 
-  const { data: overview, isLoading: isOverviewLoading } = useQuery<CoachingOverview>({
+  const {
+    data: overview,
+    isLoading: isOverviewLoading,
+    isError: isOverviewError,
+    refetch: refetchOverview,
+  } = useQuery<CoachingOverview>({
     queryKey: ['coaching', 'overview'],
     queryFn: () => coachingApi.getOverview(),
   });
@@ -204,6 +210,10 @@ export default function CoachingOverviewPage() {
       weeks: planForm.weeks,
       start_date: planForm.start_date || new Date().toISOString().slice(0, 10),
     });
+  }
+
+  if (isOverviewError) {
+    return <QueryErrorBanner variant="block" onRetry={() => refetchOverview()} />;
   }
 
   if (isOverviewLoading) return <Skeleton variant="card" count={3} />;

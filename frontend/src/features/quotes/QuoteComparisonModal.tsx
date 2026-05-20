@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { quotesApi } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { formatCurrency } from '../../lib/formatters';
 import type { QuoteVersionItem, QuoteComparisonResult } from '../../lib/types';
 
@@ -23,7 +24,12 @@ export default function QuoteComparisonModal({
     curr: number;
   } | null>(null);
 
-  const { data: versionsData, isLoading: versionsLoading } = useQuery<{
+  const {
+    data: versionsData,
+    isLoading: versionsLoading,
+    isError: versionsError,
+    refetch: refetchVersions,
+  } = useQuery<{
     quote_id: number;
     versions: QuoteVersionItem[];
   }>({
@@ -71,7 +77,9 @@ export default function QuoteComparisonModal({
           </Button>
         </div>
 
-        {versionsLoading ? (
+        {versionsError ? (
+          <QueryErrorBanner variant="block" onRetry={() => refetchVersions()} />
+        ) : versionsLoading ? (
           <Skeleton variant="card" count={2} />
         ) : versions.length < 2 ? (
           <p className="py-12 text-center text-sm text-slate-500">Bu teklifin tek versiyonu var</p>

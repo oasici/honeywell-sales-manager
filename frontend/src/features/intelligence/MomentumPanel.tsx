@@ -44,6 +44,8 @@ const BAND_BADGE: Record<
 };
 
 export function MomentumPanel({ opportunityId }: MomentumPanelProps) {
+  // R14-FE-1 exempt: panel already renders a bespoke isError fallback
+  // inline with a retry button; QueryErrorBanner would duplicate.
   const currentQuery = useQuery({
     queryKey: ['momentum', opportunityId],
     queryFn: () => momentumApi.getCurrent(opportunityId),

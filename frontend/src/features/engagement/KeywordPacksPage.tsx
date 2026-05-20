@@ -11,6 +11,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { engagementApi } from '../../lib/api';
 import { onKeywordPackChanged } from '../../lib/cacheInvalidation';
 import type { KeywordPack } from '../../lib/types';
@@ -50,7 +51,7 @@ export default function KeywordPacksPage() {
     keywordsText: '',
   });
 
-  const { data, isLoading } = useQuery<{ packs: KeywordPack[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ packs: KeywordPack[] }>({
     queryKey: ['keyword-packs'],
     queryFn: () => engagementApi.listKeywordPacks(),
   });
@@ -101,7 +102,9 @@ export default function KeywordPacksPage() {
         <Button onClick={() => setIsCreateOpen(true)}>Yeni Paket</Button>
       </PageHeader>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <Skeleton variant="card" count={3} />
       ) : packs.length === 0 ? (
         <EmptyState

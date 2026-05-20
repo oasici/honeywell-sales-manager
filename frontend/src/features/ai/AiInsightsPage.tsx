@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { aiApi, opportunitiesApi, quotesApi, customersApi, emailsApi } from '../../lib/api';
 import { useT } from '../../hooks/useT';
 import type {
@@ -53,6 +54,8 @@ function SummarizeTab() {
   const [entityId, setEntityId] = useState('');
   const [result, setResult] = useState<AiSummarizeResponse | null>(null);
 
+  // R14-FE-1 exempt: entity dropdown selector — empty list collapses to
+  // a disabled-feeling picker which is acceptable secondary chrome.
   const { data: entities = [] } = useQuery<EntityOption[]>({
     queryKey: ['ai-entities', entityType],
     queryFn: async (): Promise<EntityOption[]> => {
@@ -156,6 +159,7 @@ function PipelineTab() {
   const [oppId, setOppId] = useState('');
   const [result, setResult] = useState<PipelineSuggestion | null>(null);
 
+  // R14-FE-1 exempt: opportunity selector dropdown — secondary picker.
   const { data: opportunities = [] } = useQuery<EntityOption[]>({
     queryKey: ['ai-opps'],
     queryFn: async (): Promise<EntityOption[]> => {
@@ -238,6 +242,7 @@ function RiskTab() {
   const [oppId, setOppId] = useState('');
   const [result, setResult] = useState<DealRiskResult | null>(null);
 
+  // R14-FE-1 exempt: opportunity selector dropdown — secondary picker.
   const { data: opportunities = [] } = useQuery<EntityOption[]>({
     queryKey: ['ai-opps'],
     queryFn: async (): Promise<EntityOption[]> => {
@@ -337,7 +342,7 @@ function RiskTab() {
 
 function CompetitiveTab() {
   const [days, setDays] = useState(90);
-  const { data, isLoading } = useQuery<CompetitiveIntelData>({
+  const { data, isLoading, isError, refetch } = useQuery<CompetitiveIntelData>({
     queryKey: ['ai-competitive', days],
     queryFn: () => aiApi.competitiveIntel(days),
   });
@@ -361,7 +366,9 @@ function CompetitiveTab() {
         )}
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} variant="card" />

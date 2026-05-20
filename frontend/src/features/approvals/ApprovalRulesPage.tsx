@@ -11,6 +11,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { approvalsApi } from '../../lib/api';
 import { onApprovalRuleChanged } from '../../lib/cacheInvalidation';
 
@@ -73,7 +74,7 @@ export default function ApprovalRulesPage() {
   const [form, setForm] = useState<RuleFormData>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<ApprovalRule | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['approval-rules'],
     queryFn: () => approvalsApi.getRules(),
   });
@@ -331,6 +332,10 @@ export default function ApprovalRulesPage() {
       >
         <Button onClick={openCreate}>Yeni Kural</Button>
       </PageHeader>
+
+      {isError && (
+        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
+      )}
 
       <Card>
         <DataTable

@@ -66,6 +66,9 @@ export default function InsightsPage() {
     owner: string;
   } | null>(null);
 
+  // R14-FE-1 exempt: page renders its own bespoke isError fallback inline
+  // (insights.unavailable copy), and gates secondary queries on !isError;
+  // QueryErrorBanner would duplicate.
   const { data, isLoading, refetch, isFetching, isError } = useQuery<SignalsDashboardResponse>({
     queryKey: ['insights', 'signals', windowDays],
     queryFn: () => insightsApi.getSignals(windowDays),
