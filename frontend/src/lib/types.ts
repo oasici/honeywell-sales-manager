@@ -1,52 +1,78 @@
-// Round-15 Sprint 15m-1.5 — first openapi-typescript generation landed.
-// The generated file (``api-types.gen.ts``) is the source-of-truth shape
-// for every backend response that declares a Pydantic ``response_model``.
-// Hand-written interfaces below either:
-//   (a) alias a generated schema and augment with runtime extras that
-//       backend serializers add post-Pydantic (e.g. ``pinned``,
-//       ``stats``, ``quote_count``), OR
-//   (b) describe payloads from dict-typed endpoints not yet migrated to
-//       a Pydantic response_model (these stay hand-written until the
-//       F-009 dict-typed-endpoint sweep retires them).
+// Round-15 Sprint 15m — ``api-types.gen.ts`` is the source-of-truth
+// schema for every backend response that declares a Pydantic
+// ``response_model``. The CI drift gate verifies the file matches the
+// live OpenAPI spec on every PR.
 //
-// 15m-2..15m-7 each retire one entity cluster. See
-// ``docs/audits/2026-05-19-15m-openapi-typescript-adoption.md``.
-import type { components } from './api-types.gen';
-
-/** Pydantic response schemas as emitted by FastAPI's OpenAPI generator. */
-type ApiSchemas = components['schemas'];
+// The original 15m-2..15m-7 plan migrated hand-written TS interfaces
+// to ``components['schemas'][...]`` aliases. In practice the project's
+// ``noUncheckedIndexedAccess: true`` stricture made the Pydantic-loose
+// optional fields incompatible with strict consumers (BoardPage,
+// QuoteListPage, SubscriptionDetailPage, etc). Reverted to the
+// narrowed hand-written shapes here; the generated file still serves
+// as the OpenAPI contract via the CI gate. Tightening the backend
+// Pydantic schemas to match runtime invariants would let the
+// migration re-land — tracked as a follow-up.
 
 // ── User ──────────────────────────────────────────────
-// Round-15 Sprint 15m-7 — migrated to generated ``UserResponse``,
-// narrowing the loose ``role: string`` from the backend to a literal
-// union that matches the ``UserRole`` enum. This narrowing catches the
-// OpportunityDetailPage / SalesAnalyticsPage "manager"/"admin" drift
-// at compile time.
-export type User = Omit<ApiSchemas['UserResponse'], 'role'> & {
+// Round-15 Sprint 15m-7 attempted to alias this to the generated
+// ``UserResponse``, but the project compiles with
+// ``noUncheckedIndexedAccess: true`` and the Pydantic schema marks
+// many fields as ``Optional`` (for extras-tolerance) which the SPA
+// consumers don't tolerate. Reverted to the hand-written narrowed
+// shape; the generated ``UserResponse`` remains the wire contract
+// but the SPA-facing type stays tighter until the backend schema is
+// tightened to match runtime invariants.
+export interface User {
+  id: number;
+  tenant_id?: number | null;
+  manager_id?: number | null;
+  email: string;
+  full_name: string;
   role: 'sales_rep' | 'sales_manager' | 'operations';
-};
-
-// ── Customer ─────────────────────────────────────────
-// Round-15 Sprint 15m-2 — migrated to generated ``CustomerResponse`` +
-// a typed ``CustomerRuntimeExtras`` intersection for the computed fields
-// the canonical ``_customer_to_dict`` serializer adds post-Pydantic
-// (``pinned``, ``stats``, ``currency``). The generated type already
-// covers every persisted column including the KVKK consent fields
-// (F-006 / F-008 round-trip) and the F-024 nullable email/phone.
-interface CustomerRuntimeExtras {
-  /** ``_customer_to_dict`` adds this on GET /customers/{id} when the
-   * current user has pinned this customer. Pin state isn't a column
-   * on customers; it lives in user_customer_pins. */
-  pinned?: boolean;
-  /** Detail endpoint augments the payload with a stats block —
-   * see ``customers.py:222-227``. */
-  stats?: { total_quotes: number; total_value: number; sent_quotes: number };
-  /** Round-12 R12-TS-1 — preferred quote currency. Computed by
-   * ``_customer_to_dict`` from the latest accepted quote. */
-  currency?: string | null;
+  is_active: boolean;
+  email_setup_completed: boolean;
+  password_change_required?: boolean;
+  created_at: string | null;
+  updated_at?: string | null;
 }
 
-export type Customer = ApiSchemas['CustomerResponse'] & CustomerRuntimeExtras;
+// ── Customer ─────────────────────────────────────────
+// Sprint 15m-2 partial revert — hand-written shape kept.
+// F-024 nullable email/phone preserved.
+export interface Customer {
+  id: number;
+  tenant_id?: number | null;
+  name: string;
+  company: string;
+  email: string | null;
+  phone: string | null;
+  address: string;
+  tax_id: string;
+  preferred_lang: string;
+  created_at: string | null;
+  created_by?: number;
+  updated_at?: string | null;
+  quote_count?: number;
+  total_quote_value?: number;
+  industry?: string | null;
+  employee_count?: number | null;
+  annual_revenue?: string | null;
+  website?: string | null;
+  linkedin_url?: string | null;
+  enriched_at?: string | null;
+  pinned?: boolean;
+  parent_id?: number | null;
+  territory_id?: number | null;
+  data_classification?: 'public' | 'internal' | 'confidential' | 'restricted' | null;
+  deletion_requested_at?: string | null;
+  stats?: { total_quotes: number; total_value: number; sent_quotes: number };
+  currency?: string | null;
+  kvkk_consent?: boolean | null;
+  kvkk_consent_date?: string | null;
+  kvkk_consent_method?: 'web' | 'email' | 'in_person' | 'import' | string | null;
+  data_processing_purpose?: string | null;
+  data_retention_until?: string | null;
+}
 
 export interface CustomerIntelligenceOpportunityItem {
   id: number;
@@ -79,6 +105,9 @@ export interface CustomerIntelligenceResponse {
   signals: CustomerIntelligenceSignalItem[];
 }
 
+// F-009 follow-up — backend ``Account360Response`` Pydantic schema
+// added; FE types kept hand-written for ``noUncheckedIndexedAccess``
+// compatibility.
 export interface Account360Enrichment {
   customer_id: number;
   currency: string;
@@ -328,19 +357,40 @@ export interface QuoteItem {
   spare_part_category?: string | null;
 }
 
-// Round-15 Sprint 15m-5 — migrated to generated ``QuoteResponse``.
-// Runtime extras: ``has_pdf`` (server-computed from pdf_path presence),
-// joined ``customer`` summary, ``items`` list (from QuoteItemResponse),
-// and the narrowed ``status`` enum which Pydantic emits as a loose
-// ``string`` but the SPA must exhaustive-switch on.
-interface QuoteRuntimeExtras {
+// Sprint 15m-5 partial revert — hand-written Quote shape; generated
+// ``QuoteResponse`` was too loose for the strict ``noUncheckedIndexedAccess``
+// consumers in QuoteEditorPage / QuoteListPage.
+export interface Quote {
+  id: number;
+  quote_number: string;
+  customer_id: number | null;
+  email_request_id: number | null;
+  created_by: number;
+  approved_by: number | null;
   status: QuoteStatus;
+  language: string;
+  currency: string;
+  subtotal: number;
+  discount_total: number;
+  tax_rate: number;
+  tax_amount: number;
+  grand_total: number;
+  valid_days: number;
+  notes: string;
   has_pdf?: boolean;
+  opportunity_id?: number | null;
+  parent_quote_id?: number | null;
+  version: number;
+  tenant_id?: number | null;
+  closed_at?: string | null;
+  close_reason?: string | null;
+  revision_no?: number | null;
+  superseded_by?: number | null;
+  created_at: string | null;
+  updated_at: string | null;
   customer?: Customer;
   items: QuoteItem[];
 }
-
-export type Quote = Omit<ApiSchemas['QuoteResponse'], 'status'> & QuoteRuntimeExtras;
 
 /**
  * Generic in-app notification. Returned by ``notification_service``
@@ -408,6 +458,8 @@ export interface MatchResult {
 }
 
 // ── Customer Health ─────────────────────────────────
+// F-009 follow-up — backend ``CustomerHealthReportResponse`` Pydantic
+// schema added; FE types kept hand-written.
 export interface HealthIndicator {
   name: string;
   label: string;
@@ -434,7 +486,6 @@ export interface CustomerHealthReport {
   risk_level: 'healthy' | 'at_risk' | 'churning';
   indicators: HealthIndicator[];
   recommendations: string[];
-  /** Populated only when the request includes `?include_explanations=true`. */
   explanations?: HealthExplanation[];
 }
 
@@ -475,40 +526,49 @@ export interface PaginatedResponse<T> {
 }
 
 // ── Auth ─────────────────────────────────────────────
-// Round-15 Sprint 15m-7 — migrated to generated ``TokenResponse``.
-// Swap the nested ``user`` field to the narrowed ``User`` so the auth
-// flow keeps its role-literal narrowing.
-export type TokenResponse = Omit<ApiSchemas['TokenResponse'], 'user'> & {
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  password_change_required?: boolean;
   user: User;
-};
-
-// ── v2: Opportunity ─────────────────────────────────
-// Round-15 Sprint 15m-3 — migrated to generated ``OpportunityResponse``
-// + a typed ``OpportunityRuntimeExtras`` intersection for the computed
-// fields ``_opp_to_dict`` adds post-Pydantic. The generated type covers
-// every persisted column including the F-009 round-trip (pipeline_id,
-// territory_id, source, previous_stage, previous_close_date,
-// previous_amount, forecast_category, loss_reason).
-interface OpportunityRuntimeExtras {
-  /** Days since the last ActivityLog row for this deal (else since
-   * ``updated_at``). Computed server-side by
-   * ``_opportunity_staleness_days``. */
-  rotting_days: number;
-  /** Maximum ``ActivityLog.created_at`` for this opportunity.
-   * Aggregated on the list endpoint to avoid N+1. */
-  last_activity_at?: string | null;
-  /** Open-task count keyed off ``Task.status``. */
-  open_tasks_count?: number;
-  /** Joined customer thumbnail (id + name + company). */
-  customer: { id: number; name: string; company: string } | null;
-  /** Joined owner thumbnail (id + full_name). */
-  owner: { id: number; full_name: string } | null;
-  /** Inlined quote summaries when ``include_quotes=True``. */
-  quotes: { id: number; quote_number: string; status: string; grand_total: number }[];
-  open_quotes_count?: number;
 }
 
-export type Opportunity = ApiSchemas['OpportunityResponse'] & OpportunityRuntimeExtras;
+// ── v2: Opportunity ─────────────────────────────────
+// Sprint 15m-3 attempted to alias to ``OpportunityResponse`` but the
+// loose Pydantic schema (every field Optional) broke
+// ``noUncheckedIndexedAccess`` consumers across Board / Opportunity
+// Detail. Reverted to the hand-written narrowed shape.
+export interface Opportunity {
+  id: number;
+  title: string;
+  stage: string;
+  amount: number | null;
+  currency: string;
+  close_date: string | null;
+  owner_id: number;
+  customer_id: number | null;
+  status: string;
+  probability?: number;
+  loss_reason?: string | null;
+  forecast_category?: 'commit' | 'best_case' | 'pipeline' | 'omitted' | null;
+  pipeline_id?: number | null;
+  territory_id?: number | null;
+  previous_stage?: string | null;
+  previous_close_date?: string | null;
+  previous_amount?: number | null;
+  source?: string | null;
+  tenant_id?: number | null;
+  rotting_days: number;
+  last_activity_at?: string | null;
+  open_tasks_count?: number;
+  customer: { id: number; name: string; company: string } | null;
+  owner: { id: number; full_name: string } | null;
+  quotes: { id: number; quote_number: string; status: string; grand_total: number }[];
+  open_quotes_count?: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
 
 // Mirrors backend OpportunitySignalType enum (app/models/enums.py).
 // Adding new values here when the backend enum grows keeps switch
@@ -530,33 +590,51 @@ export type OpportunitySignalType =
 
 export type OpportunitySignalSeverity = 'low' | 'med' | 'high';
 
-// Round-15 Sprint 15m-3 — signal/task summary types now sourced from
-// the generated ``OpportunitySignalSummary`` / ``TaskSummary``. The
-// ``OpportunitySignalType`` / ``OpportunitySignalSeverity`` unions stay
-// hand-written because Pydantic emits ``signal_type: string`` (no
-// enum) so the generated type is a loose ``string``. Narrowing on the
-// SPA side keeps switch statements exhaustive.
-export type OpportunitySignal = Omit<
-  ApiSchemas['OpportunitySignalSummary'],
-  'signal_type' | 'severity'
-> & {
+// Sprint 15m-3 partial revert — kept narrow hand-written shapes for
+// consumers that rely on non-nullable strings.
+export interface OpportunitySignal {
+  id: number;
   signal_type: OpportunitySignalType;
   severity: OpportunitySignalSeverity;
-};
+  evidence: string | null;
+  source_type: string | null;
+  source_id: number | null;
+  is_resolved: boolean;
+  created_at: string | null;
+}
 
-export type TaskItem = ApiSchemas['TaskSummary'];
+export interface TaskItem {
+  id: number;
+  title: string;
+  description: string | null;
+  due_at: string | null;
+  status: string;
+  source: string | null;
+  priority: string | null;
+  created_at: string | null;
+}
 
-// ``OpportunityIntelligenceResponse`` is fully generated; we only swap
-// the ``signals`` slot to the narrowed type above and use the local
-// ``Opportunity`` alias so the runtime-extras intersect carries.
-export type OpportunityIntelligenceResponse = Omit<
-  ApiSchemas['OpportunityIntelligenceResponse'],
-  'opportunity' | 'signals' | 'probability'
-> & {
+export interface OpportunityIntelligenceResponse {
   opportunity: Opportunity;
+  health: {
+    opportunity_id: number;
+    score: number;
+    risk_level: string;
+    indicators: Array<{
+      name: string;
+      label: string;
+      score: number;
+      weight: number;
+      raw_value: unknown;
+      description: string | null;
+    }>;
+    recommendations: string[];
+  } | null;
+  probability: CloseProbabilityResult;
   signals: OpportunitySignal[];
-  probability: CloseProbabilityResult | null;
-};
+  tasks: TaskItem[];
+  open_tasks_count: number;
+}
 
 export interface OpportunityEvent {
   id: number;
@@ -917,8 +995,14 @@ export interface AiSummarizeResponse {
   days?: number;
 }
 
-// Round-15 Sprint 15m-7 — migrated to generated ``SavedViewResponse``.
-export type SavedView = ApiSchemas['SavedViewResponse'];
+// Sprint 15m-7 partial revert — hand-written shape kept.
+export interface SavedView {
+  id: number;
+  name: string;
+  route: string;
+  query_json: string;
+  created_at: string | null;
+}
 
 export interface PipelineSuggestion {
   opportunity_id: number;
@@ -947,8 +1031,15 @@ export interface CompetitiveIntelData {
 }
 
 // ── Dashboard Builder ───────────────────────────────
-// Round-15 Sprint 15m-7 — migrated to generated ``DashboardConfigResponse``.
-export type DashboardConfig = ApiSchemas['DashboardConfigResponse'];
+// Sprint 15m-7 partial revert — hand-written shape kept.
+export interface DashboardConfig {
+  id: number;
+  name: string;
+  widgets_json: string;
+  is_default: boolean;
+  created_at: string | null;
+  updated_at?: string | null;
+}
 
 export interface DashboardWidget {
   type: string;
@@ -970,8 +1061,18 @@ export interface DashboardExecuteResult {
 }
 
 // ── Playbook (extended) ─────────────────────────────
-// Round-15 Sprint 15m-6 — migrated to generated ``PlaybookResponse``.
-export type Playbook = ApiSchemas['PlaybookResponse'];
+// Sprint 15m-6 partial revert — hand-written shape kept.
+export interface Playbook {
+  id: number;
+  name: string;
+  description: string | null;
+  trigger_conditions_json: string | null;
+  steps_json: string | null;
+  category: string | null;
+  is_active: boolean;
+  created_by: number | null;
+  created_at: string | null;
+}
 
 export interface PlaybookExecution {
   id: number;
@@ -1240,8 +1341,15 @@ export interface CustomFieldValue {
 }
 
 // ── Field Permissions ───────────────────────────────
-// Round-15 Sprint 15m-7 — migrated to generated ``FieldPermissionResponse``.
-export type FieldPermission = ApiSchemas['FieldPermissionResponse'];
+// Sprint 15m-7 partial revert — hand-written shape kept.
+export interface FieldPermission {
+  id: number;
+  role: string;
+  entity_type: string;
+  field_name: string;
+  access_level: string;
+  created_at: string | null;
+}
 
 // ── Product Rules ───────────────────────────────────
 // ── Playbook Visual Builder ─────────────────────────
@@ -1429,8 +1537,19 @@ export interface ActivityMetrics {
 }
 
 // ── Email Template ────────────────────────────────────
-// Round-15 Sprint 15m-7 — migrated to generated ``EmailTemplateResponse``.
-export type EmailTemplate = ApiSchemas['EmailTemplateResponse'];
+// Sprint 15m-7 partial revert — hand-written shape kept.
+export interface EmailTemplate {
+  id: number;
+  name: string;
+  subject: string;
+  body_html: string;
+  variables_json: string | null;
+  category: string | null;
+  is_shared: boolean;
+  created_by: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
 
 // ── Stage Config ──────────────────────────────────────
 export interface StageConfig {
@@ -1631,8 +1750,20 @@ export interface DataQualityOverview {
 }
 
 // ── Shared Document (Modul 7) ────────────────────────
-// Round-15 Sprint 15m-7 — migrated to generated ``SharedDocumentResponse``.
-export type SharedDocument = ApiSchemas['SharedDocumentResponse'];
+// Sprint 15m-7 partial revert — hand-written shape kept.
+export interface SharedDocument {
+  id: number;
+  quote_id: number | null;
+  file_name: string;
+  file_url: string;
+  shared_with_email: string;
+  tracking_token: string;
+  views_count: number;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  total_view_seconds: number;
+  created_at: string | null;
+}
 
 // ── Meeting Scheduler (Modul 11) ────────────────────
 export interface MeetingLink {
@@ -1657,13 +1788,27 @@ export interface MeetingBooking {
 }
 
 // ── Subscription & Recurring Revenue ────────────────
-// Round-15 Sprint 15m-5 — migrated to generated ``SubscriptionResponse``.
-// Runtime extras: joined customer thumbnail (R5-RENDER-SUB-1).
-interface SubscriptionRuntimeExtras {
+// Sprint 15m-5 partial revert — hand-written shape kept.
+export interface Subscription {
+  id: number;
+  tenant_id?: number | null;
+  customer_id: number;
   customer?: { id: number; name: string; company: string } | null;
+  quote_id: number | null;
+  name: string;
+  status: string;
+  billing_cycle: string;
+  start_date: string | null;
+  end_date: string | null;
+  mrr: number;
+  next_renewal_date: string | null;
+  auto_renew: boolean;
+  items_json: string | null;
+  currency: string;
+  created_by: number;
+  created_at: string | null;
+  updated_at: string | null;
 }
-
-export type Subscription = ApiSchemas['SubscriptionResponse'] & SubscriptionRuntimeExtras;
 
 export interface MrrDashboard {
   total_mrr: number;
@@ -1725,13 +1870,25 @@ export interface GuidedSellingSuggestion {
 }
 
 // ── Campaigns ──
-// Round-15 Sprint 15m-6 — migrated to generated ``CampaignResponse``.
-// Runtime extra: ``member_count`` computed from a count subquery.
-interface CampaignRuntimeExtras {
+// Sprint 15m-6 partial revert — hand-written shape kept.
+export interface Campaign {
+  id: number;
+  tenant_id?: number | null;
+  name: string;
+  type: string;
+  status: string;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+  budget?: number;
+  actual_cost: number;
+  expected_revenue?: number;
+  actual_revenue: number;
+  created_by: number;
+  created_at: string | null;
+  updated_at: string | null;
   member_count?: number;
 }
-
-export type Campaign = ApiSchemas['CampaignResponse'] & CampaignRuntimeExtras;
 
 export interface CampaignMember {
   id: number;
@@ -1759,14 +1916,31 @@ export interface CampaignROI {
 
 // ── Contract Lifecycle ──────────────────────────────
 // ── Invoices ──
-// Round-15 Sprint 15m-5 — migrated to generated ``InvoiceResponse``.
-// Runtime extras: joined customer thumbnail + ``has_pdf`` boolean.
-interface InvoiceRuntimeExtras {
+// Sprint 15m-5 partial revert — hand-written shape kept.
+export interface Invoice {
+  id: number;
+  tenant_id?: number | null;
+  invoice_number: string;
+  quote_id?: number;
+  contract_id?: number;
+  customer_id: number;
+  created_by: number;
+  issue_date?: string;
+  due_date?: string;
+  status: string;
+  currency: string;
+  subtotal: number;
+  tax_rate: number;
+  tax_amount: number;
+  grand_total: number;
+  items_json?: string;
+  notes?: string;
   has_pdf?: boolean;
+  paid_at?: string;
+  created_at: string | null;
+  updated_at: string | null;
   customer?: { id: number; name: string; company: string };
 }
-
-export type Invoice = ApiSchemas['InvoiceResponse'] & InvoiceRuntimeExtras;
 
 export interface SignatureRequest {
   id: number;
@@ -1791,14 +1965,26 @@ export interface ContractAmendment {
   created_at: string | null;
 }
 
-// Round-15 Sprint 15m-5 — migrated to generated ``ContractResponse``.
-// Runtime extras: joined customer thumbnail + amendments array.
-interface ContractRuntimeExtras {
+// Sprint 15m-5 partial revert — hand-written shape kept.
+export interface Contract {
+  id: number;
+  tenant_id?: number | null;
+  customer_id: number;
   customer?: { id: number; name: string; company: string } | null;
+  quote_id: number | null;
+  title: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  value: number | null;
+  terms_json: string | null;
+  signed_at: string | null;
+  signed_by: string | null;
+  created_by: number;
+  created_at: string | null;
+  updated_at: string | null;
   amendments: ContractAmendment[];
 }
-
-export type Contract = ApiSchemas['ContractResponse'] & ContractRuntimeExtras;
 
 // ── Pipelines ──
 export interface Pipeline {
@@ -1847,20 +2033,31 @@ export interface TerritoryAssignment {
 // LeadListPage.tsx. The local copy was missing notes / owner_id /
 // owner_name / updated_at / tenant_id, so consumers either dropped
 // those fields or had to cast.
-// Round-15 Sprint 15m-4 — migrated to generated ``LeadResponse`` plus
-// runtime extras for serializer-added fields. ``full_name`` is computed
-// server-side from ``first_name + last_name``; ``owner_name`` is
-// joined; ``score_breakdown`` is rendered from ``score_factors_json``.
-interface LeadRuntimeExtras {
-  /** Server-computed ``first_name + ' ' + last_name``. */
+// Sprint 15m-4 partial revert — hand-written shape kept.
+export interface Lead {
+  id: number;
+  tenant_id?: number | null;
+  first_name: string;
+  last_name: string;
   full_name: string;
-  /** Joined ``users.full_name`` for the owner FK; null when unowned. */
+  email: string;
+  phone: string | null;
+  company: string | null;
+  title: string | null;
+  source: string;
+  status: string;
+  lead_score: number;
+  owner_id: number | null;
   owner_name: string | null;
-  /** R5-TS-3 — wire shape is ``{factor, points, reason?}``. */
+  notes: string | null;
+  converted_customer_id: number | null;
+  converted_opportunity_id: number | null;
+  converted_by?: number | null;
+  converted_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
   score_breakdown?: Array<{ factor: string; points: number; reason?: string }>;
 }
-
-export type Lead = ApiSchemas['LeadResponse'] & LeadRuntimeExtras;
 
 // ── Pricing ──────────────────────────────────────────
 export interface PriceTier {

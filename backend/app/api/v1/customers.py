@@ -15,6 +15,7 @@ from app.core.rate_limit import enforce_bulk_rate_limit
 from app.models.customer import Customer
 from app.models.quote import Quote
 from app.models.user import User
+from app.schemas.account_360 import Account360Response
 from app.schemas.common import PaginatedResponse
 from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services.enrichment_service import EnrichmentService
@@ -365,7 +366,7 @@ async def get_customer_intelligence(
     }
 
 
-@router.get("/{customer_id}/account-360")
+@router.get("/{customer_id}/account-360", response_model=Account360Response)
 async def get_account_360(
     customer_id: int,
     refresh: bool = Query(False, description="Zorunlu rollup yenileme"),

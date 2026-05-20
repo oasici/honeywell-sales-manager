@@ -255,8 +255,16 @@ async def upsert_text_embedding(
     payload = json.dumps(vec)
     vh = text_embedder.vocab_hash(tokens)
     if row is None:
+        # Round-15 Sprint 15r cohort 8 — tenant_id NOT NULL.
+        from app.models.opportunity import Opportunity
+        opp_tenant_id = (
+            await db.execute(
+                select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+            )
+        ).scalar_one_or_none()
         row = OpportunityTextEmbedding(
             opportunity_id=opportunity_id,
+            tenant_id=opp_tenant_id,
             embedding_json=payload,
             dim=text_embedder.DEFAULT_DIM,
             version=text_embedder.VERSION,

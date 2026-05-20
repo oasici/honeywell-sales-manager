@@ -805,7 +805,13 @@ async def root():
     return {"service": "honeywell-sales-suite", "status": "ok"}
 
 
-@app.api_route("/api/health", methods=["GET", "HEAD"], tags=["health"])
+# Round-15 audit follow-up — ``api_route`` with both GET + HEAD on the
+# same handler emitted two OpenAPI operationIds with the same generated
+# name, breaking ``openapi-typescript`` codegen with TS2300 duplicate
+# identifier. Fix: GET is the documented op; HEAD is registered
+# separately with ``include_in_schema=False`` so probes still work but
+# OpenAPI sees only one operation.
+@app.get("/api/health", tags=["health"])
 async def health_check():
     """Enhanced health check with dependency status."""
     checks: dict[str, str] = {"database": "unknown"}
@@ -884,6 +890,17 @@ async def health_check():
         "version": "2.0.0",
         "uptime_seconds": round(time.time() - _start_time),
     }
+
+
+@app.head("/api/health", tags=["health"], include_in_schema=False)
+async def health_check_head():
+    """HEAD probe for /api/health.
+
+    Round-15 audit follow-up — split out of the GET handler so each
+    route gets a unique OpenAPI operationId. Returns 200 with empty
+    body; UptimeRobot / Render only care about the status code.
+    """
+    return None
 
 
 @app.get("/api/debug/sentry-test", tags=["debug"])

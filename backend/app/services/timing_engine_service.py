@@ -269,6 +269,9 @@ async def materialize_windows_for_opportunity(
             db.add(
                 RecommendedActionWindow(
                     opportunity_id=opportunity_id,
+                    # Round-15 Sprint 15r cohort 8 — tenant_id NOT NULL.
+                    # ``opp`` was loaded at the top of this function.
+                    tenant_id=opp.tenant_id,
                     action_type=spec.action_type,
                     window_start=window_start,
                     window_end=window_end,

@@ -84,7 +84,10 @@ async def test_health_without_explain_has_no_explanations(client: AsyncClient, d
     )
     assert response.status_code == 200
     data = response.json()
-    assert "explanations" not in data
+    # Round-15 — Pydantic ``response_model`` serializes optional fields
+    # as ``null`` rather than omitting them. Semantic invariant is "no
+    # explanations were computed"; accept either shape.
+    assert data.get("explanations") is None
 
 
 @pytest.mark.asyncio

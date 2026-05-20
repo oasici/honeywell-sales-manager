@@ -9856,16 +9856,12 @@ export interface paths {
          * Health Check
          * @description Enhanced health check with dependency status.
          */
-        get: operations["health_check_api_health_head"];
+        get: operations["health_check_api_health_get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
-        /**
-         * Health Check
-         * @description Enhanced health check with dependency status.
-         */
-        head: operations["health_check_api_health_head"];
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -9896,6 +9892,150 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * Account360EnrichmentBlock
+         * @description Rollup figures cached on ``account_enrichments``.
+         */
+        Account360EnrichmentBlock: {
+            /** Customer Id */
+            customer_id: number;
+            /** Pipeline Open Amount */
+            pipeline_open_amount: number;
+            /** Closed Won Revenue */
+            closed_won_revenue: number;
+            /** Active Deal Count */
+            active_deal_count: number;
+            /** Won Deal Count */
+            won_deal_count: number;
+            /** Lost Deal Count */
+            lost_deal_count: number;
+            /** Total Deal Count */
+            total_deal_count: number;
+            /** Risk Index */
+            risk_index: number;
+            /** Engagement Score */
+            engagement_score: number;
+            /** Computed At */
+            computed_at?: string | null;
+            /** Health Score */
+            health_score?: number | null;
+            /** Health Risk Level */
+            health_risk_level?: string | null;
+            /**
+             * Currency
+             * @default TRY
+             */
+            currency: string;
+        };
+        /**
+         * Account360LastTouchBlock
+         * @description Most recent customer touchpoint.
+         */
+        Account360LastTouchBlock: {
+            /** At */
+            at?: string | null;
+            /** Source */
+            source: string;
+            /** Summary */
+            summary: string;
+        };
+        /**
+         * Account360OpenDealItem
+         * @description One open opportunity inlined on Account 360.
+         *
+         *     Matches the dict shape emitted by
+         *     ``AccountAggregateService.open_deals``.
+         */
+        Account360OpenDealItem: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Stage */
+            stage: string;
+            /** Amount */
+            amount?: number | null;
+            /** Currency */
+            currency: string;
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
+         * Account360Response
+         * @description Unified Account 360 payload.
+         *
+         *     Returned by ``GET /api/v1/customers/{id}/account-360``.
+         */
+        Account360Response: {
+            /** Customer Id */
+            customer_id: number;
+            enrichment: components["schemas"]["Account360EnrichmentBlock"];
+            last_touch: components["schemas"]["Account360LastTouchBlock"];
+            /**
+             * Open Deals
+             * @default []
+             */
+            open_deals: components["schemas"]["Account360OpenDealItem"][];
+            risk_summary: components["schemas"]["Account360RiskSummaryBlock"];
+            /**
+             * Timeline
+             * @default []
+             */
+            timeline: components["schemas"]["Account360TimelineItemResponse"][];
+        };
+        /**
+         * Account360RiskSummaryBlock
+         * @description Risk summary keyed off the customer-health report + unresolved
+         *     high-severity signals.
+         *
+         *     Matches the dict shape emitted by
+         *     ``AccountAggregateService.risk_summary``.
+         */
+        Account360RiskSummaryBlock: {
+            /** Health Score */
+            health_score?: number | null;
+            /** Risk Level */
+            risk_level: string;
+            /** Risk Index */
+            risk_index?: number | null;
+            /** Unresolved High Signals */
+            unresolved_high_signals: number;
+            /**
+             * Recommendations
+             * @default []
+             */
+            recommendations: string[];
+        };
+        /**
+         * Account360TimelineItemResponse
+         * @description One row in the merged multi-opportunity timeline.
+         *
+         *     The shape is heterogeneous (mixes activity_log + opportunity_event
+         *     + revenue_signal rows) so the body is permissive via
+         *     ``extra='allow'``.
+         */
+        Account360TimelineItemResponse: {
+            /** Kind */
+            kind: string;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Opportunity Id */
+            opportunity_id?: number | null;
+            /** Opportunity Title */
+            opportunity_title?: string | null;
+            /** Event Type */
+            event_type?: string | null;
+            /** Entity Type */
+            entity_type?: string | null;
+            /** Entity Id */
+            entity_id?: number | null;
+            /** Description */
+            description?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** ActivityCreate */
         ActivityCreate: {
             /** Activity Type */
@@ -10484,6 +10624,39 @@ export interface components {
             parent_id?: number | null;
             /** Territory Id */
             territory_id?: number | null;
+        };
+        /**
+         * CustomerHealthReportResponse
+         * @description Per-customer health summary.
+         *
+         *     Returned by:
+         *       * ``GET /customers/health/{id}`` (single)
+         *       * ``GET /customers/health/overview`` (``items[*]``)
+         *       * ``GET /customers/health/at-risk`` (``items[*]``)
+         */
+        CustomerHealthReportResponse: {
+            /** Customer Id */
+            customer_id: number;
+            /** Customer Name */
+            customer_name?: string | null;
+            /** Company */
+            company?: string | null;
+            /** Score */
+            score: number;
+            /** Risk Level */
+            risk_level: string;
+            /**
+             * Indicators
+             * @default []
+             */
+            indicators: components["schemas"]["HealthIndicatorResponse"][];
+            /**
+             * Recommendations
+             * @default []
+             */
+            recommendations: string[];
+            /** Explanations */
+            explanations?: components["schemas"]["HealthExplanationResponse"][] | null;
         };
         /** CustomerPricingCreate */
         CustomerPricingCreate: {
@@ -11092,6 +11265,24 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * HealthExplanationResponse
+         * @description Optional ``?explain=true`` block for the detail endpoint.
+         */
+        HealthExplanationResponse: {
+            /** Indicator */
+            indicator: string;
+            /** Label */
+            label: string;
+            /** Value */
+            value?: unknown;
+            /** Weight */
+            weight: number;
+            /** Contribution */
+            contribution: number;
+            /** Recommendation */
+            recommendation?: string | null;
+        };
+        /**
          * HealthIndicator
          * @description One row in ``DealHealthReport.indicators``.
          */
@@ -11100,6 +11291,28 @@ export interface components {
             name: string;
             /** Label */
             label?: string | null;
+            /** Score */
+            score: number;
+            /** Weight */
+            weight: number;
+            /** Raw Value */
+            raw_value?: unknown;
+            /** Description */
+            description?: string | null;
+        };
+        /**
+         * HealthIndicatorResponse
+         * @description One row of ``CustomerHealthReport.indicators``.
+         *
+         *     ``weight`` is a fractional float (e.g. 0.2 = 20% of total) — NOT an
+         *     integer percentage. The original v1 hand-written FE interface
+         *     declared it as ``number`` which works either way.
+         */
+        HealthIndicatorResponse: {
+            /** Name */
+            name: string;
+            /** Label */
+            label: string;
             /** Score */
             score: number;
             /** Weight */
@@ -11675,6 +11888,31 @@ export interface components {
              */
             pages: number;
         };
+        /** PaginatedResponse[CustomerHealthReportResponse] */
+        PaginatedResponse_CustomerHealthReportResponse_: {
+            /** Items */
+            items: components["schemas"]["CustomerHealthReportResponse"][];
+            /**
+             * Total
+             * @description Total number of records
+             */
+            total: number;
+            /**
+             * Page
+             * @description Current page number
+             */
+            page: number;
+            /**
+             * Page Size
+             * @description Number of items per page
+             */
+            page_size: number;
+            /**
+             * Pages
+             * @description Total number of pages
+             */
+            pages: number;
+        };
         /** PaginatedResponse[CustomerResponse] */
         PaginatedResponse_CustomerResponse_: {
             /** Items */
@@ -11900,10 +12138,10 @@ export interface components {
              */
             pages: number;
         };
-        /** PaginatedResponse[SequenceResponse] */
-        PaginatedResponse_SequenceResponse_: {
+        /** PaginatedResponse[SequenceResponseParsed] */
+        PaginatedResponse_SequenceResponseParsed_: {
             /** Items */
-            items: components["schemas"]["SequenceResponse"][];
+            items: components["schemas"]["SequenceResponseParsed"][];
             /**
              * Total
              * @description Total number of records
@@ -12717,6 +12955,43 @@ export interface components {
             auto_enroll_rules_json?: string | null;
             /** Exit Criteria Json */
             exit_criteria_json?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Created By */
+            created_by?: number | null;
+            /** Created At */
+            created_at?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * SequenceResponseParsed
+         * @description Sequence with JSON fields pre-parsed server-side.
+         *
+         *     Returned by:
+         *       * ``GET /sequences/`` (list — minus ``auto_enroll_rules``)
+         *       * ``GET /sequences/{id}`` (detail — full)
+         */
+        SequenceResponseParsed: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Steps
+             * @default []
+             */
+            steps: {
+                [key: string]: unknown;
+            }[];
+            /** Auto Enroll Rules */
+            auto_enroll_rules?: unknown[] | {
+                [key: string]: unknown;
+            } | null;
             /** Is Active */
             is_active?: boolean | null;
             /** Created By */
@@ -14630,7 +14905,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedResponse_dict_"];
+                    "application/json": components["schemas"]["PaginatedResponse_CustomerHealthReportResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -14663,7 +14938,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedResponse_dict_"];
+                    "application/json": components["schemas"]["PaginatedResponse_CustomerHealthReportResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -14699,7 +14974,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["CustomerHealthReportResponse"];
                 };
             };
             /** @description Validation Error */
@@ -17398,7 +17673,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["Account360Response"];
                 };
             };
             /** @description Validation Error */
@@ -21544,7 +21819,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedResponse_SequenceResponse_"];
+                    "application/json": components["schemas"]["PaginatedResponse_SequenceResponseParsed_"];
                 };
             };
             /** @description Validation Error */
@@ -21941,7 +22216,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["SequenceResponseParsed"];
                 };
             };
             /** @description Validation Error */
@@ -22381,7 +22656,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedResponse_SequenceResponse_"];
+                    "application/json": components["schemas"]["PaginatedResponse_SequenceResponseParsed_"];
                 };
             };
             /** @description Validation Error */
@@ -22778,7 +23053,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["SequenceResponseParsed"];
                 };
             };
             /** @description Validation Error */
@@ -32658,27 +32933,7 @@ export interface operations {
             };
         };
     };
-    health_check_api_health_head: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-        };
-    };
-    health_check_api_health_head: {
+    health_check_api_health_get: {
         parameters: {
             query?: never;
             header?: never;

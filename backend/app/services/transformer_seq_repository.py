@@ -52,8 +52,17 @@ async def upsert_transformer_seq_embedding(
 
     existing = await db.get(OpportunityTransformerSeqEmbedding, opportunity_id)
     if existing is None:
+        # Round-15 Sprint 15r cohort 8 — tenant_id NOT NULL.
+        from app.models.opportunity import Opportunity
+        from sqlalchemy import select
+        opp_tenant_id = (
+            await db.execute(
+                select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+            )
+        ).scalar_one_or_none()
         row = OpportunityTransformerSeqEmbedding(
             opportunity_id=opportunity_id,
+            tenant_id=opp_tenant_id,
             embedding_json=payload,
             dim=len(vec),
             version=transformer_sequence_embedder.VERSION,

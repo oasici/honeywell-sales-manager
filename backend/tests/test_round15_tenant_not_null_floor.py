@@ -89,6 +89,12 @@ NOT_NULL_TENANT_ALLOWLIST: set[str] = {
     # ``20260611_phase13_tenant_not_null_cohort7.py``.
     "api_keys",
     "deal_similarity_links",
+    # Round-15 Sprint 15r cohort 8 — 3 more opp-derived tables.
+    # Promoted by migration
+    # ``20260612_phase13_tenant_not_null_cohort8.py``.
+    "opportunity_text_embeddings",
+    "opportunity_transformer_seq_embeddings",
+    "recommended_action_windows",
 }
 
 
