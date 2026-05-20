@@ -1,0 +1,5 @@
+# Round-15 Sprint 15m — flag the auto-generated openapi-typescript
+# output so GitHub UI collapses diffs by default and ``git blame``
+# de-prioritizes it. The file is regenerated on every backend schema
+# change and verified by the CI drift gate.
+frontend/src/lib/api-types.gen.ts linguist-generated=true

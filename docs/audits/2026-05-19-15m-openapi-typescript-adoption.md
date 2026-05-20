@@ -3,7 +3,12 @@
 **Date.** 2026-05-19
 **Audit anchor.** `docs/audits/2026-05-13-deep-cross-layer-audit.md`
 § F-006, F-009, "Adopt openapi-typescript" recommendation
-**Status.** Skeleton landed; live adoption deferred to 15m-2.
+**Status.** ✅ **Closed** as of 2026-05-20. Skeleton landed first (commit
+`82a463f`), live adoption completed in 15m-1.5 through 15m-7. Generated
+file is now 32,732 lines of TypeScript covering 22 `*Response` schemas;
+the CI drift gate is live (no longer dormant). 13 hand-written
+interfaces in `frontend/src/lib/types.ts` migrated to typed aliases
+over `components['schemas']`; ~250 hand-written lines retired.
 
 ---
 
