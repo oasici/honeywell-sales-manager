@@ -12,7 +12,7 @@ from app.core.dependencies import require_role
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.product_rule_service import ProductRuleService
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import ProductRuleRow
 
 router = APIRouter(prefix="/product-rules", tags=["Product Rules"])
@@ -87,7 +87,7 @@ async def create_product_rule(
     return _rule_to_dict(rule)
 
 
-@router.delete("/{rule_id}", response_model=dict)
+@router.delete("/{rule_id}", response_model=MessageResponse)
 async def delete_product_rule(
     rule_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

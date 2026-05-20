@@ -17,6 +17,7 @@ from app.models.product_bundle import ProductBundle
 from app.models.spare_part import SparePart
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import MessageResponse
 
 router = APIRouter(tags=["Bundles (CPQ)"])
 
@@ -82,7 +83,7 @@ async def create_bundle(
     return {"id": bundle.id, "name": bundle.name}
 
 
-@router.delete("/bundles/{bundle_id}", response_model=dict)
+@router.delete("/bundles/{bundle_id}", response_model=MessageResponse)
 async def delete_bundle(
     bundle_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

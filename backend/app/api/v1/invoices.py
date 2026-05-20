@@ -22,7 +22,7 @@ from app.models.enums import UserRole
 from app.models.invoice import Invoice
 from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.invoice import InvoiceResponse
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
@@ -300,7 +300,7 @@ async def update_invoice(
     return {"message": "Fatura guncellendi", "id": invoice.id}
 
 
-@router.patch("/{invoice_id}/status", response_model=dict)
+@router.patch("/{invoice_id}/status", response_model=MessageResponse)
 async def update_invoice_status(
     invoice_id: int,
     body: StatusUpdate,
@@ -365,7 +365,7 @@ async def update_invoice_status(
     return {"message": "Fatura durumu guncellendi", "id": invoice_id, "status": body.status}
 
 
-@router.post("/from-quote/{quote_id}", status_code=201, response_model=dict)
+@router.post("/from-quote/{quote_id}", status_code=201, response_model=MessageResponse)
 async def create_invoice_from_quote(
     quote_id: int,
     current_user: User = Depends(get_current_user),

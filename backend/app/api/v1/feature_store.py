@@ -16,6 +16,7 @@ from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.feature_store_builder import build_daily_feature_store
 from app.services.tenant_context import assert_same_tenant
+from app.schemas.common import GenericDataResponse
 
 
 router = APIRouter(prefix="/v4", tags=["V4 Feature Store"])
@@ -43,7 +44,7 @@ async def build_feature_store(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/features/latest", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/features/latest", response_model=GenericDataResponse)
 async def get_latest_opportunity_features(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),

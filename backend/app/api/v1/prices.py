@@ -14,7 +14,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.price_entry import PriceEntry
 from app.models.spare_part import SparePart
 from app.models.user import User
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.price_entry import PriceEntryResponse
 
 router = APIRouter(prefix="/prices", tags=["Prices"])
@@ -108,7 +108,7 @@ async def create_price(
     "/import",
     status_code=201,
     dependencies=[Depends(enforce_upload_rate_limit)],
-    response_model=dict,
+    response_model=MessageResponse,
 )
 async def import_prices(
     file: UploadFile = File(...),

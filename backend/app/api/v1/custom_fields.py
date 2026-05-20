@@ -12,7 +12,7 @@ from app.core.dependencies import require_role
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.custom_field_service import CustomFieldService
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import CustomFieldDefinitionRow
 
 router = APIRouter(prefix="/custom-fields", tags=["Custom Fields"])
@@ -74,7 +74,7 @@ async def list_custom_fields(
     }
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=MessageResponse)
 async def create_custom_field(
     body: CustomFieldCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -118,7 +118,7 @@ async def create_custom_field(
     }
 
 
-@router.delete("/{field_id}", response_model=dict)
+@router.delete("/{field_id}", response_model=MessageResponse)
 async def delete_custom_field(
     field_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -153,7 +153,7 @@ async def get_custom_field_values(
     return {"entity_type": entity_type, "entity_id": entity_id, "values": values}
 
 
-@router.post("/values/{entity_type}/{entity_id}", response_model=dict)
+@router.post("/values/{entity_type}/{entity_id}", response_model=MessageResponse)
 async def set_custom_field_value(
     entity_type: str,
     entity_id: int,

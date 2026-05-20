@@ -14,7 +14,7 @@ from app.core.rate_limit import enforce_upload_rate_limit
 from app.models.enums import UserRole
 from app.models.quote import Quote
 from app.models.user import User
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.quote import QuoteCreate, QuoteResponse, QuoteUpdate
 from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
@@ -339,7 +339,7 @@ class SendQuoteRequest(BaseModel):
     message: str | None = None
 
 
-@router.post("/{quote_id}/send", response_model=dict)
+@router.post("/{quote_id}/send", response_model=MessageResponse)
 async def send_quote(
     quote_id: int,
     data: SendQuoteRequest | None = None,

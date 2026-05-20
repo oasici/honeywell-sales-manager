@@ -18,7 +18,7 @@ from app.models.customer import Customer
 from app.models.opportunity import Opportunity, OpportunityEvent
 from app.models.user import User
 from app.schemas.activity import ActivityResponse
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import GenericDataResponse, PaginatedResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/activities", tags=["Activities"])
@@ -41,7 +41,7 @@ class ActivityCreate(BaseModel):
 
 # ── POST /activities/ ──
 
-@router.post("/", response_model=dict)
+@router.post("/", response_model=GenericDataResponse)
 async def log_activity(
     payload: ActivityCreate,
     db: AsyncSession = Depends(get_db),
@@ -181,7 +181,7 @@ async def list_activities(
 
 # ── GET /activities/metrics ──
 
-@router.get("/metrics", response_model=dict)
+@router.get("/metrics", response_model=GenericDataResponse)
 async def activity_metrics(
     window: int = Query(default=30, ge=1, le=365),
     db: AsyncSession = Depends(get_db),

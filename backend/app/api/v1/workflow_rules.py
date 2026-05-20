@@ -15,6 +15,7 @@ from app.models.enums import UserRole
 from app.models.user import User
 from app.models.workflow_rule import WorkflowRule
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
+from app.schemas.common import MessageResponse
 
 router = APIRouter(prefix="/workflow-rules", tags=["Workflow Rules"])
 
@@ -69,7 +70,7 @@ async def list_workflow_rules(
     }
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=MessageResponse)
 async def create_workflow_rule(
     body: WorkflowRuleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -98,7 +99,7 @@ async def create_workflow_rule(
     }
 
 
-@router.put("/{rule_id}", response_model=dict)
+@router.put("/{rule_id}", response_model=MessageResponse)
 async def update_workflow_rule(
     rule_id: int,
     body: WorkflowRuleUpdate,
@@ -127,7 +128,7 @@ async def update_workflow_rule(
     return {"message": "Is kurali guncellendi", "id": rule.id}
 
 
-@router.delete("/{rule_id}", response_model=dict)
+@router.delete("/{rule_id}", response_model=MessageResponse)
 async def delete_workflow_rule(
     rule_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

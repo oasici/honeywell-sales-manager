@@ -13,6 +13,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.field_permission_service import FieldPermissionService
+from app.schemas.common import MessageResponse
 
 router = APIRouter(prefix="/field-permissions", tags=["Field Permissions"])
 
@@ -96,7 +97,7 @@ async def set_field_permission(
     )
 
 
-@router.delete("/{permission_id}", response_model=dict)
+@router.delete("/{permission_id}", response_model=MessageResponse)
 async def delete_field_permission(
     permission_id: int,
     current_user: Annotated[User, Depends(require_role(UserRole.SALES_MANAGER))],

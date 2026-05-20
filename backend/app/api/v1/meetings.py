@@ -27,6 +27,7 @@ from app.schemas.meeting import (
     MeetingMessageResponse,
     MeetingPlaceholderResponse,
 )
+from app.schemas.common import GenericDataResponse
 
 router = APIRouter(prefix="/meetings", tags=["Meetings"])
 
@@ -245,7 +246,7 @@ async def create_booking(
     }
 
 
-@router.get("/bookings", response_model=dict)
+@router.get("/bookings", response_model=GenericDataResponse)
 async def list_bookings(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

@@ -15,7 +15,7 @@ from app.models.enums import UserRole
 from app.models.selling_guide import SellingGuide
 from app.models.user import User
 from app.services.guided_selling_service import GuidedSellingService
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import GuidedSellingRow
 
 
@@ -106,7 +106,7 @@ async def get_guide(
     return guide
 
 
-@router.delete("/guided-selling/{guide_id}", response_model=dict)
+@router.delete("/guided-selling/{guide_id}", response_model=MessageResponse)
 async def delete_guide(
     guide_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

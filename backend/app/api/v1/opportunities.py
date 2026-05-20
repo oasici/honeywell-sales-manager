@@ -24,7 +24,7 @@ from app.models.opportunity import Opportunity, OpportunityEvent, OpportunitySig
 from app.models.quote import Quote
 from app.models.user import User
 from app.core.event_bus import event_bus
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import GenericDataResponse, MessageResponse, PaginatedResponse
 from app.schemas.opportunity import OpportunityResponse
 from app.schemas.opportunity_intelligence import OpportunityIntelligenceResponse
 from app.services.activity_logger import log_activity
@@ -547,7 +547,7 @@ async def get_opportunity_intelligence(
     }
 
 
-@router.get("/opportunities/{opp_id}/stage-requirements", response_model=dict)
+@router.get("/opportunities/{opp_id}/stage-requirements", response_model=GenericDataResponse)
 async def get_stage_requirements(
     opp_id: int,
     current_user: User = Depends(get_current_user),
@@ -746,7 +746,7 @@ async def update_opportunity(
     "/opportunities/bulk-action",
     # Round-4 R4-RL-2 — DoS + audit-log flood guard.
     dependencies=[Depends(enforce_bulk_rate_limit)],
-    response_model=dict,
+    response_model=MessageResponse,
 )
 async def bulk_action_opportunities(
     body: dict,

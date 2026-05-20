@@ -18,7 +18,7 @@ from app.models.deal_room import DealRoom
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import DealRoomRow
 
 
@@ -170,7 +170,7 @@ async def update_deal_room(
     return _serialize(room)
 
 
-@router.delete("/deal-rooms/{room_id}", response_model=dict)
+@router.delete("/deal-rooms/{room_id}", response_model=MessageResponse)
 async def deactivate_deal_room(
     room_id: int,
     _current_user: User = Depends(get_current_user),
@@ -212,7 +212,7 @@ async def get_public_deal_room(
     return _serialize(room)
 
 
-@router.post("/deal-rooms/public/{token}/action", response_model=dict)
+@router.post("/deal-rooms/public/{token}/action", response_model=MessageResponse)
 async def buyer_action(
     token: str,
     body: BuyerActionBody,

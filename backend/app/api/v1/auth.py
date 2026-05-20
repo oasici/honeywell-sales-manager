@@ -30,6 +30,7 @@ from app.models.user import User
 from app.schemas.auth import TokenResponse, UserCreate, UserResponse
 from app.services import auth_service
 from app.services import session_service
+from app.schemas.common import MessageResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -236,7 +237,7 @@ async def refresh_token_endpoint(
     )
 
 
-@router.post("/logout", response_model=dict)
+@router.post("/logout", response_model=MessageResponse)
 async def logout(
     request: Request,
     response: Response,
@@ -279,7 +280,7 @@ class ChangePasswordRequest(BaseModel):
 @router.post(
     "/change-password",
     dependencies=[Depends(enforce_login_rate_limit)],
-    response_model=dict,
+    response_model=MessageResponse,
 )
 async def change_password(
     body: ChangePasswordRequest,
@@ -335,7 +336,7 @@ async def list_sessions(
     ]
 
 
-@router.delete("/sessions/{jti}", response_model=dict)
+@router.delete("/sessions/{jti}", response_model=MessageResponse)
 async def kill_session(
     jti: str,
     current_user: Annotated[User, Depends(get_current_user)],

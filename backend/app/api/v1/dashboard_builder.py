@@ -17,7 +17,7 @@ from app.core.exceptions import ForbiddenException, NotFoundException
 from app.models.dashboard_config import DashboardConfig
 from app.models.report import ReportTemplate
 from app.models.user import User
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import GenericDataResponse, PaginatedResponse
 from app.schemas.dashboard import DashboardConfigResponse
 from app.services.report_engine import ReportEngine
 
@@ -92,7 +92,7 @@ async def list_dashboards(
     }
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=GenericDataResponse)
 async def create_dashboard(
     body: DashboardCreate,
     current_user: User = Depends(get_current_user),
@@ -127,7 +127,7 @@ async def create_dashboard(
     }
 
 
-@router.put("/{dashboard_id}", response_model=dict)
+@router.put("/{dashboard_id}", response_model=GenericDataResponse)
 async def update_dashboard(
     dashboard_id: int,
     body: DashboardUpdate,
@@ -175,7 +175,7 @@ async def delete_dashboard(
     await db.delete(dashboard)
 
 
-@router.get("/{dashboard_id}/execute", response_model=dict)
+@router.get("/{dashboard_id}/execute", response_model=GenericDataResponse)
 async def execute_dashboard(
     dashboard_id: int,
     current_user: User = Depends(get_current_user),

@@ -15,7 +15,7 @@ from app.models.playbook import PlaybookExecution
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.playbook_service import PlaybookService
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.playbook import PlaybookResponse
 
 router = APIRouter(prefix="/playbooks", tags=["Playbooks"])
@@ -337,7 +337,7 @@ async def update_playbook(
     return {"message": "Playbook guncellendi", "id": playbook.id}
 
 
-@router.delete("/{playbook_id}", response_model=dict)
+@router.delete("/{playbook_id}", response_model=MessageResponse)
 async def deactivate_playbook(
     playbook_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -352,7 +352,7 @@ async def deactivate_playbook(
     return {"message": "Playbook devre disi birakildi", "id": playbook_id}
 
 
-@router.post("/executions/{execution_id}/cancel", response_model=dict)
+@router.post("/executions/{execution_id}/cancel", response_model=MessageResponse)
 async def cancel_execution(
     execution_id: int,
     current_user: User = Depends(get_current_user),

@@ -14,7 +14,7 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.spare_part import SparePart
 from app.models.user import User
 from app.schemas.spare_part import SparePartCreate, SparePartResponse, SparePartUpdate
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 
 router = APIRouter(prefix="/parts", tags=["Spare Parts"])
 
@@ -170,7 +170,7 @@ async def update_part(
     return _part_to_dict(part)
 
 
-@router.delete("/{part_id}", status_code=200, response_model=dict)
+@router.delete("/{part_id}", status_code=200, response_model=MessageResponse)
 async def delete_part(
     part_id: int,
     current_user: User = Depends(require_role(UserRole.OPERATIONS)),

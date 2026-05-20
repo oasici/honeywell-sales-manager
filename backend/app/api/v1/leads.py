@@ -21,7 +21,7 @@ from app.core.rate_limit import enforce_bulk_rate_limit
 from app.models.enums import UserRole
 from app.models.lead import Lead
 from app.models.user import User
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import LeadScoringConfigRow
 from app.schemas.lead import LeadResponse
 from app.core.event_bus import event_bus
@@ -209,7 +209,7 @@ async def lead_analytics(
     }
 
 
-@router.post("/web-form", status_code=201, response_model=dict)
+@router.post("/web-form", status_code=201, response_model=MessageResponse)
 async def web_lead_form(
     data: WebLeadFormRequest,
     request: Request,
@@ -416,7 +416,7 @@ async def update_scoring_config(
     "/bulk-action",
     # Round-4 R4-RL-2 — DoS + audit-log flood guard.
     dependencies=[Depends(enforce_bulk_rate_limit)],
-    response_model=dict,
+    response_model=MessageResponse,
 )
 async def bulk_action_leads(
     body: dict,

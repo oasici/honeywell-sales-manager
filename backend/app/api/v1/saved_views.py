@@ -10,7 +10,7 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
 from app.models.saved_view import SavedView
 from app.models.user import User
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.shared_document import SavedViewResponse
 
 router = APIRouter(prefix="/saved-views", tags=["Saved Views"])
@@ -89,7 +89,7 @@ async def create_saved_view(
     }
 
 
-@router.delete("/{view_id}", status_code=200, response_model=dict)
+@router.delete("/{view_id}", status_code=200, response_model=MessageResponse)
 async def delete_saved_view(
     view_id: int,
     current_user: User = Depends(get_current_user),

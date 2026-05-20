@@ -13,7 +13,7 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
 from app.models.shared_document import SharedDocument
 from app.models.user import User
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import GenericDataResponse, PaginatedResponse
 from app.schemas.shared_document import SharedDocumentResponse
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
@@ -26,7 +26,7 @@ class ShareRequest(BaseModel):
     shared_with_email: str
 
 
-@router.post("/share", response_model=dict)
+@router.post("/share", response_model=GenericDataResponse)
 async def share_document(
     body: ShareRequest,
     current_user: User = Depends(get_current_user),
@@ -72,7 +72,7 @@ async def share_document(
     }
 
 
-@router.get("/track/{token}", response_model=dict)
+@router.get("/track/{token}", response_model=GenericDataResponse)
 async def track_document(
     token: str,
     db: AsyncSession = Depends(get_db),
@@ -142,7 +142,7 @@ async def list_documents(
     }
 
 
-@router.get("/{document_id}/analytics", response_model=dict)
+@router.get("/{document_id}/analytics", response_model=GenericDataResponse)
 async def get_document_analytics(
     document_id: int,
     current_user: User = Depends(get_current_user),

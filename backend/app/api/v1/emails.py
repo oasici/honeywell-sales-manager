@@ -20,7 +20,7 @@ from app.services.activity_logger import log_activity
 from app.services.email_processing_service import EmailProcessingService
 from app.services.notification_service import create_notification
 from app.services.tenant_context import assert_same_tenant
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 
 
 def _assert_email_same_tenant(email: EmailRequest, user: User) -> None:
@@ -245,7 +245,7 @@ async def create_manual_email(
     return _email_to_dict(email, include_body=True)
 
 
-@router.post("/poll", status_code=200, response_model=dict)
+@router.post("/poll", status_code=200, response_model=MessageResponse)
 async def poll_emails(
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -492,7 +492,7 @@ async def link_email_to_opportunity(
     return _email_to_dict(email)
 
 
-@router.patch("/{email_id}/read", status_code=200, response_model=dict)
+@router.patch("/{email_id}/read", status_code=200, response_model=MessageResponse)
 async def mark_email_read(
     email_id: int,
     current_user: User = Depends(get_current_user),
@@ -563,7 +563,7 @@ class CorrectParseRequest(BaseModel):
     parsed_data: dict
 
 
-@router.patch("/{email_id}/correct-parse", status_code=200, response_model=dict)
+@router.patch("/{email_id}/correct-parse", status_code=200, response_model=MessageResponse)
 async def correct_parse(
     email_id: int,
     body: CorrectParseRequest,

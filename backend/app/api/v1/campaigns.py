@@ -17,7 +17,7 @@ from app.models.campaign import Campaign, CampaignMember
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.campaign import CampaignResponse
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
@@ -275,7 +275,7 @@ async def update_campaign(
     return {"message": "Kampanya guncellendi", "id": campaign.id}
 
 
-@router.delete("/{campaign_id}", response_model=dict)
+@router.delete("/{campaign_id}", response_model=MessageResponse)
 async def delete_campaign(
     campaign_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -394,7 +394,7 @@ async def list_campaign_members(
     }
 
 
-@router.post("/{campaign_id}/members", status_code=201, response_model=dict)
+@router.post("/{campaign_id}/members", status_code=201, response_model=MessageResponse)
 async def add_campaign_members(
     campaign_id: int,
     body: list[MemberAdd],
@@ -438,7 +438,7 @@ async def add_campaign_members(
     return {"message": "Uyeler eklendi", "added": added, "invalid": invalid}
 
 
-@router.delete("/{campaign_id}/members/{member_id}", response_model=dict)
+@router.delete("/{campaign_id}/members/{member_id}", response_model=MessageResponse)
 async def remove_campaign_member(
     campaign_id: int,
     member_id: int,
@@ -465,7 +465,7 @@ async def remove_campaign_member(
     return {"message": "Uye kaldirildi", "id": member_id}
 
 
-@router.patch("/{campaign_id}/members/{member_id}/status", response_model=dict)
+@router.patch("/{campaign_id}/members/{member_id}/status", response_model=MessageResponse)
 async def update_member_status(
     campaign_id: int,
     member_id: int,

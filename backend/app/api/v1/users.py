@@ -17,7 +17,7 @@ from app.core.security import hash_password, validate_password_strength
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import UserRow
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -158,7 +158,7 @@ async def change_user_role(
     return _user_to_dict(user)
 
 
-@router.patch("/{user_id}/reset-password", response_model=dict)
+@router.patch("/{user_id}/reset-password", response_model=MessageResponse)
 async def reset_user_password(
     user_id: int,
     data: PasswordResetRequest,
@@ -186,7 +186,7 @@ async def reset_user_password(
 @router.post(
     "/bulk-import",
     dependencies=[Depends(enforce_upload_rate_limit)],
-    response_model=dict,
+    response_model=MessageResponse,
 )
 async def bulk_import_users(
     file: UploadFile,

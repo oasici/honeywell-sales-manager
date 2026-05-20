@@ -21,7 +21,7 @@ from app.models.notification import Notification
 from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import CommentRow
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
@@ -204,7 +204,7 @@ async def create_comment(
     return _serialize_comment(comment)
 
 
-@router.delete("/{comment_id}", response_model=dict)
+@router.delete("/{comment_id}", response_model=MessageResponse)
 async def delete_comment(
     comment_id: int,
     current_user: User = Depends(get_current_user),

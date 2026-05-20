@@ -12,6 +12,7 @@ from app.core.exceptions import BadRequestException
 from app.models.enums import UserRole
 from app.models.user import User
 from app.services.record_duplicate_service import RecordDuplicateService
+from app.schemas.common import GenericDataResponse
 
 router = APIRouter(prefix="/duplicates", tags=["Duplicate Management"])
 
@@ -66,7 +67,7 @@ async def check_duplicates(
     }
 
 
-@router.post("/merge/preview", response_model=dict)
+@router.post("/merge/preview", response_model=GenericDataResponse)
 async def merge_preview(
     payload: MergePreviewRequest,
     current_user: User = Depends(get_current_user),
@@ -87,7 +88,7 @@ async def merge_preview(
     return {"data": preview}
 
 
-@router.post("/merge", response_model=dict)
+@router.post("/merge", response_model=GenericDataResponse)
 async def merge_records(
     payload: MergeRequest,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

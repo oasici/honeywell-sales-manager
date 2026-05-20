@@ -16,6 +16,7 @@ from app.models.enums import UserRole
 from app.models.feature_usage import FeatureUsage
 from app.models.quote import Quote
 from app.models.user import User
+from app.schemas.common import GenericDataResponse
 
 router = APIRouter(prefix="/ops", tags=["Operations"])
 
@@ -127,7 +128,7 @@ async def get_feature_usage(
     }
 
 
-@router.get("/feature-flags", response_model=dict)
+@router.get("/feature-flags", response_model=GenericDataResponse)
 async def get_feature_flags(
     current_user: User = Depends(get_current_user),
 ):
@@ -149,7 +150,7 @@ async def get_feature_flags(
     return {"data": flags}
 
 
-@router.get("/dashboard", response_model=dict)
+@router.get("/dashboard", response_model=GenericDataResponse)
 async def get_ops_dashboard(
     current_user: User = Depends(get_current_user),
 ):

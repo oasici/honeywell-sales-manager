@@ -13,6 +13,7 @@ from app.models.feature_store_daily import OpportunityFeaturesDaily
 from app.models.network_benchmarks import SegmentBenchmarksDaily
 from app.models.opportunity import Opportunity
 from app.models.user import User
+from app.schemas.common import GenericDataResponse
 
 
 router = APIRouter(prefix="/v4/benchmarks", tags=["V4 Benchmarks"])
@@ -66,7 +67,7 @@ async def get_latest_segment_benchmarks(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/gap", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/gap", response_model=GenericDataResponse)
 async def get_opportunity_benchmark_gap(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),

@@ -18,7 +18,7 @@ from app.models.team import SharingRule
 from app.models.user import User
 from app.services.access_service import AccessService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import GenericDataResponse, PaginatedResponse
 from app.schemas.round15_pagination import SharingRuleRow
 
 router = APIRouter(tags=["Teams"])
@@ -112,7 +112,7 @@ async def list_team_members(
     }
 
 
-@router.post("/customers/{customer_id}/team", status_code=201, response_model=dict)
+@router.post("/customers/{customer_id}/team", status_code=201, response_model=GenericDataResponse)
 async def add_team_member(
     customer_id: int,
     body: TeamMemberCreate,
@@ -216,7 +216,7 @@ async def list_sharing_rules(
     }
 
 
-@router.post("/sharing-rules/", status_code=201, response_model=dict)
+@router.post("/sharing-rules/", status_code=201, response_model=GenericDataResponse)
 async def create_sharing_rule(
     body: SharingRuleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
