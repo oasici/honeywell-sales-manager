@@ -13,6 +13,11 @@ import { onUserChanged } from '../../lib/cacheInvalidation';
 import { translateUserRole } from '../../lib/labelTranslations';
 import { formatDate } from '../../lib/formatters';
 import { useT } from '../../hooks/useT';
+// Sprint 16g (Round-15) — adopt the canonical shared User shape.
+// Pre-fix this page declared a 6-field local ``interface User`` that
+// was a strict subset of the shared one in lib/types.ts; dropping the
+// local avoids drift the next time the canonical shape gains a field.
+import type { User } from '../../lib/types';
 
 // Map role → Badge variant. Admin gets brand-tinted treatment so the
 // privilege level is unambiguous at a glance.
@@ -23,15 +28,6 @@ const ROLE_TONE: Record<string, BadgeTone> = {
   sales_rep: 'info',
   viewer: 'default',
 };
-
-interface User {
-  id: number;
-  full_name: string;
-  email: string;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-}
 
 interface PaginatedUsers {
   items: User[];
