@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import { DataTable } from '../../components/ui/DataTable';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
@@ -222,6 +223,52 @@ export default function ApprovalRulesPage() {
       render: (row: ApprovalRule) => (
         <span className="text-slate-700 dark:text-slate-300">{row.priority}</span>
       ),
+    },
+    {
+      // N15-FE-3 (Round-15) — surface escalation SLA + active delegation
+      // + parallel chain mode. Pre-Round-15 the `_rule_to_dict` emitted
+      // none of these, so an operator who set up SLA escalation via the
+      // edit modal had no visual confirmation it was wired. Hidden below
+      // md so the table doesn't get crushed on small screens.
+      key: 'escalation_delegation',
+      header: 'Eskalasyon / Delegasyon',
+      hideOn: 'md' as const,
+      render: (row: ApprovalRule) => {
+        const badges: JSX.Element[] = [];
+        if (row.escalation_hours && row.escalation_hours > 0) {
+          badges.push(
+            <Badge key="esc" variant="warning" size="sm" title={row.escalation_action ?? undefined}>
+              {`${row.escalation_hours}s`}
+            </Badge>,
+          );
+        }
+        const delegateActive =
+          row.delegate_until &&
+          new Date(row.delegate_until).getTime() > Date.now();
+        if (delegateActive && row.delegate_to) {
+          badges.push(
+            <Badge
+              key="del"
+              variant="info"
+              size="sm"
+              title={`Delegasyon ${row.delegate_until} tarihine kadar`}
+            >
+              {`Delegasyon → #${row.delegate_to}`}
+            </Badge>,
+          );
+        }
+        if (row.chain_mode === 'parallel') {
+          badges.push(
+            <Badge key="chain" variant="default" size="sm" title="Paralel onay zinciri">
+              Paralel
+            </Badge>,
+          );
+        }
+        if (badges.length === 0) {
+          return <span className="text-slate-400">—</span>;
+        }
+        return <div className="flex flex-wrap gap-1">{badges}</div>;
+      },
     },
     {
       key: 'is_active',

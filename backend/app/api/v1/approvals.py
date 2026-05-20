@@ -324,6 +324,18 @@ def _rule_to_dict(rule: ApprovalRule) -> dict:
         "is_active": rule.is_active,
         "escalation_hours": getattr(rule, "escalation_hours", None),
         "escalation_action": getattr(rule, "escalation_action", None),
+        # N15-FE-3 (Round-15) — delegation + chain-mode columns lived
+        # on the model since R6 (parallel-chain approvals shipped with
+        # the V13 audit) but the serializer never emitted them, so the
+        # SPA could write delegations (via POST /approvals/{id}/delegate)
+        # but had no way to read the current delegate or expiry.
+        "chain_mode": getattr(rule, "chain_mode", None),
+        "delegate_to": getattr(rule, "delegate_to", None),
+        "delegate_until": (
+            rule.delegate_until.isoformat()
+            if getattr(rule, "delegate_until", None) is not None
+            else None
+        ),
         "created_at": rule.created_at.isoformat() if rule.created_at else None,
     }
 

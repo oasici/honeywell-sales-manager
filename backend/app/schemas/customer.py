@@ -1,8 +1,21 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
+
+
+# KVKK / data-handling classification — DB column allows
+# ``public|internal|confidential|restricted`` (see
+# ``backend/app/models/customer.py:64`` and the SPA Select at
+# ``CustomerDetailPage.tsx:362-366``).
+DataClassification = Literal[
+    "public",
+    "internal",
+    "confidential",
+    "restricted",
+]
 
 
 class CustomerCreate(BaseModel):
@@ -31,6 +44,11 @@ class CustomerCreate(BaseModel):
     annual_revenue: str | None = Field(default=None, max_length=50)
     parent_id: int | None = None
     territory_id: int | None = None
+    # N15-FE-2 (Round-15) — KVKK / GDPR-relevant column the SPA already
+    # surfaces in the create + edit forms (CustomerDetailPage.tsx:362,
+    # CustomerListPage.tsx create modal). Pre-Round-15 the field was
+    # silently dropped on the wire because the schema didn't declare it.
+    data_classification: DataClassification | None = None
 
 
 class CustomerUpdate(BaseModel):
@@ -51,6 +69,10 @@ class CustomerUpdate(BaseModel):
     annual_revenue: str | None = Field(default=None, max_length=50)
     parent_id: int | None = None
     territory_id: int | None = None
+    # N15-FE-2 — see CustomerCreate above. The SPA already serializes
+    # ``data_classification`` on every PATCH; declaring it here unblocks
+    # persistence.
+    data_classification: DataClassification | None = None
 
 
 class CustomerResponse(BaseModel):
@@ -130,3 +152,25 @@ class CustomerResponse(BaseModel):
     data_retention_until: datetime | None = None
 
     model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class HighIntentAccountResponse(BaseModel):
+    """Wire shape for ``GET /api/v1/customers/high-intent``.
+
+    Round-15 N15-API-1 quick-win 5 — pre-Round-15 the endpoint was typed
+    as ``PaginatedResponse[dict]`` even though ``ProspectingAgent`` already
+    emits this exact 6-field shape (``customers.py:115-125``). The schema
+    closes that contract gap without changing the wire payload.
+    """
+
+    customer_id: int
+    name: str | None = None
+    company: str | None = None
+    score: float
+    # ``signals`` is a free-form list of human-readable badges
+    # (e.g. ``["3 quotes in 7 days", "Pinned"]``). Typed as
+    # ``list[str]`` so the SPA can render badges directly.
+    signals: list[str] = []
+    pinned: bool = False
+
+    model_config = {"from_attributes": True}

@@ -726,6 +726,14 @@ export interface ApprovalRule {
   // escalation timing without a cast.
   escalation_hours?: number | null;
   escalation_action?: string | null;
+  // N15-FE-3 (Round-15) — delegation + chain-mode columns existed on the
+  // ORM but `_rule_to_dict` did not emit them, so the SPA had no way to
+  // read who an approval was delegated to or whether the rule used
+  // parallel evaluation. Round-15 added them to the serializer; round-
+  // tripped here so the rules page can render delegation badges.
+  chain_mode?: 'sequential' | 'parallel' | null;
+  delegate_to?: number | null;
+  delegate_until?: string | null;
   created_at: string | null;
 }
 

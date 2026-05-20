@@ -59,6 +59,15 @@ class OpportunityUpdate(BaseModel):
     customer_id: int | None = None
     status: str | None = None
     loss_reason: str | None = None
+    # N15-FE-1 (Round-15) — these columns existed on the ORM but the
+    # update schema silently dropped them, so the SPA edit form on
+    # ``OpportunityDetailPage`` never persisted. Adding them here lets
+    # ``body.model_dump(exclude_unset=True)`` + ``setattr`` flow through.
+    forecast_category: str | None = None
+    probability: float | None = None
+    source: str | None = None
+    pipeline_id: int | None = None
+    territory_id: int | None = None
 
 
 # ── Stage probability mapping (centralized) ──
