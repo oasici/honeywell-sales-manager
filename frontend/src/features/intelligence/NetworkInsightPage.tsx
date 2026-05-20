@@ -27,7 +27,11 @@ type VerdictVariant = 'success' | 'info' | 'warning' | 'danger';
 
 const VERDICT_META: Record<
   VerdictKey,
-  { variant: VerdictVariant; icon: React.ReactNode; labelKey: import('../../lib/i18n').TranslationKey }
+  {
+    variant: VerdictVariant;
+    icon: React.ReactNode;
+    labelKey: import('../../lib/i18n').TranslationKey;
+  }
 > = {
   leading: {
     variant: 'success',
@@ -62,7 +66,9 @@ export default function NetworkInsightPage() {
 
   const verdictBadge = useMemo(
     () =>
-      (Object.entries(VERDICT_META) as Array<[VerdictKey, typeof VERDICT_META[VerdictKey]]>).reduce(
+      (
+        Object.entries(VERDICT_META) as Array<[VerdictKey, (typeof VERDICT_META)[VerdictKey]]>
+      ).reduce(
         (acc, [k, meta]) => {
           acc[k] = { variant: meta.variant, icon: meta.icon, label: t(meta.labelKey) };
           return acc;
@@ -94,7 +100,9 @@ export default function NetworkInsightPage() {
 
       {segments.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-caption text-slate-500">{t('network_intelligence.segment_label')}</span>
+          <span className="text-caption text-slate-500">
+            {t('network_intelligence.segment_label')}
+          </span>
           {segments.slice(0, 8).map((seg) => (
             <button
               key={seg.segment_key}
@@ -123,62 +131,68 @@ export default function NetworkInsightPage() {
         </div>
       )}
 
-      {!overviewQuery.isError && !overviewQuery.isLoading && overview && overview.metrics.length === 0 && (
-        <EmptyState
-          title={t('network_intelligence.empty_title')}
-          description={t('network_intelligence.empty_description')}
-        />
-      )}
+      {!overviewQuery.isError &&
+        !overviewQuery.isLoading &&
+        overview &&
+        overview.metrics.length === 0 && (
+          <EmptyState
+            title={t('network_intelligence.empty_title')}
+            description={t('network_intelligence.empty_description')}
+          />
+        )}
 
-      {!overviewQuery.isError && !overviewQuery.isLoading && overview && overview.metrics.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {overview.metrics.map((m) => {
-            const verdict = verdictBadge[(m.verdict as VerdictKey)] ?? verdictBadge.unknown;
-            return (
-              <Card key={m.key}>
-                <div className="flex items-center justify-between">
-                  <span className="text-caption text-slate-500">{m.label}</span>
-                  <Badge variant={verdict.variant}>
-                    <span className="inline-flex items-center gap-1">
-                      {verdict.icon}
-                      {verdict.label}
-                    </span>
-                  </Badge>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-caption text-slate-500">
-                      {t('network_intelligence.col_us')}
+      {!overviewQuery.isError &&
+        !overviewQuery.isLoading &&
+        overview &&
+        overview.metrics.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {overview.metrics.map((m) => {
+              const verdict = verdictBadge[m.verdict as VerdictKey] ?? verdictBadge.unknown;
+              return (
+                <Card key={m.key}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-caption text-slate-500">{m.label}</span>
+                    <Badge variant={verdict.variant}>
+                      <span className="inline-flex items-center gap-1">
+                        {verdict.icon}
+                        {verdict.label}
+                      </span>
+                    </Badge>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="text-caption text-slate-500">
+                        {t('network_intelligence.col_us')}
+                      </div>
+                      <div className="text-heading-3 tabular-nums">
+                        {m.tenant_value !== null ? m.tenant_value.toFixed(2) : '—'}
+                      </div>
                     </div>
-                    <div className="text-heading-3 tabular-nums">
-                      {m.tenant_value !== null ? m.tenant_value.toFixed(2) : '—'}
+                    <div>
+                      <div className="text-caption text-slate-500">
+                        {t('network_intelligence.col_segment')}
+                      </div>
+                      <div className="text-heading-3 tabular-nums text-slate-500">
+                        {m.segment_value !== null ? m.segment_value.toFixed(2) : '—'}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-caption text-slate-500">
-                      {t('network_intelligence.col_segment')}
+                  {m.gap_pct !== null && (
+                    <div className="mt-2 text-caption text-slate-500">
+                      {t('network_intelligence.gap_label')}:{' '}
+                      <span
+                        className={`tabular-nums ${m.gap_pct >= 0 ? 'text-success' : 'text-warning'}`}
+                      >
+                        {m.gap_pct >= 0 ? '+' : ''}
+                        {m.gap_pct.toFixed(1)}%
+                      </span>
                     </div>
-                    <div className="text-heading-3 tabular-nums text-slate-500">
-                      {m.segment_value !== null ? m.segment_value.toFixed(2) : '—'}
-                    </div>
-                  </div>
-                </div>
-                {m.gap_pct !== null && (
-                  <div className="mt-2 text-caption text-slate-500">
-                    {t('network_intelligence.gap_label')}:{' '}
-                    <span
-                      className={`tabular-nums ${m.gap_pct >= 0 ? 'text-success' : 'text-warning'}`}
-                    >
-                      {m.gap_pct >= 0 ? '+' : ''}
-                      {m.gap_pct.toFixed(1)}%
-                    </span>
-                  </div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
       {overview && overview.snapshot_date && (
         <p className="text-caption text-slate-400">

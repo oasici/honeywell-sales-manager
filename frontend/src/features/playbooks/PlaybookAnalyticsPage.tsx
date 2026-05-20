@@ -52,7 +52,10 @@ export default function PlaybookAnalyticsPage() {
   if (isError) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Playbook Analitikleri" description="Playbook performans istatistikleri" />
+        <PageHeader
+          title="Playbook Analitikleri"
+          description="Playbook performans istatistikleri"
+        />
         <QueryErrorBanner variant="block" onRetry={() => refetch()} />
       </div>
     );
@@ -61,7 +64,10 @@ export default function PlaybookAnalyticsPage() {
   if (isLoading || !data) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Playbook Analitikleri" description="Playbook performans istatistikleri" />
+        <PageHeader
+          title="Playbook Analitikleri"
+          description="Playbook performans istatistikleri"
+        />
         <Skeleton variant="card" count={3} />
       </div>
     );
@@ -69,10 +75,7 @@ export default function PlaybookAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Playbook Analitikleri"
-        description="Playbook performans istatistikleri"
-      />
+      <PageHeader title="Playbook Analitikleri" description="Playbook performans istatistikleri" />
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-3">

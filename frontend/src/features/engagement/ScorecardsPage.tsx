@@ -45,33 +45,25 @@ export default function ScorecardsPage() {
       key: 'total_quotes',
       header: 'Toplam Teklif',
       sortable: true,
-      render: (row: EngagementScorecard) => (
-        <span className="text-sm">{row.total_quotes}</span>
-      ),
+      render: (row: EngagementScorecard) => <span className="text-sm">{row.total_quotes}</span>,
     },
     {
       key: 'sent_quotes',
       header: 'Gonderilen Teklif',
       sortable: true,
-      render: (row: EngagementScorecard) => (
-        <span className="text-sm">{row.sent_quotes}</span>
-      ),
+      render: (row: EngagementScorecard) => <span className="text-sm">{row.sent_quotes}</span>,
     },
     {
       key: 'emails_assigned',
       header: 'Atanan Email',
       sortable: true,
-      render: (row: EngagementScorecard) => (
-        <span className="text-sm">{row.emails_assigned}</span>
-      ),
+      render: (row: EngagementScorecard) => <span className="text-sm">{row.emails_assigned}</span>,
     },
     {
       key: 'emails_processed',
       header: 'Islenen Email',
       sortable: true,
-      render: (row: EngagementScorecard) => (
-        <span className="text-sm">{row.emails_processed}</span>
-      ),
+      render: (row: EngagementScorecard) => <span className="text-sm">{row.emails_processed}</span>,
     },
     {
       key: 'process_rate',
@@ -86,7 +78,9 @@ export default function ScorecardsPage() {
               ? 'text-yellow-700 bg-yellow-100'
               : 'text-red-700 bg-red-100';
         return (
-          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClass}`}>
+          <span
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClass}`}
+          >
             %{percentage}
           </span>
         );
@@ -96,9 +90,7 @@ export default function ScorecardsPage() {
       key: 'signals_detected',
       header: 'Sinyal Sayisi',
       sortable: true,
-      render: (row: EngagementScorecard) => (
-        <span className="text-sm">{row.signals_detected}</span>
-      ),
+      render: (row: EngagementScorecard) => <span className="text-sm">{row.signals_detected}</span>,
     },
   ];
 

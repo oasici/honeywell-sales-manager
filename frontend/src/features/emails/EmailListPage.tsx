@@ -414,23 +414,23 @@ export default function EmailListPage() {
       {isError && <QueryErrorBanner variant="block" onRetry={() => refetch()} />}
       {!isError && (
         <DataTable
-        columns={columns}
-        data={data?.items || []}
-        loading={isLoading}
-        emptyMessage={t('emails.list_empty')}
-        page={data?.page || page}
-        totalPages={data?.pages || 1}
-        onPageChange={setPage}
-        onRowClick={(row) => {
-          const email = row as EmailRequest;
-          setDetailEmail(email);
-          if (!email.is_read) {
-            emailsApi.markRead(email.id).then(() => {
-              onEmailChanged(queryClient, null);
-            });
-          }
-        }}
-      />
+          columns={columns}
+          data={data?.items || []}
+          loading={isLoading}
+          emptyMessage={t('emails.list_empty')}
+          page={data?.page || page}
+          totalPages={data?.pages || 1}
+          onPageChange={setPage}
+          onRowClick={(row) => {
+            const email = row as EmailRequest;
+            setDetailEmail(email);
+            if (!email.is_read) {
+              emailsApi.markRead(email.id).then(() => {
+                onEmailChanged(queryClient, null);
+              });
+            }
+          }}
+        />
       )}
 
       {/* ── Email Detail Popup ─────────────────────────────────────────

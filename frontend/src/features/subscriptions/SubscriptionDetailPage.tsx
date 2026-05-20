@@ -66,7 +66,12 @@ export default function SubscriptionDetailPage() {
     return k ? t(k) : c;
   };
 
-  const { data: sub, isLoading, isError, refetch } = useQuery<Subscription>({
+  const {
+    data: sub,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<Subscription>({
     queryKey: ['subscriptions', id],
     queryFn: () => subscriptionsApi.get(Number(id)),
     enabled: !!id,

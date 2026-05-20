@@ -333,9 +333,7 @@ export default function ApprovalRulesPage() {
         <Button onClick={openCreate}>Yeni Kural</Button>
       </PageHeader>
 
-      {isError && (
-        <QueryErrorBanner variant="block" onRetry={() => refetch()} />
-      )}
+      {isError && <QueryErrorBanner variant="block" onRetry={() => refetch()} />}
 
       <Card>
         <DataTable

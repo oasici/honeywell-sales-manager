@@ -41,8 +41,7 @@ import type {
   Subscription,
 } from '../../lib/types';
 
-type SchemaKeys<T extends keyof components['schemas']> =
-  keyof components['schemas'][T];
+type SchemaKeys<T extends keyof components['schemas']> = keyof components['schemas'][T];
 
 describe('manual interface ↔ generated schema contract', () => {
   /**
