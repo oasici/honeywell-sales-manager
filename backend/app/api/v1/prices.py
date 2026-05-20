@@ -15,11 +15,12 @@ from app.models.price_entry import PriceEntry
 from app.models.spare_part import SparePart
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
+from app.schemas.price_entry import PriceEntryResponse
 
 router = APIRouter(prefix="/prices", tags=["Prices"])
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[PriceEntryResponse])
 async def list_prices(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),

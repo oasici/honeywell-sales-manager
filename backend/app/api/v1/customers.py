@@ -17,7 +17,12 @@ from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.account_360 import Account360Response
 from app.schemas.common import PaginatedResponse
-from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
+from app.schemas.customer import (
+    CustomerCreate,
+    CustomerResponse,
+    CustomerUpdate,
+    HighIntentAccountResponse,
+)
 from app.services.enrichment_service import EnrichmentService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
@@ -102,7 +107,10 @@ async def list_customers(
     }
 
 
-@router.get("/high-intent", response_model=PaginatedResponse[dict])
+@router.get(
+    "/high-intent",
+    response_model=PaginatedResponse[HighIntentAccountResponse],
+)
 async def list_high_intent_accounts(
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_current_user),

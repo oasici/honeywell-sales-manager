@@ -14,7 +14,7 @@ from app.models.email_request import EmailRequest
 from app.models.enums import ReviewStatus, UserRole
 from app.models.opportunity import Opportunity
 from app.models.user import User
-from app.schemas.email_request import ManualEmailCreate
+from app.schemas.email_request import EmailResponse, ManualEmailCreate
 from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
 from app.services.email_processing_service import EmailProcessingService
@@ -58,7 +58,7 @@ def _check_email_ownership(email: EmailRequest, user: User) -> None:
         raise ForbiddenException("Bu e-postaya erisim yetkiniz yok")
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[EmailResponse])
 async def list_emails(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),

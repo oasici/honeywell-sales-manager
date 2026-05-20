@@ -13,13 +13,13 @@ from app.models.enums import UserRole
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.spare_part import SparePart
 from app.models.user import User
-from app.schemas.spare_part import SparePartCreate, SparePartUpdate
+from app.schemas.spare_part import SparePartCreate, SparePartResponse, SparePartUpdate
 from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/parts", tags=["Spare Parts"])
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[SparePartResponse])
 async def list_parts(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),

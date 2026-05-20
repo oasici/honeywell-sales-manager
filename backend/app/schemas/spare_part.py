@@ -69,19 +69,37 @@ class SparePartUpdate(BaseModel):
 
 
 class SparePartResponse(BaseModel):
+    """Public spare-part shape returned by /parts/*.
+
+    Round-15 N15-API-1 quick-win 1 — pre-Round-15 ``/parts/`` was typed
+    as ``PaginatedResponse[dict]``. The hand-built ``_part_to_dict``
+    already emits this exact set of fields, so wiring this schema as
+    the ``response_model`` is a 1-line swap with no shape change. Pricing
+    columns ride explicitly so SDK consumers don't need ``[key: string]:
+    unknown`` extras to read them.
+    """
+
     id: int
     honeywell_code: str
+    model_number: str | None = None
+    info: str | None = None
     name_en: str | None = None
     name_tr: str | None = None
     description_en: str | None = None
     description_tr: str | None = None
     category: str | None = None
     subcategory: str | None = None
+    transfer_price: float | None = None
+    supplier_price: float | None = None
+    price_currency: str | None = None
     min_margin_pct: float | None = None  # R5-API-7
     keywords_json: str | None = None
     aliases_json: str | None = None
     is_active: bool
-    created_at: datetime
+    # ``_part_to_dict`` emits ``created_at`` as an ISO string; keep the
+    # wire type a string to match. ``datetime`` would force consumers
+    # to parse an already-stringified value.
+    created_at: str | None = None
 
     has_price: bool | None = None
 

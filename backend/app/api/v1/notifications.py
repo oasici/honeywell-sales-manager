@@ -14,6 +14,7 @@ from app.models.push_subscription import PushSubscription
 from app.models.user import User
 from app.services.notification_service import get_notifications, mark_as_read
 from app.schemas.common import PaginatedResponse
+from app.schemas.notification import NotificationResponse
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
@@ -21,7 +22,7 @@ DEFAULT_NOTIFICATION_LIMIT = 20
 MAX_NOTIFICATION_LIMIT = 100
 
 
-@router.get("/", response_model=PaginatedResponse[dict])
+@router.get("/", response_model=PaginatedResponse[NotificationResponse])
 async def list_notifications(
     unread_only: bool = False,
     limit: int = Query(DEFAULT_NOTIFICATION_LIMIT, ge=1, le=MAX_NOTIFICATION_LIMIT),
