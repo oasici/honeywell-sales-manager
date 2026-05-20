@@ -23,7 +23,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // R14-LOG-1: Removed leftover console.error; Sentry.captureException
+    // is the production observability channel for boundary catches.
+    Sentry.addBreadcrumb({
+      category: 'react',
+      level: 'error',
+      message: 'ErrorBoundary caught an error',
+      data: { componentStack: errorInfo.componentStack },
+    });
     Sentry.captureException(error, {
       contexts: { react: { componentStack: errorInfo.componentStack } },
     });

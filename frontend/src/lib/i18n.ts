@@ -789,6 +789,16 @@ const translations = {
     'contracts.toast_activate_failed': 'Aktifleştirme başarısız',
     'contracts.toast_amend_added': 'Değişiklik eklendi',
     'contracts.toast_amend_failed': 'Değişiklik eklenemedi',
+    // R14-I18N-1 — inline edit panel + toasts on ContractDetailPage
+    'contracts.edit_panel_title': 'Sözleşmeyi düzenle',
+    'contracts.field_title': 'Başlık',
+    'contracts.field_amount': 'Tutar',
+    'contracts.field_start_date': 'Başlangıç',
+    'contracts.field_end_date': 'Bitiş',
+    'contracts.field_terms_json': 'Şartlar (JSON, opsiyonel)',
+    'contracts.toast_updated': 'Sözleşme güncellendi',
+    'contracts.toast_update_failed': 'Sözleşme güncellenemedi',
+    'contracts.err_terms_invalid_json': 'Sözleşme şartları geçerli JSON olmalıdır',
 
     // Coaching overview
     'coaching.overview_title': 'Koçluk paneli',
@@ -3141,6 +3151,16 @@ const translations = {
     'contracts.toast_activate_failed': 'Activation failed',
     'contracts.toast_amend_added': 'Amendment added',
     'contracts.toast_amend_failed': 'Could not add amendment',
+    // R14-I18N-1 — inline edit panel + toasts on ContractDetailPage
+    'contracts.edit_panel_title': 'Edit contract',
+    'contracts.field_title': 'Title',
+    'contracts.field_amount': 'Amount',
+    'contracts.field_start_date': 'Start',
+    'contracts.field_end_date': 'End',
+    'contracts.field_terms_json': 'Terms (JSON, optional)',
+    'contracts.toast_updated': 'Contract updated',
+    'contracts.toast_update_failed': 'Could not update contract',
+    'contracts.err_terms_invalid_json': 'Contract terms must be valid JSON',
 
     // Coaching overview
     'coaching.overview_title': 'Coaching',

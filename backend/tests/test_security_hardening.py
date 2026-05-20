@@ -135,27 +135,28 @@ class TestCookieAuth:
         assert "csrf_token" in r.cookies
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="httpx ASGITransport cookie jar doesn't persist; verified via live curl test")
     async def test_cookie_auth_without_header(
         self, client: AsyncClient, admin_user: User
     ):
         """After login, cookie alone should authenticate subsequent requests.
 
-        NOTE: This test is skipped in pytest because httpx's ASGITransport
-        does not carry Set-Cookie headers into subsequent requests on the
-        same client. Verified manually via curl against the running sandbox:
-
-            TOKEN=$(curl -c /tmp/c.txt -d 'username=...&password=...' .../login)
-            curl -b /tmp/c.txt .../auth/me  → 200 OK
-
-        The Playwright E2E suite exercises this flow in a real browser.
+        R14-RBAC-1: Re-enabled by manually forwarding the access_token
+        cookie returned from /login on the follow-up request, since
+        httpx's ASGITransport does not carry Set-Cookie headers between
+        calls on the same client.
         """
+        _clear_rate_limiter()
         login = await client.post(
             "/api/v1/auth/login",
             data={"username": admin_user.email, "password": "admin123"},
         )
         assert login.status_code == 200
-        r = await client.get("/api/v1/auth/me")
+        access = login.cookies.get("access_token")
+        assert access, "Login should set the access_token cookie"
+        r = await client.get(
+            "/api/v1/auth/me",
+            cookies={"access_token": access},
+        )
         assert r.status_code == 200
 
 
@@ -166,42 +167,56 @@ class TestCSRFProtection:
     """M1: State-changing cookie-auth requests require X-CSRF-Token header."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="httpx ASGITransport cookie jar doesn't persist; verified via live curl")
     async def test_csrf_blocks_without_header(
         self, client: AsyncClient, admin_user: User
     ):
         """POST without X-CSRF-Token (but with cookie auth) → 403.
 
-        Verified manually:
-            # Log in, get cookies
-            # POST /customers/ without X-CSRF-Token → 403
+        R14-RBAC-1: Re-enabled by manually forwarding the access_token
+        cookie from the /login response on the follow-up POST. The
+        cookie-auth path triggers the CSRF guard; without the matching
+        header the request must be rejected.
         """
-        await client.post(
-            "/api/v1/auth/login",
-            data={"username": admin_user.email, "password": "admin123"},
-        )
-        r = await client.post(
-            "/api/v1/customers/",
-            json={"name": "csrf test", "company": "X"},
-        )
-        assert r.status_code == 403
-
-    @pytest.mark.asyncio
-    @pytest.mark.skip(reason="httpx ASGITransport cookie jar; verified via live curl")
-    async def test_csrf_passes_with_matching_header(
-        self, client: AsyncClient, admin_user: User
-    ):
-        """POST with X-CSRF-Token matching cookie passes CSRF check."""
+        _clear_rate_limiter()
         login = await client.post(
             "/api/v1/auth/login",
             data={"username": admin_user.email, "password": "admin123"},
         )
+        assert login.status_code == 200
+        access = login.cookies.get("access_token")
+        assert access
+        r = await client.post(
+            "/api/v1/customers/",
+            json={"name": "csrf test", "company": "X"},
+            cookies={"access_token": access},
+        )
+        assert r.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_csrf_passes_with_matching_header(
+        self, client: AsyncClient, admin_user: User
+    ):
+        """POST with X-CSRF-Token matching cookie passes CSRF check.
+
+        R14-RBAC-1: Re-enabled by forwarding both access_token and
+        csrf_token cookies from /login plus the matching X-CSRF-Token
+        header. The route should not 403; a non-CSRF outcome
+        (success or validation error) is the expected result.
+        """
+        _clear_rate_limiter()
+        login = await client.post(
+            "/api/v1/auth/login",
+            data={"username": admin_user.email, "password": "admin123"},
+        )
+        assert login.status_code == 200
+        access = login.cookies.get("access_token")
         csrf = login.cookies.get("csrf_token")
-        assert csrf
+        assert access and csrf
         r = await client.post(
             "/api/v1/customers/",
             json={"name": "csrf ok", "company": "Y", "email": "a@b.com"},
             headers={"X-CSRF-Token": csrf},
+            cookies={"access_token": access, "csrf_token": csrf},
         )
         assert r.status_code != 403
 

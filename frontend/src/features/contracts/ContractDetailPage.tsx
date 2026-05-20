@@ -90,7 +90,7 @@ export default function ContractDetailPage() {
           termsJsonNormalized = JSON.parse(payload.terms_json);
         } catch {
           // Re-throw as a friendly toast, not as a JSON exception.
-          throw new Error('Sözleşme şartları geçerli JSON olmalıdır');
+          throw new Error(t('contracts.err_terms_invalid_json'));
         }
       }
       const wire: Record<string, unknown> = {
@@ -103,12 +103,12 @@ export default function ContractDetailPage() {
       return contractsApi.update(contractId, wire);
     },
     onSuccess: () => {
-      toast.success('Sözleşme güncellendi');
+      toast.success(t('contracts.toast_updated'));
       setEditing(false);
       onContractChanged(queryClient, contractId);
     },
     onError: (e: unknown) => {
-      const msg = e instanceof Error ? e.message : 'Sözleşme güncellenemedi';
+      const msg = e instanceof Error ? e.message : t('contracts.toast_update_failed');
       toast.error(msg);
     },
   });
@@ -183,7 +183,7 @@ export default function ContractDetailPage() {
         {/* R7-FORM-3 — Düzenle. Pre-fix only Amend was available. */}
         {!editing && (
           <Button variant="secondary" onClick={() => setEditing(true)}>
-            Düzenle
+            {t('common.edit')}
           </Button>
         )}
         <Button variant="secondary" onClick={() => setIsAmendOpen(true)}>
@@ -194,17 +194,17 @@ export default function ContractDetailPage() {
       <div className="space-y-6">
         {/* R7-FORM-3 — inline edit panel. */}
         {editing && (
-          <Card title="Sözleşmeyi düzenle">
+          <Card title={t('contracts.edit_panel_title')}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Input
-                  label="Başlık"
+                  label={t('contracts.field_title')}
                   value={editForm.title}
                   onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
                 />
               </div>
               <Input
-                label="Tutar"
+                label={t('contracts.field_amount')}
                 type="number"
                 min={0}
                 step="0.01"
@@ -213,13 +213,13 @@ export default function ContractDetailPage() {
               />
               <div className="grid grid-cols-2 gap-3 sm:col-span-2">
                 <Input
-                  label="Başlangıç"
+                  label={t('contracts.field_start_date')}
                   type="date"
                   value={editForm.start_date}
                   onChange={(e) => setEditForm((p) => ({ ...p, start_date: e.target.value }))}
                 />
                 <Input
-                  label="Bitiş"
+                  label={t('contracts.field_end_date')}
                   type="date"
                   value={editForm.end_date}
                   onChange={(e) => setEditForm((p) => ({ ...p, end_date: e.target.value }))}
@@ -227,7 +227,7 @@ export default function ContractDetailPage() {
               </div>
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                  Şartlar (JSON, opsiyonel)
+                  {t('contracts.field_terms_json')}
                 </label>
                 <textarea
                   rows={4}
@@ -245,13 +245,13 @@ export default function ContractDetailPage() {
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setEditing(false)}>
-                İptal
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={() => updateMutation.mutate(editForm)}
                 loading={updateMutation.isPending}
               >
-                Kaydet
+                {t('common.save')}
               </Button>
             </div>
           </Card>
