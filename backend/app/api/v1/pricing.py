@@ -118,7 +118,7 @@ async def list_tiers(
     }
 
 
-@router.post("/tiers", status_code=201, response_model=dict)
+@router.post("/tiers", status_code=201, response_model=PriceTierRow)
 async def create_tier(
     body: PriceTierCreate,
     current_user: User = Depends(get_current_user),

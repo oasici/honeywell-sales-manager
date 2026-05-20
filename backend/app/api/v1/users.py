@@ -73,7 +73,7 @@ async def list_users(
     }
 
 
-@router.patch("/{user_id}/toggle-active", response_model=dict)
+@router.patch("/{user_id}/toggle-active", response_model=UserRow)
 async def toggle_user_active(
     user_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -113,7 +113,7 @@ async def toggle_user_active(
     return _user_to_dict(user)
 
 
-@router.patch("/{user_id}/role", response_model=dict)
+@router.patch("/{user_id}/role", response_model=UserRow)
 async def change_user_role(
     user_id: int,
     data: RoleUpdate,

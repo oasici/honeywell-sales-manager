@@ -66,7 +66,7 @@ async def list_product_rules(
     }
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=ProductRuleRow)
 async def create_product_rule(
     data: ProductRuleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

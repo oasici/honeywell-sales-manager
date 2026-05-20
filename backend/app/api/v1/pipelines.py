@@ -111,7 +111,7 @@ async def list_pipelines(
     }
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=PipelineRow)
 async def create_pipeline(
     body: PipelineCreate,
     _: None = Depends(_require_multi_pipeline),
@@ -144,7 +144,7 @@ async def create_pipeline(
     return _serialize_pipeline(pipeline)
 
 
-@router.get("/{pipeline_id}", response_model=dict)
+@router.get("/{pipeline_id}", response_model=PipelineRow)
 async def get_pipeline(
     pipeline_id: int,
     _: None = Depends(_require_multi_pipeline),
@@ -162,7 +162,7 @@ async def get_pipeline(
     return _serialize_pipeline(pipeline)
 
 
-@router.put("/{pipeline_id}", response_model=dict)
+@router.put("/{pipeline_id}", response_model=PipelineRow)
 async def update_pipeline(
     pipeline_id: int,
     body: PipelineUpdate,
@@ -225,7 +225,7 @@ async def delete_pipeline(
     await db.delete(pipeline)
 
 
-@router.patch("/{pipeline_id}/set-default", response_model=dict)
+@router.patch("/{pipeline_id}/set-default", response_model=PipelineRow)
 async def set_default_pipeline(
     pipeline_id: int,
     _: None = Depends(_require_multi_pipeline),

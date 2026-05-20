@@ -133,7 +133,7 @@ async def list_comments(
     }
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=CommentRow)
 async def create_comment(
     body: CommentCreate,
     current_user: User = Depends(get_current_user),

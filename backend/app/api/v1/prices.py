@@ -62,7 +62,7 @@ async def list_prices(
     }
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=PriceEntryResponse)
 async def create_price(
     data: dict,
     current_user: User = Depends(require_role(UserRole.OPERATIONS)),

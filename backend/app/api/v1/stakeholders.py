@@ -169,7 +169,7 @@ async def list_by_customer(
     }
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=StakeholderRow)
 async def create_stakeholder(
     body: StakeholderCreate,
     _: None = Depends(_require_buyer_map),
@@ -215,7 +215,7 @@ async def create_stakeholder(
     return _serialize(stakeholder)
 
 
-@router.put("/{stakeholder_id}", response_model=dict)
+@router.put("/{stakeholder_id}", response_model=StakeholderRow)
 async def update_stakeholder(
     stakeholder_id: int,
     body: StakeholderUpdate,

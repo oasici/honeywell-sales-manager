@@ -159,7 +159,7 @@ async def list_schedules(
     }
 
 
-@router.post("/revenue-schedules/", status_code=201, response_model=dict)
+@router.post("/revenue-schedules/", status_code=201, response_model=RevenueScheduleRow)
 async def create_schedule(
     body: ScheduleCreate,
     _: None = Depends(_require_rev_rec),

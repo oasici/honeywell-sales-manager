@@ -130,7 +130,7 @@ async def get_hybrid_forecast(
 
 # -- Adjustment Endpoints --
 
-@router.post("/adjustments", status_code=201, response_model=dict)
+@router.post("/adjustments", status_code=201, response_model=ForecastAdjustmentRow)
 async def create_adjustment(
     data: AdjustmentCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

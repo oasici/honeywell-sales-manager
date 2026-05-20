@@ -124,7 +124,7 @@ async def get_part(
     return data
 
 
-@router.post("/", status_code=201, response_model=dict)
+@router.post("/", status_code=201, response_model=SparePartResponse)
 async def create_part(
     data: SparePartCreate,
     current_user: User = Depends(require_role(UserRole.OPERATIONS)),
@@ -146,7 +146,7 @@ async def create_part(
     return _part_to_dict(part)
 
 
-@router.put("/{part_id}", response_model=dict)
+@router.put("/{part_id}", response_model=SparePartResponse)
 async def update_part(
     part_id: int,
     data: SparePartUpdate,

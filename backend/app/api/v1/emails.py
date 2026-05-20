@@ -187,7 +187,7 @@ async def get_training_data(
     }
 
 
-@router.get("/{email_id}", response_model=dict)
+@router.get("/{email_id}", response_model=EmailResponse)
 async def get_email(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -209,7 +209,7 @@ async def get_email(
     return _email_to_dict(email, include_body=True)
 
 
-@router.post("/manual", status_code=201, response_model=dict)
+@router.post("/manual", status_code=201, response_model=EmailResponse)
 async def create_manual_email(
     data: ManualEmailCreate,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -440,7 +440,7 @@ async def get_email_thread(
     }
 
 
-@router.patch("/{email_id}/opportunity", status_code=200, response_model=dict)
+@router.patch("/{email_id}/opportunity", status_code=200, response_model=EmailResponse)
 async def link_email_to_opportunity(
     email_id: int,
     body: EmailOpportunityLinkBody,
@@ -510,7 +510,7 @@ async def mark_email_read(
     return {"message": "OK"}
 
 
-@router.post("/{email_id}/reparse", status_code=200, response_model=dict)
+@router.post("/{email_id}/reparse", status_code=200, response_model=EmailResponse)
 async def reparse_email(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
@@ -651,7 +651,7 @@ async def get_email_matches(
     }
 
 
-@router.patch("/{email_id}/review", response_model=dict)
+@router.patch("/{email_id}/review", response_model=EmailResponse)
 async def review_email(
     email_id: int,
     data: EmailReviewRequest,
