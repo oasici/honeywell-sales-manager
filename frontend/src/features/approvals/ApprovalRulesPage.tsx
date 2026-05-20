@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -235,7 +235,11 @@ export default function ApprovalRulesPage() {
       header: 'Eskalasyon / Delegasyon',
       hideOn: 'md' as const,
       render: (row: ApprovalRule) => {
-        const badges: JSX.Element[] = [];
+        // Round-16 CI fix — ``JSX.Element[]`` doesn't resolve under
+        // ``tsc -b`` project-build mode (the JSX namespace isn't in
+        // scope with react-jsx runtime); use ``ReactNode[]`` which
+        // both ``tsc --noEmit`` and ``tsc -b`` accept.
+        const badges: ReactNode[] = [];
         if (row.escalation_hours && row.escalation_hours > 0) {
           badges.push(
             <Badge key="esc" variant="warning" size="sm" title={row.escalation_action ?? undefined}>
