@@ -41,7 +41,7 @@ The backend reads `.env` from its CWD. Place `.env` in **both** `/workspace/.env
 
 ```bash
 cd backend && DATABASE_URL=postgresql+asyncpg://honeywell:devpassword123@localhost:5432/honeywell_sales \
-  ../.venv/bin/python -m alembic upgrade head
+  .venv/bin/python -m alembic upgrade head
 ```
 
 ### Multi-tenant bootstrap
