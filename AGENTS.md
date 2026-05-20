@@ -49,7 +49,7 @@ cd backend && DATABASE_URL=postgresql+asyncpg://honeywell:devpassword123@localho
 After migrations, the admin user has `tenant_id=NULL`. Run the bootstrap script to create the default tenant and backfill:
 
 ```bash
-cd backend && DATABASE_URL=... .venv/bin/python -m scripts.bootstrap_default_tenant \
+cd backend && DATABASE_URL=postgresql+asyncpg://honeywell:devpassword123@localhost:5432/honeywell_sales .venv/bin/python -m scripts.bootstrap_default_tenant \
   --name "Honeywell TR" --apply
 ```
 
