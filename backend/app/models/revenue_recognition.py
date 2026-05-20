@@ -62,7 +62,8 @@ class RevenueScheduleEntry(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Sprint 16e cohort 9 — promoted NOT NULL after backfill from revenue_schedules.tenant_id.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     schedule_id: Mapped[int] = mapped_column(Integer, ForeignKey("revenue_schedules.id"), nullable=False)
     period: Mapped[str] = mapped_column(String(7), nullable=False)  # "2026-04" (YYYY-MM)
     amount: Mapped[float] = mapped_column(Numeric(19, 2, asdecimal=False), nullable=False)

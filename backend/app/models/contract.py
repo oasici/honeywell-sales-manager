@@ -77,7 +77,8 @@ class ContractAmendment(Base):
     )
     # Round-15 Sprint 15j cohort 12 — defense-in-depth tenant scoping
     # (backfilled from parent contract).
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Sprint 16e cohort 9 — promoted NOT NULL.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     amendment_type: Mapped[str] = mapped_column(String(50), nullable=False)
     changes_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Round-12 R12-DB-1 — explicit Mapped[] annotation, matches sibling

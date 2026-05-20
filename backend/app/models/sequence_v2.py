@@ -90,7 +90,9 @@ class Stakeholder(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     # Round-8 R8-PII-1 — tenant_id backfilled from opportunity_id/customer_id chain.
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    # Sprint 16e cohort 9 — promoted NOT NULL via two-pass backfill (opportunity
+    # first, then customer; see backend/alembic/versions/20260613_phase13_tenant_not_null_cohort9.py).
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     opportunity_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("opportunities.id"), nullable=True, index=True
     )

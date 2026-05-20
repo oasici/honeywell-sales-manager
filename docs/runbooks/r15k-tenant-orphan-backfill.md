@@ -176,3 +176,41 @@ Should pass with 2 tests green.
 - `docs/audits/2026-05-15-15kl-parking-notes.md` — parking timeline
   and unblock plan (the test-fixture sweep that landed in batches
   1-8 closed the blocker; this runbook supersedes the parked one).
+
+---
+
+## Appendix — Cohort 9 (Sprint 16e, 2026-05-20)
+
+The Round-15 audit M-01 plan added eight more child tables to the
+NOT NULL promotion sweep:
+[`20260613_phase13_tenant_not_null_cohort9.py`](../../backend/alembic/versions/20260613_phase13_tenant_not_null_cohort9.py).
+
+| Table | Parent FK | Notes |
+|---|---|---|
+| `achievements` | `user_id → users` | Closes N15-DB-2 (model NOT NULL vs DB NULLABLE) |
+| `push_subscriptions` | `user_id → users` | |
+| `tasks` | `owner_id → users` | `opportunity_id` is nullable; owner is the safer source |
+| `campaign_members` | `campaign_id → campaigns` | Parent NOT NULL since cohort 2 |
+| `webhook_deliveries` | `subscription_id → webhook_subscriptions` | Parent NOT NULL since cohort 4 |
+| `revenue_schedule_entries` | `schedule_id → revenue_schedules` | |
+| `contract_amendments` | `contract_id → contracts` | Parent NOT NULL since cohort 2 |
+| `stakeholders` | `opportunity_id OR customer_id` | **Two-pass backfill** — opportunity first, then customer; both columns are nullable |
+
+The fail-fast guard message changes only the sprint label; the
+triage steps (1-4) above apply unchanged. The single novel SQL path
+is the stakeholder two-pass backfill, which the migration already
+implements — manual intervention only needed when a stakeholder row
+has BOTH `opportunity_id IS NULL` AND `customer_id IS NULL` (truly
+orphaned) OR when both parents have `tenant_id IS NULL` (the parent
+chain itself broke).
+
+For cohort-9-specific drift inspection:
+
+```sql
+SELECT s.id, s.opportunity_id, o.tenant_id AS opp_tenant,
+       s.customer_id, c.tenant_id AS cust_tenant
+FROM stakeholders s
+LEFT JOIN opportunities o ON o.id = s.opportunity_id
+LEFT JOIN customers c ON c.id = s.customer_id
+WHERE s.tenant_id IS NULL;
+```

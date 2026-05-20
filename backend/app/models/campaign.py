@@ -66,7 +66,8 @@ class CampaignMember(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Sprint 16e cohort 9 — promoted NOT NULL after backfill from campaigns.tenant_id.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     campaign_id: Mapped[int] = mapped_column(Integer, ForeignKey("campaigns.id"), nullable=False)
     lead_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("leads.id"), nullable=True)
     customer_id: Mapped[int | None] = mapped_column(

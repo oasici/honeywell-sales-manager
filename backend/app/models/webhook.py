@@ -65,7 +65,9 @@ class WebhookDelivery(Base):
     # 20260504_phase4_tenant (PHASE 4 follow-up).
     # R5-DB-3 — explicit ix_delivery_tenant in __table_args__; the
     # implicit index from index=True duplicated it.
-    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Sprint 16e cohort 9 — promoted NOT NULL after backfill from
+    # webhook_subscriptions.tenant_id.
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
     subscription_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("webhook_subscriptions.id"), nullable=False
     )
