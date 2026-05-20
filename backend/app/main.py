@@ -231,6 +231,14 @@ async def lifespan(app: FastAPI):
         # list never grew. Audit EVT-5.
         event_bus.subscribe("lead.score_changed", _webhook_service.handle_event)
         event_bus.subscribe("opportunity.score_changed", _webhook_service.handle_event)
+        # N15-EVT-3 (Round-15) — ``invoice.paid`` is published from
+        # ``api/v1/invoices.py:349`` behind ``FEATURE_INVOICE_PAID_EVENT``
+        # but used to have only the no-op ``_on_invoice_paid`` placeholder
+        # subscriber below. External customers subscribing for
+        # ``invoice.paid`` webhooks therefore received nothing despite the
+        # public webhook docs advertising it. Wiring the WebhookService
+        # subscriber here closes the gap.
+        event_bus.subscribe("invoice.paid", _webhook_service.handle_event)
         # Campaign member conversion tracking
         if settings.FEATURE_CAMPAIGNS:
             async def _update_campaign_on_lead_convert(event_type: str, event_data: dict):
@@ -256,8 +264,20 @@ async def lifespan(app: FastAPI):
         # Invoice payment tracking
         if settings.FEATURE_INVOICING:
             async def _on_invoice_paid(event_type: str, event_data: dict):
-                # Placeholder: could update contract actual_revenue or trigger rev-rec
-                pass
+                """N15-EVT-3 — observability shim for invoice.paid.
+
+                Pre-Round-15 this was a literal ``pass`` so the event
+                fired but left no trace. Downstream (contract revenue,
+                rev-rec) is still TODO, but at least the breadcrumb is
+                in observability now and the gate is obvious if a future
+                contributor wires the real handler.
+                """
+                logger.info(
+                    "invoice.paid received invoice_id=%s amount=%s currency=%s",
+                    event_data.get("invoice_id"),
+                    event_data.get("amount"),
+                    event_data.get("currency"),
+                )
 
             event_bus.subscribe("invoice.paid", _on_invoice_paid)
             logger.info("Invoice payment handler wired")

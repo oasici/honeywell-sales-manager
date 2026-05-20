@@ -30,7 +30,12 @@ class CompetitorMention(Base):
     )  # positive | neutral | negative
     detected_by: Mapped[str] = mapped_column(
         String(20), default="keyword"
-    )  # keyword | ai
+    )  # keyword | ai | manual
+    # ^ N15-DB F-01 (Round-15) — CHECK at
+    # ``alembic/versions/20260610_phase14_enum_check_constraints.py:46-48``
+    # allows ``manual`` too. Pre-fix the comment said only ``keyword | ai``
+    # which contradicted the DB and would surprise a future contributor
+    # who tried to add an admin-side "Manual mention" affordance.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

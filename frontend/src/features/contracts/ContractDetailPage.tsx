@@ -290,7 +290,19 @@ export default function ContractDetailPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <p className="text-xs text-slate-500">{t('contracts.field_customer_id')}</p>
-              <p className="text-sm font-medium text-slate-900">{contract.customer_id}</p>
+              {/* Round-15 §8.1 quick-win — backend embeds a customer
+                  summary (id, name, company) on the contract response.
+                  Pre-fix this cell showed the bare id (e.g. ``#293``);
+                  now it shows the company / name with a soft fallback to
+                  the id when the summary is absent. */}
+              <p className="text-sm font-medium text-slate-900">
+                {contract.customer
+                  ? `${contract.customer.company || contract.customer.name}`
+                  : `#${contract.customer_id}`}
+              </p>
+              {contract.customer?.name && contract.customer.company && (
+                <p className="text-xs text-slate-500">{contract.customer.name}</p>
+              )}
             </div>
             {contract.quote_id && (
               <div>
@@ -389,6 +401,14 @@ export default function ContractDetailPage() {
                       )}
                       <p className="mt-1 text-[10px] text-slate-400">
                         {amendment.created_at ? formatDate(amendment.created_at, locale) : ''}
+                        {/* Round-15 §8.1 quick-win — surface
+                            ``amendment.approved_by`` which the backend
+                            has emitted since R6 but the timeline never
+                            rendered. Useful for audit trails when an
+                            amendment is challenged. */}
+                        {amendment.approved_by != null && (
+                          <span className="ml-2">· #{amendment.approved_by}</span>
+                        )}
                       </p>
                     </div>
                   </div>

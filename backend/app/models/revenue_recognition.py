@@ -70,7 +70,12 @@ class RevenueScheduleEntry(Base):
         Numeric(19, 2, asdecimal=False), default=0.0
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
-    # pending | recognized | adjusted
+    # N15-DB-1 (Round-15) — DB CHECK at
+    # ``alembic/versions/20260610_phase14_enum_check_constraints.py:65-68``
+    # enforces ``status IN ('pending','recognized','reversed')``. The
+    # comment used to say ``adjusted`` which contradicted the CHECK and
+    # would have caused a CheckViolation if any code path wrote it.
+    # pending | recognized | reversed
     recognized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

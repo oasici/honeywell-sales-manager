@@ -501,7 +501,7 @@ export default function LeadDetailPage() {
         {/* Conversion Info */}
         {isConverted && (
           <Card title={t('lead_detail.conversion_info')} className="lg:col-span-3">
-            <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <p className="text-xs text-slate-500">{t('lead_detail.conversion_date')}</p>
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
@@ -530,6 +530,20 @@ export default function LeadDetailPage() {
                   >
                     {t('lead_detail.opportunity')} #{lead.converted_opportunity_id}
                   </Button>
+                </div>
+              )}
+              {/* Round-15 §8.1 quick-win — backend has emitted
+                  ``lead.converted_by`` since R6 (sales-rep audit trail);
+                  the conversion card never showed it. Surface so an
+                  operator can see *who* converted the lead at a glance. */}
+              {lead.converted_by != null && (
+                <div>
+                  <p className="text-xs text-slate-500">
+                    {t('lead_detail.converted_by')}
+                  </p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                    #{lead.converted_by}
+                  </p>
                 </div>
               )}
             </div>
