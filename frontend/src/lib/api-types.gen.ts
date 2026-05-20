@@ -13278,6 +13278,26 @@ export interface components {
             /** Evidence */
             evidence?: string | null;
         };
+        /**
+         * FeatureFlagsResponse
+         * @description ``GET /config/feature-flags`` — runtime flag snapshot.
+         *
+         *     ``flags`` is a free-form ``dict[str, bool]`` because the set of
+         *     flags evolves per sprint; locking each one as a Required field
+         *     here would force a schema change on every flag flip. The
+         *     consumer (``FeatureFlagContext``) treats unknown flag names as
+         *     "off" so adding new flags is non-breaking for the SPA.
+         */
+        FeatureFlagsResponse: {
+            /** Env */
+            env: string;
+            /** Release */
+            release: string;
+            /** Flags */
+            flags: {
+                [key: string]: boolean;
+            };
+        };
         /** FederatedBenchmarkRow */
         FederatedBenchmarkRow: {
             /** Cohort */
@@ -13351,6 +13371,37 @@ export interface components {
             created_at?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /** ForecastAccuracyPerRep */
+        ForecastAccuracyPerRep: {
+            /** User Id */
+            user_id: number;
+            /** User Name */
+            user_name: string;
+            /** Forecast */
+            forecast: number;
+            /** Actual */
+            actual: number;
+            /** Accuracy */
+            accuracy: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * ForecastAccuracyResponse
+         * @description ``GET /forecast/accuracy`` — forecast vs actuals comparison.
+         */
+        ForecastAccuracyResponse: {
+            /** Period */
+            period: string;
+            /** Commit Forecast */
+            commit_forecast: number;
+            /** Actual Won */
+            actual_won: number;
+            /** Accuracy Pct */
+            accuracy_pct: number;
+            /** Per Rep */
+            per_rep: components["schemas"]["ForecastAccuracyPerRep"][];
         };
         /** ForecastAdjustmentRow */
         ForecastAdjustmentRow: {
@@ -13477,6 +13528,20 @@ export interface components {
             context?: {
                 [key: string]: string;
             } | null;
+        };
+        /**
+         * GenerateEntriesResponse
+         * @description ``POST /revenue-schedules/{id}/generate-entries`` — split ack.
+         */
+        GenerateEntriesResponse: {
+            /** Generated */
+            generated: number;
+            /** Entries */
+            entries: {
+                [key: string]: unknown;
+            }[];
+            /** Message */
+            message?: string | null;
         };
         /** GenerateRequest */
         GenerateRequest: {
@@ -13650,6 +13715,51 @@ export interface components {
              * @default false
              */
             pinned: boolean;
+        };
+        /** HybridForecastByConfidence */
+        HybridForecastByConfidence: {
+            low: components["schemas"]["HybridForecastByConfidenceBand"];
+            medium: components["schemas"]["HybridForecastByConfidenceBand"];
+            high: components["schemas"]["HybridForecastByConfidenceBand"];
+        };
+        /** HybridForecastByConfidenceBand */
+        HybridForecastByConfidenceBand: {
+            /** Count */
+            count: number;
+            /** Amount */
+            amount: number;
+            /** Hybrid Weighted */
+            hybrid_weighted: number;
+        };
+        /** HybridForecastByStage */
+        HybridForecastByStage: {
+            /** Stage */
+            stage: string;
+            /** Count */
+            count: number;
+            /** Amount */
+            amount: number;
+            /** Legacy Weighted */
+            legacy_weighted: number;
+            /** Hybrid Weighted */
+            hybrid_weighted: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * HybridForecastResponse
+         * @description ``GET /forecast/hybrid`` — legacy vs hybrid weighted forecast.
+         */
+        HybridForecastResponse: {
+            /** Owner Id */
+            owner_id?: number | null;
+            /** Legacy Weighted Total */
+            legacy_weighted_total: number;
+            /** Hybrid Weighted Total */
+            hybrid_weighted_total: number;
+            /** By Stage */
+            by_stage: components["schemas"]["HybridForecastByStage"][];
+            by_confidence: components["schemas"]["HybridForecastByConfidence"];
         };
         /**
          * InflationTaxResponse
@@ -16624,6 +16734,32 @@ export interface components {
             competitor?: string | null;
         };
         /**
+         * RecognitionDashboardResponse
+         * @description ``GET /revenue-recognition/dashboard`` — tenant rollup.
+         */
+        RecognitionDashboardResponse: {
+            /** Total Scheduled */
+            total_scheduled: number;
+            /** Total Recognized */
+            total_recognized: number;
+            /** This Month Pending */
+            this_month_pending: number;
+            /** Recognition Rate Pct */
+            recognition_rate_pct: number;
+        };
+        /**
+         * RecognizeEntryResponse
+         * @description ``PATCH .../entries/{id}/recognize`` — single entry ack.
+         */
+        RecognizeEntryResponse: {
+            /** Entry */
+            entry: {
+                [key: string]: unknown;
+            };
+            /** Schedule Recognized Amount */
+            schedule_recognized_amount: number;
+        };
+        /**
          * RecordQualityResponse
          * @description Per-record DQ score — service returns a free-form payload.
          */
@@ -17011,6 +17147,43 @@ export interface components {
         RevenueLeaksResponse: {
             /** Data */
             data: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * RevenueScheduleDetailResponse
+         * @description ``GET /revenue-schedules/{id}`` — schedule + entry breakdown.
+         *
+         *     ``entries`` stays free-form to avoid a circular import with the
+         *     existing ``RevenueScheduleRow`` (round15_pagination.py).
+         */
+        RevenueScheduleDetailResponse: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id?: number | null;
+            /** Contract Id */
+            contract_id?: number | null;
+            /** Recognition Type */
+            recognition_type?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Total Amount */
+            total_amount?: number | null;
+            /** Recognized Amount */
+            recognized_amount?: number | null;
+            /** Currency */
+            currency?: string | null;
+            /** Created By */
+            created_by?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Entries */
+            entries: {
+                [key: string]: unknown;
+            }[];
         } & {
             [key: string]: unknown;
         };
@@ -18373,6 +18546,18 @@ export interface components {
             /** Value */
             value: string;
         };
+        /**
+         * TakeSnapshotResponse
+         * @description ``POST /forecast/snapshot`` — items list of the snapshots just
+         *     written. Each row mirrors ``ForecastSnapshotRow`` but extras stay
+         *     open in case the service helper adds enrichments.
+         */
+        TakeSnapshotResponse: {
+            /** Items */
+            items: {
+                [key: string]: unknown;
+            }[];
+        };
         /** TaskCreate */
         TaskCreate: {
             /** Title */
@@ -18474,6 +18659,18 @@ export interface components {
             id: number;
             /** Status */
             status: string;
+        };
+        /**
+         * TeamForecastRollupResponse
+         * @description ``GET /forecast/team-rollup`` — manager view of team pipeline.
+         *
+         *     The underlying service returns a free-form aggregate; we declare
+         *     the schema with ``extra="allow"`` so the OpenAPI contract surfaces
+         *     "this is JSON object" instead of "any". Future sprints can lock
+         *     the inner keys once the SPA stabilizes.
+         */
+        TeamForecastRollupResponse: {
+            [key: string]: unknown;
         };
         /** TeamMemberCreate */
         TeamMemberCreate: {
@@ -19055,6 +19252,29 @@ export interface components {
             /** Reasons */
             reasons: components["schemas"]["WinLossReasonItem"][];
         };
+        /**
+         * WoWForecastResponse
+         * @description ``GET /forecast/wow`` — week-over-week pipeline comparison.
+         */
+        WoWForecastResponse: {
+            /** Weeks */
+            weeks: components["schemas"]["WoWWeekPoint"][];
+            /** Current Total */
+            current_total: number;
+            /** Previous Total */
+            previous_total: number;
+            /** Delta */
+            delta: number;
+            /** Delta Pct */
+            delta_pct: number;
+        };
+        /** WoWWeekPoint */
+        WoWWeekPoint: {
+            /** Week Label */
+            week_label: string;
+            /** Total */
+            total: number;
+        };
         /** WorkflowRuleCreate */
         WorkflowRuleCreate: {
             /** Name */
@@ -19449,9 +19669,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["FeatureFlagsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -29963,9 +30181,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["HybridForecastResponse"];
                 };
             };
             /** @description Validation Error */
@@ -30098,9 +30314,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TakeSnapshotResponse"];
                 };
             };
             /** @description Validation Error */
@@ -30133,9 +30347,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WoWForecastResponse"];
                 };
             };
             /** @description Validation Error */
@@ -30169,9 +30381,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamForecastRollupResponse"];
                 };
             };
             /** @description Validation Error */
@@ -30205,9 +30415,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ForecastAccuracyResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36722,9 +36930,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RevenueScheduleDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36757,9 +36963,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["GenerateEntriesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36793,9 +36997,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RecognizeEntryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36826,9 +37028,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RecognitionDashboardResponse"];
                 };
             };
             /** @description Validation Error */

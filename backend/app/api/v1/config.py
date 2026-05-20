@@ -22,6 +22,7 @@ from fastapi import APIRouter, Depends
 from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.models.user import User
+from app.schemas.config import FeatureFlagsResponse
 
 router = APIRouter(prefix="/config", tags=["config"])
 
@@ -124,7 +125,7 @@ _PUBLIC_FEATURE_FLAGS: set[str] = {
 }
 
 
-@router.get("/feature-flags", response_model=dict)
+@router.get("/feature-flags", response_model=FeatureFlagsResponse)
 async def get_feature_flags(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:

@@ -516,9 +516,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Feature Flags Api V1 Config Feature Flags Get"
+                  "$ref": "#/components/schemas/FeatureFlagsResponse"
                 }
               }
             }
@@ -22106,9 +22104,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Hybrid Forecast Api V1 Forecast Hybrid Get"
+                  "$ref": "#/components/schemas/HybridForecastResponse"
                 }
               }
             }
@@ -22380,9 +22376,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Take Snapshot Api V1 Forecast Snapshot Post"
+                  "$ref": "#/components/schemas/TakeSnapshotResponse"
                 }
               }
             }
@@ -22449,9 +22443,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Week Over Week Api V1 Forecast Wow Get"
+                  "$ref": "#/components/schemas/WoWForecastResponse"
                 }
               }
             }
@@ -22524,9 +22516,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Team Forecast Rollup Api V1 Forecast Team Rollup Get"
+                  "$ref": "#/components/schemas/TeamForecastRollupResponse"
                 }
               }
             }
@@ -22599,9 +22589,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Forecast Accuracy Api V1 Forecast Accuracy Get"
+                  "$ref": "#/components/schemas/ForecastAccuracyResponse"
                 }
               }
             }
@@ -35394,9 +35382,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Schedule Api V1 Revenue Schedules  Schedule Id  Get"
+                  "$ref": "#/components/schemas/RevenueScheduleDetailResponse"
                 }
               }
             }
@@ -35460,9 +35446,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Generate Entries Api V1 Revenue Schedules  Schedule Id  Generate Entries Post"
+                  "$ref": "#/components/schemas/GenerateEntriesResponse"
                 }
               }
             }
@@ -35535,9 +35519,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Recognize Entry Api V1 Revenue Schedules  Schedule Id  Entries  Entry Id  Recognize Patch"
+                  "$ref": "#/components/schemas/RecognizeEntryResponse"
                 }
               }
             }
@@ -35592,9 +35574,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Recognition Dashboard Api V1 Revenue Recognition Dashboard Get"
+                  "$ref": "#/components/schemas/RecognitionDashboardResponse"
                 }
               }
             }
@@ -50065,6 +50045,33 @@
         ],
         "title": "ExtractedSignalItem"
       },
+      "FeatureFlagsResponse": {
+        "properties": {
+          "env": {
+            "type": "string",
+            "title": "Env"
+          },
+          "release": {
+            "type": "string",
+            "title": "Release"
+          },
+          "flags": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Flags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "env",
+          "release",
+          "flags"
+        ],
+        "title": "FeatureFlagsResponse",
+        "description": "``GET /config/feature-flags`` \u2014 runtime flag snapshot.\n\n``flags`` is a free-form ``dict[str, bool]`` because the set of\nflags evolves per sprint; locking each one as a Required field\nhere would force a schema change on every flag flip. The\nconsumer (``FeatureFlagContext``) treats unknown flag names as\n\"off\" so adding new flags is non-breaking for the SPA."
+      },
       "FederatedBenchmarkRow": {
         "properties": {
           "cohort": {
@@ -50288,6 +50295,77 @@
         ],
         "title": "FolderItem",
         "description": "Single folder row \u2014 used inside POST/PUT folder responses.\n\nThe ``data`` wrapping envelope reflects the legacy SPA shape; new\nconsumers should treat ``data`` as the canonical payload."
+      },
+      "ForecastAccuracyPerRep": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "user_name": {
+            "type": "string",
+            "title": "User Name"
+          },
+          "forecast": {
+            "type": "number",
+            "title": "Forecast"
+          },
+          "actual": {
+            "type": "number",
+            "title": "Actual"
+          },
+          "accuracy": {
+            "type": "number",
+            "title": "Accuracy"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "user_id",
+          "user_name",
+          "forecast",
+          "actual",
+          "accuracy"
+        ],
+        "title": "ForecastAccuracyPerRep"
+      },
+      "ForecastAccuracyResponse": {
+        "properties": {
+          "period": {
+            "type": "string",
+            "title": "Period"
+          },
+          "commit_forecast": {
+            "type": "number",
+            "title": "Commit Forecast"
+          },
+          "actual_won": {
+            "type": "number",
+            "title": "Actual Won"
+          },
+          "accuracy_pct": {
+            "type": "number",
+            "title": "Accuracy Pct"
+          },
+          "per_rep": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastAccuracyPerRep"
+            },
+            "type": "array",
+            "title": "Per Rep"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period",
+          "commit_forecast",
+          "actual_won",
+          "accuracy_pct",
+          "per_rep"
+        ],
+        "title": "ForecastAccuracyResponse",
+        "description": "``GET /forecast/accuracy`` \u2014 forecast vs actuals comparison."
       },
       "ForecastAdjustmentRow": {
         "properties": {
@@ -50663,6 +50741,40 @@
           "entity_id"
         ],
         "title": "GenerateBody"
+      },
+      "GenerateEntriesResponse": {
+        "properties": {
+          "generated": {
+            "type": "integer",
+            "title": "Generated"
+          },
+          "entries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated",
+          "entries"
+        ],
+        "title": "GenerateEntriesResponse",
+        "description": "``POST /revenue-schedules/{id}/generate-entries`` \u2014 split ack."
       },
       "GenerateRequest": {
         "properties": {
@@ -51093,6 +51205,125 @@
         ],
         "title": "HighIntentAccountResponse",
         "description": "Wire shape for ``GET /api/v1/customers/high-intent``.\n\nRound-15 N15-API-1 quick-win 5 \u2014 pre-Round-15 the endpoint was typed\nas ``PaginatedResponse[dict]`` even though ``ProspectingAgent`` already\nemits this exact 6-field shape (``customers.py:115-125``). The schema\ncloses that contract gap without changing the wire payload."
+      },
+      "HybridForecastByConfidence": {
+        "properties": {
+          "low": {
+            "$ref": "#/components/schemas/HybridForecastByConfidenceBand"
+          },
+          "medium": {
+            "$ref": "#/components/schemas/HybridForecastByConfidenceBand"
+          },
+          "high": {
+            "$ref": "#/components/schemas/HybridForecastByConfidenceBand"
+          }
+        },
+        "type": "object",
+        "required": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "HybridForecastByConfidence"
+      },
+      "HybridForecastByConfidenceBand": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "hybrid_weighted": {
+            "type": "number",
+            "title": "Hybrid Weighted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "amount",
+          "hybrid_weighted"
+        ],
+        "title": "HybridForecastByConfidenceBand"
+      },
+      "HybridForecastByStage": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "legacy_weighted": {
+            "type": "number",
+            "title": "Legacy Weighted"
+          },
+          "hybrid_weighted": {
+            "type": "number",
+            "title": "Hybrid Weighted"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "stage",
+          "count",
+          "amount",
+          "legacy_weighted",
+          "hybrid_weighted"
+        ],
+        "title": "HybridForecastByStage"
+      },
+      "HybridForecastResponse": {
+        "properties": {
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "legacy_weighted_total": {
+            "type": "number",
+            "title": "Legacy Weighted Total"
+          },
+          "hybrid_weighted_total": {
+            "type": "number",
+            "title": "Hybrid Weighted Total"
+          },
+          "by_stage": {
+            "items": {
+              "$ref": "#/components/schemas/HybridForecastByStage"
+            },
+            "type": "array",
+            "title": "By Stage"
+          },
+          "by_confidence": {
+            "$ref": "#/components/schemas/HybridForecastByConfidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "legacy_weighted_total",
+          "hybrid_weighted_total",
+          "by_stage",
+          "by_confidence"
+        ],
+        "title": "HybridForecastResponse",
+        "description": "``GET /forecast/hybrid`` \u2014 legacy vs hybrid weighted forecast."
       },
       "InflationTaxResponse": {
         "properties": {},
@@ -58863,6 +59094,55 @@
         ],
         "title": "RagAnswerPayload"
       },
+      "RecognitionDashboardResponse": {
+        "properties": {
+          "total_scheduled": {
+            "type": "number",
+            "title": "Total Scheduled"
+          },
+          "total_recognized": {
+            "type": "number",
+            "title": "Total Recognized"
+          },
+          "this_month_pending": {
+            "type": "number",
+            "title": "This Month Pending"
+          },
+          "recognition_rate_pct": {
+            "type": "number",
+            "title": "Recognition Rate Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_scheduled",
+          "total_recognized",
+          "this_month_pending",
+          "recognition_rate_pct"
+        ],
+        "title": "RecognitionDashboardResponse",
+        "description": "``GET /revenue-recognition/dashboard`` \u2014 tenant rollup."
+      },
+      "RecognizeEntryResponse": {
+        "properties": {
+          "entry": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Entry"
+          },
+          "schedule_recognized_amount": {
+            "type": "number",
+            "title": "Schedule Recognized Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entry",
+          "schedule_recognized_amount"
+        ],
+        "title": "RecognizeEntryResponse",
+        "description": "``PATCH .../entries/{id}/recognize`` \u2014 single entry ack."
+      },
       "RecordQualityResponse": {
         "properties": {
           "data": {
@@ -60201,6 +60481,140 @@
         ],
         "title": "RevenueLeaksResponse",
         "description": "Service returns a free-form ``LeakDetectionService.detect_leaks``\npayload \u2014 keep ``extra='allow'`` for the same reason."
+      },
+      "RevenueScheduleDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "contract_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Id"
+          },
+          "recognition_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recognition Type"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "recognized_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recognized Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "entries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "entries"
+        ],
+        "title": "RevenueScheduleDetailResponse",
+        "description": "``GET /revenue-schedules/{id}`` \u2014 schedule + entry breakdown.\n\n``entries`` stays free-form to avoid a circular import with the\nexisting ``RevenueScheduleRow`` (round15_pagination.py)."
       },
       "RevenueScheduleRow": {
         "properties": {
@@ -64808,6 +65222,24 @@
         "title": "SystemConfigUpdateResponse",
         "description": "PUT /settings/system-config/{key} \u2014 single-setting update ack."
       },
+      "TakeSnapshotResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "TakeSnapshotResponse",
+        "description": "``POST /forecast/snapshot`` \u2014 items list of the snapshots just\nwritten. Each row mirrors ``ForecastSnapshotRow`` but extras stay\nopen in case the service helper adds enrichments."
+      },
       "TaskCreate": {
         "properties": {
           "title": {
@@ -65151,6 +65583,13 @@
           "status"
         ],
         "title": "TaskUpdateResponse"
+      },
+      "TeamForecastRollupResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TeamForecastRollupResponse",
+        "description": "``GET /forecast/team-rollup`` \u2014 manager view of team pipeline.\n\nThe underlying service returns a free-form aggregate; we declare\nthe schema with ``extra=\"allow\"`` so the OpenAPI contract surfaces\n\"this is JSON object\" instead of \"any\". Future sprints can lock\nthe inner keys once the SPA stabilizes."
       },
       "TeamMemberCreate": {
         "properties": {
@@ -66962,6 +67401,61 @@
           "reasons"
         ],
         "title": "WinLossReasonsResponse"
+      },
+      "WoWForecastResponse": {
+        "properties": {
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/WoWWeekPoint"
+            },
+            "type": "array",
+            "title": "Weeks"
+          },
+          "current_total": {
+            "type": "number",
+            "title": "Current Total"
+          },
+          "previous_total": {
+            "type": "number",
+            "title": "Previous Total"
+          },
+          "delta": {
+            "type": "number",
+            "title": "Delta"
+          },
+          "delta_pct": {
+            "type": "number",
+            "title": "Delta Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "weeks",
+          "current_total",
+          "previous_total",
+          "delta",
+          "delta_pct"
+        ],
+        "title": "WoWForecastResponse",
+        "description": "``GET /forecast/wow`` \u2014 week-over-week pipeline comparison."
+      },
+      "WoWWeekPoint": {
+        "properties": {
+          "week_label": {
+            "type": "string",
+            "title": "Week Label"
+          },
+          "total": {
+            "type": "number",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week_label",
+          "total"
+        ],
+        "title": "WoWWeekPoint"
       },
       "WorkflowRuleCreate": {
         "properties": {

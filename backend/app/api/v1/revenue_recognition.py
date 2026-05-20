@@ -19,6 +19,12 @@ from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
 from app.schemas.round15_pagination import RevenueScheduleRow
+from app.schemas.round16_aggregates import (
+    GenerateEntriesResponse,
+    RecognitionDashboardResponse,
+    RecognizeEntryResponse,
+    RevenueScheduleDetailResponse,
+)
 
 # Routes use mixed-path convention (/revenue-schedules/ and /revenue-recognition/dashboard)
 # rather than a shared router prefix, which is intentional for semantic clarity.
@@ -200,7 +206,7 @@ async def create_schedule(
     return _serialize_schedule(schedule)
 
 
-@router.get("/revenue-schedules/{schedule_id}", response_model=dict)
+@router.get("/revenue-schedules/{schedule_id}", response_model=RevenueScheduleDetailResponse)
 async def get_schedule(
     schedule_id: int,
     _: None = Depends(_require_rev_rec),
@@ -228,7 +234,7 @@ async def get_schedule(
     return data
 
 
-@router.post("/revenue-schedules/{schedule_id}/generate-entries", status_code=201, response_model=dict)
+@router.post("/revenue-schedules/{schedule_id}/generate-entries", status_code=201, response_model=GenerateEntriesResponse)
 async def generate_entries(
     schedule_id: int,
     _: None = Depends(_require_rev_rec),
@@ -280,7 +286,7 @@ async def generate_entries(
     return {"generated": len(entries), "entries": [_serialize_entry(e) for e in entries]}
 
 
-@router.patch("/revenue-schedules/{schedule_id}/entries/{entry_id}/recognize", response_model=dict)
+@router.patch("/revenue-schedules/{schedule_id}/entries/{entry_id}/recognize", response_model=RecognizeEntryResponse)
 async def recognize_entry(
     schedule_id: int,
     entry_id: int,
@@ -328,7 +334,7 @@ async def recognize_entry(
     }
 
 
-@router.get("/revenue-recognition/dashboard", response_model=dict)
+@router.get("/revenue-recognition/dashboard", response_model=RecognitionDashboardResponse)
 async def recognition_dashboard(
     _: None = Depends(_require_rev_rec),
     current_user: User = Depends(get_current_user),
