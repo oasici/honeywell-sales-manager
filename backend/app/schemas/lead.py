@@ -39,5 +39,12 @@ class LeadResponse(BaseModel):
     notes: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    # Sprint 16g (Round-15) — computed fields the SPA's manual ``Lead``
+    # interface in lib/types.ts has read for months but OpenAPI didn't
+    # document. Declaring here unblocks the api-types.gen.ts migration
+    # (audit N15-ARCH-1 pre-step). ``full_name`` is a server-computed
+    # concatenation; ``owner_name`` resolves the owner_id FK.
+    full_name: str | None = None
+    owner_name: str | None = None
 
     model_config = {"from_attributes": True, "extra": "allow"}

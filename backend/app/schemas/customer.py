@@ -117,6 +117,12 @@ class CustomerResponse(BaseModel):
 
     quote_count: int | None = None
     total_quote_value: float | None = None
+    # Sprint 16g (Round-15) — per-user pin state, computed by the
+    # /customers handler via the ``user_customer_pins`` lookup. The SPA's
+    # manual ``Customer`` interface in lib/types.ts has read it for
+    # months; declaring it here unblocks the api-types.gen.ts migration
+    # (audit N15-ARCH-1 pre-step).
+    pinned: bool | None = None
 
     # R6-API-9 — firmographic fields populated by the AI enrichment
     # pipeline + manual overrides.

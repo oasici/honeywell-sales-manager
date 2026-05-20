@@ -82,6 +82,15 @@ class OpportunityResponse(BaseModel):
     previous_amount: float | None = None
     source: str | None = None
     rotting_days: int | None = None
+    # Sprint 16g (Round-15) — computed fields that the SPA's manual
+    # ``Opportunity`` interface in lib/types.ts has read for months but
+    # the OpenAPI contract didn't document. Declaring them here lets the
+    # generated api-types.gen.ts replace the hand-written shape (audit
+    # N15-ARCH-1 pre-step). All are populated by ``_opp_to_dict`` /
+    # ``_board_opp_to_dict`` extras and pass through ``extra=allow``.
+    last_activity_at: datetime | None = None
+    open_tasks_count: int | None = None
+    open_quotes_count: int | None = None
     customer: _CustomerSummary | None = None
     owner: _OwnerSummary | None = None
     created_at: datetime | None = None
