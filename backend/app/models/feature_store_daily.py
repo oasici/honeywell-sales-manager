@@ -63,11 +63,21 @@ class OpportunityFeaturesDaily(Base):
 
 
 class AccountFeaturesDaily(Base):
+    """Daily per-account rollup.
+
+    Round-16 N15-DB-3 — ``tenant_id`` added for defense in depth.
+    Backfilled from ``customers.tenant_id`` by
+    ``20260614_add_tenant_id_to_feature_store_rollups``. Nullable until
+    a follow-up cohort verifies the backfill in prod and promotes to
+    NOT NULL.
+    """
+
     __tablename__ = "account_features_daily"
 
     # MVP: account_id == customers.id (V1 mapping)
     account_id: Mapped[int] = mapped_column(Integer, ForeignKey("customers.id"), primary_key=True)
     snapshot_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     open_opportunity_count: Mapped[int] = mapped_column(Integer, default=0)
     # Round-15 F-004 — promote to NUMERIC(19, 2) to match every other
@@ -100,10 +110,20 @@ class AccountFeaturesDaily(Base):
 
 
 class RepFeaturesDaily(Base):
+    """Daily per-rep rollup.
+
+    Round-16 N15-DB-3 — ``tenant_id`` added for defense in depth.
+    Backfilled from ``users.tenant_id`` by
+    ``20260614_add_tenant_id_to_feature_store_rollups``. Nullable until
+    a follow-up cohort verifies the backfill in prod and promotes to
+    NOT NULL.
+    """
+
     __tablename__ = "rep_features_daily"
 
     rep_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
     snapshot_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     avg_followup_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
     stakeholder_coverage_rate: Mapped[float | None] = mapped_column(Float, nullable=True)

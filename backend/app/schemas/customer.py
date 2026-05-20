@@ -160,6 +160,66 @@ class CustomerResponse(BaseModel):
     model_config = {"from_attributes": True, "extra": "allow"}
 
 
+class CustomerStrictResponse(BaseModel):
+    """C2 canary — Round-16 (N15-API-3 RFC Option A).
+
+    Strong-contract variant of ``CustomerResponse`` for routes where
+    field-permission masking is NOT active. Every NOT-NULL column on
+    the Customer ORM is declared Required; only genuinely nullable
+    columns stay Optional.
+
+    Per the RFC at ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,
+    this schema is the canary deliverable. Routes opt in via the picker
+    at ``backend/app/services/response_model_picker.py``; if any
+    field-permission rule is active for ``customer`` on the current
+    request, the picker falls back to ``CustomerResponse`` so masking
+    behaviour is preserved.
+
+    Compatibility note: additive only. No existing route uses it yet;
+    existing routes continue to return ``CustomerResponse``. Round-17
+    will wire the picker on /customers/{id} as the first canary route.
+    """
+
+    id: int
+    tenant_id: int
+    name: str
+    email: str
+    preferred_lang: str
+    created_at: datetime
+    updated_at: datetime
+    kvkk_consent: bool
+
+    # Truly nullable on the ORM
+    company: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    tax_id: str | None = None
+    created_by: int | None = None
+    kvkk_consent_date: datetime | None = None
+    kvkk_consent_method: str | None = None
+    data_processing_purpose: str | None = None
+    data_retention_until: datetime | None = None
+    deletion_requested_at: datetime | None = None
+    data_classification: DataClassification | None = None
+    industry: str | None = None
+    employee_count: int | None = None
+    annual_revenue: str | None = None
+    website: str | None = None
+    linkedin_url: str | None = None
+    enriched_at: datetime | None = None
+    territory_id: int | None = None
+    parent_id: int | None = None
+
+    # Computed extras emitted by _customer_to_dict — Optional because
+    # they're not always populated (e.g. /high-intent doesn't compute
+    # quote_count).
+    quote_count: int | None = None
+    total_quote_value: float | None = None
+    pinned: bool | None = None
+
+    model_config = {"from_attributes": True}
+
+
 # ──────────────────────────────────────────────────────────────────
 # Round-15 typing pass — schemas for the remaining JSON endpoints in
 # ``api/v1/customers.py`` that previously returned bare ``dict``.
