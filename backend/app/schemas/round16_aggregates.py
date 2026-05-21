@@ -684,3 +684,82 @@ class GuideEvaluateResponse(BaseModel):
     """``POST /guided-selling/{id}/evaluate`` — match score + reasons."""
 
     model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Contracts (app/api/v1/contracts.py — non-CRUD endpoints)
+# ──────────────────────────────────────────────────────────────────
+
+
+class ContractAmendmentAck(BaseModel):
+    """``POST /contracts/{id}/amend`` — amendment creation ack."""
+
+    id: int
+    amendment_type: str | None = None
+    contract_status: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Quotes (app/api/v1/quotes.py — non-CRUD endpoints)
+# ──────────────────────────────────────────────────────────────────
+
+
+class QuoteVersionsResponse(BaseModel):
+    """``GET /quotes/{id}/versions`` — revision chain."""
+
+    quote_id: int | None = None
+    versions: list[dict[str, Any]] = []
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class QuoteCompareResponse(BaseModel):
+    """``GET /quotes/{a}/compare/{b}`` — line-item diff + summary."""
+
+    quote_a: dict[str, Any] | None = None
+    quote_b: dict[str, Any] | None = None
+    added: list[dict[str, Any]] = []
+    removed: list[dict[str, Any]] = []
+    changed: list[dict[str, Any]] = []
+    summary: dict[str, Any] | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Dashboard (app/api/v1/dashboard.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class DashboardStatsResponse(BaseModel):
+    """``GET /dashboard/stats`` — tenant KPI rollup.
+
+    The handler emits a large heterogeneous payload (counts, ratios,
+    pipeline rollups) that already has stable keys on the FE side.
+    ``extra="allow"`` makes the schema additive while still declaring
+    the canonical contract.
+    """
+
+    total_emails: int | None = None
+    parsed_emails: int | None = None
+    total_quotes: int | None = None
+    total_customers: int | None = None
+    total_parts: int | None = None
+    total_users: int | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Notifications (app/api/v1/notifications.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class UnreadCountResponse(BaseModel):
+    """``GET /notifications/unread-count`` — sidebar badge counter."""
+
+    unread_count: int
+
+    model_config = {"from_attributes": True}

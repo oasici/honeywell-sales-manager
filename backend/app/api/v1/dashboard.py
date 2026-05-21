@@ -10,11 +10,12 @@ from app.models.quote import Quote
 from app.models.quote_item import QuoteItem
 from app.models.spare_part import SparePart
 from app.models.user import User
+from app.schemas.round16_aggregates import DashboardStatsResponse
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
-@router.get("/stats", response_model=dict)
+@router.get("/stats", response_model=DashboardStatsResponse)
 async def get_dashboard_stats(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

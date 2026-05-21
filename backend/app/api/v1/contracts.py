@@ -18,6 +18,7 @@ from app.models.contract import Contract, ContractAmendment
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.contract import ContractResponse, ContractStrictResponse
+from app.schemas.round16_aggregates import ContractAmendmentAck
 from app.services.response_model_picker import has_masking_rules_for
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
@@ -301,7 +302,7 @@ async def update_contract(
     return _serialize_contract(contract)
 
 
-@router.post("/contracts/{contract_id}/amend", response_model=dict)
+@router.post("/contracts/{contract_id}/amend", response_model=ContractAmendmentAck)
 async def amend_contract(
     contract_id: int,
     body: AmendmentCreate,
@@ -338,7 +339,7 @@ async def amend_contract(
     }
 
 
-@router.post("/contracts/{contract_id}/activate", response_model=dict)
+@router.post("/contracts/{contract_id}/activate", response_model=ContractResponse)
 async def activate_contract(
     contract_id: int,
     current_user: User = Depends(get_current_user),

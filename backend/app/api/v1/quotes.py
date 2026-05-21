@@ -16,6 +16,7 @@ from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.quote import QuoteCreate, QuoteResponse, QuoteStrictResponse, QuoteUpdate
+from app.schemas.round16_aggregates import QuoteCompareResponse, QuoteVersionsResponse
 from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
 from app.services.notification_service import create_notification
@@ -589,7 +590,7 @@ async def convert_quote_currency(
     return _quote_to_dict(quote, include_items=True)
 
 
-@router.get("/{quote_id}/versions", response_model=dict)
+@router.get("/{quote_id}/versions", response_model=QuoteVersionsResponse)
 async def get_quote_versions(
     quote_id: int,
     current_user: User = Depends(get_current_user),
@@ -674,7 +675,7 @@ async def get_quote_versions(
     }
 
 
-@router.get("/{quote_id}/compare/{other_id}", response_model=dict)
+@router.get("/{quote_id}/compare/{other_id}", response_model=QuoteCompareResponse)
 async def compare_quotes(
     quote_id: int,
     other_id: int,

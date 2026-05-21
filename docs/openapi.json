@@ -571,9 +571,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Dashboard Stats Api V1 Dashboard Stats Get"
+                  "$ref": "#/components/schemas/DashboardStatsResponse"
                 }
               }
             }
@@ -9436,9 +9434,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Quote Versions Api V1 Quotes  Quote Id  Versions Get"
+                  "$ref": "#/components/schemas/QuoteVersionsResponse"
                 }
               }
             }
@@ -9511,9 +9507,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Compare Quotes Api V1 Quotes  Quote Id  Compare  Other Id  Get"
+                  "$ref": "#/components/schemas/QuoteCompareResponse"
                 }
               }
             }
@@ -11147,9 +11141,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Unread Count Api V1 Notifications Unread Count Get"
+                  "$ref": "#/components/schemas/UnreadCountResponse"
                 }
               }
             }
@@ -32293,9 +32285,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Amend Contract Api V1 Contracts  Contract Id  Amend Post"
+                  "$ref": "#/components/schemas/ContractAmendmentAck"
                 }
               }
             }
@@ -32359,9 +32349,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Activate Contract Api V1 Contracts  Contract Id  Activate Post"
+                  "$ref": "#/components/schemas/ContractResponse"
                 }
               }
             }
@@ -44613,6 +44601,43 @@
         ],
         "title": "ConsentResponse"
       },
+      "ContractAmendmentAck": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "amendment_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amendment Type"
+          },
+          "contract_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Status"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "ContractAmendmentAck",
+        "description": "``POST /contracts/{id}/amend`` \u2014 amendment creation ack."
+      },
       "ContractCreate": {
         "properties": {
           "customer_id": {
@@ -48106,6 +48131,80 @@
           "widgets_json"
         ],
         "title": "DashboardCreate"
+      },
+      "DashboardStatsResponse": {
+        "properties": {
+          "total_emails": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Emails"
+          },
+          "parsed_emails": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parsed Emails"
+          },
+          "total_quotes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Quotes"
+          },
+          "total_customers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Customers"
+          },
+          "total_parts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Parts"
+          },
+          "total_users": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Users"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "DashboardStatsResponse",
+        "description": "``GET /dashboard/stats`` \u2014 tenant KPI rollup.\n\nThe handler emits a large heterogeneous payload (counts, ratios,\npipeline rollups) that already has stable keys on the FE side.\n``extra=\"allow\"`` makes the schema additive while still declaring\nthe canonical contract."
       },
       "DashboardUpdate": {
         "properties": {
@@ -60546,6 +60645,77 @@
         ],
         "title": "PushSubscribeRequest"
       },
+      "QuoteCompareResponse": {
+        "properties": {
+          "quote_a": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote A"
+          },
+          "quote_b": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote B"
+          },
+          "added": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Added",
+            "default": []
+          },
+          "removed": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Removed",
+            "default": []
+          },
+          "changed": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Changed",
+            "default": []
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "QuoteCompareResponse",
+        "description": "``GET /quotes/{a}/compare/{b}`` \u2014 line-item diff + summary."
+      },
       "QuoteCreate": {
         "properties": {
           "customer_id": {
@@ -61544,6 +61714,34 @@
         },
         "type": "object",
         "title": "QuoteUpdate"
+      },
+      "QuoteVersionsResponse": {
+        "properties": {
+          "quote_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Id"
+          },
+          "versions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Versions",
+            "default": []
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "QuoteVersionsResponse",
+        "description": "``GET /quotes/{id}/versions`` \u2014 revision chain."
       },
       "RAGCollectionItem": {
         "properties": {
@@ -69412,6 +69610,20 @@
         "type": "object",
         "title": "TranscriptSummarizeResponse",
         "description": "Free-form summary payload from\n``app.services.transcript_summarizer.summarize_transcript``.\n\nShape varies between rule-based and AI paths, so ``extra='allow'``."
+      },
+      "UnreadCountResponse": {
+        "properties": {
+          "unread_count": {
+            "type": "integer",
+            "title": "Unread Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unread_count"
+        ],
+        "title": "UnreadCountResponse",
+        "description": "``GET /notifications/unread-count`` \u2014 sidebar badge counter."
       },
       "UserCreate": {
         "properties": {

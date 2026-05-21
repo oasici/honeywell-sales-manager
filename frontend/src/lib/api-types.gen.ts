@@ -11706,6 +11706,20 @@ export interface components {
             /** Retention Until */
             retention_until?: string | null;
         };
+        /**
+         * ContractAmendmentAck
+         * @description ``POST /contracts/{id}/amend`` — amendment creation ack.
+         */
+        ContractAmendmentAck: {
+            /** Id */
+            id: number;
+            /** Amendment Type */
+            amendment_type?: string | null;
+            /** Contract Status */
+            contract_status?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** ContractCreate */
         ContractCreate: {
             /** Customer Id */
@@ -12756,6 +12770,31 @@ export interface components {
              * @default false
              */
             is_default: boolean;
+        };
+        /**
+         * DashboardStatsResponse
+         * @description ``GET /dashboard/stats`` — tenant KPI rollup.
+         *
+         *     The handler emits a large heterogeneous payload (counts, ratios,
+         *     pipeline rollups) that already has stable keys on the FE side.
+         *     ``extra="allow"`` makes the schema additive while still declaring
+         *     the canonical contract.
+         */
+        DashboardStatsResponse: {
+            /** Total Emails */
+            total_emails?: number | null;
+            /** Parsed Emails */
+            parsed_emails?: number | null;
+            /** Total Quotes */
+            total_quotes?: number | null;
+            /** Total Customers */
+            total_customers?: number | null;
+            /** Total Parts */
+            total_parts?: number | null;
+            /** Total Users */
+            total_users?: number | null;
+        } & {
+            [key: string]: unknown;
         };
         /** DashboardUpdate */
         DashboardUpdate: {
@@ -17411,6 +17450,47 @@ export interface components {
             /** Keys Json */
             keys_json: string;
         };
+        /**
+         * QuoteCompareResponse
+         * @description ``GET /quotes/{a}/compare/{b}`` — line-item diff + summary.
+         */
+        QuoteCompareResponse: {
+            /** Quote A */
+            quote_a?: {
+                [key: string]: unknown;
+            } | null;
+            /** Quote B */
+            quote_b?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Added
+             * @default []
+             */
+            added: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Removed
+             * @default []
+             */
+            removed: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Changed
+             * @default []
+             */
+            changed: {
+                [key: string]: unknown;
+            }[];
+            /** Summary */
+            summary?: {
+                [key: string]: unknown;
+            } | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** QuoteCreate */
         QuoteCreate: {
             /** Customer Id */
@@ -17687,6 +17767,23 @@ export interface components {
             notes?: string | null;
             /** Items */
             items?: components["schemas"]["QuoteItemCreate"][] | null;
+        };
+        /**
+         * QuoteVersionsResponse
+         * @description ``GET /quotes/{id}/versions`` — revision chain.
+         */
+        QuoteVersionsResponse: {
+            /** Quote Id */
+            quote_id?: number | null;
+            /**
+             * Versions
+             * @default []
+             */
+            versions: {
+                [key: string]: unknown;
+            }[];
+        } & {
+            [key: string]: unknown;
         };
         /** RAGCollectionItem */
         RAGCollectionItem: {
@@ -20096,6 +20193,14 @@ export interface components {
         TranscriptSummarizeResponse: {
             [key: string]: unknown;
         };
+        /**
+         * UnreadCountResponse
+         * @description ``GET /notifications/unread-count`` — sidebar badge counter.
+         */
+        UnreadCountResponse: {
+            /** Unread Count */
+            unread_count: number;
+        };
         /** UserCreate */
         UserCreate: {
             /**
@@ -20897,9 +21002,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DashboardStatsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -25157,9 +25260,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["QuoteVersionsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -25193,9 +25294,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["QuoteCompareResponse"];
                 };
             };
             /** @description Validation Error */
@@ -25991,9 +26090,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UnreadCountResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36511,9 +36608,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ContractAmendmentAck"];
                 };
             };
             /** @description Validation Error */
@@ -36546,9 +36641,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ContractResponse"];
                 };
             };
             /** @description Validation Error */

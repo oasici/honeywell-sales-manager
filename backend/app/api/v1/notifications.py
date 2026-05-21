@@ -15,6 +15,7 @@ from app.models.user import User
 from app.services.notification_service import get_notifications, mark_as_read
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.notification import NotificationResponse
+from app.schemas.round16_aggregates import UnreadCountResponse
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
@@ -52,7 +53,7 @@ async def list_notifications(
     }
 
 
-@router.get("/unread-count", response_model=dict)
+@router.get("/unread-count", response_model=UnreadCountResponse)
 async def get_unread_count(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
