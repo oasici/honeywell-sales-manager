@@ -221,15 +221,15 @@ Track A complete when:
 - [x] A2: every `_PUBLIC_FEATURE_FLAGS` entry has either an SPA consumer or a justification comment.
 
 Track B complete when:
-- [ ] `grep -c 'response_model=dict' backend/app/api/v1/*.py | awk -F: '{s+=$2} END {print s}'` ≤ 50.
-- [ ] Each remaining `response_model=dict` carries an inline docstring justifying the polymorphic contract.
-- [ ] `backend/tests/test_response_model_coverage.py` still passes; lint gate active.
+- [x] `grep -c 'response_model=dict' backend/app/api/v1/*.py | awk -F: '{s+=$2} END {print s}'` ≤ 50. (Closed 2026-05-21 — count is 0 after batch 8.)
+- [x] Each remaining `response_model=dict` carries an inline docstring justifying the polymorphic contract. (N/A — zero remaining.)
+- [x] `backend/tests/test_response_model_coverage.py` still passes; lint gate active. (Active; sibling `test_no_response_model_dict_regressions` added in commit 49b6e33.)
 
 Track C complete when:
-- [ ] RFC merged into `docs/decisions/`.
-- [ ] All 7 CRM `lib/types.ts` interfaces removed; aliases active.
-- [ ] `frontend/src/__tests__/lib/types-contract.test.ts` upgraded to equality assertion.
-- [ ] `backend/tests/test_response_model_coverage.py` extended with `test_no_optional_everywhere_on_required_fields`.
+- [x] RFC merged into `docs/decisions/`. (Lives at `docs/decisions/2026-05-21-polymorphic-response-schemas.md`.)
+- [ ] All 7 CRM `lib/types.ts` interfaces removed; aliases active. (Codemod blocked: SPA's `noUncheckedIndexedAccess: true` rejects the Optional-everywhere `<Entity>Response` shape. The picker rollout C3-C8 added `<Entity>StrictResponse` for single-entity GET routes — list endpoints still return the loose shape. Full codemod needs a per-call-site `??` audit; tracked as next-quarter work.)
+- [ ] `frontend/src/__tests__/lib/types-contract.test.ts` upgraded to equality assertion. (Depends on codemod above.)
+- [x] `backend/tests/test_response_model_coverage.py` extended with `test_no_optional_everywhere_on_required_fields`.
 
 Track D (only if PM clears the gate):
 - [ ] ≥ 4 event-bus events relayed via SSE.

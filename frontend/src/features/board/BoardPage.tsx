@@ -203,7 +203,7 @@ function KanbanCard({ opp, healthScore }: KanbanCardProps) {
       {opp.previous_amount != null && opp.previous_amount !== opp.amount && (
         <p
           className="mt-1 flex items-center gap-1 text-[11px] font-medium tabular-nums text-amber-600 dark:text-amber-400"
-          title="Tutar değişti"
+          title={t('board.amount_changed_tooltip')}
         >
           <span className="opacity-60 line-through">
             {formatCurrency(opp.previous_amount, opp.currency)}
@@ -472,7 +472,7 @@ export default function BoardPage() {
   const customerOptions = [
     {
       value: '',
-      label: debouncedCustomerQuery.length < 2 ? 'Aramak için yazın…' : 'Seçin…',
+      label: debouncedCustomerQuery.length < 2 ? t('common.search_typing_hint') : t('common.choose'),
     },
     ...(customerHits ?? []).map((c) => ({
       value: String(c.id),
@@ -531,7 +531,7 @@ export default function BoardPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-1">
             <Input
-              label="Müşteri ara"
+              label={t('common.search_customer')}
               placeholder="İsim / şirket (≥2 harf)"
               value={customerQuery}
               onChange={(e) => {
@@ -591,7 +591,7 @@ export default function BoardPage() {
             }}
           >
             <RotateCcw size={13} />
-            Sıfırla
+            {t('common.reset')}
           </Button>
         </div>
       </div>

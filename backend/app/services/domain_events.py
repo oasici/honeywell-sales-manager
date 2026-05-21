@@ -108,6 +108,123 @@ EVENT_PAYLOAD_SCHEMAS: dict[str, dict] = {
 }
 
 
+# ── Pydantic payload schemas — Round-16 N15-ARCH-1 follow-up ───
+#
+# Round-15 audit § 8.5 — "Domain-event payload schema validation:
+# domain_events.py documents schemas in dicts; promote to Pydantic
+# models and runtime-validate at event_bus.publish to prevent silent
+# drift."
+#
+# Models below mirror EVENT_PAYLOAD_SCHEMAS exactly so reviewers can
+# spot drift between docs and runtime model. extra="allow" keeps the
+# validation soft — callers that include additional context fields
+# (debug payload, correlation id) won't trip the check. The
+# ``_validate_event_payload`` helper logs a warning on a true
+# schema-vs-call divergence but never raises, preserving the existing
+# fire-and-forget semantics.
+
+from typing import Any
+
+from pydantic import BaseModel, ValidationError
+
+
+class _SequenceStepCompletedPayload(BaseModel):
+    enrollment_id: int
+    sequence_id: int
+    step_number: int
+    step_action: str
+    variant_key: str | None = None
+    opportunity_id: int | None = None
+    customer_id: int | None = None
+    lead_id: int | None = None
+
+    model_config = {"extra": "allow"}
+
+
+class _SequenceCompletedPayload(BaseModel):
+    enrollment_id: int
+    sequence_id: int
+    exit_reason: str
+    total_steps: int
+    opportunity_id: int | None = None
+    customer_id: int | None = None
+    lead_id: int | None = None
+
+    model_config = {"extra": "allow"}
+
+
+class _SequenceExitedPayload(BaseModel):
+    enrollment_id: int
+    sequence_id: int
+    exit_reason: str
+    current_step: int
+    opportunity_id: int | None = None
+    customer_id: int | None = None
+    lead_id: int | None = None
+
+    model_config = {"extra": "allow"}
+
+
+class _LeadScoreChangedPayload(BaseModel):
+    lead_id: int
+    old_score: float | None = None
+    new_score: float
+    delta: float
+    reason: str
+
+    model_config = {"extra": "allow"}
+
+
+class _SignalCreatedPayload(BaseModel):
+    signal_id: int
+    signal_type: str
+    severity: str
+    opportunity_id: int | None = None
+    depth: int | None = None
+
+    model_config = {"extra": "allow"}
+
+
+class _OppScoreChangedPayload(BaseModel):
+    opportunity_id: int
+    old_score: float | None = None
+    new_score: float
+    reason: str
+
+    model_config = {"extra": "allow"}
+
+
+_EVENT_PAYLOAD_MODELS: dict[str, type[BaseModel]] = {
+    DomainEvents.SEQUENCE_STEP_COMPLETED: _SequenceStepCompletedPayload,
+    DomainEvents.SEQUENCE_COMPLETED: _SequenceCompletedPayload,
+    DomainEvents.SEQUENCE_EXITED: _SequenceExitedPayload,
+    DomainEvents.LEAD_SCORE_CHANGED: _LeadScoreChangedPayload,
+    DomainEvents.SIGNAL_CREATED: _SignalCreatedPayload,
+    DomainEvents.OPP_SCORE_CHANGED: _OppScoreChangedPayload,
+}
+
+
+def _validate_event_payload(event_type: str, payload: dict[str, Any]) -> None:
+    """Soft-validate the payload against the documented schema.
+
+    Logs a warning on validation failure but never raises — domain
+    events are fire-and-forget by design. A bad payload should
+    surface in logs (so the producer can fix it) without breaking the
+    mutation that emitted it.
+    """
+    model_cls = _EVENT_PAYLOAD_MODELS.get(event_type)
+    if model_cls is None:
+        return
+    try:
+        model_cls.model_validate(payload)
+    except ValidationError as exc:
+        logger.warning(
+            "Domain event payload schema drift on %s: %s",
+            event_type,
+            exc.errors(include_url=False),
+        )
+
+
 async def emit_domain_event(
     db: AsyncSession,
     event_type: str,
@@ -129,6 +246,10 @@ async def emit_domain_event(
         actor_id: Optional acting user ID.
         persist: Whether to write to domain_events table (default True).
     """
+    # Round-16 — soft Pydantic validation of the payload against the
+    # documented schema. Logs on drift, never raises.
+    _validate_event_payload(event_type, payload)
+
     if persist:
         from app.models.sequence_v2 import DomainEvent
 

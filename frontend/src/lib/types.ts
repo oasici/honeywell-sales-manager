@@ -7,34 +7,37 @@
 // to ``components['schemas'][...]`` aliases. In practice the project's
 // ``noUncheckedIndexedAccess: true`` stricture made the Pydantic-loose
 // optional fields incompatible with strict consumers (BoardPage,
-// QuoteListPage, SubscriptionDetailPage, etc). Reverted to the
-// narrowed hand-written shapes here; the generated file still serves
-// as the OpenAPI contract via the CI gate. Tightening the backend
-// Pydantic schemas to match runtime invariants would let the
-// migration re-land — tracked as a follow-up.
+// QuoteListPage, SubscriptionDetailPage, etc). The hand-written
+// shapes below provide narrower-than-OpenAPI invariants that the
+// SPA actually relies on.
+//
+// Round-16 N15-ARCH-1 — first phase of the codemod: where the manual
+// shape is a strict subset of the generated one PLUS a few literal-
+// union narrowings, express it as a typed extension of the generated
+// component. That way we still benefit from the OpenAPI contract for
+// every shared field (Pydantic adds a new field → it flows through
+// automatically) while preserving the runtime-narrowed invariants
+// (``role`` literal union, non-nullable ``created_at``). The
+// ``types-contract.test.ts`` gate continues to verify drift in both
+// directions.
+import type { components } from './api-types.gen';
 
 // ── User ──────────────────────────────────────────────
-// Round-15 Sprint 15m-7 attempted to alias this to the generated
-// ``UserResponse``, but the project compiles with
-// ``noUncheckedIndexedAccess: true`` and the Pydantic schema marks
-// many fields as ``Optional`` (for extras-tolerance) which the SPA
-// consumers don't tolerate. Reverted to the hand-written narrowed
-// shape; the generated ``UserResponse`` remains the wire contract
-// but the SPA-facing type stays tighter until the backend schema is
-// tightened to match runtime invariants.
-export interface User {
-  id: number;
-  tenant_id?: number | null;
-  manager_id?: number | null;
-  email: string;
-  full_name: string;
+// Aliases ``UserResponse`` with two narrowed invariants the SPA
+// relies on under ``noUncheckedIndexedAccess: true``:
+//   1. ``role`` is the literal union, not bare string. Every consumer
+//      that switches on ``user.role === 'sales_manager'`` keeps
+//      compile-time exhaustiveness.
+//   2. ``created_at`` is ``string | null`` (DB-backed, never
+//      undefined). The generated schema marks it Optional because
+//      the Pydantic class declares ``datetime | None``.
+export type User = Omit<
+  components['schemas']['UserResponse'],
+  'role' | 'created_at'
+> & {
   role: 'sales_rep' | 'sales_manager' | 'operations';
-  is_active: boolean;
-  email_setup_completed: boolean;
-  password_change_required?: boolean;
   created_at: string | null;
-  updated_at?: string | null;
-}
+};
 
 // ── Customer ─────────────────────────────────────────
 // Sprint 15m-2 partial revert — hand-written shape kept.

@@ -15,6 +15,7 @@ import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { aiAttributesApi } from '../../lib/api';
 import {
   onAiAttributeDefinitionChanged,
+  onAiAttributePreviewChanged,
   onAiAttributeValueChanged,
 } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
@@ -108,7 +109,7 @@ export default function AiAttributesPage() {
       if (previewDef && previewEntityId) {
         onAiAttributeValueChanged(qc, previewDef.entity_type, Number(previewEntityId));
       }
-      qc.invalidateQueries({ queryKey: ['ai-attributes', 'preview'] });
+      onAiAttributePreviewChanged(qc);
     },
     onError: () => toast.error('Önizleme üretilemedi'),
   });

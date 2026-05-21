@@ -309,6 +309,18 @@ export function onAiAttributeValueChanged(
 }
 
 /**
+ * Round-16 — Admin AI Attribute preview run. Distinct from
+ * ``onAiAttributeValueChanged`` because the preview surface keeps
+ * its own ephemeral cache (``['ai-attributes', 'preview']``) that
+ * doesn't fan out to the real values key. AiAttributesPage calls
+ * both helpers — value cache when the entity has a stored row;
+ * preview cache always.
+ */
+export function onAiAttributePreviewChanged(qc: QueryClient): void {
+  qc.invalidateQueries({ queryKey: ['ai-attributes', 'preview'] });
+}
+
+/**
  * Round-8 — Decision graph mutated (initialize/patch). The graph itself
  * re-renders via the dedicated key; downstream cards consuming process
  * completion (gaps, deal-risk) also refresh.

@@ -104,7 +104,7 @@ export default function OpportunitiesHomePage() {
 
   const handleCreate = () => {
     if (!createForm.title.trim()) {
-      toast.error('Başlık zorunludur');
+      toast.error(t('opps.home.title_required'));
       return;
     }
     const payload: Record<string, unknown> = {
@@ -157,7 +157,7 @@ export default function OpportunitiesHomePage() {
             disabled={oppsQuery.isFetching}
           >
             <RefreshCw size={16} />
-            Yenile
+            {t('common.refresh')}
           </Button>
           <Button variant="secondary" onClick={() => navigate('/board')}>
             <ArrowRight size={16} />
@@ -166,7 +166,7 @@ export default function OpportunitiesHomePage() {
           {/* R7-FORM-1 — Yeni Fırsat (was missing entirely). */}
           <Button variant="primary" onClick={() => setCreateOpen(true)}>
             <Plus size={16} />
-            Yeni Fırsat
+            {t('opps.home.new_opportunity')}
           </Button>
         </div>
       </PageHeader>
@@ -451,12 +451,12 @@ export default function OpportunitiesHomePage() {
           setCreateForm(INITIAL_CREATE_FORM);
           setCustomerSearch('');
         }}
-        title="Yeni Fırsat"
+        title={t('opps.home.new_opportunity')}
         size="lg"
       >
         <div className="space-y-4">
           <Input
-            label="Başlık"
+            label={t('common.title_label')}
             value={createForm.title}
             onChange={(e) => setCreateForm((p) => ({ ...p, title: e.target.value }))}
             placeholder="Honeywell servis genişletme"
@@ -464,10 +464,10 @@ export default function OpportunitiesHomePage() {
           />
           <div>
             <label className="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-300">
-              Müşteri
+              {t('common.customer_label')}
             </label>
             <Input
-              placeholder="Müşteri adıyla arayın…"
+              placeholder={t('common.search_customer_by_name')}
               value={customerSearch}
               onChange={(e) => {
                 setCustomerSearch(e.target.value);
