@@ -959,12 +959,21 @@ class OpsAiUsageResponse(BaseModel):
 
 
 class DealReplayFramesResponse(BaseModel):
-    """``GET /deal-replay/{opp_id}`` — frame-by-frame timeline."""
+    """``GET /deal-replay/{opp_id}`` — frame-by-frame timeline.
+
+    Runtime emits heterogeneous shapes for `source_timeline_version`
+    (string like ``'v4-additive-readmodel'``) and `frames` (dict
+    wrapping `items`, not a bare list). Declaring narrow types
+    would refuse legitimate runtime payloads — see CI run
+    26215731007 which caught the over-narrow ``int`` + ``list[Any]``
+    declarations. Widening to ``Any`` while keeping the names in
+    OpenAPI so SDK consumers still see the field set.
+    """
 
     opportunity_id: int | None = None
     snapshot_date: str | None = None
-    source_timeline_version: int | None = None
-    frames: list[Any] = []
+    source_timeline_version: Any | None = None
+    frames: Any | None = None
     meta: Any | None = None
     updated_at: str | None = None
 

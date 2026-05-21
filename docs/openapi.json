@@ -48836,9 +48836,7 @@
           },
           "source_timeline_version": {
             "anyOf": [
-              {
-                "type": "integer"
-              },
+              {},
               {
                 "type": "null"
               }
@@ -48846,10 +48844,13 @@
             "title": "Source Timeline Version"
           },
           "frames": {
-            "items": {},
-            "type": "array",
-            "title": "Frames",
-            "default": []
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frames"
           },
           "meta": {
             "anyOf": [
@@ -48875,7 +48876,7 @@
         "additionalProperties": true,
         "type": "object",
         "title": "DealReplayFramesResponse",
-        "description": "``GET /deal-replay/{opp_id}`` \u2014 frame-by-frame timeline."
+        "description": "``GET /deal-replay/{opp_id}`` \u2014 frame-by-frame timeline.\n\nRuntime emits heterogeneous shapes for `source_timeline_version`\n(string like ``'v4-additive-readmodel'``) and `frames` (dict\nwrapping `items`, not a bare list). Declaring narrow types\nwould refuse legitimate runtime payloads \u2014 see CI run\n26215731007 which caught the over-narrow ``int`` + ``list[Any]``\ndeclarations. Widening to ``Any`` while keeping the names in\nOpenAPI so SDK consumers still see the field set."
       },
       "DealReplayMaterializeResponse": {
         "properties": {

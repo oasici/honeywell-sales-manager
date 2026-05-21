@@ -13043,6 +13043,14 @@ export interface components {
         /**
          * DealReplayFramesResponse
          * @description ``GET /deal-replay/{opp_id}`` — frame-by-frame timeline.
+         *
+         *     Runtime emits heterogeneous shapes for `source_timeline_version`
+         *     (string like ``'v4-additive-readmodel'``) and `frames` (dict
+         *     wrapping `items`, not a bare list). Declaring narrow types
+         *     would refuse legitimate runtime payloads — see CI run
+         *     26215731007 which caught the over-narrow ``int`` + ``list[Any]``
+         *     declarations. Widening to ``Any`` while keeping the names in
+         *     OpenAPI so SDK consumers still see the field set.
          */
         DealReplayFramesResponse: {
             /** Opportunity Id */
@@ -13050,12 +13058,9 @@ export interface components {
             /** Snapshot Date */
             snapshot_date?: string | null;
             /** Source Timeline Version */
-            source_timeline_version?: number | null;
-            /**
-             * Frames
-             * @default []
-             */
-            frames: unknown[];
+            source_timeline_version?: unknown | null;
+            /** Frames */
+            frames?: unknown | null;
             /** Meta */
             meta?: unknown | null;
             /** Updated At */
