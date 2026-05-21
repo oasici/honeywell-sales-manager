@@ -22,6 +22,10 @@ from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import ItemsResponse, PaginatedResponse
 from app.schemas.round15_pagination import TerritoryListRow
+from app.schemas.round16_aggregates import (
+    TerritoryAssignmentAck,
+    TerritoryAutoAssignResponse,
+)
 from app.schemas.territory import (
     AutoAssignResponse,
     TerritoryAssignmentItem,
@@ -437,7 +441,7 @@ async def delete_territory(
     await db.delete(territory)
 
 
-@router.post("/{territory_id}/assignments", status_code=201, response_model=dict)
+@router.post("/{territory_id}/assignments", status_code=201, response_model=TerritoryAssignmentAck)
 async def assign_user(
     territory_id: int,
     body: AssignmentCreate,
@@ -520,7 +524,7 @@ async def remove_assignment(
     await db.delete(assignment)
 
 
-@router.post("/auto-assign", response_model=dict)
+@router.post("/auto-assign", response_model=TerritoryAutoAssignResponse)
 async def auto_assign_territories(
     _: None = Depends(_require_territories),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

@@ -21,6 +21,7 @@ from app.services.email_processing_service import EmailProcessingService
 from app.services.notification_service import create_notification
 from app.services.tenant_context import assert_same_tenant
 from app.schemas.common import MessageResponse, PaginatedResponse
+from app.schemas.round16_aggregates import EmailMatchesResponse
 
 
 def _assert_email_same_tenant(email: EmailRequest, user: User) -> None:
@@ -620,7 +621,7 @@ async def correct_parse(
     }
 
 
-@router.get("/{email_id}/matches", response_model=dict)
+@router.get("/{email_id}/matches", response_model=EmailMatchesResponse)
 async def get_email_matches(
     email_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),

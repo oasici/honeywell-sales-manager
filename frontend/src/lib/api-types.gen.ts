@@ -10571,6 +10571,13 @@ export interface components {
             /** Created At */
             created_at?: string | null;
         };
+        /**
+         * AuditExportResponse
+         * @description ``POST /audit/export-user-data`` — KVKK data export.
+         */
+        AuditExportResponse: {
+            [key: string]: unknown;
+        };
         /** AuditLogRow */
         AuditLogRow: {
             /** Id */
@@ -11137,6 +11144,13 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         } & {
+            [key: string]: unknown;
+        };
+        /**
+         * CampaignRoiResponse
+         * @description ``GET /campaigns/{id}/roi`` — return-on-investment rollup.
+         */
+        CampaignRoiResponse: {
             [key: string]: unknown;
         };
         /** CampaignUpdate */
@@ -12101,6 +12115,13 @@ export interface components {
             /** Value */
             value?: string | number | null;
         };
+        /**
+         * CustomFieldValuesResponse
+         * @description ``GET /custom-fields/values/{entity_type}/{entity_id}``.
+         */
+        CustomFieldValuesResponse: {
+            [key: string]: unknown;
+        };
         /** CustomerActivity */
         CustomerActivity: {
             /** Id */
@@ -12854,6 +12875,20 @@ export interface components {
             /** Avg Score */
             avg_score: number;
         };
+        /**
+         * DeadLetterDetailResponse
+         * @description ``GET /admin/dead-letters/{id}`` — single entry.
+         */
+        DeadLetterDetailResponse: {
+            /** Id */
+            id?: number | null;
+            /** Event Type */
+            event_type?: string | null;
+            /** Handler Name */
+            handler_name?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** DeadLetterEventRow */
         DeadLetterEventRow: {
             /** Id */
@@ -12873,6 +12908,13 @@ export interface components {
             /** Last Attempted At */
             last_attempted_at?: string | null;
         } & {
+            [key: string]: unknown;
+        };
+        /**
+         * DeadLetterStatsResponse
+         * @description ``GET /admin/dead-letters/stats`` — grouped retry stats.
+         */
+        DeadLetterStatsResponse: {
             [key: string]: unknown;
         };
         /** DeadStockItem */
@@ -12997,6 +13039,45 @@ export interface components {
             critical_count: number;
             /** Average Score */
             average_score: number;
+        };
+        /**
+         * DealReplayFramesResponse
+         * @description ``GET /deal-replay/{opp_id}`` — frame-by-frame timeline.
+         */
+        DealReplayFramesResponse: {
+            /** Opportunity Id */
+            opportunity_id?: number | null;
+            /** Snapshot Date */
+            snapshot_date?: string | null;
+            /** Source Timeline Version */
+            source_timeline_version?: number | null;
+            /**
+             * Frames
+             * @default []
+             */
+            frames: unknown[];
+            /** Meta */
+            meta?: unknown | null;
+            /** Updated At */
+            updated_at?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * DealReplayMaterializeResponse
+         * @description ``POST /deal-replay/{opp_id}/materialize`` — generation ack.
+         */
+        DealReplayMaterializeResponse: {
+            /** Ok */
+            ok?: boolean | null;
+            /** Opportunity Id */
+            opportunity_id?: number | null;
+            /** Snapshot Date */
+            snapshot_date?: string | null;
+            /** Timeline Item Count */
+            timeline_item_count?: number | null;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * DealRiskResponse
@@ -13366,6 +13447,13 @@ export interface components {
             detected_language: string;
         };
         /**
+         * EmailMatchesResponse
+         * @description ``GET /emails/{id}/matches`` — spare-part match candidates.
+         */
+        EmailMatchesResponse: {
+            [key: string]: unknown;
+        };
+        /**
          * EmailOpportunityLinkBody
          * @description Link or unlink an inbound email to a v2 opportunity (same customer when both set).
          */
@@ -13527,6 +13615,13 @@ export interface components {
             category?: string | null;
             /** Is Shared */
             is_shared?: boolean | null;
+        };
+        /**
+         * EmailTemplateVariablesResponse
+         * @description ``GET /email-templates/variables`` — available substitution keys.
+         */
+        EmailTemplateVariablesResponse: {
+            [key: string]: unknown;
         };
         /** EmailTestRequest */
         EmailTestRequest: {
@@ -13821,6 +13916,13 @@ export interface components {
             flags: {
                 [key: string]: boolean;
             };
+        };
+        /**
+         * FeatureStoreBuildResponse
+         * @description ``POST /feature-store/build`` — daily rollup generation ack.
+         */
+        FeatureStoreBuildResponse: {
+            [key: string]: unknown;
         };
         /** FederatedBenchmarkRow */
         FederatedBenchmarkRow: {
@@ -15138,6 +15240,23 @@ export interface components {
              */
             status: "no_price" | "unknown_part";
         };
+        /**
+         * MomentumCurrentResponse
+         * @description ``GET /momentum/{opportunity_id}`` — per-opp momentum snapshot.
+         */
+        MomentumCurrentResponse: {
+            /** Opportunity Id */
+            opportunity_id?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * MomentumDistributionResponse
+         * @description ``GET /momentum/distribution`` — band counts across opportunities.
+         */
+        MomentumDistributionResponse: {
+            [key: string]: unknown;
+        };
         /** MomentumHistoryRow */
         MomentumHistoryRow: {
             /** Id */
@@ -15198,6 +15317,13 @@ export interface components {
             /** Detected At */
             detected_at?: string | null;
         };
+        /**
+         * NetworkIntelligenceOverviewResponse
+         * @description ``GET /network-intelligence/overview`` — cohort signals.
+         */
+        NetworkIntelligenceOverviewResponse: {
+            [key: string]: unknown;
+        };
         /** NetworkSegmentRow */
         NetworkSegmentRow: {
             /** Id */
@@ -15213,6 +15339,13 @@ export interface components {
             /** Value */
             value?: number | null;
         } & {
+            [key: string]: unknown;
+        };
+        /**
+         * NextBestActionDismissAck
+         * @description ``POST /next-best-actions/{opp_id}/{task_id}/dismiss``.
+         */
+        NextBestActionDismissAck: {
             [key: string]: unknown;
         };
         /** NextBestActionRow */
@@ -15660,6 +15793,23 @@ export interface components {
             pipeline_id?: number | null;
             /** Territory Id */
             territory_id?: number | null;
+        };
+        /**
+         * OpsAiUsageResponse
+         * @description ``GET /ops/ai-usage`` — feature usage stats.
+         */
+        OpsAiUsageResponse: {
+            /** Period Days */
+            period_days?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * OpsReviewQueueResponse
+         * @description ``GET /ops/review-queue`` — pending review items rollup.
+         */
+        OpsReviewQueueResponse: {
+            [key: string]: unknown;
         };
         /** OrphanPricingItem */
         OrphanPricingItem: {
@@ -17082,6 +17232,33 @@ export interface components {
             pages: number;
         };
         /**
+         * PartDetailResponse
+         * @description ``GET /parts/{id}`` — single spare-part detail.
+         */
+        PartDetailResponse: {
+            /** Id */
+            id?: number | null;
+            /** Honeywell Code */
+            honeywell_code?: string | null;
+            /** Model Number */
+            model_number?: string | null;
+            /** Info */
+            info?: string | null;
+            /** Name En */
+            name_en?: string | null;
+            /** Name Tr */
+            name_tr?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * PartsImportResponse
+         * @description ``POST /parts/import`` — bulk import ack.
+         */
+        PartsImportResponse: {
+            [key: string]: unknown;
+        };
+        /**
          * PartsSummaryResponse
          * @description Combined dashboard payload — shape varies; passthrough.
          */
@@ -17202,6 +17379,13 @@ export interface components {
             new_quotes: number;
             /** Current Pipeline Total */
             current_pipeline_total: number;
+        };
+        /**
+         * PlaybookAnalyticsResponse
+         * @description ``GET /playbooks/analytics`` — usage + outcomes rollup.
+         */
+        PlaybookAnalyticsResponse: {
+            [key: string]: unknown;
         };
         /** PlaybookCreate */
         PlaybookCreate: {
@@ -17422,6 +17606,13 @@ export interface components {
              * @default 0
              */
             unit_price: number;
+        };
+        /**
+         * ProductRuleEvaluateResponse
+         * @description ``POST /product-rules/evaluate`` — rule engine result.
+         */
+        ProductRuleEvaluateResponse: {
+            [key: string]: unknown;
         };
         /** ProductRuleRow */
         ProductRuleRow: {
@@ -17831,6 +18022,36 @@ export interface components {
             competitor?: string | null;
         };
         /**
+         * RagQueryResponse
+         * @description ``POST /rag/query`` — retrieval-augmented answer.
+         */
+        RagQueryResponse: {
+            /** Question */
+            question?: string | null;
+            /** Answer */
+            answer?: string | null;
+            /**
+             * Citations
+             * @default []
+             */
+            citations: unknown[];
+            /** Confidence */
+            confidence?: number | null;
+            /** Used Collections */
+            used_collections?: string[] | null;
+            /** Fallback Reason */
+            fallback_reason?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * RagReindexResponse
+         * @description ``POST /rag/reindex/{name}`` — collection rebuild ack.
+         */
+        RagReindexResponse: {
+            [key: string]: unknown;
+        };
+        /**
          * RecognitionDashboardResponse
          * @description ``GET /revenue-recognition/dashboard`` — tenant rollup.
          */
@@ -17891,6 +18112,30 @@ export interface components {
             metadata_json?: string | null;
             /** Created At */
             created_at?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * RelationshipGraphRebuildResponse
+         * @description ``POST /relationship-graph/rebuild/opportunity/{id}``.
+         */
+        RelationshipGraphRebuildResponse: {
+            /** Opportunity Id */
+            opportunity_id?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * RelationshipGraphScoreResponse
+         * @description ``GET /relationship-graph/score/{kind}/{entity_id}``.
+         */
+        RelationshipGraphScoreResponse: {
+            /** Kind */
+            kind?: string | null;
+            /** Entity Id */
+            entity_id?: number | null;
+            /** Score */
+            score?: number | null;
         } & {
             [key: string]: unknown;
         };
@@ -19113,12 +19358,48 @@ export interface components {
             /** Signer Name */
             signer_name?: string | null;
         };
+        /**
+         * SignatureRequestResponse
+         * @description ``GET /signatures/{id}`` — signature request detail.
+         */
+        SignatureRequestResponse: {
+            /** Id */
+            id?: number | null;
+            /** Tenant Id */
+            tenant_id?: number | null;
+            /** Document Type */
+            document_type?: string | null;
+            /** Document Id */
+            document_id?: number | null;
+            /** Signer Email */
+            signer_email?: string | null;
+            /** Signer Name */
+            signer_name?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** SignatureSubmit */
         SignatureSubmit: {
             /** Signature Data */
             signature_data: string;
             /** Signer Name */
             signer_name?: string | null;
+        };
+        /**
+         * SigningPageResponse
+         * @description ``GET /signatures/sign/{token}`` — public signing page payload.
+         */
+        SigningPageResponse: {
+            /** Document Type */
+            document_type?: string | null;
+            /** Document Id */
+            document_id?: number | null;
+            /** Found */
+            found?: boolean | null;
+            /** Status */
+            status?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** SimilarOpportunitiesResponse */
         SimilarOpportunitiesResponse: {
@@ -19323,6 +19604,13 @@ export interface components {
             to_stage: string;
             /** Rate */
             rate: number;
+        };
+        /**
+         * StakeholderAlertsResponse
+         * @description ``GET /stakeholders/opportunity/{id}/alerts`` — coverage gaps.
+         */
+        StakeholderAlertsResponse: {
+            [key: string]: unknown;
         };
         /** StakeholderCreate */
         StakeholderCreate: {
@@ -19776,6 +20064,13 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /**
+         * TargetAlignmentBackfillResponse
+         * @description ``POST /target-alignment/shadow/sync-window`` — backfill ack.
+         */
+        TargetAlignmentBackfillResponse: {
+            [key: string]: unknown;
+        };
         /** TaskCreate */
         TaskCreate: {
             /** Title */
@@ -19901,6 +20196,24 @@ export interface components {
             role: string;
         };
         /**
+         * TerritoryAssignmentAck
+         * @description ``POST /territories/{id}/assignments``.
+         */
+        TerritoryAssignmentAck: {
+            /** Id */
+            id?: number | null;
+            /** Territory Id */
+            territory_id?: number | null;
+            /** User Id */
+            user_id?: number | null;
+            /** Role */
+            role?: string | null;
+            /** Created At */
+            created_at?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
          * TerritoryAssignmentItem
          * @description Single assignment row — matches ``_serialize_assignment`` + user info.
          */
@@ -19920,6 +20233,13 @@ export interface components {
                 [key: string]: string | null;
             } | null;
         } & {
+            [key: string]: unknown;
+        };
+        /**
+         * TerritoryAutoAssignResponse
+         * @description ``POST /territories/auto-assign`` — bulk assignment result.
+         */
+        TerritoryAutoAssignResponse: {
             [key: string]: unknown;
         };
         /** TerritoryCreate */
@@ -20297,6 +20617,33 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         } & {
+            [key: string]: unknown;
+        };
+        /**
+         * V6PlaybookAdherenceResponse
+         * @description ``GET /v6/playbooks/{id}/adherence``.
+         */
+        V6PlaybookAdherenceResponse: {
+            /** Playbook Id */
+            playbook_id?: number | null;
+            /** Period Start */
+            period_start?: string | null;
+            /** Period End */
+            period_end?: string | null;
+            /** Usage Count */
+            usage_count?: number | null;
+            /** Completion Rate */
+            completion_rate?: number | null;
+            /** Won Rate */
+            won_rate?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * V6PlaybookPromoteResponse
+         * @description ``POST /v6/playbooks/promote-from-dna``.
+         */
+        V6PlaybookPromoteResponse: {
             [key: string]: unknown;
         };
         /** ValidationError */
@@ -21393,9 +21740,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["EmailMatchesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21569,9 +21914,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PartDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21676,9 +22019,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PartsImportResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21921,9 +22262,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["FeatureStoreBuildResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22158,9 +22497,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TargetAlignmentBackfillResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22340,9 +22677,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DealReplayFramesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22381,9 +22716,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DealReplayMaterializeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22937,9 +23270,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["V6PlaybookPromoteResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22974,9 +23305,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["V6PlaybookAdherenceResponse"];
                 };
             };
             /** @description Validation Error */
@@ -24188,9 +24517,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RagQueryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -24256,9 +24583,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RagReindexResponse"];
                 };
             };
             /** @description Validation Error */
@@ -26989,9 +27314,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuditExportResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27062,9 +27385,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DeadLetterDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27126,9 +27447,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DeadLetterStatsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27159,9 +27478,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OpsReviewQueueResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27195,9 +27512,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OpsAiUsageResponse"];
                 };
             };
             /** @description Validation Error */
@@ -33656,9 +33971,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PlaybookAnalyticsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -34094,9 +34407,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ProductRuleEvaluateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -34398,9 +34709,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CustomFieldValuesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -35086,9 +35395,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["EmailTemplateVariablesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36851,9 +37158,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CampaignRoiResponse"];
                 };
             };
             /** @description Validation Error */
@@ -37344,9 +37649,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SignatureRequestResponse"];
                 };
             };
             /** @description Validation Error */
@@ -37410,9 +37713,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SigningPageResponse"];
                 };
             };
             /** @description Validation Error */
@@ -37985,9 +38286,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TerritoryAssignmentAck"];
                 };
             };
             /** @description Validation Error */
@@ -38050,9 +38349,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TerritoryAutoAssignResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39100,9 +39397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["StakeholderAlertsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39133,9 +39428,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MomentumDistributionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39168,9 +39461,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MomentumCurrentResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39312,9 +39603,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["NextBestActionDismissAck"];
                 };
             };
             /** @description Validation Error */
@@ -39379,9 +39668,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["NetworkIntelligenceOverviewResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39767,9 +40054,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RelationshipGraphScoreResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39838,9 +40123,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RelationshipGraphRebuildResponse"];
                 };
             };
             /** @description Validation Error */

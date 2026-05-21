@@ -21,6 +21,7 @@ from app.models.revenue_signal import RevenueSignal
 from app.models.sales_event_shadow import SalesEventShadow
 from app.models.user import User
 from app.schemas.common import ItemsResponse
+from app.schemas.round16_aggregates import TargetAlignmentBackfillResponse
 
 
 router = APIRouter(prefix="/v4/alignment", tags=["V4 Additive Alignment"])
@@ -42,7 +43,7 @@ class ShadowBackfillBody(BaseModel):
     days: int = Field(default=7, ge=1, le=365)
 
 
-@router.post("/shadow/sync-window", response_model=dict)
+@router.post("/shadow/sync-window", response_model=TargetAlignmentBackfillResponse)
 async def shadow_sync_manual_backfill(
     body: ShadowBackfillBody,
     db: AsyncSession = Depends(get_db),

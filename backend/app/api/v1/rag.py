@@ -33,6 +33,7 @@ from app.models.enums import UserRole
 from app.models.user import User
 from app.services import rag_answer_service, rag_backfill_service
 from app.schemas.common import ItemsResponse
+from app.schemas.round16_aggregates import RagQueryResponse, RagReindexResponse
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +138,7 @@ class RagAnswerPayload(BaseModel):
 @router.post(
     "/answer",
     dependencies=[Depends(enforce_ai_rate_limit)],
-    response_model=dict,
+    response_model=RagQueryResponse,
 )
 async def rag_answer(
     payload: RagAnswerPayload,
@@ -189,7 +190,7 @@ async def list_collections(
 _VALID_BACKFILL_NAMES = {"deals", "interactions", "competitors", "all"}
 
 
-@router.post("/reindex/{name}", response_model=dict)
+@router.post("/reindex/{name}", response_model=RagReindexResponse)
 async def reindex_collection(
     name: str,
     since_hours: int | None = Query(None, ge=1, le=720),

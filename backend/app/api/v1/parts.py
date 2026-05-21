@@ -15,6 +15,7 @@ from app.models.spare_part import SparePart
 from app.models.user import User
 from app.schemas.spare_part import SparePartCreate, SparePartResponse, SparePartUpdate
 from app.schemas.common import ItemsResponse, MessageResponse, PaginatedResponse
+from app.schemas.round16_aggregates import PartDetailResponse, PartsImportResponse
 
 router = APIRouter(prefix="/parts", tags=["Spare Parts"])
 
@@ -93,7 +94,7 @@ async def list_categories(
     return {"items": categories, "total": len(categories)}
 
 
-@router.get("/{part_id}", response_model=dict)
+@router.get("/{part_id}", response_model=PartDetailResponse)
 async def get_part(
     part_id: int,
     current_user: User = Depends(get_current_user),
@@ -194,7 +195,7 @@ async def delete_part(
     "/import",
     status_code=201,
     dependencies=[Depends(enforce_upload_rate_limit)],
-    response_model=dict,
+    response_model=PartsImportResponse,
 )
 async def import_catalog(
     file: UploadFile = File(...),

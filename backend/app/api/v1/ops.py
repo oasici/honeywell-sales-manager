@@ -17,11 +17,12 @@ from app.models.feature_usage import FeatureUsage
 from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.common import GenericDataResponse
+from app.schemas.round16_aggregates import OpsAiUsageResponse, OpsReviewQueueResponse
 
 router = APIRouter(prefix="/ops", tags=["Operations"])
 
 
-@router.get("/queues", response_model=dict)
+@router.get("/queues", response_model=OpsReviewQueueResponse)
 async def get_queues(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -87,7 +88,7 @@ async def get_queues(
     }
 
 
-@router.get("/feature-usage", response_model=dict)
+@router.get("/feature-usage", response_model=OpsAiUsageResponse)
 async def get_feature_usage(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),

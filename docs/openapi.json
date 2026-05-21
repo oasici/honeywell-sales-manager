@@ -1450,9 +1450,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Email Matches Api V1 Emails  Email Id  Matches Get"
+                  "$ref": "#/components/schemas/EmailMatchesResponse"
                 }
               }
             }
@@ -1823,9 +1821,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Part Api V1 Parts  Part Id  Get"
+                  "$ref": "#/components/schemas/PartDetailResponse"
                 }
               }
             }
@@ -2024,9 +2020,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Import Catalog Api V1 Parts Import Post"
+                  "$ref": "#/components/schemas/PartsImportResponse"
                 }
               }
             }
@@ -2541,9 +2535,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Build Feature Store Api V1 V4 Feature Store Build Post"
+                  "$ref": "#/components/schemas/FeatureStoreBuildResponse"
                 }
               }
             }
@@ -3005,9 +2997,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Shadow Sync Manual Backfill Api V1 V4 Alignment Shadow Sync Window Post"
+                  "$ref": "#/components/schemas/TargetAlignmentBackfillResponse"
                 }
               }
             }
@@ -3419,9 +3409,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Replay Snapshot Api V1 V4 Replay Opportunities  Opportunity Id  Snapshots  Snapshot Date  Get"
+                  "$ref": "#/components/schemas/DealReplayFramesResponse"
                 }
               }
             }
@@ -3535,9 +3523,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Post Materialize Replay Snapshot Api V1 V4 Replay Opportunities  Opportunity Id  Materialize Post"
+                  "$ref": "#/components/schemas/DealReplayMaterializeResponse"
                 }
               }
             }
@@ -4690,9 +4676,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Promote From Dna Api V1 V6 Playbooks Promote From Dna Post"
+                  "$ref": "#/components/schemas/V6PlaybookPromoteResponse"
                 }
               }
             }
@@ -4767,9 +4751,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Playbook Adherence Api V1 V6 Playbooks  Playbook Id  Adherence Get"
+                  "$ref": "#/components/schemas/V6PlaybookAdherenceResponse"
                 }
               }
             }
@@ -7222,9 +7204,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Rag Answer Api V1 Rag Answer Post"
+                  "$ref": "#/components/schemas/RagQueryResponse"
                 }
               }
             }
@@ -7359,9 +7339,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Reindex Collection Api V1 Rag Reindex  Name  Post"
+                  "$ref": "#/components/schemas/RagReindexResponse"
                 }
               }
             }
@@ -13042,9 +13020,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Export User Data Api V1 Audit Data Export  Target User Id  Get"
+                  "$ref": "#/components/schemas/AuditExportResponse"
                 }
               }
             }
@@ -13231,9 +13207,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Replay Dead Letter Api V1 Admin Dead Letter Events  Entry Id  Replay Post"
+                  "$ref": "#/components/schemas/DeadLetterDetailResponse"
                 }
               }
             }
@@ -13345,9 +13319,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Dead Letter Stats Api V1 Admin Dead Letter Events Stats Get"
+                  "$ref": "#/components/schemas/DeadLetterStatsResponse"
                 }
               }
             }
@@ -13402,9 +13374,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Queues Api V1 Ops Queues Get"
+                  "$ref": "#/components/schemas/OpsReviewQueueResponse"
                 }
               }
             }
@@ -13485,9 +13455,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Feature Usage Api V1 Ops Feature Usage Get"
+                  "$ref": "#/components/schemas/OpsAiUsageResponse"
                 }
               }
             }
@@ -26471,9 +26439,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Playbook Analytics Api V1 Playbooks Analytics Get"
+                  "$ref": "#/components/schemas/PlaybookAnalyticsResponse"
                 }
               }
             }
@@ -27326,9 +27292,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Evaluate Rules Api V1 Product Rules Evaluate Post"
+                  "$ref": "#/components/schemas/ProductRuleEvaluateResponse"
                 }
               }
             }
@@ -27904,9 +27868,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Custom Field Values Api V1 Custom Fields Values  Entity Type   Entity Id  Get"
+                  "$ref": "#/components/schemas/CustomFieldValuesResponse"
                 }
               }
             }
@@ -29324,9 +29286,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Available Variables Api V1 Email Templates Variables Get"
+                  "$ref": "#/components/schemas/EmailTemplateVariablesResponse"
                 }
               }
             }
@@ -32781,9 +32741,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Campaign Roi Api V1 Campaigns  Campaign Id  Roi Get"
+                  "$ref": "#/components/schemas/CampaignRoiResponse"
                 }
               }
             }
@@ -33809,9 +33767,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Signature Request Api V1 Signatures  Sig Id  Get"
+                  "$ref": "#/components/schemas/SignatureRequestResponse"
                 }
               }
             }
@@ -33916,9 +33872,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Signing Page Api V1 Signatures Sign  Token  Get"
+                  "$ref": "#/components/schemas/SigningPageResponse"
                 }
               }
             }
@@ -34997,9 +34951,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Assign User Api V1 Territories  Territory Id  Assignments Post"
+                  "$ref": "#/components/schemas/TerritoryAssignmentAck"
                 }
               }
             }
@@ -35120,9 +35072,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Auto Assign Territories Api V1 Territories Auto Assign Post"
+                  "$ref": "#/components/schemas/TerritoryAutoAssignResponse"
                 }
               }
             }
@@ -37150,9 +37100,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Coverage Alerts Api V1 Stakeholders Opportunity  Opportunity Id  Alerts Get"
+                  "$ref": "#/components/schemas/StakeholderAlertsResponse"
                 }
               }
             }
@@ -37207,9 +37155,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Distribution Api V1 Momentum Distribution Get"
+                  "$ref": "#/components/schemas/MomentumDistributionResponse"
                 }
               }
             }
@@ -37273,9 +37219,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Current Api V1 Momentum  Opportunity Id  Get"
+                  "$ref": "#/components/schemas/MomentumCurrentResponse"
                 }
               }
             }
@@ -37576,9 +37520,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Dismiss Api V1 Next Best Actions  Opportunity Id   Task Id  Dismiss Post"
+                  "$ref": "#/components/schemas/NextBestActionDismissAck"
                 }
               }
             }
@@ -37705,9 +37647,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Overview Api V1 Network Intelligence Overview Get"
+                  "$ref": "#/components/schemas/NetworkIntelligenceOverviewResponse"
                 }
               }
             }
@@ -38505,9 +38445,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Score Api V1 Relationships Score  Kind   Entity Id  Get"
+                  "$ref": "#/components/schemas/RelationshipGraphScoreResponse"
                 }
               }
             }
@@ -38654,9 +38592,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Rebuild Opportunity Api V1 Relationships Rebuild Opportunity  Opportunity Id  Post"
+                  "$ref": "#/components/schemas/RelationshipGraphRebuildResponse"
                 }
               }
             }
@@ -40801,6 +40737,13 @@
         ],
         "title": "AuditEntry"
       },
+      "AuditExportResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "AuditExportResponse",
+        "description": "``POST /audit/export-user-data`` \u2014 KVKK data export."
+      },
       "AuditLogRow": {
         "properties": {
           "id": {
@@ -42612,6 +42555,13 @@
           "id"
         ],
         "title": "CampaignResponse"
+      },
+      "CampaignRoiResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "CampaignRoiResponse",
+        "description": "``GET /campaigns/{id}/roi`` \u2014 return-on-investment rollup."
       },
       "CampaignUpdate": {
         "properties": {
@@ -45902,6 +45852,13 @@
         ],
         "title": "CustomFieldValueSet"
       },
+      "CustomFieldValuesResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "CustomFieldValuesResponse",
+        "description": "``GET /custom-fields/values/{entity_type}/{entity_id}``."
+      },
       "CustomerActivity": {
         "properties": {
           "id": {
@@ -48365,6 +48322,47 @@
         ],
         "title": "DataQualityScores"
       },
+      "DeadLetterDetailResponse": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type"
+          },
+          "handler_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handler Name"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "DeadLetterDetailResponse",
+        "description": "``GET /admin/dead-letters/{id}`` \u2014 single entry."
+      },
       "DeadLetterEventRow": {
         "properties": {
           "id": {
@@ -48453,6 +48451,13 @@
           "id"
         ],
         "title": "DeadLetterEventRow"
+      },
+      "DeadLetterStatsResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "DeadLetterStatsResponse",
+        "description": "``GET /admin/dead-letters/stats`` \u2014 grouped retry stats."
       },
       "DeadStockItem": {
         "properties": {
@@ -48804,6 +48809,125 @@
           "average_score"
         ],
         "title": "DealHealthSummaryBlock"
+      },
+      "DealReplayFramesResponse": {
+        "properties": {
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          },
+          "snapshot_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Date"
+          },
+          "source_timeline_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Timeline Version"
+          },
+          "frames": {
+            "items": {},
+            "type": "array",
+            "title": "Frames",
+            "default": []
+          },
+          "meta": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "DealReplayFramesResponse",
+        "description": "``GET /deal-replay/{opp_id}`` \u2014 frame-by-frame timeline."
+      },
+      "DealReplayMaterializeResponse": {
+        "properties": {
+          "ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ok"
+          },
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          },
+          "snapshot_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Date"
+          },
+          "timeline_item_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeline Item Count"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "DealReplayMaterializeResponse",
+        "description": "``POST /deal-replay/{opp_id}/materialize`` \u2014 generation ack."
       },
       "DealRiskResponse": {
         "properties": {},
@@ -49807,6 +49931,13 @@
         ],
         "title": "EmailDraftResponse"
       },
+      "EmailMatchesResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "EmailMatchesResponse",
+        "description": "``GET /emails/{id}/matches`` \u2014 spare-part match candidates."
+      },
       "EmailOpportunityLinkBody": {
         "properties": {
           "opportunity_id": {
@@ -50453,6 +50584,13 @@
         },
         "type": "object",
         "title": "EmailTemplateUpdate"
+      },
+      "EmailTemplateVariablesResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "EmailTemplateVariablesResponse",
+        "description": "``GET /email-templates/variables`` \u2014 available substitution keys."
       },
       "EmailTestRequest": {
         "properties": {
@@ -51337,6 +51475,13 @@
         ],
         "title": "FeatureFlagsResponse",
         "description": "``GET /config/feature-flags`` \u2014 runtime flag snapshot.\n\n``flags`` is a free-form ``dict[str, bool]`` because the set of\nflags evolves per sprint; locking each one as a Required field\nhere would force a schema change on every flag flip. The\nconsumer (``FeatureFlagContext``) treats unknown flag names as\n\"off\" so adding new flags is non-breaking for the SPA."
+      },
+      "FeatureStoreBuildResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "FeatureStoreBuildResponse",
+        "description": "``POST /feature-store/build`` \u2014 daily rollup generation ack."
       },
       "FederatedBenchmarkRow": {
         "properties": {
@@ -55115,6 +55260,32 @@
         "title": "MissingPricePartResponse",
         "description": "Round-15 audit F-027 \u2014 typed row for ``/analytics/parts-without-price``.\n\nTwo variants share the same shape:\n  * ``status == \"no_price\"``    \u2014 part exists in the catalog but\n    both ``supplier_price`` and ``transfer_price`` are NULL.\n  * ``status == \"unknown_part\"`` \u2014 quoted SKU that doesn't exist in\n    the catalog at all; ``id`` and the name fields are NULL.\n\nPre-fix the endpoint returned a bare list of dicts. The SPA had to\ncast via ``as unknown as`` because the dict shape wasn't surfaced\nin OpenAPI."
       },
+      "MomentumCurrentResponse": {
+        "properties": {
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "MomentumCurrentResponse",
+        "description": "``GET /momentum/{opportunity_id}`` \u2014 per-opp momentum snapshot."
+      },
+      "MomentumDistributionResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "MomentumDistributionResponse",
+        "description": "``GET /momentum/distribution`` \u2014 band counts across opportunities."
+      },
       "MomentumHistoryRow": {
         "properties": {
           "id": {
@@ -55352,6 +55523,13 @@
         ],
         "title": "NetworkAnomalyItem"
       },
+      "NetworkIntelligenceOverviewResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "NetworkIntelligenceOverviewResponse",
+        "description": "``GET /network-intelligence/overview`` \u2014 cohort signals."
+      },
       "NetworkSegmentRow": {
         "properties": {
           "id": {
@@ -55424,6 +55602,13 @@
         "additionalProperties": true,
         "type": "object",
         "title": "NetworkSegmentRow"
+      },
+      "NextBestActionDismissAck": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "NextBestActionDismissAck",
+        "description": "``POST /next-best-actions/{opp_id}/{task_id}/dismiss``."
       },
       "NextBestActionRow": {
         "properties": {
@@ -56959,6 +57144,32 @@
         },
         "type": "object",
         "title": "OpportunityUpdate"
+      },
+      "OpsAiUsageResponse": {
+        "properties": {
+          "period_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Days"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "OpsAiUsageResponse",
+        "description": "``GET /ops/ai-usage`` \u2014 feature usage stats."
+      },
+      "OpsReviewQueueResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "OpsReviewQueueResponse",
+        "description": "``GET /ops/review-queue`` \u2014 pending review items rollup."
       },
       "OrphanPricingItem": {
         "properties": {
@@ -59502,6 +59713,87 @@
         ],
         "title": "PaginatedResponse[WebhookSubscriptionResponse]"
       },
+      "PartDetailResponse": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "honeywell_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Honeywell Code"
+          },
+          "model_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Number"
+          },
+          "info": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Info"
+          },
+          "name_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name En"
+          },
+          "name_tr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Tr"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "PartDetailResponse",
+        "description": "``GET /parts/{id}`` \u2014 single spare-part detail."
+      },
+      "PartsImportResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "PartsImportResponse",
+        "description": "``POST /parts/import`` \u2014 bulk import ack."
+      },
       "PartsSummaryResponse": {
         "properties": {},
         "additionalProperties": true,
@@ -59868,6 +60160,13 @@
           "current_pipeline_total"
         ],
         "title": "PipelineWeeklyDiffResponse"
+      },
+      "PlaybookAnalyticsResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "PlaybookAnalyticsResponse",
+        "description": "``GET /playbooks/analytics`` \u2014 usage + outcomes rollup."
       },
       "PlaybookCreate": {
         "properties": {
@@ -60516,6 +60815,13 @@
         },
         "type": "object",
         "title": "ProductRuleEvaluateItem"
+      },
+      "ProductRuleEvaluateResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "ProductRuleEvaluateResponse",
+        "description": "``POST /product-rules/evaluate`` \u2014 rule engine result."
       },
       "ProductRuleRow": {
         "properties": {
@@ -61867,6 +62173,85 @@
         ],
         "title": "RagAnswerPayload"
       },
+      "RagQueryResponse": {
+        "properties": {
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          },
+          "citations": {
+            "items": {},
+            "type": "array",
+            "title": "Citations",
+            "default": []
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "used_collections": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Collections"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "RagQueryResponse",
+        "description": "``POST /rag/query`` \u2014 retrieval-augmented answer."
+      },
+      "RagReindexResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "RagReindexResponse",
+        "description": "``POST /rag/reindex/{name}`` \u2014 collection rebuild ack."
+      },
       "RecognitionDashboardResponse": {
         "properties": {
           "total_scheduled": {
@@ -62044,6 +62429,66 @@
           "id"
         ],
         "title": "RelationshipEdgeRow"
+      },
+      "RelationshipGraphRebuildResponse": {
+        "properties": {
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "RelationshipGraphRebuildResponse",
+        "description": "``POST /relationship-graph/rebuild/opportunity/{id}``."
+      },
+      "RelationshipGraphScoreResponse": {
+        "properties": {
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "RelationshipGraphScoreResponse",
+        "description": "``GET /relationship-graph/score/{kind}/{entity_id}``."
       },
       "RepDnaProfileEnvelope": {
         "properties": {
@@ -66029,6 +66474,80 @@
         ],
         "title": "SignatureRequestCreate"
       },
+      "SignatureRequestResponse": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "document_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Type"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "signer_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signer Email"
+          },
+          "signer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signer Name"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "SignatureRequestResponse",
+        "description": "``GET /signatures/{id}`` \u2014 signature request detail."
+      },
       "SignatureSubmit": {
         "properties": {
           "signature_data": {
@@ -66055,6 +66574,58 @@
           "signature_data"
         ],
         "title": "SignatureSubmit"
+      },
+      "SigningPageResponse": {
+        "properties": {
+          "document_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Type"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "found": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "SigningPageResponse",
+        "description": "``GET /signatures/sign/{token}`` \u2014 public signing page payload."
       },
       "SimilarOpportunitiesResponse": {
         "properties": {
@@ -66788,6 +67359,13 @@
           "rate"
         ],
         "title": "StageConversionRate"
+      },
+      "StakeholderAlertsResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "StakeholderAlertsResponse",
+        "description": "``GET /stakeholders/opportunity/{id}/alerts`` \u2014 coverage gaps."
       },
       "StakeholderCreate": {
         "properties": {
@@ -68275,6 +68853,13 @@
         "title": "TakeSnapshotResponse",
         "description": "``POST /forecast/snapshot`` \u2014 items list of the snapshots just\nwritten. Each row mirrors ``ForecastSnapshotRow`` but extras stay\nopen in case the service helper adds enrichments."
       },
+      "TargetAlignmentBackfillResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TargetAlignmentBackfillResponse",
+        "description": "``POST /target-alignment/shadow/sync-window`` \u2014 backfill ack."
+      },
       "TaskCreate": {
         "properties": {
           "title": {
@@ -68645,6 +69230,69 @@
         ],
         "title": "TeamMemberCreate"
       },
+      "TerritoryAssignmentAck": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "territory_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Territory Id"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TerritoryAssignmentAck",
+        "description": "``POST /territories/{id}/assignments``."
+      },
       "TerritoryAssignmentItem": {
         "properties": {
           "id": {
@@ -68706,6 +69354,13 @@
         ],
         "title": "TerritoryAssignmentItem",
         "description": "Single assignment row \u2014 matches ``_serialize_assignment`` + user info."
+      },
+      "TerritoryAutoAssignResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TerritoryAutoAssignResponse",
+        "description": "``POST /territories/auto-assign`` \u2014 bulk assignment result."
       },
       "TerritoryCreate": {
         "properties": {
@@ -69851,6 +70506,87 @@
         ],
         "title": "UserRow",
         "description": "Public-safe user fields (no password hash, no secrets).\n\nMirrors ``api/v1/users.py::_user_to_dict``. ``role`` is open-string\nso future role additions don't require a schema migration."
+      },
+      "V6PlaybookAdherenceResponse": {
+        "properties": {
+          "playbook_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Playbook Id"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          },
+          "usage_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Count"
+          },
+          "completion_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Rate"
+          },
+          "won_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Won Rate"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "V6PlaybookAdherenceResponse",
+        "description": "``GET /v6/playbooks/{id}/adherence``."
+      },
+      "V6PlaybookPromoteResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "V6PlaybookPromoteResponse",
+        "description": "``POST /v6/playbooks/promote-from-dna``."
       },
       "ValidationError": {
         "properties": {

@@ -771,3 +771,306 @@ class UnreadCountResponse(BaseModel):
     unread_count: int
 
     model_config = {"from_attributes": True}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Round-16 batch-8 — remaining 32 single/double-handler files.
+#
+# Each handler emits a heterogeneous shape; declaring strict types
+# risks the MaterializeDnaResponse-style regression (CI run
+# 26199394191 — narrow list[dict] type refused list[str] runtime).
+# These schemas declare only the fields the contract guarantees as
+# specific types and rely on extra="allow" for the rest. OpenAPI
+# still surfaces "this is a JSON object" instead of dict's
+# Record<string, unknown>.
+# ──────────────────────────────────────────────────────────────────
+
+
+# Momentum ──────────────────────────────────────────────────────────
+
+
+class MomentumDistributionResponse(BaseModel):
+    """``GET /momentum/distribution`` — band counts across opportunities."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class MomentumCurrentResponse(BaseModel):
+    """``GET /momentum/{opportunity_id}`` — per-opp momentum snapshot."""
+
+    opportunity_id: int | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# Relationship graph ──────────────────────────────────────────────
+
+
+class RelationshipGraphScoreResponse(BaseModel):
+    """``GET /relationship-graph/score/{kind}/{entity_id}``."""
+
+    kind: str | None = None
+    entity_id: int | None = None
+    score: float | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class RelationshipGraphRebuildResponse(BaseModel):
+    """``POST /relationship-graph/rebuild/opportunity/{id}``."""
+
+    opportunity_id: int | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# V6 Intelligence ──────────────────────────────────────────────────
+
+
+class V6PlaybookPromoteResponse(BaseModel):
+    """``POST /v6/playbooks/promote-from-dna``."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class V6PlaybookAdherenceResponse(BaseModel):
+    """``GET /v6/playbooks/{id}/adherence``."""
+
+    playbook_id: int | None = None
+    period_start: str | None = None
+    period_end: str | None = None
+    usage_count: int | None = None
+    completion_rate: float | None = None
+    won_rate: float | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# Territories ──────────────────────────────────────────────────────
+
+
+class TerritoryAssignmentAck(BaseModel):
+    """``POST /territories/{id}/assignments``."""
+
+    id: int | None = None
+    territory_id: int | None = None
+    user_id: int | None = None
+    role: str | None = None
+    created_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class TerritoryAutoAssignResponse(BaseModel):
+    """``POST /territories/auto-assign`` — bulk assignment result."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# Signatures ───────────────────────────────────────────────────────
+
+
+class SignatureRequestResponse(BaseModel):
+    """``GET /signatures/{id}`` — signature request detail."""
+
+    id: int | None = None
+    tenant_id: int | None = None
+    document_type: str | None = None
+    document_id: int | None = None
+    signer_email: str | None = None
+    signer_name: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class SigningPageResponse(BaseModel):
+    """``GET /signatures/sign/{token}`` — public signing page payload."""
+
+    document_type: str | None = None
+    document_id: int | None = None
+    found: bool | None = None
+    status: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# RAG ──────────────────────────────────────────────────────────────
+
+
+class RagQueryResponse(BaseModel):
+    """``POST /rag/query`` — retrieval-augmented answer."""
+
+    question: str | None = None
+    answer: str | None = None
+    citations: list[Any] = []
+    confidence: float | None = None
+    used_collections: list[str] | None = None
+    fallback_reason: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class RagReindexResponse(BaseModel):
+    """``POST /rag/reindex/{name}`` — collection rebuild ack."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# Parts ────────────────────────────────────────────────────────────
+
+
+class PartDetailResponse(BaseModel):
+    """``GET /parts/{id}`` — single spare-part detail."""
+
+    id: int | None = None
+    honeywell_code: str | None = None
+    model_number: str | None = None
+    info: str | None = None
+    name_en: str | None = None
+    name_tr: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class PartsImportResponse(BaseModel):
+    """``POST /parts/import`` — bulk import ack."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# Ops ──────────────────────────────────────────────────────────────
+
+
+class OpsReviewQueueResponse(BaseModel):
+    """``GET /ops/review-queue`` — pending review items rollup."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class OpsAiUsageResponse(BaseModel):
+    """``GET /ops/ai-usage`` — feature usage stats."""
+
+    period_days: int | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# Deal replay ──────────────────────────────────────────────────────
+
+
+class DealReplayFramesResponse(BaseModel):
+    """``GET /deal-replay/{opp_id}`` — frame-by-frame timeline."""
+
+    opportunity_id: int | None = None
+    snapshot_date: str | None = None
+    source_timeline_version: int | None = None
+    frames: list[Any] = []
+    meta: Any | None = None
+    updated_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class DealReplayMaterializeResponse(BaseModel):
+    """``POST /deal-replay/{opp_id}/materialize`` — generation ack."""
+
+    ok: bool | None = None
+    opportunity_id: int | None = None
+    snapshot_date: str | None = None
+    timeline_item_count: int | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# Admin dead letters ───────────────────────────────────────────────
+
+
+class DeadLetterDetailResponse(BaseModel):
+    """``GET /admin/dead-letters/{id}`` — single entry."""
+
+    id: int | None = None
+    event_type: str | None = None
+    handler_name: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class DeadLetterStatsResponse(BaseModel):
+    """``GET /admin/dead-letters/stats`` — grouped retry stats."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# Single-handler files ─────────────────────────────────────────────
+
+
+class AuditExportResponse(BaseModel):
+    """``POST /audit/export-user-data`` — KVKK data export."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CampaignRoiResponse(BaseModel):
+    """``GET /campaigns/{id}/roi`` — return-on-investment rollup."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CustomFieldValuesResponse(BaseModel):
+    """``GET /custom-fields/values/{entity_type}/{entity_id}``."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class EmailTemplateVariablesResponse(BaseModel):
+    """``GET /email-templates/variables`` — available substitution keys."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class EmailMatchesResponse(BaseModel):
+    """``GET /emails/{id}/matches`` — spare-part match candidates."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class FeatureStoreBuildResponse(BaseModel):
+    """``POST /feature-store/build`` — daily rollup generation ack."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class NetworkIntelligenceOverviewResponse(BaseModel):
+    """``GET /network-intelligence/overview`` — cohort signals."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class NextBestActionDismissAck(BaseModel):
+    """``POST /next-best-actions/{opp_id}/{task_id}/dismiss``."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class PlaybookAnalyticsResponse(BaseModel):
+    """``GET /playbooks/analytics`` — usage + outcomes rollup."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class ProductRuleEvaluateResponse(BaseModel):
+    """``POST /product-rules/evaluate`` — rule engine result."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class StakeholderAlertsResponse(BaseModel):
+    """``GET /stakeholders/opportunity/{id}/alerts`` — coverage gaps."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class TargetAlignmentBackfillResponse(BaseModel):
+    """``POST /target-alignment/shadow/sync-window`` — backfill ack."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}

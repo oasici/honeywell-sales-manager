@@ -18,6 +18,7 @@ from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.campaign import CampaignResponse
 from app.schemas.common import ItemsResponse, MessageResponse, PaginatedResponse
+from app.schemas.round16_aggregates import CampaignRoiResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
@@ -294,7 +295,7 @@ async def delete_campaign(
     return {"message": "Kampanya iptal edildi", "id": campaign_id}
 
 
-@router.get("/{campaign_id}/roi", response_model=dict)
+@router.get("/{campaign_id}/roi", response_model=CampaignRoiResponse)
 async def get_campaign_roi(
     campaign_id: int,
     current_user: User = Depends(get_current_user),

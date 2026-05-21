@@ -12,6 +12,7 @@ from app.core.exceptions import ForbiddenException
 from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.email_template import EmailTemplateResponse
+from app.schemas.round16_aggregates import EmailTemplateVariablesResponse
 from app.services.email_template_service import (
     AVAILABLE_VARIABLES,
     EmailTemplateService,
@@ -76,7 +77,7 @@ def _serialize(template: object) -> dict:
 # ── Endpoints ──
 
 
-@router.get("/variables", response_model=dict)
+@router.get("/variables", response_model=EmailTemplateVariablesResponse)
 async def get_available_variables(
     current_user: User = Depends(get_current_user),
 ):

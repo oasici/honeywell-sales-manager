@@ -25,6 +25,7 @@ from app.services.ai_action_generator import generate_actions
 from app.services.tenant_context import assert_same_tenant
 from app.schemas.common import ItemsResponse, PaginatedResponse
 from app.schemas.round15_pagination import NextBestActionRow
+from app.schemas.round16_aggregates import NextBestActionDismissAck
 
 router = APIRouter(prefix="/next-best-actions", tags=["Next Best Actions"])
 
@@ -98,7 +99,7 @@ async def generate(
     }
 
 
-@router.post("/{opportunity_id}/{task_id}/dismiss", response_model=dict)
+@router.post("/{opportunity_id}/{task_id}/dismiss", response_model=NextBestActionDismissAck)
 async def dismiss(
     opportunity_id: int,
     task_id: int,

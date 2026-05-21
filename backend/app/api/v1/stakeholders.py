@@ -22,6 +22,7 @@ from app.models.user import User
 from app.services.tenant_context import assert_same_tenant
 from app.schemas.common import PaginatedResponse
 from app.schemas.round15_pagination import StakeholderRow
+from app.schemas.round16_aggregates import StakeholderAlertsResponse
 
 router = APIRouter(prefix="/stakeholders", tags=["Buyer Relationship Map"])
 
@@ -275,7 +276,7 @@ async def delete_stakeholder(
     await db.commit()
 
 
-@router.get("/opportunity/{opportunity_id}/alerts", response_model=dict)
+@router.get("/opportunity/{opportunity_id}/alerts", response_model=StakeholderAlertsResponse)
 async def coverage_alerts(
     opportunity_id: int,
     _: None = Depends(_require_buyer_map),

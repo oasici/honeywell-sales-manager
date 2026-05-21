@@ -17,6 +17,7 @@ from app.models.user import User
 from app.services.feature_store_builder import build_daily_feature_store
 from app.services.tenant_context import assert_same_tenant
 from app.schemas.common import GenericDataResponse
+from app.schemas.round16_aggregates import FeatureStoreBuildResponse
 
 
 router = APIRouter(prefix="/v4", tags=["V4 Feature Store"])
@@ -27,7 +28,7 @@ def _require_v4_feature_store():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.post("/feature-store/build", response_model=dict)
+@router.post("/feature-store/build", response_model=FeatureStoreBuildResponse)
 async def build_feature_store(
     snapshot_date: date | None = Query(default=None),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER, UserRole.OPERATIONS)),

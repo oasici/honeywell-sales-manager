@@ -14,6 +14,7 @@ from app.models.user import User
 from app.services.custom_field_service import CustomFieldService
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import CustomFieldDefinitionRow
+from app.schemas.round16_aggregates import CustomFieldValuesResponse
 
 router = APIRouter(prefix="/custom-fields", tags=["Custom Fields"])
 
@@ -133,7 +134,7 @@ async def delete_custom_field(
     return {"message": "Ozel alan silindi", "id": field_id}
 
 
-@router.get("/values/{entity_type}/{entity_id}", response_model=dict)
+@router.get("/values/{entity_type}/{entity_id}", response_model=CustomFieldValuesResponse)
 async def get_custom_field_values(
     entity_type: str,
     entity_id: int,

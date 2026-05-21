@@ -17,6 +17,7 @@ from app.models.user import User
 from app.services.playbook_service import PlaybookService
 from app.schemas.common import ItemsResponse, MessageResponse, PaginatedResponse
 from app.schemas.playbook import PlaybookResponse
+from app.schemas.round16_aggregates import PlaybookAnalyticsResponse
 
 router = APIRouter(prefix="/playbooks", tags=["Playbooks"])
 
@@ -130,7 +131,7 @@ async def create_playbook(
     }
 
 
-@router.get("/analytics", response_model=dict)
+@router.get("/analytics", response_model=PlaybookAnalyticsResponse)
 async def playbook_analytics(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),

@@ -22,6 +22,10 @@ from app.models.signature import SignatureRequest
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import ItemsResponse, MessageResponse
+from app.schemas.round16_aggregates import (
+    SignatureRequestResponse,
+    SigningPageResponse,
+)
 
 router = APIRouter(prefix="/signatures", tags=["E-Signatures"])
 
@@ -310,7 +314,7 @@ async def list_signature_requests(
     }
 
 
-@router.get("/{sig_id}", response_model=dict)
+@router.get("/{sig_id}", response_model=SignatureRequestResponse)
 async def get_signature_request(
     sig_id: int,
     current_user: User = Depends(get_current_user),
@@ -357,7 +361,7 @@ async def cancel_signature_request(
 # ── Public Endpoints (no auth) ──
 
 
-@router.get("/sign/{token}", response_model=dict)
+@router.get("/sign/{token}", response_model=SigningPageResponse)
 async def get_signing_page(
     token: str,
     db: AsyncSession = Depends(get_db),

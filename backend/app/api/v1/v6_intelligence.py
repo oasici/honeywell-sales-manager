@@ -56,6 +56,10 @@ from app.core.rate_limit import (
     enforce_tenant_ai_rate_limit as _enforce_tenant_ai_rl,
 )
 from app.schemas.common import ItemsResponse
+from app.schemas.round16_aggregates import (
+    V6PlaybookAdherenceResponse,
+    V6PlaybookPromoteResponse,
+)
 
 router = APIRouter(
     prefix="/v6",
@@ -131,7 +135,7 @@ async def list_replay_deltas(
 # ─────────────────────── DNA → Playbook promote ──────────────────────
 
 
-@router.post("/playbooks/promote-from-dna", response_model=dict)
+@router.post("/playbooks/promote-from-dna", response_model=V6PlaybookPromoteResponse)
 async def promote_from_dna(
     min_lift: float = Query(1.5, ge=1.0, le=10.0),
     min_support: int = Query(10, ge=1),
@@ -151,7 +155,7 @@ async def promote_from_dna(
     return {"promoted": written}
 
 
-@router.get("/playbooks/{playbook_id}/adherence", response_model=dict)
+@router.get("/playbooks/{playbook_id}/adherence", response_model=V6PlaybookAdherenceResponse)
 async def get_playbook_adherence(
     playbook_id: int,
     window_days: int = Query(30, ge=1, le=365),

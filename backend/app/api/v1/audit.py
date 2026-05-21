@@ -32,6 +32,7 @@ from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.round15_pagination import AuditLogRow
+from app.schemas.round16_aggregates import AuditExportResponse
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
@@ -177,7 +178,7 @@ async def export_audit_logs_csv(
     "/data-export/{target_user_id}",
     # Round-4 R4-RL-5 — KVKK Article 15 disclosure path.
     dependencies=[Depends(enforce_kvkk_export_rate_limit)],
-    response_model=dict,
+    response_model=AuditExportResponse,
 )
 async def export_user_data(
     target_user_id: int,

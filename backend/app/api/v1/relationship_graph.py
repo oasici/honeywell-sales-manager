@@ -16,6 +16,10 @@ from app.models.user import User
 from app.services import relationship_service
 from app.schemas.common import PaginatedResponse
 from app.schemas.round15_pagination import RelationshipEdgeRow
+from app.schemas.round16_aggregates import (
+    RelationshipGraphRebuildResponse,
+    RelationshipGraphScoreResponse,
+)
 
 router = APIRouter(prefix="/relationships", tags=["Relationships"])
 
@@ -43,7 +47,7 @@ async def list_edges(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.get("/score/{kind}/{entity_id}", response_model=dict)
+@router.get("/score/{kind}/{entity_id}", response_model=RelationshipGraphScoreResponse)
 async def get_score(
     kind: str,
     entity_id: int,
@@ -75,7 +79,7 @@ async def list_strongest(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.post("/rebuild/opportunity/{opportunity_id}", response_model=dict)
+@router.post("/rebuild/opportunity/{opportunity_id}", response_model=RelationshipGraphRebuildResponse)
 async def rebuild_opportunity(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),

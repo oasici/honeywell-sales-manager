@@ -16,6 +16,10 @@ from app.models.opportunity import Opportunity
 from app.models.user import User
 from app.services.deal_replay_snapshot_service import materialize_deal_replay_snapshot
 from app.schemas.common import ItemsResponse
+from app.schemas.round16_aggregates import (
+    DealReplayFramesResponse,
+    DealReplayMaterializeResponse,
+)
 
 router = APIRouter(prefix="/v4/replay", tags=["V4 Deal Replay"])
 
@@ -83,7 +87,7 @@ async def list_replay_snapshots(
     return {"opportunity_id": opportunity_id, "items": items, "total": len(items)}
 
 
-@router.get("/opportunities/{opportunity_id}/snapshots/{snapshot_date}", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/snapshots/{snapshot_date}", response_model=DealReplayFramesResponse)
 async def get_replay_snapshot(
     opportunity_id: int,
     snapshot_date: date,
@@ -120,7 +124,7 @@ async def get_replay_snapshot(
     }
 
 
-@router.post("/opportunities/{opportunity_id}/materialize", response_model=dict)
+@router.post("/opportunities/{opportunity_id}/materialize", response_model=DealReplayMaterializeResponse)
 async def post_materialize_replay_snapshot(
     opportunity_id: int,
     snapshot_date: date | None = Query(

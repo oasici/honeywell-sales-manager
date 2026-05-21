@@ -24,6 +24,10 @@ from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.round15_pagination import DeadLetterEventRow
+from app.schemas.round16_aggregates import (
+    DeadLetterDetailResponse,
+    DeadLetterStatsResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +86,7 @@ async def list_dead_letters(
     }
 
 
-@router.post("/{entry_id}/replay", response_model=dict)
+@router.post("/{entry_id}/replay", response_model=DeadLetterDetailResponse)
 async def replay_dead_letter(
     entry_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -151,7 +155,7 @@ async def delete_dead_letter(
     return None
 
 
-@router.get("/stats", response_model=dict)
+@router.get("/stats", response_model=DeadLetterStatsResponse)
 async def dead_letter_stats(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),

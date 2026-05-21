@@ -14,6 +14,7 @@ from app.models.user import User
 from app.services.product_rule_service import ProductRuleService
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import ProductRuleRow
+from app.schemas.round16_aggregates import ProductRuleEvaluateResponse
 
 router = APIRouter(prefix="/product-rules", tags=["Product Rules"])
 
@@ -100,7 +101,7 @@ async def delete_product_rule(
     return {"message": "Urun kurali silindi"}
 
 
-@router.post("/evaluate", response_model=dict)
+@router.post("/evaluate", response_model=ProductRuleEvaluateResponse)
 async def evaluate_rules(
     data: ProductRuleEvaluateItem,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
