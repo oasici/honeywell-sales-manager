@@ -524,13 +524,21 @@ class SalesDnaSnapshotResponse(BaseModel):
 
 class MaterializeDnaResponse(BaseModel):
     """``POST /sales-dna/opportunities/{id}/materialize`` — synchronous
-    snapshot generation ack."""
+    snapshot generation ack.
+
+    ``coaching_hooks`` is whatever ``traits.coaching_hooks`` happens
+    to be — sometimes a list of strings (signal names like
+    ``['low_signal_surface']``), sometimes a list of dicts, sometimes
+    a dict. We declare it as ``Any`` so the response_model validator
+    doesn't refuse legitimate runtime shapes (CI run 26199394191
+    caught the over-narrow ``list[dict] | dict`` declaration).
+    """
 
     ok: bool
     opportunity_id: int
     snapshot_date: str
     risk_posture: str | None = None
-    coaching_hooks: list[dict[str, Any]] | dict[str, Any] | None = None
+    coaching_hooks: Any | None = None
 
     model_config = {"from_attributes": True, "extra": "allow"}
 

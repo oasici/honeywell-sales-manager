@@ -14925,6 +14925,13 @@ export interface components {
          * MaterializeDnaResponse
          * @description ``POST /sales-dna/opportunities/{id}/materialize`` — synchronous
          *     snapshot generation ack.
+         *
+         *     ``coaching_hooks`` is whatever ``traits.coaching_hooks`` happens
+         *     to be — sometimes a list of strings (signal names like
+         *     ``['low_signal_surface']``), sometimes a list of dicts, sometimes
+         *     a dict. We declare it as ``Any`` so the response_model validator
+         *     doesn't refuse legitimate runtime shapes (CI run 26199394191
+         *     caught the over-narrow ``list[dict] | dict`` declaration).
          */
         MaterializeDnaResponse: {
             /** Ok */
@@ -14936,11 +14943,7 @@ export interface components {
             /** Risk Posture */
             risk_posture?: string | null;
             /** Coaching Hooks */
-            coaching_hooks?: {
-                [key: string]: unknown;
-            }[] | {
-                [key: string]: unknown;
-            } | null;
+            coaching_hooks?: unknown | null;
         } & {
             [key: string]: unknown;
         };

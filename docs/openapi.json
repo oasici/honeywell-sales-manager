@@ -54602,17 +54602,7 @@
           },
           "coaching_hooks": {
             "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
+              {},
               {
                 "type": "null"
               }
@@ -54628,7 +54618,7 @@
           "snapshot_date"
         ],
         "title": "MaterializeDnaResponse",
-        "description": "``POST /sales-dna/opportunities/{id}/materialize`` \u2014 synchronous\nsnapshot generation ack."
+        "description": "``POST /sales-dna/opportunities/{id}/materialize`` \u2014 synchronous\nsnapshot generation ack.\n\n``coaching_hooks`` is whatever ``traits.coaching_hooks`` happens\nto be \u2014 sometimes a list of strings (signal names like\n``['low_signal_surface']``), sometimes a list of dicts, sometimes\na dict. We declare it as ``Any`` so the response_model validator\ndoesn't refuse legitimate runtime shapes (CI run 26199394191\ncaught the over-narrow ``list[dict] | dict`` declaration)."
       },
       "MeetingAutoLinkResponse": {
         "properties": {
