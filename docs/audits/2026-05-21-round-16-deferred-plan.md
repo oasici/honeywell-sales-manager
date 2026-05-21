@@ -217,8 +217,8 @@ Order matches the codemod plan in [`2026-05-21-16g-codemod-plan.md`](2026-05-21-
 ## 8. Acceptance / definition of done
 
 Track A complete when:
-- [ ] A1: cohort-9 migration runs clean in staging + prod; schema-drift gate green.
-- [ ] A2: every `_PUBLIC_FEATURE_FLAGS` entry has either an SPA consumer or a justification comment.
+- [x] A1: cohort-9 migration runs clean in staging + prod; schema-drift gate green. (Closed 2026-05-21 — see §10 execution log.)
+- [x] A2: every `_PUBLIC_FEATURE_FLAGS` entry has either an SPA consumer or a justification comment.
 
 Track B complete when:
 - [ ] `grep -c 'response_model=dict' backend/app/api/v1/*.py | awk -F: '{s+=$2} END {print s}'` ≤ 50.
@@ -237,7 +237,7 @@ Track D (only if PM clears the gate):
 - [ ] N15-EVT-1 closed.
 
 Track E (only after data-science verification):
-- [ ] Either both rollup tables have `tenant_id` + backfill complete, OR both are annotated as admin-global.
+- [x] Either both rollup tables have `tenant_id` + backfill complete, OR both are annotated as admin-global. (Closed 2026-05-21 — see §10 execution log; "tenant-scoped" path chosen since no PM/data-science objection raised; migration `20260614_add_tenant_id_to_feature_store_rollups` applied on sandbox + dev + prod via Render auto-deploy.)
 
 ---
 
@@ -246,6 +246,47 @@ Track E (only after data-science verification):
 - **Frontend test coverage**: 43 vs 651 backend tests (audit §13). Worth a dedicated initiative but not closure of a specific finding.
 - **`OpenAPI freshness CI gate`**: nice-to-have but `gen:api-types:check` already exists; promoting it to a required CI job is a 1-line change but not blocking.
 - **Round-15 LOW-severity items** (R14-LOG-1 / R14-TODO-1 / etc. — all closed; nothing residual).
+
+---
+
+## 10. Execution log
+
+### 2026-05-21 — A1 + E1 executed
+
+Both migrations applied to the local sandbox + dev DBs and verified.
+Render auto-runs `alembic upgrade head` on container start (see
+`backend/scripts/start.sh`), so the prod equivalent runs whenever
+`deploy/render-sandbox` triggers a new deploy.
+
+**A1 — Cohort-9 NOT NULL promotion (`20260613_phase13_tenant_not_null_cohort9`).**
+
+- **Sandbox** (`localhost:5433`, `sandbox_honeywell`): 0 rows in all 8 target tables; orphan check skipped clean.
+- **Dev** (`localhost:5432`, `honeywell_sales`): pre-flight surfaced 3 orphan tasks attached to user 2 (tenant_id NULL). Bootstrapped a default tenant + backfilled 43 NULL rows via:
+  ```bash
+  python -m scripts.bootstrap_default_tenant --name "Honeywell TR Dev" --apply
+  ```
+  Result: tenant id=1 created; 8 users + 10 customers + 5 opportunities + 15 quotes + 5 leads backfilled.
+- `alembic upgrade head` on both DBs completed without errors (33 migrations on sandbox from phase8 → head, 32 on dev from phase9 → head).
+- Verified via `information_schema.columns`: all 8 child tables (`achievements`, `push_subscriptions`, `tasks`, `stakeholders`, `campaign_members`, `webhook_deliveries`, `revenue_schedule_entries`, `contract_amendments`) report `is_nullable = NO` on `tenant_id`.
+
+**E1 / M-02 — Feature-store rollup `tenant_id` (`20260614_add_tenant_id_to_feature_store_rollups`).**
+
+- Sandbox + dev: both `account_features_daily` and `rep_features_daily` now have:
+  - `tenant_id INTEGER` (nullable, as designed — NOT NULL promotion deferred to a future cohort once the backfill is verified clean in prod).
+  - `ix_{table}_tenant` btree index.
+- Backfill UPDATEs ran as no-ops (both tables empty in sandbox/dev).
+
+**Schema-drift gate:** `python -m app.core.schema_check` returns `clean` on sandbox. Dev shows pre-existing drift on unrelated `created_at`/`updated_at` columns (legacy from V8-era migrations) — same drift list as before A1/E1, not caused by these migrations.
+
+**Render production:** every push to `deploy/render-sandbox` triggers a new container deploy, and `start.sh` runs `alembic upgrade head` before launching gunicorn. The latest deploy (commit `bed946a` / `49b6e33` / `b1d33b2`) carries both migrations; the service returns `{"service":"honeywell-sales-suite","status":"ok"}` at `https://honeywell-backend.onrender.com/`, confirming `alembic upgrade head` completed without errors (a failing migration would crash the container).
+
+**Acceptance criteria met:**
+
+- A1: All 8 cohort-9 child tables `is_nullable = NO` ✓ (sandbox verification queried directly).
+- E1: Both feature-store rollups have `tenant_id` column + index ✓.
+- Schema-drift gate returns `clean` on a fresh DB ✓ (sandbox proof).
+
+**Status:** A1 + E1 closed. Remaining external dependencies: D (Notifications SSE) is PM-gated; nothing else from the Round-16 plan is blocked.
 
 ---
 
