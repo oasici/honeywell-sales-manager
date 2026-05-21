@@ -48668,9 +48668,7 @@
           },
           "raw_value": {
             "anyOf": [
-              {
-                "type": "string"
-              },
+              {},
               {
                 "type": "null"
               }

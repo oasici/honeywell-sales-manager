@@ -372,3 +372,87 @@ async def test_deal_health_endpoint_feature_flag_disabled(client: AsyncClient, d
     response = await client.get("/api/v1/deal-health/1", headers=headers)
     # Feature flag is False by default in test settings
     assert response.status_code == 403
+
+
+@pytest.fixture
+def _enable_deal_health(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``/deal-health/*`` is gated by ``FEATURE_DEAL_HEALTH`` (off in
+    test config). Enable for the response_model smoke tests below."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "FEATURE_DEAL_HEALTH", True)
+
+
+@pytest.mark.asyncio
+async def test_deal_health_endpoint_responds_200_with_real_indicators(
+    client: AsyncClient,
+    db: AsyncSession,
+    _enable_deal_health,
+):
+    """GET /deal-health/{id} round-trips through response_model.
+
+    Round-16 regression guard — the Round-16 N15-API-7 batch 4 typed
+    the endpoint as ``DealHealthReportRow``. An over-narrow declaration
+    on a nested field (``DealHealthIndicatorRow.raw_value: str`` while
+    runtime emits int) caused a 500 with 21 ResponseValidationErrors
+    in prod. This test exercises the actual HTTP serialization so the
+    same class of regression is caught locally.
+    """
+    user = await _create_user(db)
+    opp = await _create_opportunity(db, user.id)
+    headers = {"Authorization": f"Bearer {create_access_token({'sub': str(user.id)})}"}
+
+    response = await client.get(f"/api/v1/deal-health/{opp.id}", headers=headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["opportunity_id"] == opp.id
+    # Every indicator must serialize cleanly. raw_value is intentionally
+    # untyped on the schema — runtime emits int / float / str / None.
+    assert isinstance(body["indicators"], list)
+    for ind in body["indicators"]:
+        assert "name" in ind
+        assert "raw_value" in ind  # may be int, float, str, or None
+
+
+@pytest.mark.asyncio
+async def test_deal_health_at_risk_endpoint_responds_200(
+    client: AsyncClient,
+    db: AsyncSession,
+    _enable_deal_health,
+):
+    """GET /deal-health/at-risk/list serialises the list response.
+
+    Prod hit a ``response_model`` 500 here when a nested field type
+    was narrower than runtime. The list-shape test catches both the
+    list envelope and the nested indicator validation in one shot.
+    """
+    user = await _create_user(db)
+    await _create_opportunity(db, user.id)
+    headers = {"Authorization": f"Bearer {create_access_token({'sub': str(user.id)})}"}
+
+    response = await client.get(
+        "/api/v1/deal-health/at-risk/list?threshold=100", headers=headers
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert "threshold" in body
+    assert "count" in body
+    assert isinstance(body["opportunities"], list)
+
+
+@pytest.mark.asyncio
+async def test_deal_health_overview_endpoint_responds_200(
+    client: AsyncClient,
+    db: AsyncSession,
+    _enable_deal_health,
+):
+    """GET /deal-health/overview/all — same regression class."""
+    user = await _create_user(db)
+    await _create_opportunity(db, user.id)
+    headers = {"Authorization": f"Bearer {create_access_token({'sub': str(user.id)})}"}
+
+    response = await client.get("/api/v1/deal-health/overview/all", headers=headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert "summary" in body
+    assert isinstance(body["opportunities"], list)

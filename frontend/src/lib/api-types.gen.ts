@@ -12989,7 +12989,7 @@ export interface components {
             /** Weight */
             weight?: number | null;
             /** Raw Value */
-            raw_value?: string | null;
+            raw_value?: unknown | null;
             /** Description */
             description?: string | null;
         } & {

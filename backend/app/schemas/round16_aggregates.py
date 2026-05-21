@@ -335,7 +335,15 @@ class DealHealthIndicatorRow(BaseModel):
     label: str | None = None
     score: float | None = None
     weight: float | None = None
-    raw_value: str | None = None
+    # ``raw_value`` is whatever the service's ``Indicator.raw_value``
+    # happens to be — sometimes a count (int), sometimes a ratio
+    # (float), sometimes a formatted "X/Y" string. CI run on prod
+    # caught a 21-validation-error 500 when the narrow ``str`` type
+    # refused integer values (36, 64, 0). Widening to ``Any`` keeps
+    # the field declared in OpenAPI while accepting all observed
+    # runtime shapes — same playbook as the earlier coaching_hooks
+    # and DealReplayFramesResponse fixes.
+    raw_value: Any | None = None
     description: str | None = None
 
     model_config = {"from_attributes": True, "extra": "allow"}
