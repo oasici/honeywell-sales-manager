@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/Badge';
 import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { auditApi } from '../../lib/api';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 interface AuditLog {
   id: number;
@@ -110,6 +111,7 @@ function formatChanges(raw: string | null | undefined): string {
 }
 
 export default function AuditLogPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [exporting, setExporting] = useState(false);
@@ -238,7 +240,7 @@ export default function AuditLogPage() {
             aria-label="Değişiklik detayını görüntüle"
           >
             <FileSearch size={12} />
-            Görüntüle
+            {t('common.view')}
           </button>
         ) : (
           <span className="text-[12px] text-slate-400 dark:text-slate-500">—</span>
@@ -249,8 +251,8 @@ export default function AuditLogPage() {
   return (
     <div>
       <PageHeader
-        title="Denetim Kayıtları"
-        description={`Sistem işlem geçmişi · ${totalCount.toLocaleString('tr-TR')} kayıt`}
+        title={t('admin.audit.title')}
+        description={t('admin.audit.subtitle').replace('{count}', totalCount.toLocaleString('tr-TR'))}
       >
         <Button
           variant="secondary"
@@ -260,7 +262,7 @@ export default function AuditLogPage() {
           disabled={totalCount === 0}
         >
           <Download size={14} />
-          CSV İndir
+          {t('common.download_csv')}
         </Button>
       </PageHeader>
 
@@ -312,7 +314,7 @@ export default function AuditLogPage() {
         <div className="mt-4 flex justify-end">
           <Button variant="tertiary" size="sm" onClick={resetFilters}>
             <RotateCcw size={13} />
-            Filtreleri temizle
+            {t('common.clear_filters')}
           </Button>
         </div>
       </div>
@@ -324,7 +326,7 @@ export default function AuditLogPage() {
           columns={columns}
           data={logs}
           loading={isLoading}
-          emptyMessage="Denetim kaydı bulunamadı"
+          emptyMessage={t('admin.audit.empty')}
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}
@@ -334,7 +336,7 @@ export default function AuditLogPage() {
       <Modal
         isOpen={detailRow !== null}
         onClose={() => setDetailRow(null)}
-        title={detailRow ? `Denetim #${detailRow.id} — ${detailRow.action}` : 'Denetim Detayı'}
+        title={detailRow ? `Denetim #${detailRow.id} — ${detailRow.action}` : t('admin.audit.detail_title')}
         size="lg"
       >
         {detailRow && (

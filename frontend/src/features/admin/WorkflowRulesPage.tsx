@@ -16,6 +16,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { workflowRulesApi } from '../../lib/api';
 import { onWorkflowRuleChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 import type { WorkflowRule } from '../../lib/types';
 
@@ -91,6 +92,7 @@ const INITIAL_FORM = {
 };
 
 export default function WorkflowRulesPage() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -111,11 +113,11 @@ export default function WorkflowRulesPage() {
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => workflowRulesApi.create(payload),
     onSuccess: () => {
-      toast.success('İş kuralı oluşturuldu');
+      toast.success(t('admin.workflow.toast_created'));
       resetForm();
       onWorkflowRuleChanged(queryClient);
     },
-    onError: () => toast.error('İş kuralı oluşturulamadı'),
+    onError: () => toast.error(t('admin.workflow.toast_create_failed')),
   });
 
   const toggleMutation = useMutation({
@@ -125,18 +127,18 @@ export default function WorkflowRulesPage() {
       toast.success('Kural durumu guncellendi');
       onWorkflowRuleChanged(queryClient);
     },
-    onError: () => toast.error('Güncelleme başarısız'),
+    onError: () => toast.error(t('admin.workflow.toast_update_failed')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => workflowRulesApi.remove(id),
     onSuccess: () => {
-      toast.success('İş kuralı silindi');
+      toast.success(t('admin.workflow.toast_deleted'));
       setDeleteTarget(null);
       onWorkflowRuleChanged(queryClient);
     },
     onError: () => {
-      toast.error('İş kuralı silinemedi');
+      toast.error(t('admin.workflow.toast_delete_failed'));
       setDeleteTarget(null);
     },
   });
@@ -218,7 +220,7 @@ export default function WorkflowRulesPage() {
 
   return (
     <div>
-      <PageHeader title="İş Kuralları" description="Olay tabanlı otomasyon kuralları">
+      <PageHeader title={t('admin.workflow.title')} description={t('admin.workflow.subtitle')}>
         <Button variant="secondary" onClick={() => navigate('/admin/workflow-rules/flow/new')}>
           <Workflow size={14} />
           Yeni Görsel Kural
@@ -247,7 +249,7 @@ export default function WorkflowRulesPage() {
           <EmptyState
             variant="default"
             icon={<Workflow size={20} />}
-            title="Henüz iş kuralı tanımlanmamış"
+            title={t('admin.workflow.empty_title')}
             description="Olaylara göre otomatik aksiyon tetiklemek için ilk kuralı oluşturun."
             action={
               <Button onClick={() => setIsCreateOpen(true)} variant="secondary">

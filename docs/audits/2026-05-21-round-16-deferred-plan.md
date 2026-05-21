@@ -227,7 +227,7 @@ Track B complete when:
 
 Track C complete when:
 - [x] RFC merged into `docs/decisions/`. (Lives at `docs/decisions/2026-05-21-polymorphic-response-schemas.md`.)
-- [ ] All 7 CRM `lib/types.ts` interfaces removed; aliases active. (Codemod blocked: SPA's `noUncheckedIndexedAccess: true` rejects the Optional-everywhere `<Entity>Response` shape. The picker rollout C3-C8 added `<Entity>StrictResponse` for single-entity GET routes — list endpoints still return the loose shape. Full codemod needs a per-call-site `??` audit; tracked as next-quarter work.)
+- [ ] All 7 CRM `lib/types.ts` interfaces removed; aliases active. (1/7 done — `User` aliased via `Omit<UserResponse, 'role'\|'created_at'> & {...}` since it has only 2 narrowings. The other 6 each have 5-13 field narrowings vs. the loose `<Entity>Response`; an `Omit + intersection` alias would override almost every field, gaining little over the manual interface. Full codemod requires tightening the backend `<Entity>Response` schemas — quarterly project.)
 - [ ] `frontend/src/__tests__/lib/types-contract.test.ts` upgraded to equality assertion. (Depends on codemod above.)
 - [x] `backend/tests/test_response_model_coverage.py` extended with `test_no_optional_everywhere_on_required_fields`.
 

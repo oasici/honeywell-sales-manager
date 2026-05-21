@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { duplicatesApi } from '../../lib/api';
 import { useState } from 'react';
+import { useT } from '../../hooks/useT';
 
 interface RecordFields {
   [key: string]: unknown;
@@ -154,6 +155,7 @@ function RecordCard({ title, record, variant, highlightDifferentFrom }: RecordCa
 }
 
 export default function MergeRecordsPage() {
+  const t = useT();
   const { entityType, winnerId, loserId } = useParams<{
     entityType: string;
     winnerId: string;
@@ -182,7 +184,7 @@ export default function MergeRecordsPage() {
         loser_id: Number(loserId),
       }),
     onSuccess: () => {
-      toast.success('Kayıtlar başarıyla birleştirildi');
+      toast.success(t('admin.merge.toast_success'));
       // R4-CACHE-105 — full sweep. The loser id is referenced from
       // many caches (lists, detail pages, activity timelines) and a
       // merge is rare enough that a global invalidate is cheaper than
@@ -191,7 +193,7 @@ export default function MergeRecordsPage() {
       navigate(`/customers/${winnerId}`);
     },
     onError: () => {
-      toast.error('Birleştirme işlemi başarısız oldu');
+      toast.error(t('admin.merge.toast_failed'));
     },
   });
 
@@ -315,7 +317,7 @@ export default function MergeRecordsPage() {
           mergeMutation.mutate();
           setIsConfirmOpen(false);
         }}
-        title="Birleştirme Onayı"
+        title={t('admin.merge.confirm_title')}
         message={`"${loser.name}" kaydı silinecek ve tüm ilişkili kayıtlar "${winner.name}" kaydına aktarılacak. Bu işlem geri alınamaz.`}
         confirmLabel="Birleştir"
         confirmVariant="danger"

@@ -16,6 +16,7 @@ import { QueryErrorBanner } from '../../components/ui/QueryErrorBanner';
 import { fieldPermissionsApi } from '../../lib/api';
 import { onFieldPermissionChanged } from '../../lib/cacheInvalidation';
 import { formatDateTime } from '../../lib/formatters';
+import { useT } from '../../hooks/useT';
 
 import type { FieldPermission } from '../../lib/types';
 
@@ -69,6 +70,7 @@ const INITIAL_FORM = {
 };
 
 export default function FieldPermissionsPage() {
+  const t = useT();
   const queryClient = useQueryClient();
 
   const [roleFilter, setRoleFilter] = useState('');
@@ -90,12 +92,12 @@ export default function FieldPermissionsPage() {
   const createMutation = useMutation({
     mutationFn: (payload: typeof form) => fieldPermissionsApi.create(payload),
     onSuccess: () => {
-      toast.success('Alan izni oluşturuldu');
+      toast.success(t('admin.field_perms.toast_created'));
       setIsCreateOpen(false);
       setForm(INITIAL_FORM);
       onFieldPermissionChanged(queryClient);
     },
-    onError: () => toast.error('Alan izni oluşturulamadı'),
+    onError: () => toast.error(t('admin.field_perms.toast_create_failed')),
   });
 
   const deleteMutation = useMutation({
@@ -195,7 +197,7 @@ export default function FieldPermissionsPage() {
 
   return (
     <div>
-      <PageHeader title="Alan İzinleri" description="Rol bazında alan erişim izinlerini yönetin">
+      <PageHeader title={t('admin.field_perms.title')} description={t('admin.field_perms.subtitle')}>
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus size={14} />
           Yeni İzin
@@ -227,14 +229,14 @@ export default function FieldPermissionsPage() {
       ) : isLoading ? (
         <Skeleton variant="table" />
       ) : (
-        <DataTable columns={columns} data={permissions} emptyMessage="Alan izni bulunamadı" />
+        <DataTable columns={columns} data={permissions} emptyMessage={t('admin.field_perms.empty')} />
       )}
 
       {/* Create modal */}
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Yeni Alan İzni"
+        title={t('admin.field_perms.new_btn')}
         size="md"
         footer={
           <>
