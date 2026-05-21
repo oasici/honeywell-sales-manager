@@ -20,6 +20,12 @@ from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import PaginatedResponse
 from app.schemas.round15_pagination import PriceTierRow
+from app.schemas.round16_aggregates import (
+    CustomerPricingListResponse,
+    CustomerPricingRow,
+    MarginUpdateResponse,
+    PriceLookupResponse,
+)
 
 router = APIRouter(prefix="/pricing", tags=["Pricing (Advanced)"])
 
@@ -182,7 +188,7 @@ async def _load_customer_for_tenant(
     return customer
 
 
-@router.get("/customer/{customer_id}", response_model=dict)
+@router.get("/customer/{customer_id}", response_model=CustomerPricingListResponse)
 async def list_customer_pricing(
     customer_id: int,
     current_user: User = Depends(get_current_user),
@@ -204,7 +210,7 @@ async def list_customer_pricing(
     }
 
 
-@router.post("/customer/{customer_id}", status_code=201, response_model=dict)
+@router.post("/customer/{customer_id}", status_code=201, response_model=CustomerPricingRow)
 async def create_customer_pricing(
     customer_id: int,
     body: CustomerPricingCreate,
@@ -231,7 +237,7 @@ async def create_customer_pricing(
     return _serialize_customer_pricing(cp)
 
 
-@router.put("/customer/{customer_id}/{pricing_id}", response_model=dict)
+@router.put("/customer/{customer_id}/{pricing_id}", response_model=CustomerPricingRow)
 async def update_customer_pricing(
     customer_id: int,
     pricing_id: int,
@@ -294,7 +300,7 @@ class MarginUpdate(BaseModel):
     min_margin_pct: float
 
 
-@router.patch("/margin/{spare_part_id}", response_model=dict)
+@router.patch("/margin/{spare_part_id}", response_model=MarginUpdateResponse)
 async def update_margin(
     spare_part_id: int,
     body: MarginUpdate,
@@ -321,7 +327,7 @@ async def update_margin(
 # PRICE LOOKUP
 # ══════════════════════════════════════════
 
-@router.get("/lookup", response_model=dict)
+@router.get("/lookup", response_model=PriceLookupResponse)
 async def lookup_price(
     spare_part_id: int,
     customer_id: int,

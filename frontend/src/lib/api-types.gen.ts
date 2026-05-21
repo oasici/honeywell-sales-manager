@@ -12033,6 +12033,50 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /**
+         * CustomerPricingListResponse
+         * @description ``GET /pricing/customer/{customer_id}`` — contracted price list.
+         */
+        CustomerPricingListResponse: {
+            /** Customer Id */
+            customer_id: number;
+            /** Pricing */
+            pricing: components["schemas"]["CustomerPricingRow"][];
+        };
+        /**
+         * CustomerPricingRow
+         * @description Single row in customer-contracted pricing lists / mutations.
+         */
+        CustomerPricingRow: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id?: number | null;
+            /** Customer Id */
+            customer_id?: number | null;
+            /** Spare Part Id */
+            spare_part_id?: number | null;
+            /** Contracted Price */
+            contracted_price?: number | null;
+            /** Currency */
+            currency?: string | null;
+            /** Discount Pct */
+            discount_pct?: number | null;
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid Until */
+            valid_until?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Created By */
+            created_by?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** CustomerPricingUpdate */
         CustomerPricingUpdate: {
             /** Contracted Price */
@@ -13983,6 +14027,29 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * LeadAnalyticsResponse
+         * @description ``GET /leads/analytics`` — funnel + by-source + weekly trend.
+         *
+         *     Inner fields stay as ``list[dict]`` because each chart point's
+         *     shape is rendering-driven and changing it would churn the SPA.
+         */
+        LeadAnalyticsResponse: {
+            /** Window Days */
+            window_days: number;
+            /** Funnel */
+            funnel: {
+                [key: string]: unknown;
+            }[];
+            /** By Source */
+            by_source: {
+                [key: string]: unknown;
+            }[];
+            /** Weekly Trend */
+            weekly_trend: {
+                [key: string]: unknown;
+            }[];
+        };
         /** LeadConvertRequest */
         LeadConvertRequest: {
             /**
@@ -13994,6 +14061,18 @@ export interface components {
             opportunity_title?: string | null;
             /** Opportunity Amount */
             opportunity_amount?: number | null;
+        };
+        /**
+         * LeadConvertResponse
+         * @description ``POST /leads/{id}/convert`` — IDs of the rows created.
+         */
+        LeadConvertResponse: {
+            /** Lead Id */
+            lead_id: number;
+            /** Customer Id */
+            customer_id: number;
+            /** Opportunity Id */
+            opportunity_id?: number | null;
         };
         /** LeadCreate */
         LeadCreate: {
@@ -14019,6 +14098,16 @@ export interface components {
             source: string;
             /** Notes */
             notes?: string | null;
+        };
+        /**
+         * LeadRescoreResponse
+         * @description ``POST /leads/{id}/rescore`` — new score after manual re-run.
+         */
+        LeadRescoreResponse: {
+            /** Lead Id */
+            lead_id: number;
+            /** Lead Score */
+            lead_score?: number | null;
         };
         /** LeadResponse */
         LeadResponse: {
@@ -14085,6 +14174,24 @@ export interface components {
             created_at?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * LeadScoringConfigUpdateResponse
+         * @description ``PUT /leads/scoring-config/{factor_name}`` — single config ack.
+         */
+        LeadScoringConfigUpdateResponse: {
+            /** Id */
+            id: number;
+            /** Factor Name */
+            factor_name: string;
+            /** Weight */
+            weight?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Description */
+            description?: string | null;
+            /** Created At */
+            created_at?: string | null;
         };
         /** LeadUpdate */
         LeadUpdate: {
@@ -14163,6 +14270,18 @@ export interface components {
         MarginUpdate: {
             /** Min Margin Pct */
             min_margin_pct: number;
+        };
+        /**
+         * MarginUpdateResponse
+         * @description ``PATCH /pricing/margin/{spare_part_id}`` — minimum-margin ack.
+         */
+        MarginUpdateResponse: {
+            /** Id */
+            id: number;
+            /** Honeywell Code */
+            honeywell_code?: string | null;
+            /** Min Margin Pct */
+            min_margin_pct?: number | null;
         };
         /** MeetingAutoLinkResponse */
         MeetingAutoLinkResponse: {
@@ -16396,6 +16515,21 @@ export interface components {
             honeywell_code: string;
             /** Name En */
             name_en?: string | null;
+        };
+        /**
+         * PriceLookupResponse
+         * @description ``GET /pricing/lookup`` — best resolved price for a (part, customer,
+         *     qty) triple. ``source`` is one of customer_contract / tier / standard.
+         */
+        PriceLookupResponse: {
+            /** Source */
+            source: string;
+            /** Unit Price */
+            unit_price: number;
+            /** Discount Pct */
+            discount_pct?: number | null;
+            /** Currency */
+            currency?: string | null;
         };
         /** PriceTierCreate */
         PriceTierCreate: {
@@ -29339,9 +29473,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LeadAnalyticsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -29516,9 +29648,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LeadScoringConfigUpdateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -29662,9 +29792,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LeadConvertResponse"];
                 };
             };
             /** @description Validation Error */
@@ -29697,9 +29825,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LeadRescoreResponse"];
                 };
             };
             /** @description Validation Error */
@@ -37494,9 +37620,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CustomerPricingListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -37533,9 +37657,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CustomerPricingRow"];
                 };
             };
             /** @description Validation Error */
@@ -37573,9 +37695,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CustomerPricingRow"];
                 };
             };
             /** @description Validation Error */
@@ -37644,9 +37764,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MarginUpdateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -37681,9 +37799,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PriceLookupResponse"];
                 };
             };
             /** @description Validation Error */

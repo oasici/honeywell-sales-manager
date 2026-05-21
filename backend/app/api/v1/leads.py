@@ -24,6 +24,12 @@ from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import LeadScoringConfigRow
 from app.schemas.lead import LeadResponse
+from app.schemas.round16_aggregates import (
+    LeadAnalyticsResponse,
+    LeadConvertResponse,
+    LeadRescoreResponse,
+    LeadScoringConfigUpdateResponse,
+)
 from app.core.event_bus import event_bus
 from app.services.lead_service import LeadService
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
@@ -109,7 +115,7 @@ def _check_web_lead_rate(client_ip: str) -> None:
 
 # ── Endpoints ──
 
-@router.get("/analytics", response_model=dict)
+@router.get("/analytics", response_model=LeadAnalyticsResponse)
 async def lead_analytics(
     window: int = Query(90, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -363,7 +369,7 @@ async def list_scoring_configs(
     }
 
 
-@router.put("/scoring-config/{factor_name}", response_model=dict)
+@router.put("/scoring-config/{factor_name}", response_model=LeadScoringConfigUpdateResponse)
 async def update_scoring_config(
     factor_name: str,
     data: ScoringConfigUpdate,
@@ -552,7 +558,7 @@ async def update_lead(
     return _lead_to_dict(lead)
 
 
-@router.post("/{lead_id}/convert", response_model=dict)
+@router.post("/{lead_id}/convert", response_model=LeadConvertResponse)
 async def convert_lead(
     lead_id: int,
     data: LeadConvertRequest,
@@ -583,7 +589,7 @@ async def convert_lead(
     return result
 
 
-@router.post("/{lead_id}/rescore", response_model=dict)
+@router.post("/{lead_id}/rescore", response_model=LeadRescoreResponse)
 async def rescore_lead(
     lead_id: int,
     current_user: User = Depends(get_current_user),

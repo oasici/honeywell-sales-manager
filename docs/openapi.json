@@ -20421,9 +20421,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Lead Analytics Api V1 Leads Analytics Get"
+                  "$ref": "#/components/schemas/LeadAnalyticsResponse"
                 }
               }
             }
@@ -20804,9 +20802,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Scoring Config Api V1 Leads Scoring Config  Factor Name  Put"
+                  "$ref": "#/components/schemas/LeadScoringConfigUpdateResponse"
                 }
               }
             }
@@ -21083,9 +21079,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Convert Lead Api V1 Leads  Lead Id  Convert Post"
+                  "$ref": "#/components/schemas/LeadConvertResponse"
                 }
               }
             }
@@ -21149,9 +21143,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Rescore Lead Api V1 Leads  Lead Id  Rescore Post"
+                  "$ref": "#/components/schemas/LeadRescoreResponse"
                 }
               }
             }
@@ -36427,9 +36419,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Customer Pricing Api V1 Pricing Customer  Customer Id  Get"
+                  "$ref": "#/components/schemas/CustomerPricingListResponse"
                 }
               }
             }
@@ -36501,9 +36491,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Customer Pricing Api V1 Pricing Customer  Customer Id  Post"
+                  "$ref": "#/components/schemas/CustomerPricingRow"
                 }
               }
             }
@@ -36586,9 +36574,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Customer Pricing Api V1 Pricing Customer  Customer Id   Pricing Id  Put"
+                  "$ref": "#/components/schemas/CustomerPricingRow"
                 }
               }
             }
@@ -36726,9 +36712,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Margin Api V1 Pricing Margin  Spare Part Id  Patch"
+                  "$ref": "#/components/schemas/MarginUpdateResponse"
                 }
               }
             }
@@ -36811,9 +36795,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Lookup Price Api V1 Pricing Lookup Get"
+                  "$ref": "#/components/schemas/PriceLookupResponse"
                 }
               }
             }
@@ -46017,6 +45999,175 @@
         ],
         "title": "CustomerPricingCreate"
       },
+      "CustomerPricingListResponse": {
+        "properties": {
+          "customer_id": {
+            "type": "integer",
+            "title": "Customer Id"
+          },
+          "pricing": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerPricingRow"
+            },
+            "type": "array",
+            "title": "Pricing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "pricing"
+        ],
+        "title": "CustomerPricingListResponse",
+        "description": "``GET /pricing/customer/{customer_id}`` \u2014 contracted price list."
+      },
+      "CustomerPricingRow": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "spare_part_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spare Part Id"
+          },
+          "contracted_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contracted Price"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "discount_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Pct"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "CustomerPricingRow",
+        "description": "Single row in customer-contracted pricing lists / mutations."
+      },
       "CustomerPricingUpdate": {
         "properties": {
           "contracted_price": {
@@ -52040,6 +52191,47 @@
         ],
         "title": "LastTimeBuyResponse"
       },
+      "LeadAnalyticsResponse": {
+        "properties": {
+          "window_days": {
+            "type": "integer",
+            "title": "Window Days"
+          },
+          "funnel": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Funnel"
+          },
+          "by_source": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "By Source"
+          },
+          "weekly_trend": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Weekly Trend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "window_days",
+          "funnel",
+          "by_source",
+          "weekly_trend"
+        ],
+        "title": "LeadAnalyticsResponse",
+        "description": "``GET /leads/analytics`` \u2014 funnel + by-source + weekly trend.\n\nInner fields stay as ``list[dict]`` because each chart point's\nshape is rendering-driven and changing it would churn the SPA."
+      },
       "LeadConvertRequest": {
         "properties": {
           "create_opportunity": {
@@ -52072,6 +52264,36 @@
         },
         "type": "object",
         "title": "LeadConvertRequest"
+      },
+      "LeadConvertResponse": {
+        "properties": {
+          "lead_id": {
+            "type": "integer",
+            "title": "Lead Id"
+          },
+          "customer_id": {
+            "type": "integer",
+            "title": "Customer Id"
+          },
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lead_id",
+          "customer_id"
+        ],
+        "title": "LeadConvertResponse",
+        "description": "``POST /leads/{id}/convert`` \u2014 IDs of the rows created."
       },
       "LeadCreate": {
         "properties": {
@@ -52149,6 +52371,34 @@
           "email"
         ],
         "title": "LeadCreate"
+      },
+      "LeadRescoreResponse": {
+        "properties": {
+          "lead_id": {
+            "type": "integer",
+            "title": "Lead Id"
+          },
+          "lead_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lead_id"
+        ],
+        "title": "LeadRescoreResponse",
+        "description": "``POST /leads/{id}/rescore`` \u2014 new score after manual re-run."
       },
       "LeadResponse": {
         "properties": {
@@ -52467,6 +52717,69 @@
         ],
         "title": "LeadScoringConfigRow"
       },
+      "LeadScoringConfigUpdateResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "factor_name": {
+            "type": "string",
+            "title": "Factor Name"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "factor_name"
+        ],
+        "title": "LeadScoringConfigUpdateResponse",
+        "description": "``PUT /leads/scoring-config/{factor_name}`` \u2014 single config ack."
+      },
       "LeadUpdate": {
         "properties": {
           "first_name": {
@@ -52750,6 +53063,42 @@
           "min_margin_pct"
         ],
         "title": "MarginUpdate"
+      },
+      "MarginUpdateResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "honeywell_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Honeywell Code"
+          },
+          "min_margin_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Margin Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "MarginUpdateResponse",
+        "description": "``PATCH /pricing/margin/{spare_part_id}`` \u2014 minimum-margin ack."
       },
       "MeetingAutoLinkResponse": {
         "properties": {
@@ -57928,6 +58277,47 @@
         ],
         "title": "PriceEntrySparePartSummary",
         "description": "Inline spare-part summary the price list embeds for each row.\n\nRound-15 N15-API-1 quick-win 2 \u2014 pre-Round-15 ``/prices/`` was typed\nas ``PaginatedResponse[dict]`` and ``_price_to_dict`` embedded this\n3-field summary inside each price row. Declaring it explicitly keeps\nthe contract honest instead of relying on ``extra='allow'``."
+      },
+      "PriceLookupResponse": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "unit_price": {
+            "type": "number",
+            "title": "Unit Price"
+          },
+          "discount_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Pct"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "unit_price"
+        ],
+        "title": "PriceLookupResponse",
+        "description": "``GET /pricing/lookup`` \u2014 best resolved price for a (part, customer,\nqty) triple. ``source`` is one of customer_contract / tier / standard."
       },
       "PriceTierCreate": {
         "properties": {
