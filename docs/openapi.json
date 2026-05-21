@@ -14047,9 +14047,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Pipeline Inspection Api V1 Opportunities Pipeline Inspection Get"
+                  "$ref": "#/components/schemas/PipelineInspectionResponse"
                 }
               }
             }
@@ -14456,9 +14454,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Opportunity Timeline Api V1 Opportunities  Opp Id  Timeline Get"
+                  "$ref": "#/components/schemas/OpportunityTimelineResponse"
                 }
               }
             }
@@ -14613,9 +14609,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Board Kanban Api V1 Board Kanban Get"
+                  "$ref": "#/components/schemas/KanbanBoardResponse"
                 }
               }
             }
@@ -14679,9 +14673,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Activity Summary Api V1 Opportunities  Opp Id  Activity Summary Get"
+                  "$ref": "#/components/schemas/ActivitySummaryResponse"
                 }
               }
             }
@@ -14748,9 +14740,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Board Summary Api V1 Board Summary Get"
+                  "$ref": "#/components/schemas/BoardSummaryResponse"
                 }
               }
             }
@@ -15969,9 +15959,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Signals Dashboard Api V1 Insights Signals Get"
+                  "$ref": "#/components/schemas/SignalsDashboardResponse"
                 }
               }
             }
@@ -16038,9 +16026,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Signals Trends Api V1 Insights Signals Trends Get"
+                  "$ref": "#/components/schemas/SignalsTrendsResponse"
                 }
               }
             }
@@ -16107,9 +16093,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Conversation Insights Api V1 Insights Conversation Insights Get"
+                  "$ref": "#/components/schemas/ConversationInsightsResponse"
                 }
               }
             }
@@ -16249,9 +16233,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Conversation Search Endpoint Api V1 Insights Conversation Search Get"
+                  "$ref": "#/components/schemas/ConversationSearchResponse"
                 }
               }
             }
@@ -39791,6 +39773,54 @@
         ],
         "title": "ActivityResponse"
       },
+      "ActivitySummaryResponse": {
+        "properties": {
+          "opportunity_id": {
+            "type": "integer",
+            "title": "Opportunity Id"
+          },
+          "total_activities": {
+            "type": "integer",
+            "title": "Total Activities"
+          },
+          "by_type": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Type"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "days_since_last_activity": {
+            "type": "integer",
+            "title": "Days Since Last Activity"
+          },
+          "avg_activities_for_stage": {
+            "type": "number",
+            "title": "Avg Activities For Stage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "opportunity_id",
+          "total_activities",
+          "by_type",
+          "days_since_last_activity",
+          "avg_activities_for_stage"
+        ],
+        "title": "ActivitySummaryResponse",
+        "description": "``GET /opportunities/{id}/activity-summary`` \u2014 per-deal cadence."
+      },
       "AdjustmentCreate": {
         "properties": {
           "opportunity_id": {
@@ -41089,6 +41119,40 @@
         "type": "object",
         "title": "BenchmarkGapResponse",
         "description": "Segment gap envelope returned by benchmark_gap_service. Shape varies."
+      },
+      "BoardSummaryResponse": {
+        "properties": {
+          "window_days": {
+            "type": "integer",
+            "title": "Window Days"
+          },
+          "open_pipeline_total": {
+            "type": "number",
+            "title": "Open Pipeline Total"
+          },
+          "won_count": {
+            "type": "integer",
+            "title": "Won Count"
+          },
+          "win_rate": {
+            "type": "number",
+            "title": "Win Rate"
+          },
+          "rotting_count": {
+            "type": "integer",
+            "title": "Rotting Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "window_days",
+          "open_pipeline_total",
+          "won_count",
+          "win_rate",
+          "rotting_count"
+        ],
+        "title": "BoardSummaryResponse",
+        "description": "``GET /board/summary`` \u2014 manager KPIs."
       },
       "BoardWipStatusResponse": {
         "properties": {
@@ -44338,6 +44402,65 @@
         },
         "type": "object",
         "title": "ContractUpdate"
+      },
+      "ConversationInsightsResponse": {
+        "properties": {
+          "window_days": {
+            "type": "integer",
+            "title": "Window Days"
+          },
+          "transcript_keyword_hits": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Transcript Keyword Hits"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "window_days",
+          "transcript_keyword_hits"
+        ],
+        "title": "ConversationInsightsResponse",
+        "description": "``GET /insights/conversation-insights`` \u2014 transcript keyword buckets."
+      },
+      "ConversationSearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "page",
+          "page_size",
+          "total",
+          "items"
+        ],
+        "title": "ConversationSearchResponse",
+        "description": "``GET /insights/conversation-search`` \u2014 paginated transcript hits."
       },
       "ConvertCurrencyRequest": {
         "properties": {
@@ -52039,6 +52162,56 @@
         "title": "ItemsResponse",
         "description": "Generic ``{items: [...], total: N, ...}`` envelope for\nlist endpoints that don't fit ``PaginatedResponse`` (no page/page_size)."
       },
+      "KanbanBoardResponse": {
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/KanbanColumn"
+            },
+            "type": "array",
+            "title": "Columns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "columns"
+        ],
+        "title": "KanbanBoardResponse",
+        "description": "``GET /board/kanban`` \u2014 columns of opportunity cards."
+      },
+      "KanbanColumn": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "total_amount": {
+            "type": "number",
+            "title": "Total Amount"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "stage",
+          "count",
+          "total_amount",
+          "items"
+        ],
+        "title": "KanbanColumn"
+      },
       "KeywordFound": {
         "properties": {
           "keyword": {
@@ -54896,6 +55069,119 @@
         "title": "OpportunitySignalSummary",
         "description": "Subset of ``OpportunitySignal`` columns surfaced to the SPA."
       },
+      "OpportunityTimelineResponse": {
+        "properties": {
+          "opportunity_id": {
+            "type": "integer",
+            "title": "Opportunity Id"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/OpportunityTimelineRow"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "opportunity_id",
+          "events"
+        ],
+        "title": "OpportunityTimelineResponse",
+        "description": "``GET /opportunities/{id}/timeline`` \u2014 mixed events + email rows."
+      },
+      "OpportunityTimelineRow": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type"
+          },
+          "entity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Type"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "synthetic": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthetic"
+          },
+          "via_quote": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Via Quote"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "OpportunityTimelineRow"
+      },
       "OpportunityUpdate": {
         "properties": {
           "title": {
@@ -57649,6 +57935,38 @@
         ],
         "title": "PipelineCreate"
       },
+      "PipelineInspectionResponse": {
+        "properties": {
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineStageRow"
+            },
+            "type": "array",
+            "title": "Stages"
+          },
+          "pipeline_total": {
+            "type": "number",
+            "title": "Pipeline Total"
+          },
+          "weighted_forecast": {
+            "type": "number",
+            "title": "Weighted Forecast"
+          },
+          "coverage_ratio": {
+            "type": "number",
+            "title": "Coverage Ratio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stages",
+          "pipeline_total",
+          "weighted_forecast",
+          "coverage_ratio"
+        ],
+        "title": "PipelineInspectionResponse",
+        "description": "``GET /opportunities/pipeline-inspection`` \u2014 by-stage health rollup."
+      },
       "PipelineRow": {
         "properties": {
           "id": {
@@ -57739,6 +58057,39 @@
           "id"
         ],
         "title": "PipelineRow"
+      },
+      "PipelineStageRow": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "total_amount": {
+            "type": "number",
+            "title": "Total Amount"
+          },
+          "avg_health_score": {
+            "type": "number",
+            "title": "Avg Health Score"
+          },
+          "stale_count": {
+            "type": "integer",
+            "title": "Stale Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage",
+          "count",
+          "total_amount",
+          "avg_health_score",
+          "stale_count"
+        ],
+        "title": "PipelineStageRow"
       },
       "PipelineSuggestRequest": {
         "properties": {
@@ -63499,6 +63850,82 @@
         "type": "object",
         "title": "SignalStreamResponse",
         "description": "Generic signal-stream shape used by `/cockpit/signals` (service emits)."
+      },
+      "SignalsDashboardResponse": {
+        "properties": {
+          "window_days": {
+            "type": "integer",
+            "title": "Window Days"
+          },
+          "topic_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Topic Counts"
+          },
+          "severity_buckets": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Severity Buckets"
+          },
+          "impacted_opportunity_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Impacted Opportunity Ids"
+          },
+          "impacted_total": {
+            "type": "integer",
+            "title": "Impacted Total"
+          },
+          "impacted_returned": {
+            "type": "integer",
+            "title": "Impacted Returned"
+          },
+          "impacted_has_more": {
+            "type": "boolean",
+            "title": "Impacted Has More"
+          }
+        },
+        "type": "object",
+        "required": [
+          "window_days",
+          "topic_counts",
+          "severity_buckets",
+          "impacted_opportunity_ids",
+          "impacted_total",
+          "impacted_returned",
+          "impacted_has_more"
+        ],
+        "title": "SignalsDashboardResponse",
+        "description": "``GET /insights/signals`` \u2014 topic/severity/impacted summary."
+      },
+      "SignalsTrendsResponse": {
+        "properties": {
+          "window_days": {
+            "type": "integer",
+            "title": "Window Days"
+          },
+          "series": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "window_days",
+          "series"
+        ],
+        "title": "SignalsTrendsResponse",
+        "description": "``GET /insights/signals/trends`` \u2014 daily counts for trend charts."
       },
       "SignatureRequestCreate": {
         "properties": {

@@ -27,6 +27,13 @@ from app.core.event_bus import event_bus
 from app.schemas.common import GenericDataResponse, MessageResponse, PaginatedResponse
 from app.schemas.opportunity import OpportunityResponse
 from app.schemas.opportunity_intelligence import OpportunityIntelligenceResponse
+from app.schemas.round16_aggregates import (
+    ActivitySummaryResponse,
+    BoardSummaryResponse,
+    KanbanBoardResponse,
+    OpportunityTimelineResponse,
+    PipelineInspectionResponse,
+)
 from app.services.activity_logger import log_activity
 from app.services.audit_service import log_action
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
@@ -268,7 +275,7 @@ async def list_opportunities(
 STALE_THRESHOLD_DAYS = 7
 
 
-@router.get("/opportunities/pipeline-inspection", response_model=dict)
+@router.get("/opportunities/pipeline-inspection", response_model=PipelineInspectionResponse)
 async def pipeline_inspection(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -843,7 +850,7 @@ async def bulk_action_opportunities(
 # OPPORTUNITY TIMELINE
 # ══════════════════════════════════════════
 
-@router.get("/opportunities/{opp_id}/timeline", response_model=dict)
+@router.get("/opportunities/{opp_id}/timeline", response_model=OpportunityTimelineResponse)
 async def get_opportunity_timeline(
     opp_id: int,
     limit: int = Query(50, ge=1, le=200),
@@ -952,7 +959,7 @@ async def get_opportunity_timeline(
 KANBAN_STAGES = [s.value for s in OpportunityStage]
 
 
-@router.get("/board/kanban", response_model=dict)
+@router.get("/board/kanban", response_model=KanbanBoardResponse)
 async def get_board_kanban(
     owner_id: int | None = None,
     stages: str | None = None,
@@ -1072,7 +1079,7 @@ async def get_board_kanban(
 # ACTIVITY SUMMARY (Modul 6)
 # ══════════════════════════════════════════
 
-@router.get("/opportunities/{opp_id}/activity-summary", response_model=dict)
+@router.get("/opportunities/{opp_id}/activity-summary", response_model=ActivitySummaryResponse)
 async def get_activity_summary(
     opp_id: int,
     current_user: User = Depends(get_current_user),
@@ -1154,7 +1161,7 @@ async def get_activity_summary(
     }
 
 
-@router.get("/board/summary", response_model=dict)
+@router.get("/board/summary", response_model=BoardSummaryResponse)
 async def get_board_summary(
     window: int = Query(30, ge=7, le=365),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

@@ -184,3 +184,142 @@ class PriceLookupResponse(BaseModel):
     currency: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Insights (app/api/v1/insights.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class SignalsDashboardResponse(BaseModel):
+    """``GET /insights/signals`` — topic/severity/impacted summary."""
+
+    window_days: int
+    topic_counts: dict[str, int]
+    severity_buckets: dict[str, int]
+    impacted_opportunity_ids: list[int]
+    impacted_total: int
+    impacted_returned: int
+    impacted_has_more: bool
+
+    model_config = {"from_attributes": True}
+
+
+class SignalsTrendsResponse(BaseModel):
+    """``GET /insights/signals/trends`` — daily counts for trend charts."""
+
+    window_days: int
+    series: list[dict[str, Any]]
+
+    model_config = {"from_attributes": True}
+
+
+class ConversationInsightsResponse(BaseModel):
+    """``GET /insights/conversation-insights`` — transcript keyword buckets."""
+
+    window_days: int
+    transcript_keyword_hits: dict[str, Any]
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class ConversationSearchResponse(BaseModel):
+    """``GET /insights/conversation-search`` — paginated transcript hits."""
+
+    query: str
+    page: int
+    page_size: int
+    total: int
+    items: list[dict[str, Any]]
+
+    model_config = {"from_attributes": True}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Opportunities (app/api/v1/opportunities.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class PipelineStageRow(BaseModel):
+    stage: str
+    count: int
+    total_amount: float
+    avg_health_score: float
+    stale_count: int
+
+    model_config = {"from_attributes": True}
+
+
+class PipelineInspectionResponse(BaseModel):
+    """``GET /opportunities/pipeline-inspection`` — by-stage health rollup."""
+
+    stages: list[PipelineStageRow]
+    pipeline_total: float
+    weighted_forecast: float
+    coverage_ratio: float
+
+    model_config = {"from_attributes": True}
+
+
+class OpportunityTimelineRow(BaseModel):
+    id: int
+    event_type: str | None = None
+    entity_type: str | None = None
+    entity_id: int | None = None
+    description: str | None = None
+    occurred_at: str | None = None
+    synthetic: bool | None = None
+    via_quote: bool | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class OpportunityTimelineResponse(BaseModel):
+    """``GET /opportunities/{id}/timeline`` — mixed events + email rows."""
+
+    opportunity_id: int
+    events: list[OpportunityTimelineRow]
+
+    model_config = {"from_attributes": True}
+
+
+class KanbanColumn(BaseModel):
+    stage: str
+    count: int
+    total_amount: float
+    items: list[dict[str, Any]]
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class KanbanBoardResponse(BaseModel):
+    """``GET /board/kanban`` — columns of opportunity cards."""
+
+    columns: list[KanbanColumn]
+
+    model_config = {"from_attributes": True}
+
+
+class ActivitySummaryResponse(BaseModel):
+    """``GET /opportunities/{id}/activity-summary`` — per-deal cadence."""
+
+    opportunity_id: int
+    total_activities: int
+    by_type: dict[str, int]
+    last_activity_at: str | None = None
+    days_since_last_activity: int
+    avg_activities_for_stage: float
+
+    model_config = {"from_attributes": True}
+
+
+class BoardSummaryResponse(BaseModel):
+    """``GET /board/summary`` — manager KPIs."""
+
+    window_days: int
+    open_pipeline_total: float
+    won_count: int
+    win_rate: float
+    rotting_count: int
+
+    model_config = {"from_attributes": True}

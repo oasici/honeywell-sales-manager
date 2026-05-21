@@ -10227,6 +10227,26 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * ActivitySummaryResponse
+         * @description ``GET /opportunities/{id}/activity-summary`` — per-deal cadence.
+         */
+        ActivitySummaryResponse: {
+            /** Opportunity Id */
+            opportunity_id: number;
+            /** Total Activities */
+            total_activities: number;
+            /** By Type */
+            by_type: {
+                [key: string]: number;
+            };
+            /** Last Activity At */
+            last_activity_at?: string | null;
+            /** Days Since Last Activity */
+            days_since_last_activity: number;
+            /** Avg Activities For Stage */
+            avg_activities_for_stage: number;
+        };
         /** AdjustmentCreate */
         AdjustmentCreate: {
             /** Opportunity Id */
@@ -10591,6 +10611,22 @@ export interface components {
          */
         BenchmarkGapResponse: {
             [key: string]: unknown;
+        };
+        /**
+         * BoardSummaryResponse
+         * @description ``GET /board/summary`` — manager KPIs.
+         */
+        BoardSummaryResponse: {
+            /** Window Days */
+            window_days: number;
+            /** Open Pipeline Total */
+            open_pipeline_total: number;
+            /** Won Count */
+            won_count: number;
+            /** Win Rate */
+            win_rate: number;
+            /** Rotting Count */
+            rotting_count: number;
         };
         /** BoardWipStatusResponse */
         BoardWipStatusResponse: {
@@ -11495,6 +11531,38 @@ export interface components {
             terms_json?: string | null;
             /** Status */
             status?: string | null;
+        };
+        /**
+         * ConversationInsightsResponse
+         * @description ``GET /insights/conversation-insights`` — transcript keyword buckets.
+         */
+        ConversationInsightsResponse: {
+            /** Window Days */
+            window_days: number;
+            /** Transcript Keyword Hits */
+            transcript_keyword_hits: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * ConversationSearchResponse
+         * @description ``GET /insights/conversation-search`` — paginated transcript hits.
+         */
+        ConversationSearchResponse: {
+            /** Query */
+            query: string;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+            /** Items */
+            items: {
+                [key: string]: unknown;
+            }[];
         };
         /** ConvertCurrencyRequest */
         ConvertCurrencyRequest: {
@@ -13970,6 +14038,29 @@ export interface components {
             [key: string]: unknown;
         };
         /**
+         * KanbanBoardResponse
+         * @description ``GET /board/kanban`` — columns of opportunity cards.
+         */
+        KanbanBoardResponse: {
+            /** Columns */
+            columns: components["schemas"]["KanbanColumn"][];
+        };
+        /** KanbanColumn */
+        KanbanColumn: {
+            /** Stage */
+            stage: string;
+            /** Count */
+            count: number;
+            /** Total Amount */
+            total_amount: number;
+            /** Items */
+            items: {
+                [key: string]: unknown;
+            }[];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
          * KeywordFound
          * @description Single keyword hit produced by ``_scan_keywords_in_text``.
          */
@@ -14844,6 +14935,37 @@ export interface components {
             is_resolved: boolean;
             /** Created At */
             created_at?: string | null;
+        };
+        /**
+         * OpportunityTimelineResponse
+         * @description ``GET /opportunities/{id}/timeline`` — mixed events + email rows.
+         */
+        OpportunityTimelineResponse: {
+            /** Opportunity Id */
+            opportunity_id: number;
+            /** Events */
+            events: components["schemas"]["OpportunityTimelineRow"][];
+        };
+        /** OpportunityTimelineRow */
+        OpportunityTimelineRow: {
+            /** Id */
+            id: number;
+            /** Event Type */
+            event_type?: string | null;
+            /** Entity Type */
+            entity_type?: string | null;
+            /** Entity Id */
+            entity_id?: number | null;
+            /** Description */
+            description?: string | null;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Synthetic */
+            synthetic?: boolean | null;
+            /** Via Quote */
+            via_quote?: boolean | null;
+        } & {
+            [key: string]: unknown;
         };
         /** OpportunityUpdate */
         OpportunityUpdate: {
@@ -16320,6 +16442,20 @@ export interface components {
              */
             is_default: boolean;
         };
+        /**
+         * PipelineInspectionResponse
+         * @description ``GET /opportunities/pipeline-inspection`` — by-stage health rollup.
+         */
+        PipelineInspectionResponse: {
+            /** Stages */
+            stages: components["schemas"]["PipelineStageRow"][];
+            /** Pipeline Total */
+            pipeline_total: number;
+            /** Weighted Forecast */
+            weighted_forecast: number;
+            /** Coverage Ratio */
+            coverage_ratio: number;
+        };
         /** PipelineRow */
         PipelineRow: {
             /** Id */
@@ -16340,6 +16476,19 @@ export interface components {
             updated_at?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /** PipelineStageRow */
+        PipelineStageRow: {
+            /** Stage */
+            stage: string;
+            /** Count */
+            count: number;
+            /** Total Amount */
+            total_amount: number;
+            /** Avg Health Score */
+            avg_health_score: number;
+            /** Stale Count */
+            stale_count: number;
         };
         /** PipelineSuggestRequest */
         PipelineSuggestRequest: {
@@ -18077,6 +18226,42 @@ export interface components {
             pages?: number | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * SignalsDashboardResponse
+         * @description ``GET /insights/signals`` — topic/severity/impacted summary.
+         */
+        SignalsDashboardResponse: {
+            /** Window Days */
+            window_days: number;
+            /** Topic Counts */
+            topic_counts: {
+                [key: string]: number;
+            };
+            /** Severity Buckets */
+            severity_buckets: {
+                [key: string]: number;
+            };
+            /** Impacted Opportunity Ids */
+            impacted_opportunity_ids: number[];
+            /** Impacted Total */
+            impacted_total: number;
+            /** Impacted Returned */
+            impacted_returned: number;
+            /** Impacted Has More */
+            impacted_has_more: boolean;
+        };
+        /**
+         * SignalsTrendsResponse
+         * @description ``GET /insights/signals/trends`` — daily counts for trend charts.
+         */
+        SignalsTrendsResponse: {
+            /** Window Days */
+            window_days: number;
+            /** Series */
+            series: {
+                [key: string]: unknown;
+            }[];
         };
         /** SignatureRequestCreate */
         SignatureRequestCreate: {
@@ -26305,9 +26490,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PipelineInspectionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -26515,9 +26698,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OpportunityTimelineResponse"];
                 };
             };
             /** @description Validation Error */
@@ -26555,9 +26736,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["KanbanBoardResponse"];
                 };
             };
             /** @description Validation Error */
@@ -26590,9 +26769,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ActivitySummaryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -26625,9 +26802,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BoardSummaryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27270,9 +27445,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SignalsDashboardResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27305,9 +27478,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SignalsTrendsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27340,9 +27511,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ConversationInsightsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27380,9 +27549,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ConversationSearchResponse"];
                 };
             };
             /** @description Validation Error */
