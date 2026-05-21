@@ -18,6 +18,11 @@ from app.models.user import User
 from app.models.webhook import WebhookDelivery, WebhookSubscription
 from app.schemas.common import PaginatedResponse
 from app.schemas.webhook import WebhookSubscriptionResponse
+from app.schemas.round16_aggregates import (
+    WebhookDeliveriesResponse,
+    WebhookRetryResponse,
+    WebhookTestResponse,
+)
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.services.webhook_service import WebhookService, validate_webhook_url
 
@@ -229,7 +234,7 @@ async def delete_webhook(
     await db.delete(subscription)
 
 
-@router.get("/{webhook_id}/deliveries", response_model=dict)
+@router.get("/{webhook_id}/deliveries", response_model=WebhookDeliveriesResponse)
 async def get_webhook_deliveries(
     webhook_id: int,
     limit: int = Query(20, ge=1, le=100),
@@ -263,7 +268,7 @@ async def get_webhook_deliveries(
     }
 
 
-@router.post("/deliveries/{delivery_id}/retry", response_model=dict)
+@router.post("/deliveries/{delivery_id}/retry", response_model=WebhookRetryResponse)
 async def retry_webhook_delivery(
     delivery_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -344,7 +349,7 @@ async def retry_webhook_delivery(
         }
 
 
-@router.post("/{webhook_id}/test", response_model=dict)
+@router.post("/{webhook_id}/test", response_model=WebhookTestResponse)
 async def test_webhook(
     webhook_id: int,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),

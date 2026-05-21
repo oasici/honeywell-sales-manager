@@ -22,6 +22,11 @@ from app.core.exceptions import NotFoundException
 from app.services.coaching_service import CoachingService
 from app.services.tenant_context import assert_same_tenant
 from app.schemas.common import ItemsResponse, MessageResponse
+from app.schemas.round16_aggregates import (
+    CoachingOverviewResponse,
+    CoachingRepDetailResponse,
+    CoachingRepTrendsResponse,
+)
 
 # R5-RL-8 — coaching surfaces call into V5/V6/V7 services that may
 # proxy through Claude. Without router-level rate limits, a scripted
@@ -42,7 +47,7 @@ def _require_cockpit():
         raise HTTPException(status_code=404, detail="Not found")
 
 
-@router.get("/overview", response_model=dict)
+@router.get("/overview", response_model=CoachingOverviewResponse)
 async def coaching_overview(
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
@@ -162,7 +167,7 @@ async def create_coaching_plan(
 # ── Trend & Benchmark Endpoints ──
 
 
-@router.get("/rep/{user_id}/trends", response_model=dict)
+@router.get("/rep/{user_id}/trends", response_model=CoachingRepTrendsResponse)
 async def coaching_rep_trends(
     user_id: int,
     current_user: User = Depends(get_current_user),
@@ -267,7 +272,7 @@ async def coaching_benchmarks(
     }
 
 
-@router.get("/rep/{user_id}", response_model=dict)
+@router.get("/rep/{user_id}", response_model=CoachingRepDetailResponse)
 async def coaching_rep(
     user_id: int,
     current_user: User = Depends(get_current_user),

@@ -3677,9 +3677,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Latest Dna Api V1 V4 Dna Opportunities  Opportunity Id  Latest Get"
+                  "$ref": "#/components/schemas/SalesDnaSnapshotResponse"
                 }
               }
             }
@@ -3752,9 +3750,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Dna Snapshot Api V1 V4 Dna Opportunities  Opportunity Id  Snapshots  Snapshot Date  Get"
+                  "$ref": "#/components/schemas/SalesDnaSnapshotResponse"
                 }
               }
             }
@@ -3836,9 +3832,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Post Materialize Dna Api V1 V4 Dna Opportunities  Opportunity Id  Materialize Post"
+                  "$ref": "#/components/schemas/MaterializeDnaResponse"
                 }
               }
             }
@@ -21881,9 +21875,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Deal Health Api V1 Deal Health  Opportunity Id  Get"
+                  "$ref": "#/components/schemas/DealHealthReportRow"
                 }
               }
             }
@@ -21956,9 +21948,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Deal Health Overview Api V1 Deal Health Overview All Get"
+                  "$ref": "#/components/schemas/DealHealthOverviewResponse"
                 }
               }
             }
@@ -22027,9 +22017,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get At Risk Deals Api V1 Deal Health At Risk List Get"
+                  "$ref": "#/components/schemas/DealHealthAtRiskResponse"
                 }
               }
             }
@@ -24315,9 +24303,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Webhook Deliveries Api V1 Webhooks  Webhook Id  Deliveries Get"
+                  "$ref": "#/components/schemas/WebhookDeliveriesResponse"
                 }
               }
             }
@@ -24381,9 +24367,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Retry Webhook Delivery Api V1 Webhooks Deliveries  Delivery Id  Retry Post"
+                  "$ref": "#/components/schemas/WebhookRetryResponse"
                 }
               }
             }
@@ -24447,9 +24431,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Test Webhook Api V1 Webhooks  Webhook Id  Test Post"
+                  "$ref": "#/components/schemas/WebhookTestResponse"
                 }
               }
             }
@@ -25137,9 +25119,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Coaching Overview Api V1 Coaching Overview Get"
+                  "$ref": "#/components/schemas/CoachingOverviewResponse"
                 }
               }
             }
@@ -25321,9 +25301,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Coaching Rep Trends Api V1 Coaching Rep  User Id  Trends Get"
+                  "$ref": "#/components/schemas/CoachingRepTrendsResponse"
                 }
               }
             }
@@ -25442,9 +25420,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Coaching Rep Api V1 Coaching Rep  User Id  Get"
+                  "$ref": "#/components/schemas/CoachingRepDetailResponse"
                 }
               }
             }
@@ -28910,9 +28886,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Bundles Api V1 Bundles  Get"
+                  "$ref": "#/components/schemas/BundleListResponse"
                 }
               }
             }
@@ -28975,9 +28949,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Bundle Api V1 Bundles  Post"
+                  "$ref": "#/components/schemas/BundleCreateAckResponse"
                 }
               }
             }
@@ -29105,9 +29077,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Expand Bundle To Quote Items Api V1 Bundles  Bundle Id  To Quote Items Post"
+                  "$ref": "#/components/schemas/BundleExpandResponse"
                 }
               }
             }
@@ -41171,13 +41141,13 @@
             "type": "number",
             "title": "Open Pipeline Total"
           },
-          "won_count": {
-            "type": "integer",
-            "title": "Won Count"
-          },
           "win_rate": {
             "type": "number",
             "title": "Win Rate"
+          },
+          "won_count": {
+            "type": "integer",
+            "title": "Won Count"
           },
           "rotting_count": {
             "type": "integer",
@@ -41188,8 +41158,8 @@
         "required": [
           "window_days",
           "open_pipeline_total",
-          "won_count",
           "win_rate",
+          "won_count",
           "rotting_count"
         ],
         "title": "BoardSummaryResponse",
@@ -41582,6 +41552,232 @@
           "items"
         ],
         "title": "BundleCreate"
+      },
+      "BundleCreateAckResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "BundleCreateAckResponse",
+        "description": "``POST /bundles/`` \u2014 ack with new bundle ID."
+      },
+      "BundleExpandResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BundleQuoteItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "bundle_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bundle Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "BundleExpandResponse",
+        "description": "``POST /bundles/{id}/to-quote-items`` \u2014 bundle expansion."
+      },
+      "BundleListResponse": {
+        "properties": {
+          "bundles": {
+            "items": {
+              "$ref": "#/components/schemas/BundleRow"
+            },
+            "type": "array",
+            "title": "Bundles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bundles"
+        ],
+        "title": "BundleListResponse",
+        "description": "``GET /bundles/`` \u2014 active product bundles catalogue."
+      },
+      "BundleQuoteItem": {
+        "properties": {
+          "spare_part_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spare Part Id"
+          },
+          "honeywell_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Honeywell Code"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          },
+          "discount_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Pct"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "BundleQuoteItem"
+      },
+      "BundleRow": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items",
+            "default": []
+          },
+          "bundle_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bundle Price"
+          },
+          "discount_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Pct"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "BundleRow"
       },
       "BuyerActionBody": {
         "properties": {
@@ -42839,6 +43035,61 @@
         "type": "object",
         "title": "ChatSessionResponse"
       },
+      "CoachingOverviewResponse": {
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/CoachingOverviewSummary"
+          },
+          "reps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Reps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "reps"
+        ],
+        "title": "CoachingOverviewResponse",
+        "description": "``GET /coaching/overview`` \u2014 manager rollup + per-rep results."
+      },
+      "CoachingOverviewSummary": {
+        "properties": {
+          "total_reps": {
+            "type": "integer",
+            "title": "Total Reps"
+          },
+          "healthy": {
+            "type": "integer",
+            "title": "Healthy"
+          },
+          "needs_improvement": {
+            "type": "integer",
+            "title": "Needs Improvement"
+          },
+          "at_risk": {
+            "type": "integer",
+            "title": "At Risk"
+          },
+          "avg_score": {
+            "type": "number",
+            "title": "Avg Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_reps",
+          "healthy",
+          "needs_improvement",
+          "at_risk",
+          "avg_score"
+        ],
+        "title": "CoachingOverviewSummary"
+      },
       "CoachingPlanCreate": {
         "properties": {
           "user_id": {
@@ -42876,6 +43127,91 @@
           "goals_json"
         ],
         "title": "CoachingPlanCreate"
+      },
+      "CoachingRepDetailResponse": {
+        "properties": {
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "risk_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Level"
+          },
+          "indicators": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Indicators",
+            "default": []
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations",
+            "default": []
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "CoachingRepDetailResponse",
+        "description": "``GET /coaching/rep/{user_id}`` \u2014 full coaching profile.\n\nThe service emits a heterogeneous shape (score, indicators,\nrecommendations, risk_level, plus debug fields). ``extra=\"allow\"``\nkeeps the wire compatible while still declaring the canonical\nkeys for OpenAPI consumers."
+      },
+      "CoachingRepTrendsResponse": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/CoachingSnapshotRow"
+            },
+            "type": "array",
+            "title": "Snapshots"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "snapshots",
+          "total"
+        ],
+        "title": "CoachingRepTrendsResponse",
+        "description": "``GET /coaching/rep/{user_id}/trends`` \u2014 score history."
       },
       "CoachingScorecardItem": {
         "properties": {
@@ -42959,6 +43295,53 @@
           "scorecards"
         ],
         "title": "CoachingScorecardsResponse"
+      },
+      "CoachingSnapshotRow": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "indicators_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indicators Json"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "CoachingSnapshotRow"
       },
       "CockpitActionItem": {
         "properties": {
@@ -47956,6 +48339,33 @@
         ],
         "title": "DeadStockResponse"
       },
+      "DealHealthAtRiskResponse": {
+        "properties": {
+          "threshold": {
+            "type": "integer",
+            "title": "Threshold"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "opportunities": {
+            "items": {
+              "$ref": "#/components/schemas/DealHealthReportRow"
+            },
+            "type": "array",
+            "title": "Opportunities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "threshold",
+          "count",
+          "opportunities"
+        ],
+        "title": "DealHealthAtRiskResponse",
+        "description": "``GET /deal-health/at-risk/list`` \u2014 filtered low-health rows."
+      },
       "DealHealthBlock": {
         "properties": {
           "opportunity_id": {
@@ -47995,6 +48405,196 @@
         ],
         "title": "DealHealthBlock",
         "description": "Inline view of ``DealHealthReport`` returned by the intelligence\nendpoint. Mirrors ``DealHealthService.compute_deal_health`` output but\ndeclared independently so future ``DealHealthReport`` changes don't\nsilently break the API contract."
+      },
+      "DealHealthIndicatorRow": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "raw_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Value"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "DealHealthIndicatorRow"
+      },
+      "DealHealthOverviewResponse": {
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/DealHealthSummaryBlock"
+          },
+          "opportunities": {
+            "items": {
+              "$ref": "#/components/schemas/DealHealthReportRow"
+            },
+            "type": "array",
+            "title": "Opportunities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "opportunities"
+        ],
+        "title": "DealHealthOverviewResponse",
+        "description": "``GET /deal-health/overview/all`` \u2014 tenant rollup + per-deal rows."
+      },
+      "DealHealthReportRow": {
+        "properties": {
+          "opportunity_id": {
+            "type": "integer",
+            "title": "Opportunity Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "risk_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Level"
+          },
+          "indicators": {
+            "items": {
+              "$ref": "#/components/schemas/DealHealthIndicatorRow"
+            },
+            "type": "array",
+            "title": "Indicators",
+            "default": []
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations",
+            "default": []
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "opportunity_id"
+        ],
+        "title": "DealHealthReportRow"
+      },
+      "DealHealthSummaryBlock": {
+        "properties": {
+          "total_opportunities": {
+            "type": "integer",
+            "title": "Total Opportunities"
+          },
+          "healthy_count": {
+            "type": "integer",
+            "title": "Healthy Count"
+          },
+          "at_risk_count": {
+            "type": "integer",
+            "title": "At Risk Count"
+          },
+          "critical_count": {
+            "type": "integer",
+            "title": "Critical Count"
+          },
+          "average_score": {
+            "type": "number",
+            "title": "Average Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_opportunities",
+          "healthy_count",
+          "at_risk_count",
+          "critical_count",
+          "average_score"
+        ],
+        "title": "DealHealthSummaryBlock"
       },
       "DealRiskResponse": {
         "properties": {},
@@ -53651,6 +54251,61 @@
         ],
         "title": "MarginUpdateResponse",
         "description": "``PATCH /pricing/margin/{spare_part_id}`` \u2014 minimum-margin ack."
+      },
+      "MaterializeDnaResponse": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "opportunity_id": {
+            "type": "integer",
+            "title": "Opportunity Id"
+          },
+          "snapshot_date": {
+            "type": "string",
+            "title": "Snapshot Date"
+          },
+          "risk_posture": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Posture"
+          },
+          "coaching_hooks": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coaching Hooks"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "ok",
+          "opportunity_id",
+          "snapshot_date"
+        ],
+        "title": "MaterializeDnaResponse",
+        "description": "``POST /sales-dna/opportunities/{id}/materialize`` \u2014 synchronous\nsnapshot generation ack."
       },
       "MeetingAutoLinkResponse": {
         "properties": {
@@ -63014,6 +63669,38 @@
         ],
         "title": "SLAResponse"
       },
+      "SalesDnaSnapshotResponse": {
+        "properties": {
+          "opportunity_id": {
+            "type": "integer",
+            "title": "Opportunity Id"
+          },
+          "snapshot_date": {
+            "type": "string",
+            "title": "Snapshot Date"
+          },
+          "traits": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Traits"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "opportunity_id",
+          "snapshot_date",
+          "traits",
+          "meta"
+        ],
+        "title": "SalesDnaSnapshotResponse",
+        "description": "``GET /sales-dna/opportunities/{id}/latest`` and\n``GET /sales-dna/opportunities/{id}/snapshots/{date}`` \u2014 both\nreturn the same materialised-trait shape."
+      },
       "SavedViewCreate": {
         "properties": {
           "name": {
@@ -68990,6 +69677,203 @@
         ],
         "title": "WebhookCreateRequest"
       },
+      "WebhookDeliveriesResponse": {
+        "properties": {
+          "webhook_id": {
+            "type": "integer",
+            "title": "Webhook Id"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "deliveries": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookDeliveryRow"
+            },
+            "type": "array",
+            "title": "Deliveries"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "webhook_id",
+          "count",
+          "deliveries"
+        ],
+        "title": "WebhookDeliveriesResponse",
+        "description": "``GET /webhooks/{id}/deliveries`` \u2014 delivery history."
+      },
+      "WebhookDeliveryRow": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "subscription_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Id"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type"
+          },
+          "delivered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivered At"
+          },
+          "response_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Status"
+          },
+          "response_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Body"
+          },
+          "retry_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry Count"
+          },
+          "payload_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload Size"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "WebhookDeliveryRow"
+      },
+      "WebhookRetryResponse": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "subscription_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Id"
+          },
+          "event_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Type"
+          },
+          "retry_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry Count"
+          },
+          "response_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Status"
+          },
+          "delivered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivered At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "WebhookRetryResponse",
+        "description": "``POST /webhooks/deliveries/{id}/retry`` \u2014 retry ack.\n\nShape mirrors ``_delivery_to_dict`` plus the retry counters; uses\n``extra=\"allow\"`` because the service helper may add timing\nenrichments."
+      },
       "WebhookSubscriptionResponse": {
         "properties": {
           "id": {
@@ -69116,6 +70000,54 @@
           "id"
         ],
         "title": "WebhookSubscriptionResponse"
+      },
+      "WebhookTestResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "success": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Success"
+          },
+          "response_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "WebhookTestResponse",
+        "description": "``POST /webhooks/{id}/test`` \u2014 synchronous delivery probe.\n\n``status`` is one of ``delivered`` / ``failed``; remaining keys\ncome from the service result dict (response_status, retry_count,\nerror, etc.) and round-trip via ``extra=\"allow\"``."
       },
       "WebhookUpdateRequest": {
         "properties": {

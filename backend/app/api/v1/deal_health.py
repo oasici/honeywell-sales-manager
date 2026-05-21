@@ -10,6 +10,11 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import NotFoundException
 from app.models.user import User
+from app.schemas.round16_aggregates import (
+    DealHealthAtRiskResponse,
+    DealHealthOverviewResponse,
+    DealHealthReportRow,
+)
 from app.services.deal_health_service import DealHealthService
 
 router = APIRouter(prefix="/deal-health", tags=["Deal Health"])
@@ -45,7 +50,7 @@ def _report_to_dict(report) -> dict:
     }
 
 
-@router.get("/{opportunity_id}", response_model=dict)
+@router.get("/{opportunity_id}", response_model=DealHealthReportRow)
 async def get_deal_health(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -63,7 +68,7 @@ async def get_deal_health(
     return _report_to_dict(report)
 
 
-@router.get("/overview/all", response_model=dict)
+@router.get("/overview/all", response_model=DealHealthOverviewResponse)
 async def get_deal_health_overview(
     owner_id: int | None = Query(None, description="Sahip ID ile filtrele"),
     current_user: User = Depends(get_current_user),
@@ -94,7 +99,7 @@ async def get_deal_health_overview(
     }
 
 
-@router.get("/at-risk/list", response_model=dict)
+@router.get("/at-risk/list", response_model=DealHealthAtRiskResponse)
 async def get_at_risk_deals(
     threshold: int = Query(40, ge=0, le=100, description="Saglik skoru esik degeri"),
     current_user: User = Depends(get_current_user),

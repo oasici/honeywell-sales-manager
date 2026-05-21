@@ -16,6 +16,10 @@ from app.models.sales_dna_snapshot import SalesDnaSnapshot
 from app.models.user import User
 from app.services.sales_dna_service import materialize_sales_dna_snapshot
 from app.schemas.common import ItemsResponse
+from app.schemas.round16_aggregates import (
+    MaterializeDnaResponse,
+    SalesDnaSnapshotResponse,
+)
 
 router = APIRouter(prefix="/v4/dna", tags=["V4 Sales DNA"])
 
@@ -82,7 +86,7 @@ async def list_dna_snapshots(
     return {"opportunity_id": opportunity_id, "items": items, "total": len(items)}
 
 
-@router.get("/opportunities/{opportunity_id}/latest", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/latest", response_model=SalesDnaSnapshotResponse)
 async def get_latest_dna(
     opportunity_id: int,
     current_user: User = Depends(get_current_user),
@@ -117,7 +121,7 @@ async def get_latest_dna(
     }
 
 
-@router.get("/opportunities/{opportunity_id}/snapshots/{snapshot_date}", response_model=dict)
+@router.get("/opportunities/{opportunity_id}/snapshots/{snapshot_date}", response_model=SalesDnaSnapshotResponse)
 async def get_dna_snapshot(
     opportunity_id: int,
     snapshot_date: date,
@@ -153,7 +157,7 @@ async def get_dna_snapshot(
     }
 
 
-@router.post("/opportunities/{opportunity_id}/materialize", response_model=dict)
+@router.post("/opportunities/{opportunity_id}/materialize", response_model=MaterializeDnaResponse)
 async def post_materialize_dna(
     opportunity_id: int,
     snapshot_date: date | None = Query(None, description="UTC takvim günü; boşsa bugün (UTC)."),

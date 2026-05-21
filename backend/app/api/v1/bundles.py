@@ -18,6 +18,11 @@ from app.models.spare_part import SparePart
 from app.models.user import User
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import MessageResponse
+from app.schemas.round16_aggregates import (
+    BundleCreateAckResponse,
+    BundleExpandResponse,
+    BundleListResponse,
+)
 
 router = APIRouter(tags=["Bundles (CPQ)"])
 
@@ -30,7 +35,7 @@ class BundleCreate(BaseModel):
     discount_pct: float = 0.0
 
 
-@router.get("/bundles/", response_model=dict)
+@router.get("/bundles/", response_model=BundleListResponse)
 async def list_bundles(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -62,7 +67,7 @@ async def list_bundles(
     }
 
 
-@router.post("/bundles/", status_code=201, response_model=dict)
+@router.post("/bundles/", status_code=201, response_model=BundleCreateAckResponse)
 async def create_bundle(
     body: BundleCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -102,7 +107,7 @@ async def delete_bundle(
     return {"message": "Paket silindi"}
 
 
-@router.post("/bundles/{bundle_id}/to-quote-items", response_model=dict)
+@router.post("/bundles/{bundle_id}/to-quote-items", response_model=BundleExpandResponse)
 async def expand_bundle_to_quote_items(
     bundle_id: int,
     current_user: User = Depends(get_current_user),

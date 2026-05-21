@@ -10664,10 +10664,10 @@ export interface components {
             window_days: number;
             /** Open Pipeline Total */
             open_pipeline_total: number;
-            /** Won Count */
-            won_count: number;
             /** Win Rate */
             win_rate: number;
+            /** Won Count */
+            won_count: number;
             /** Rotting Count */
             rotting_count: number;
         };
@@ -10798,6 +10798,77 @@ export interface components {
              * @default 0
              */
             discount_pct: number;
+        };
+        /**
+         * BundleCreateAckResponse
+         * @description ``POST /bundles/`` — ack with new bundle ID.
+         */
+        BundleCreateAckResponse: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /**
+         * BundleExpandResponse
+         * @description ``POST /bundles/{id}/to-quote-items`` — bundle expansion.
+         */
+        BundleExpandResponse: {
+            /** Items */
+            items: components["schemas"]["BundleQuoteItem"][];
+            /** Bundle Name */
+            bundle_name?: string | null;
+        };
+        /**
+         * BundleListResponse
+         * @description ``GET /bundles/`` — active product bundles catalogue.
+         */
+        BundleListResponse: {
+            /** Bundles */
+            bundles: components["schemas"]["BundleRow"][];
+        };
+        /** BundleQuoteItem */
+        BundleQuoteItem: {
+            /** Spare Part Id */
+            spare_part_id?: number | null;
+            /** Honeywell Code */
+            honeywell_code?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Quantity */
+            quantity?: number | null;
+            /** Unit Price */
+            unit_price?: number | null;
+            /** Discount Pct */
+            discount_pct?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** BundleRow */
+        BundleRow: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Items
+             * @default []
+             */
+            items: {
+                [key: string]: unknown;
+            }[];
+            /** Bundle Price */
+            bundle_price?: number | null;
+            /** Discount Pct */
+            discount_pct?: number | null;
+            /** Created At */
+            created_at?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** BuyerActionBody */
         BuyerActionBody: {
@@ -11152,6 +11223,30 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * CoachingOverviewResponse
+         * @description ``GET /coaching/overview`` — manager rollup + per-rep results.
+         */
+        CoachingOverviewResponse: {
+            summary: components["schemas"]["CoachingOverviewSummary"];
+            /** Reps */
+            reps: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** CoachingOverviewSummary */
+        CoachingOverviewSummary: {
+            /** Total Reps */
+            total_reps: number;
+            /** Healthy */
+            healthy: number;
+            /** Needs Improvement */
+            needs_improvement: number;
+            /** At Risk */
+            at_risk: number;
+            /** Avg Score */
+            avg_score: number;
+        };
         /** CoachingPlanCreate */
         CoachingPlanCreate: {
             /** User Id */
@@ -11165,6 +11260,49 @@ export interface components {
             weeks: number;
             /** Start Date */
             start_date?: string | null;
+        };
+        /**
+         * CoachingRepDetailResponse
+         * @description ``GET /coaching/rep/{user_id}`` — full coaching profile.
+         *
+         *     The service emits a heterogeneous shape (score, indicators,
+         *     recommendations, risk_level, plus debug fields). ``extra="allow"``
+         *     keeps the wire compatible while still declaring the canonical
+         *     keys for OpenAPI consumers.
+         */
+        CoachingRepDetailResponse: {
+            /** User Id */
+            user_id?: number | null;
+            /** Score */
+            score?: number | null;
+            /** Risk Level */
+            risk_level?: string | null;
+            /**
+             * Indicators
+             * @default []
+             */
+            indicators: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Recommendations
+             * @default []
+             */
+            recommendations: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * CoachingRepTrendsResponse
+         * @description ``GET /coaching/rep/{user_id}/trends`` — score history.
+         */
+        CoachingRepTrendsResponse: {
+            /** User Id */
+            user_id: number;
+            /** Snapshots */
+            snapshots: components["schemas"]["CoachingSnapshotRow"][];
+            /** Total */
+            total: number;
         };
         /** CoachingScorecardItem */
         CoachingScorecardItem: {
@@ -11196,6 +11334,19 @@ export interface components {
             window_days: number;
             /** Scorecards */
             scorecards: components["schemas"]["CoachingScorecardItem"][];
+        };
+        /** CoachingSnapshotRow */
+        CoachingSnapshotRow: {
+            /** Id */
+            id: number;
+            /** Score */
+            score?: number | null;
+            /** Indicators Json */
+            indicators_json?: string | null;
+            /** Created At */
+            created_at?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /** CockpitActionItem */
         CockpitActionItem: {
@@ -12663,6 +12814,18 @@ export interface components {
             frozen_capital_total: number;
         };
         /**
+         * DealHealthAtRiskResponse
+         * @description ``GET /deal-health/at-risk/list`` — filtered low-health rows.
+         */
+        DealHealthAtRiskResponse: {
+            /** Threshold */
+            threshold: number;
+            /** Count */
+            count: number;
+            /** Opportunities */
+            opportunities: components["schemas"]["DealHealthReportRow"][];
+        };
+        /**
          * DealHealthBlock
          * @description Inline view of ``DealHealthReport`` returned by the intelligence
          *     endpoint. Mirrors ``DealHealthService.compute_deal_health`` output but
@@ -12686,6 +12849,68 @@ export interface components {
              * @default []
              */
             recommendations: string[];
+        };
+        /** DealHealthIndicatorRow */
+        DealHealthIndicatorRow: {
+            /** Name */
+            name?: string | null;
+            /** Label */
+            label?: string | null;
+            /** Score */
+            score?: number | null;
+            /** Weight */
+            weight?: number | null;
+            /** Raw Value */
+            raw_value?: string | null;
+            /** Description */
+            description?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * DealHealthOverviewResponse
+         * @description ``GET /deal-health/overview/all`` — tenant rollup + per-deal rows.
+         */
+        DealHealthOverviewResponse: {
+            summary: components["schemas"]["DealHealthSummaryBlock"];
+            /** Opportunities */
+            opportunities: components["schemas"]["DealHealthReportRow"][];
+        };
+        /** DealHealthReportRow */
+        DealHealthReportRow: {
+            /** Opportunity Id */
+            opportunity_id: number;
+            /** Title */
+            title?: string | null;
+            /** Score */
+            score?: number | null;
+            /** Risk Level */
+            risk_level?: string | null;
+            /**
+             * Indicators
+             * @default []
+             */
+            indicators: components["schemas"]["DealHealthIndicatorRow"][];
+            /**
+             * Recommendations
+             * @default []
+             */
+            recommendations: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /** DealHealthSummaryBlock */
+        DealHealthSummaryBlock: {
+            /** Total Opportunities */
+            total_opportunities: number;
+            /** Healthy Count */
+            healthy_count: number;
+            /** At Risk Count */
+            at_risk_count: number;
+            /** Critical Count */
+            critical_count: number;
+            /** Average Score */
+            average_score: number;
         };
         /**
          * DealRiskResponse
@@ -14545,6 +14770,29 @@ export interface components {
             honeywell_code?: string | null;
             /** Min Margin Pct */
             min_margin_pct?: number | null;
+        };
+        /**
+         * MaterializeDnaResponse
+         * @description ``POST /sales-dna/opportunities/{id}/materialize`` — synchronous
+         *     snapshot generation ack.
+         */
+        MaterializeDnaResponse: {
+            /** Ok */
+            ok: boolean;
+            /** Opportunity Id */
+            opportunity_id: number;
+            /** Snapshot Date */
+            snapshot_date: string;
+            /** Risk Posture */
+            risk_posture?: string | null;
+            /** Coaching Hooks */
+            coaching_hooks?: {
+                [key: string]: unknown;
+            }[] | {
+                [key: string]: unknown;
+            } | null;
+        } & {
+            [key: string]: unknown;
         };
         /** MeetingAutoLinkResponse */
         MeetingAutoLinkResponse: {
@@ -18008,6 +18256,28 @@ export interface components {
             /** Breaches */
             breaches: components["schemas"]["SLABreachItem"][];
         };
+        /**
+         * SalesDnaSnapshotResponse
+         * @description ``GET /sales-dna/opportunities/{id}/latest`` and
+         *     ``GET /sales-dna/opportunities/{id}/snapshots/{date}`` — both
+         *     return the same materialised-trait shape.
+         */
+        SalesDnaSnapshotResponse: {
+            /** Opportunity Id */
+            opportunity_id: number;
+            /** Snapshot Date */
+            snapshot_date: string;
+            /** Traits */
+            traits: {
+                [key: string]: unknown;
+            };
+            /** Meta */
+            meta: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
         /** SavedViewCreate */
         SavedViewCreate: {
             /** Name */
@@ -19900,6 +20170,65 @@ export interface components {
             /** Secret */
             secret?: string | null;
         };
+        /**
+         * WebhookDeliveriesResponse
+         * @description ``GET /webhooks/{id}/deliveries`` — delivery history.
+         */
+        WebhookDeliveriesResponse: {
+            /** Webhook Id */
+            webhook_id: number;
+            /** Count */
+            count: number;
+            /** Deliveries */
+            deliveries: components["schemas"]["WebhookDeliveryRow"][];
+        } & {
+            [key: string]: unknown;
+        };
+        /** WebhookDeliveryRow */
+        WebhookDeliveryRow: {
+            /** Id */
+            id?: number | null;
+            /** Subscription Id */
+            subscription_id?: number | null;
+            /** Event Type */
+            event_type?: string | null;
+            /** Delivered At */
+            delivered_at?: string | null;
+            /** Response Status */
+            response_status?: number | null;
+            /** Response Body */
+            response_body?: string | null;
+            /** Retry Count */
+            retry_count?: number | null;
+            /** Payload Size */
+            payload_size?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * WebhookRetryResponse
+         * @description ``POST /webhooks/deliveries/{id}/retry`` — retry ack.
+         *
+         *     Shape mirrors ``_delivery_to_dict`` plus the retry counters; uses
+         *     ``extra="allow"`` because the service helper may add timing
+         *     enrichments.
+         */
+        WebhookRetryResponse: {
+            /** Id */
+            id?: number | null;
+            /** Subscription Id */
+            subscription_id?: number | null;
+            /** Event Type */
+            event_type?: string | null;
+            /** Retry Count */
+            retry_count?: number | null;
+            /** Response Status */
+            response_status?: number | null;
+            /** Delivered At */
+            delivered_at?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** WebhookSubscriptionResponse */
         WebhookSubscriptionResponse: {
             /** Id */
@@ -19924,6 +20253,26 @@ export interface components {
             failure_count?: number | null;
             /** Created At */
             created_at?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * WebhookTestResponse
+         * @description ``POST /webhooks/{id}/test`` — synchronous delivery probe.
+         *
+         *     ``status`` is one of ``delivered`` / ``failed``; remaining keys
+         *     come from the service result dict (response_status, retry_count,
+         *     error, etc.) and round-trip via ``extra="allow"``.
+         */
+        WebhookTestResponse: {
+            /** Status */
+            status: string;
+            /** Success */
+            success?: boolean | null;
+            /** Response Status */
+            response_status?: number | null;
+            /** Error */
+            error?: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -21885,9 +22234,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SalesDnaSnapshotResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21921,9 +22268,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SalesDnaSnapshotResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21959,9 +22304,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MaterializeDnaResponse"];
                 };
             };
             /** @description Validation Error */
@@ -30784,9 +31127,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DealHealthReportRow"];
                 };
             };
             /** @description Validation Error */
@@ -30820,9 +31161,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DealHealthOverviewResponse"];
                 };
             };
             /** @description Validation Error */
@@ -30856,9 +31195,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DealHealthAtRiskResponse"];
                 };
             };
             /** @description Validation Error */
@@ -32010,9 +32347,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WebhookDeliveriesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -32045,9 +32380,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WebhookRetryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -32080,9 +32413,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WebhookTestResponse"];
                 };
             };
             /** @description Validation Error */
@@ -32410,9 +32741,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CoachingOverviewResponse"];
                 };
             };
             /** @description Validation Error */
@@ -32511,9 +32840,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CoachingRepTrendsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -32577,9 +32904,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CoachingRepDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -34316,9 +34641,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BundleListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -34353,9 +34676,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BundleCreateAckResponse"];
                 };
             };
             /** @description Validation Error */
@@ -34421,9 +34742,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BundleExpandResponse"];
                 };
             };
             /** @description Validation Error */

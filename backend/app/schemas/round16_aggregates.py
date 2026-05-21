@@ -318,8 +318,273 @@ class BoardSummaryResponse(BaseModel):
 
     window_days: int
     open_pipeline_total: float
-    won_count: int
     win_rate: float
+    won_count: int
     rotting_count: int
+
+    model_config = {"from_attributes": True}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Deal Health (app/api/v1/deal_health.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class DealHealthIndicatorRow(BaseModel):
+    name: str | None = None
+    label: str | None = None
+    score: float | None = None
+    weight: float | None = None
+    raw_value: str | None = None
+    description: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class DealHealthReportRow(BaseModel):
+    opportunity_id: int
+    title: str | None = None
+    score: float | None = None
+    risk_level: str | None = None
+    indicators: list[DealHealthIndicatorRow] = []
+    recommendations: list[str] = []
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class DealHealthSummaryBlock(BaseModel):
+    total_opportunities: int
+    healthy_count: int
+    at_risk_count: int
+    critical_count: int
+    average_score: float
+
+    model_config = {"from_attributes": True}
+
+
+class DealHealthOverviewResponse(BaseModel):
+    """``GET /deal-health/overview/all`` — tenant rollup + per-deal rows."""
+
+    summary: DealHealthSummaryBlock
+    opportunities: list[DealHealthReportRow]
+
+    model_config = {"from_attributes": True}
+
+
+class DealHealthAtRiskResponse(BaseModel):
+    """``GET /deal-health/at-risk/list`` — filtered low-health rows."""
+
+    threshold: int
+    count: int
+    opportunities: list[DealHealthReportRow]
+
+    model_config = {"from_attributes": True}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Coaching (app/api/v1/coaching.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class CoachingOverviewSummary(BaseModel):
+    total_reps: int
+    healthy: int
+    needs_improvement: int
+    at_risk: int
+    avg_score: float
+
+    model_config = {"from_attributes": True}
+
+
+class CoachingOverviewResponse(BaseModel):
+    """``GET /coaching/overview`` — manager rollup + per-rep results."""
+
+    summary: CoachingOverviewSummary
+    reps: list[dict[str, Any]]
+
+    model_config = {"from_attributes": True}
+
+
+class CoachingSnapshotRow(BaseModel):
+    id: int
+    score: float | None = None
+    indicators_json: str | None = None
+    created_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CoachingRepTrendsResponse(BaseModel):
+    """``GET /coaching/rep/{user_id}/trends`` — score history."""
+
+    user_id: int
+    snapshots: list[CoachingSnapshotRow]
+    total: int
+
+    model_config = {"from_attributes": True}
+
+
+class CoachingRepDetailResponse(BaseModel):
+    """``GET /coaching/rep/{user_id}`` — full coaching profile.
+
+    The service emits a heterogeneous shape (score, indicators,
+    recommendations, risk_level, plus debug fields). ``extra="allow"``
+    keeps the wire compatible while still declaring the canonical
+    keys for OpenAPI consumers.
+    """
+
+    user_id: int | None = None
+    score: float | None = None
+    risk_level: str | None = None
+    indicators: list[dict[str, Any]] = []
+    recommendations: list[str] = []
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Webhooks (app/api/v1/webhooks.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class WebhookDeliveryRow(BaseModel):
+    id: int | None = None
+    subscription_id: int | None = None
+    event_type: str | None = None
+    delivered_at: str | None = None
+    response_status: int | None = None
+    response_body: str | None = None
+    retry_count: int | None = None
+    payload_size: int | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class WebhookDeliveriesResponse(BaseModel):
+    """``GET /webhooks/{id}/deliveries`` — delivery history."""
+
+    webhook_id: int
+    count: int
+    deliveries: list[WebhookDeliveryRow]
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class WebhookRetryResponse(BaseModel):
+    """``POST /webhooks/deliveries/{id}/retry`` — retry ack.
+
+    Shape mirrors ``_delivery_to_dict`` plus the retry counters; uses
+    ``extra="allow"`` because the service helper may add timing
+    enrichments.
+    """
+
+    id: int | None = None
+    subscription_id: int | None = None
+    event_type: str | None = None
+    retry_count: int | None = None
+    response_status: int | None = None
+    delivered_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class WebhookTestResponse(BaseModel):
+    """``POST /webhooks/{id}/test`` — synchronous delivery probe.
+
+    ``status`` is one of ``delivered`` / ``failed``; remaining keys
+    come from the service result dict (response_status, retry_count,
+    error, etc.) and round-trip via ``extra="allow"``.
+    """
+
+    status: str
+    success: bool | None = None
+    response_status: int | None = None
+    error: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Sales DNA (app/api/v1/sales_dna.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class SalesDnaSnapshotResponse(BaseModel):
+    """``GET /sales-dna/opportunities/{id}/latest`` and
+    ``GET /sales-dna/opportunities/{id}/snapshots/{date}`` — both
+    return the same materialised-trait shape."""
+
+    opportunity_id: int
+    snapshot_date: str
+    traits: dict[str, Any]
+    meta: dict[str, Any]
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class MaterializeDnaResponse(BaseModel):
+    """``POST /sales-dna/opportunities/{id}/materialize`` — synchronous
+    snapshot generation ack."""
+
+    ok: bool
+    opportunity_id: int
+    snapshot_date: str
+    risk_posture: str | None = None
+    coaching_hooks: list[dict[str, Any]] | dict[str, Any] | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Bundles (app/api/v1/bundles.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class BundleRow(BaseModel):
+    id: int
+    tenant_id: int | None = None
+    name: str | None = None
+    description: str | None = None
+    items: list[dict[str, Any]] = []
+    bundle_price: float | None = None
+    discount_pct: float | None = None
+    created_at: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class BundleListResponse(BaseModel):
+    """``GET /bundles/`` — active product bundles catalogue."""
+
+    bundles: list[BundleRow]
+
+    model_config = {"from_attributes": True}
+
+
+class BundleCreateAckResponse(BaseModel):
+    """``POST /bundles/`` — ack with new bundle ID."""
+
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
+class BundleQuoteItem(BaseModel):
+    spare_part_id: int | None = None
+    honeywell_code: str | None = None
+    description: str | None = None
+    quantity: int | None = None
+    unit_price: float | None = None
+    discount_pct: float | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class BundleExpandResponse(BaseModel):
+    """``POST /bundles/{id}/to-quote-items`` — bundle expansion."""
+
+    items: list[BundleQuoteItem]
+    bundle_name: str | None = None
 
     model_config = {"from_attributes": True}
