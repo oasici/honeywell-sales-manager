@@ -17,6 +17,11 @@ from app.models.user import User
 from app.services.guided_selling_service import GuidedSellingService
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import GuidedSellingRow
+from app.schemas.round16_aggregates import (
+    GuideCreateAckResponse,
+    GuideEvaluateResponse,
+    GuidedSellingResponse,
+)
 
 
 def _require_guided_selling() -> None:
@@ -72,7 +77,7 @@ async def list_guides(
     }
 
 
-@router.post("/guided-selling/", status_code=201, response_model=dict)
+@router.post("/guided-selling/", status_code=201, response_model=GuideCreateAckResponse)
 async def create_guide(
     body: GuideCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -92,7 +97,7 @@ async def create_guide(
     return {"id": guide.id, "name": guide.name}
 
 
-@router.get("/guided-selling/{guide_id}", response_model=dict)
+@router.get("/guided-selling/{guide_id}", response_model=GuidedSellingResponse)
 async def get_guide(
     guide_id: int,
     current_user: User = Depends(get_current_user),
@@ -121,7 +126,7 @@ async def delete_guide(
     return {"message": "Rehber silindi"}
 
 
-@router.post("/guided-selling/{guide_id}/evaluate", response_model=dict)
+@router.post("/guided-selling/{guide_id}/evaluate", response_model=GuideEvaluateResponse)
 async def evaluate_guide(
     guide_id: int,
     body: EvaluateBody,

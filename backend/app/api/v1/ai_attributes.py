@@ -18,6 +18,10 @@ from app.models.user import User
 from app.services import ai_attribute_service
 from app.schemas.common import PaginatedResponse
 from app.schemas.round15_pagination import AiAttributeDefinitionRow, AiAttributeValueRow
+from app.schemas.round16_aggregates import (
+    AiAttributeDefinitionResponse,
+    AiAttributeGenerateResponse,
+)
 
 router = APIRouter(prefix="/ai-attributes", tags=["AI Attributes"])
 
@@ -65,7 +69,7 @@ async def list_definitions(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.post("/definitions", status_code=201, response_model=dict)
+@router.post("/definitions", status_code=201, response_model=AiAttributeDefinitionResponse)
 async def create_definition(
     body: DefinitionCreate,
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
@@ -85,7 +89,7 @@ async def create_definition(
     )
 
 
-@router.patch("/definitions/{definition_id}", response_model=dict)
+@router.patch("/definitions/{definition_id}", response_model=AiAttributeDefinitionResponse)
 async def update_definition(
     definition_id: int,
     body: DefinitionPatch,
@@ -112,7 +116,7 @@ async def list_values(
     return {"items": items, "total": len(items), "page": 1, "page_size": len(items), "pages": 1 if items else 0}
 
 
-@router.post("/definitions/{definition_id}/generate", status_code=201, response_model=dict)
+@router.post("/definitions/{definition_id}/generate", status_code=201, response_model=AiAttributeGenerateResponse)
 async def generate(
     definition_id: int,
     body: GenerateBody,

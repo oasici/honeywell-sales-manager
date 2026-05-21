@@ -612,3 +612,75 @@ class CancelSubscriptionResponse(BaseModel):
     status: str
 
     model_config = {"from_attributes": True}
+
+
+# ──────────────────────────────────────────────────────────────────
+# AI Attributes (app/api/v1/ai_attributes.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class AiAttributeDefinitionResponse(BaseModel):
+    """Definition CRUD endpoints emit the service's free-form record
+    shape (id + the body fields, plus timestamps and tenant_id).
+    ``extra="allow"`` keeps that flexible while still declaring the
+    canonical contract."""
+
+    id: int | None = None
+    tenant_id: int | None = None
+    entity_type: str | None = None
+    key: str | None = None
+    label: str | None = None
+    description: str | None = None
+    data_type: str | None = None
+    prompt_template: str | None = None
+    refresh_hours: int | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class AiAttributeGenerateResponse(BaseModel):
+    """``POST /ai-attributes/definitions/{id}/generate`` — synchronous
+    generation ack. The service emits a value record plus tracing
+    fields (model, prompt_hash, tokens); ``extra="allow"`` keeps the
+    wire compatible."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Guided Selling (app/api/v1/guided_selling.py)
+# ──────────────────────────────────────────────────────────────────
+
+
+class GuideCreateAckResponse(BaseModel):
+    """``POST /guided-selling/`` — create ack."""
+
+    id: int
+    name: str
+
+    model_config = {"from_attributes": True}
+
+
+class GuidedSellingResponse(BaseModel):
+    """``GET /guided-selling/{id}`` — guide detail with steps & rules.
+
+    The service returns a heterogeneous dict (guide row + nested
+    steps + product rules); ``extra="allow"`` mirrors the
+    pre-tightening shape while declaring the canonical fields.
+    """
+
+    id: int | None = None
+    tenant_id: int | None = None
+    name: str | None = None
+    description: str | None = None
+    steps: list[dict[str, Any]] = []
+    product_rules: list[dict[str, Any]] = []
+    is_active: bool | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class GuideEvaluateResponse(BaseModel):
+    """``POST /guided-selling/{id}/evaluate`` — match score + reasons."""
+
+    model_config = {"from_attributes": True, "extra": "allow"}

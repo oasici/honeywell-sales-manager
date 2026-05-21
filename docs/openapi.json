@@ -31596,9 +31596,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Guide Api V1 Guided Selling  Post"
+                  "$ref": "#/components/schemas/GuideCreateAckResponse"
                 }
               }
             }
@@ -31662,9 +31660,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Guide Api V1 Guided Selling  Guide Id  Get"
+                  "$ref": "#/components/schemas/GuidedSellingResponse"
                 }
               }
             }
@@ -31800,9 +31796,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Evaluate Guide Api V1 Guided Selling  Guide Id  Evaluate Post"
+                  "$ref": "#/components/schemas/GuideEvaluateResponse"
                 }
               }
             }
@@ -38148,9 +38142,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Definition Api V1 Ai Attributes Definitions Post"
+                  "$ref": "#/components/schemas/AiAttributeDefinitionResponse"
                 }
               }
             }
@@ -38223,9 +38215,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Update Definition Api V1 Ai Attributes Definitions  Definition Id  Patch"
+                  "$ref": "#/components/schemas/AiAttributeDefinitionResponse"
                 }
               }
             }
@@ -38371,9 +38361,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Generate Api V1 Ai Attributes Definitions  Definition Id  Generate Post"
+                  "$ref": "#/components/schemas/AiAttributeGenerateResponse"
                 }
               }
             }
@@ -39890,6 +39878,113 @@
         ],
         "title": "AgingBucketItem"
       },
+      "AiAttributeDefinitionResponse": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "entity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Type"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "data_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Type"
+          },
+          "prompt_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Template"
+          },
+          "refresh_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Hours"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "AiAttributeDefinitionResponse",
+        "description": "Definition CRUD endpoints emit the service's free-form record\nshape (id + the body fields, plus timestamps and tenant_id).\n``extra=\"allow\"`` keeps that flexible while still declaring the\ncanonical contract."
+      },
       "AiAttributeDefinitionRow": {
         "properties": {
           "id": {
@@ -39991,6 +40086,13 @@
           "id"
         ],
         "title": "AiAttributeDefinitionRow"
+      },
+      "AiAttributeGenerateResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "AiAttributeGenerateResponse",
+        "description": "``POST /ai-attributes/definitions/{id}/generate`` \u2014 synchronous\ngeneration ack. The service emits a value record plus tracing\nfields (model, prompt_hash, tokens); ``extra=\"allow\"`` keeps the\nwire compatible."
       },
       "AiAttributeValueRow": {
         "properties": {
@@ -51962,6 +52064,113 @@
           "name"
         ],
         "title": "GuideCreate"
+      },
+      "GuideCreateAckResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "GuideCreateAckResponse",
+        "description": "``POST /guided-selling/`` \u2014 create ack."
+      },
+      "GuideEvaluateResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "GuideEvaluateResponse",
+        "description": "``POST /guided-selling/{id}/evaluate`` \u2014 match score + reasons."
+      },
+      "GuidedSellingResponse": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Steps",
+            "default": []
+          },
+          "product_rules": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Product Rules",
+            "default": []
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "GuidedSellingResponse",
+        "description": "``GET /guided-selling/{id}`` \u2014 guide detail with steps & rules.\n\nThe service returns a heterogeneous dict (guide row + nested\nsteps + product rules); ``extra=\"allow\"`` mirrors the\npre-tightening shape while declaring the canonical fields."
       },
       "GuidedSellingRow": {
         "properties": {

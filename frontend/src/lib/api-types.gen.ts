@@ -10308,6 +10308,35 @@ export interface components {
             /** Count */
             count: number;
         };
+        /**
+         * AiAttributeDefinitionResponse
+         * @description Definition CRUD endpoints emit the service's free-form record
+         *     shape (id + the body fields, plus timestamps and tenant_id).
+         *     ``extra="allow"`` keeps that flexible while still declaring the
+         *     canonical contract.
+         */
+        AiAttributeDefinitionResponse: {
+            /** Id */
+            id?: number | null;
+            /** Tenant Id */
+            tenant_id?: number | null;
+            /** Entity Type */
+            entity_type?: string | null;
+            /** Key */
+            key?: string | null;
+            /** Label */
+            label?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Data Type */
+            data_type?: string | null;
+            /** Prompt Template */
+            prompt_template?: string | null;
+            /** Refresh Hours */
+            refresh_hours?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** AiAttributeDefinitionRow */
         AiAttributeDefinitionRow: {
             /** Id */
@@ -10329,6 +10358,16 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         } & {
+            [key: string]: unknown;
+        };
+        /**
+         * AiAttributeGenerateResponse
+         * @description ``POST /ai-attributes/definitions/{id}/generate`` — synchronous
+         *     generation ack. The service emits a value record plus tracing
+         *     fields (model, prompt_hash, tokens); ``extra="allow"`` keeps the
+         *     wire compatible.
+         */
+        AiAttributeGenerateResponse: {
             [key: string]: unknown;
         };
         /** AiAttributeValueRow */
@@ -14041,6 +14080,59 @@ export interface components {
             product_rules?: {
                 [key: string]: unknown;
             }[];
+        };
+        /**
+         * GuideCreateAckResponse
+         * @description ``POST /guided-selling/`` — create ack.
+         */
+        GuideCreateAckResponse: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /**
+         * GuideEvaluateResponse
+         * @description ``POST /guided-selling/{id}/evaluate`` — match score + reasons.
+         */
+        GuideEvaluateResponse: {
+            [key: string]: unknown;
+        };
+        /**
+         * GuidedSellingResponse
+         * @description ``GET /guided-selling/{id}`` — guide detail with steps & rules.
+         *
+         *     The service returns a heterogeneous dict (guide row + nested
+         *     steps + product rules); ``extra="allow"`` mirrors the
+         *     pre-tightening shape while declaring the canonical fields.
+         */
+        GuidedSellingResponse: {
+            /** Id */
+            id?: number | null;
+            /** Tenant Id */
+            tenant_id?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Steps
+             * @default []
+             */
+            steps: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Product Rules
+             * @default []
+             */
+            product_rules: {
+                [key: string]: unknown;
+            }[];
+            /** Is Active */
+            is_active?: boolean | null;
+        } & {
+            [key: string]: unknown;
         };
         /** GuidedSellingRow */
         GuidedSellingRow: {
@@ -36102,9 +36194,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["GuideCreateAckResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36137,9 +36227,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["GuidedSellingResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36209,9 +36297,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["GuideEvaluateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39407,9 +39493,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AiAttributeDefinitionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39446,9 +39530,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AiAttributeDefinitionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -39519,9 +39601,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AiAttributeGenerateResponse"];
                 };
             };
             /** @description Validation Error */
