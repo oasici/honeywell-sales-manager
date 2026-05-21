@@ -30946,9 +30946,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Mrr Dashboard Api V1 Subscriptions Mrr Dashboard Get"
+                  "$ref": "#/components/schemas/MRRDashboardResponse"
                 }
               }
             }
@@ -31417,9 +31415,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Cancel Subscription Api V1 Subscriptions  Sub Id  Cancel Post"
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
                 }
               }
             }
@@ -31482,9 +31478,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Renew Subscription Api V1 Subscriptions  Sub Id  Renew Post"
+                  "$ref": "#/components/schemas/SubscriptionResponse"
                 }
               }
             }
@@ -42648,6 +42642,20 @@
         },
         "type": "object",
         "title": "CampaignUpdate"
+      },
+      "CancelSubscriptionResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "CancelSubscriptionResponse",
+        "description": "``POST /subscriptions/{id}/cancel`` \u2014 cancel ack."
       },
       "CategoryBreakdownItem": {
         "properties": {
@@ -54152,6 +54160,13 @@
           "total_value"
         ],
         "title": "LossReasonItem"
+      },
+      "MRRDashboardResponse": {
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "MRRDashboardResponse",
+        "description": "``GET /subscriptions/mrr-dashboard`` \u2014 tenant MRR rollup.\n\nService emits a free-form aggregate (current_mrr, growth, churn,\nnew MRR, etc.); ``extra=\"allow\"`` keeps the wire compatible while\ndeclaring \"this is a JSON object\" in OpenAPI."
       },
       "ManualEmailCreate": {
         "properties": {

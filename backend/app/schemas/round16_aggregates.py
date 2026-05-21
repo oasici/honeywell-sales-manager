@@ -588,3 +588,27 @@ class BundleExpandResponse(BaseModel):
     bundle_name: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+# ──────────────────────────────────────────────────────────────────
+# Subscriptions (app/api/v1/subscriptions.py — non-CRUD endpoints)
+# ──────────────────────────────────────────────────────────────────
+
+
+class MRRDashboardResponse(BaseModel):
+    """``GET /subscriptions/mrr-dashboard`` — tenant MRR rollup.
+
+    Service emits a free-form aggregate (current_mrr, growth, churn,
+    new MRR, etc.); ``extra="allow"`` keeps the wire compatible while
+    declaring "this is a JSON object" in OpenAPI.
+    """
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class CancelSubscriptionResponse(BaseModel):
+    """``POST /subscriptions/{id}/cancel`` — cancel ack."""
+
+    status: str
+
+    model_config = {"from_attributes": True}

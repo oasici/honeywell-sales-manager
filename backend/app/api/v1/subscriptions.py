@@ -13,6 +13,10 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.subscription import SubscriptionResponse, SubscriptionStrictResponse
+from app.schemas.round16_aggregates import (
+    CancelSubscriptionResponse,
+    MRRDashboardResponse,
+)
 from app.services.response_model_picker import has_masking_rules_for
 from app.services.subscription_service import SubscriptionService
 
@@ -100,7 +104,7 @@ def _serialize(sub) -> dict:
     return apply_request_perms(data, "subscription")
 
 
-@router.get("/mrr-dashboard", response_model=dict)
+@router.get("/mrr-dashboard", response_model=MRRDashboardResponse)
 async def mrr_dashboard(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -255,7 +259,7 @@ async def update_subscription(
     return _serialize(sub)
 
 
-@router.post("/{sub_id}/cancel", response_model=dict)
+@router.post("/{sub_id}/cancel", response_model=CancelSubscriptionResponse)
 async def cancel_subscription(
     sub_id: int,
     current_user: User = Depends(get_current_user),
@@ -270,7 +274,7 @@ async def cancel_subscription(
     return {"status": "cancelled"}
 
 
-@router.post("/{sub_id}/renew", response_model=dict)
+@router.post("/{sub_id}/renew", response_model=SubscriptionResponse)
 async def renew_subscription(
     sub_id: int,
     current_user: User = Depends(get_current_user),

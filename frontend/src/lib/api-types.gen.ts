@@ -11123,6 +11123,14 @@ export interface components {
             /** Actual Revenue */
             actual_revenue?: number | null;
         };
+        /**
+         * CancelSubscriptionResponse
+         * @description ``POST /subscriptions/{id}/cancel`` — cancel ack.
+         */
+        CancelSubscriptionResponse: {
+            /** Status */
+            status: string;
+        };
         /** CategoryBreakdownItem */
         CategoryBreakdownItem: {
             /** Category */
@@ -14732,6 +14740,17 @@ export interface components {
             count: number;
             /** Total Value */
             total_value: number;
+        };
+        /**
+         * MRRDashboardResponse
+         * @description ``GET /subscriptions/mrr-dashboard`` — tenant MRR rollup.
+         *
+         *     Service emits a free-form aggregate (current_mrr, growth, churn,
+         *     new MRR, etc.); ``extra="allow"`` keeps the wire compatible while
+         *     declaring "this is a JSON object" in OpenAPI.
+         */
+        MRRDashboardResponse: {
+            [key: string]: unknown;
         };
         /** ManualEmailCreate */
         ManualEmailCreate: {
@@ -35775,9 +35794,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MRRDashboardResponse"];
                 };
             };
             /** @description Validation Error */
@@ -35986,9 +36003,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CancelSubscriptionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36021,9 +36036,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SubscriptionResponse"];
                 };
             };
             /** @description Validation Error */
