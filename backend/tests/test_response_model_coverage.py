@@ -7,8 +7,9 @@ without entering the documented exemption list will fail this gate
 in CI.
 
 Categories accepted:
-  * **typed** — decorator declares ``response_model=Schema``
-    (or ``response_model=dict`` for one-off polymorphic dicts).
+  * **typed** — decorator declares ``response_model=Schema`` (a real
+    Pydantic class — bare ``dict`` is rejected by the separate
+    ``test_no_response_model_dict_regressions`` gate below).
   * **no-content** — endpoint uses ``status_code=204``; FastAPI
     forbids a response body so ``response_model`` is invalid by spec.
   * **exempt** — file-download / stream / redirect endpoint where the
@@ -83,9 +84,9 @@ def test_every_endpoint_has_response_model_or_documented_exemption() -> None:
 
     assert not violations, (
         "Found endpoints without response_model and without a documented "
-        "exemption. Add ``response_model=<Schema>`` (or ``response_model=dict`` "
-        "for genuinely polymorphic payloads), set ``status_code=204`` for "
-        "no-content endpoints, or place a "
+        "exemption. Add ``response_model=<Schema>`` (a real Pydantic "
+        "class — bare ``dict`` is blocked by the no-dict regression gate), "
+        "set ``status_code=204`` for no-content endpoints, or place a "
         "``# Round-15 N15-API-1: response_model exempt`` comment directly "
         "above the decorator for file/stream/redirect responses. "
         f"Violations:\n  - " + "\n  - ".join(violations)
@@ -112,6 +113,43 @@ def test_no_paginated_response_dict_regressions() -> None:
         "PaginatedResponse[dict] regressions found. Define a typed "
         "row schema (see backend/app/schemas/round15_pagination.py for "
         "the Round-15 cohort).\n  - " + "\n  - ".join(offenders)
+    )
+
+
+@pytest.mark.schema
+def test_no_response_model_dict_regressions() -> None:
+    """Round-16 N15-API-7 closeout — ``response_model=dict`` was
+    eliminated across all 90 routers in batches 1-8.
+
+    Re-introducing the bare ``dict`` type would regress the typed-
+    contract gain. When a handler legitimately needs a heterogeneous
+    shape, declare a Pydantic schema with ``model_config = {"extra":
+    "allow"}`` (see ``app/schemas/round16_aggregates.py`` for the
+    catch-all pattern). The schema still surfaces "this is a JSON
+    object" in OpenAPI instead of the SDK-hostile
+    ``Record<string, unknown>`` that ``dict`` produces.
+    """
+    import re
+
+    # Matches ``response_model=dict`` with optional whitespace.
+    # Word boundary prevents matching ``response_model=dict_alias``
+    # if a future contributor introduces one.
+    pattern = re.compile(r"response_model\s*=\s*dict\b")
+    offenders: list[str] = []
+    for path in sorted(_ROUTERS_DIR.glob("*.py")):
+        src = path.read_text()
+        if not pattern.search(src):
+            continue
+        for ln, line in enumerate(src.splitlines(), start=1):
+            if pattern.search(line):
+                offenders.append(f"{path.name}:{ln}  {line.strip()}")
+
+    assert not offenders, (
+        "response_model=dict regressions found. Round-16 batch 8 "
+        "eliminated every bare ``dict`` response model. Add a typed "
+        "Pydantic schema (see app/schemas/round16_aggregates.py for "
+        "the catch-all pattern with extra='allow' for heterogeneous "
+        "payloads).\n  - " + "\n  - ".join(offenders)
     )
 
 
