@@ -48,3 +48,51 @@ class LeadResponse(BaseModel):
     owner_name: str | None = None
 
     model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class LeadStrictResponse(BaseModel):
+    """C5 canary — Round-16 (N15-API-3 RFC Option A).
+
+    Strong-contract variant of ``LeadResponse`` for routes where
+    field-permission masking is NOT active. Per the RFC at
+    ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,
+    this is the third per-entity rollout after C3 (Customer) and
+    C4 (Opportunity).
+
+    NOT-NULL fields (per ORM ``Mapped[int]`` declarations):
+      id, tenant_id, first_name, last_name, email, owner_id,
+      created_at, updated_at.
+
+    ``extra="allow"`` mirrors the masked variant so per-route
+    enrichments (``score_breakdown`` on detail view, ``full_name``,
+    ``owner_name``) round-trip through the strict-shape validator
+    unchanged.
+    """
+
+    id: int
+    tenant_id: int
+    first_name: str
+    last_name: str
+    email: str
+    owner_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    # Truly nullable on the ORM
+    phone: str | None = None
+    company: str | None = None
+    title: str | None = None
+    source: str | None = None
+    status: str | None = None
+    lead_score: int | None = None
+    converted_customer_id: int | None = None
+    converted_opportunity_id: int | None = None
+    converted_at: datetime | None = None
+    converted_by: int | None = None
+    notes: str | None = None
+
+    # Computed / joined extras
+    full_name: str | None = None
+    owner_name: str | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}

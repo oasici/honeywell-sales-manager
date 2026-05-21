@@ -2210,8 +2210,14 @@ export interface paths {
          * Get Quote
          * @description Get quote detail with items. Non-managers can only see their own quotes.
          *
-         *     Round-13 Sprint 6a — response_model wired. QuoteResponse is
-         *     extras-tolerant so per-item joins (e.g. ``items``) round-trip.
+         *     Round-13 Sprint 6a — response_model wired.
+         *
+         *     Round-16 N15-API-3 (C6) — fourth per-route rollout of the
+         *     polymorphic picker pattern. When no field-permission masking is
+         *     active for ``quote``, the response is validated through
+         *     ``QuoteStrictResponse`` (NOT-NULL fields: id, tenant_id,
+         *     quote_number, created_at, updated_at). When masking IS active,
+         *     the picker falls back to ``QuoteResponse``.
          */
         get: operations["get_quote_api_v1_quotes__quote_id__get"];
         /**
@@ -5537,6 +5543,15 @@ export interface paths {
         /**
          * Get Lead
          * @description Get lead detail with score breakdown.
+         *
+         *     Round-16 N15-API-3 (C5) — third per-route rollout of the
+         *     polymorphic picker pattern (see
+         *     ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).
+         *     When no field-permission masking rule is active for ``lead``,
+         *     the response is validated through ``LeadStrictResponse`` so
+         *     NOT-NULL fields (id, tenant_id, first_name, last_name, email,
+         *     owner_id, created_at, updated_at) are guaranteed present. When
+         *     masking IS active, the picker falls back to ``LeadResponse``.
          */
         get: operations["get_lead_api_v1_leads__lead_id__get"];
         put?: never;
@@ -8107,7 +8122,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Subscription */
+        /**
+         * Get Subscription
+         * @description Get subscription detail.
+         *
+         *     Round-16 N15-API-3 (C8) — sixth and final per-route rollout of
+         *     the polymorphic picker pattern in the C3-C8 RFC sequence. When
+         *     no field-permission masking is active for ``subscription``, the
+         *     response is validated through ``SubscriptionStrictResponse``
+         *     (NOT-NULL fields: id, tenant_id, customer_id, name, start_date,
+         *     created_by, created_at, updated_at). When masking IS active,
+         *     the picker falls back to ``SubscriptionResponse``.
+         */
         get: operations["get_subscription_api_v1_subscriptions__sub_id__get"];
         put?: never;
         post?: never;
@@ -8288,6 +8314,13 @@ export interface paths {
         /**
          * Get Contract
          * @description Get contract detail with amendments.
+         *
+         *     Round-16 N15-API-3 (C7) — fifth per-route rollout of the
+         *     polymorphic picker pattern. When no field-permission masking is
+         *     active for ``contract``, the response is validated through
+         *     ``ContractStrictResponse`` (NOT-NULL fields: id, tenant_id,
+         *     customer_id, title, created_by, created_at, updated_at). When
+         *     masking IS active, the picker falls back to ``ContractResponse``.
          */
         get: operations["get_contract_api_v1_contracts__contract_id__get"];
         /**
@@ -11527,6 +11560,62 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * ContractStrictResponse
+         * @description C7 canary — Round-16 (N15-API-3 RFC Option A).
+         *
+         *     Strong-contract variant of ``ContractResponse`` for routes where
+         *     field-permission masking is NOT active.
+         *
+         *     NOT-NULL fields (per ORM ``Mapped[int]`` declarations):
+         *       id, tenant_id, customer_id, title, created_by, created_at,
+         *       updated_at.
+         *
+         *     ``extra="allow"`` mirrors the masked variant so per-route
+         *     enrichments (``customer`` nested object, ``amendments``,
+         *     revenue_recognition links) round-trip through the strict-shape
+         *     validator unchanged.
+         */
+        ContractStrictResponse: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id: number;
+            /** Customer Id */
+            customer_id: number;
+            /** Title */
+            title: string;
+            /** Created By */
+            created_by: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Quote Id */
+            quote_id?: number | null;
+            /** Status */
+            status?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Value */
+            value?: number | null;
+            /** Terms Json */
+            terms_json?: string | null;
+            /** Signed At */
+            signed_at?: string | null;
+            /** Signed By */
+            signed_by?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** ContractUpdate */
         ContractUpdate: {
             /** Title */
@@ -14296,6 +14385,77 @@ export interface components {
             /** Created At */
             created_at?: string | null;
         };
+        /**
+         * LeadStrictResponse
+         * @description C5 canary — Round-16 (N15-API-3 RFC Option A).
+         *
+         *     Strong-contract variant of ``LeadResponse`` for routes where
+         *     field-permission masking is NOT active. Per the RFC at
+         *     ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,
+         *     this is the third per-entity rollout after C3 (Customer) and
+         *     C4 (Opportunity).
+         *
+         *     NOT-NULL fields (per ORM ``Mapped[int]`` declarations):
+         *       id, tenant_id, first_name, last_name, email, owner_id,
+         *       created_at, updated_at.
+         *
+         *     ``extra="allow"`` mirrors the masked variant so per-route
+         *     enrichments (``score_breakdown`` on detail view, ``full_name``,
+         *     ``owner_name``) round-trip through the strict-shape validator
+         *     unchanged.
+         */
+        LeadStrictResponse: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id: number;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Email */
+            email: string;
+            /** Owner Id */
+            owner_id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Phone */
+            phone?: string | null;
+            /** Company */
+            company?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Source */
+            source?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Lead Score */
+            lead_score?: number | null;
+            /** Converted Customer Id */
+            converted_customer_id?: number | null;
+            /** Converted Opportunity Id */
+            converted_opportunity_id?: number | null;
+            /** Converted At */
+            converted_at?: string | null;
+            /** Converted By */
+            converted_by?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /** Full Name */
+            full_name?: string | null;
+            /** Owner Name */
+            owner_name?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** LeadUpdate */
         LeadUpdate: {
             /** First Name */
@@ -17061,6 +17221,97 @@ export interface components {
             /** Trees */
             trees: unknown;
         };
+        /**
+         * QuoteStrictResponse
+         * @description C6 canary — Round-16 (N15-API-3 RFC Option A).
+         *
+         *     Strong-contract variant of ``QuoteResponse`` for routes where
+         *     field-permission masking is NOT active. Per the RFC at
+         *     ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``.
+         *
+         *     NOT-NULL fields (per ORM ``Mapped[int]`` declarations):
+         *       id, quote_number, created_at, updated_at.
+         *
+         *     Note on ``tenant_id``: NOT NULL in the DB but ``_quote_to_dict``
+         *     intentionally omits it (R10-API-2 — see the serializer's
+         *     comment). The strict schema reflects what the serializer emits,
+         *     not the raw ORM, so ``tenant_id`` stays Optional.
+         *
+         *     ``extra="allow"`` mirrors the masked variant so per-route
+         *     enrichments (``items`` list, ``customer`` nested object,
+         *     computed totals) round-trip through the strict-shape validator
+         *     unchanged.
+         */
+        QuoteStrictResponse: {
+            /** Id */
+            id: number;
+            /** Quote Number */
+            quote_number: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Tenant Id */
+            tenant_id?: number | null;
+            /** Customer Id */
+            customer_id?: number | null;
+            /** Email Request Id */
+            email_request_id?: number | null;
+            /** Opportunity Id */
+            opportunity_id?: number | null;
+            /** Created By */
+            created_by?: number | null;
+            /** Approved By */
+            approved_by?: number | null;
+            /** Status */
+            status?: string | null;
+            /** Language */
+            language?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Subtotal */
+            subtotal?: number | null;
+            /** Discount Total */
+            discount_total?: number | null;
+            /** Tax Rate */
+            tax_rate?: number | null;
+            /** Tax Amount */
+            tax_amount?: number | null;
+            /** Grand Total */
+            grand_total?: number | null;
+            /** Valid Days */
+            valid_days?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /** Has Pdf */
+            has_pdf?: boolean | null;
+            /** Version */
+            version?: number | null;
+            /** Parent Quote Id */
+            parent_quote_id?: number | null;
+            /** Revision No */
+            revision_no?: number | null;
+            /** Superseded By */
+            superseded_by?: number | null;
+            /** Closed At */
+            closed_at?: string | null;
+            /** Close Reason */
+            close_reason?: string | null;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["QuoteItemResponse"][];
+            customer?: components["schemas"]["CustomerResponse"] | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** QuoteUpdate */
         QuoteUpdate: {
             /** Customer Id */
@@ -18798,6 +19049,69 @@ export interface components {
             created_at?: string | null;
             /** Updated At */
             updated_at?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * SubscriptionStrictResponse
+         * @description C8 canary — Round-16 (N15-API-3 RFC Option A).
+         *
+         *     Strong-contract variant of ``SubscriptionResponse`` — the sixth
+         *     and final entity in the C3-C8 canary sequence laid out in the
+         *     polymorphic response schemas RFC.
+         *
+         *     NOT-NULL fields (per ORM ``Mapped[int]`` / ``Mapped[date]``):
+         *       id, tenant_id, customer_id, name, start_date, created_by,
+         *       created_at, updated_at.
+         *
+         *     ``extra="allow"`` mirrors the masked variant so per-route
+         *     enrichments (``customer`` nested object) round-trip through the
+         *     strict-shape validator unchanged.
+         */
+        SubscriptionStrictResponse: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id: number;
+            /** Customer Id */
+            customer_id: number;
+            /** Name */
+            name: string;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Created By */
+            created_by: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Quote Id */
+            quote_id?: number | null;
+            /** Status */
+            status?: string | null;
+            /** Billing Cycle */
+            billing_cycle?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Mrr */
+            mrr?: number | null;
+            /** Next Renewal Date */
+            next_renewal_date?: string | null;
+            /** Auto Renew */
+            auto_renew?: boolean | null;
+            /** Items Json */
+            items_json?: string | null;
+            /** Currency */
+            currency?: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -24111,7 +24425,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["QuoteResponse"];
+                    "application/json": components["schemas"]["QuoteStrictResponse"] | components["schemas"]["QuoteResponse"];
                 };
             };
             /** @description Validation Error */
@@ -29989,7 +30303,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LeadResponse"];
+                    "application/json": components["schemas"]["LeadStrictResponse"] | components["schemas"]["LeadResponse"];
                 };
             };
             /** @description Validation Error */
@@ -35283,7 +35597,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SubscriptionResponse"];
+                    "application/json": components["schemas"]["SubscriptionStrictResponse"] | components["schemas"]["SubscriptionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -35705,7 +36019,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ContractResponse"];
+                    "application/json": components["schemas"]["ContractStrictResponse"] | components["schemas"]["ContractResponse"];
                 };
             };
             /** @description Validation Error */

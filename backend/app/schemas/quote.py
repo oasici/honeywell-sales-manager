@@ -125,6 +125,67 @@ class QuoteResponse(BaseModel):
     model_config = {"from_attributes": True, "extra": "allow"}
 
 
+class QuoteStrictResponse(BaseModel):
+    """C6 canary — Round-16 (N15-API-3 RFC Option A).
+
+    Strong-contract variant of ``QuoteResponse`` for routes where
+    field-permission masking is NOT active. Per the RFC at
+    ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``.
+
+    NOT-NULL fields (per ORM ``Mapped[int]`` declarations):
+      id, quote_number, created_at, updated_at.
+
+    Note on ``tenant_id``: NOT NULL in the DB but ``_quote_to_dict``
+    intentionally omits it (R10-API-2 — see the serializer's
+    comment). The strict schema reflects what the serializer emits,
+    not the raw ORM, so ``tenant_id`` stays Optional.
+
+    ``extra="allow"`` mirrors the masked variant so per-route
+    enrichments (``items`` list, ``customer`` nested object,
+    computed totals) round-trip through the strict-shape validator
+    unchanged.
+    """
+
+    id: int
+    quote_number: str
+    created_at: datetime
+    updated_at: datetime
+
+    # NOT NULL in the DB but deliberately omitted by the serializer
+    # — see ``_quote_to_dict`` docstring.
+    tenant_id: int | None = None
+
+    # Truly nullable on the ORM
+    customer_id: int | None = None
+    email_request_id: int | None = None
+    opportunity_id: int | None = None
+    created_by: int | None = None
+    approved_by: int | None = None
+    status: str | None = None
+    language: str | None = None
+    currency: str | None = None
+    subtotal: float | None = None
+    discount_total: float | None = None
+    tax_rate: float | None = None
+    tax_amount: float | None = None
+    grand_total: float | None = None
+    valid_days: int | None = None
+    notes: str | None = None
+    has_pdf: bool | None = None
+    version: int | None = None
+    parent_quote_id: int | None = None
+    revision_no: int | None = None
+    superseded_by: int | None = None
+    closed_at: datetime | None = None
+    close_reason: str | None = None
+
+    # Computed / joined extras
+    items: list[QuoteItemResponse] = []
+    customer: CustomerResponse | None = None
+
+    model_config = {"from_attributes": True, "extra": "allow"}
+
+
 # Aliases for service-layer consumers
 QuoteItemInput = QuoteItemCreate
 QuoteCreateRequest = QuoteCreate

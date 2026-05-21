@@ -12,7 +12,8 @@ from app.core.dependencies import get_current_user
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
-from app.schemas.subscription import SubscriptionResponse
+from app.schemas.subscription import SubscriptionResponse, SubscriptionStrictResponse
+from app.services.response_model_picker import has_masking_rules_for
 from app.services.subscription_service import SubscriptionService
 
 
@@ -183,17 +184,34 @@ async def create_subscription(
     return _serialize(sub)
 
 
-@router.get("/{sub_id}", response_model=SubscriptionResponse)
+@router.get(
+    "/{sub_id}",
+    response_model=SubscriptionStrictResponse | SubscriptionResponse,
+)
 async def get_subscription(
     sub_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Get subscription detail.
+
+    Round-16 N15-API-3 (C8) — sixth and final per-route rollout of
+    the polymorphic picker pattern in the C3-C8 RFC sequence. When
+    no field-permission masking is active for ``subscription``, the
+    response is validated through ``SubscriptionStrictResponse``
+    (NOT-NULL fields: id, tenant_id, customer_id, name, start_date,
+    created_by, created_at, updated_at). When masking IS active,
+    the picker falls back to ``SubscriptionResponse``.
+    """
     service = SubscriptionService(db)
     sub = await service.get_subscription(sub_id, current_user)
     if sub is None:
         raise NotFoundException("Abonelik bulunamadi")
-    return _serialize(sub)
+
+    data = _serialize(sub)
+    if has_masking_rules_for("subscription"):
+        return SubscriptionResponse.model_validate(data).model_dump()
+    return SubscriptionStrictResponse.model_validate(data).model_dump()
 
 
 @router.patch("/{sub_id}", response_model=SubscriptionResponse)

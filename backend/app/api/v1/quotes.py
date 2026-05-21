@@ -15,11 +15,12 @@ from app.models.enums import UserRole
 from app.models.quote import Quote
 from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.schemas.quote import QuoteCreate, QuoteResponse, QuoteUpdate
+from app.schemas.quote import QuoteCreate, QuoteResponse, QuoteStrictResponse, QuoteUpdate
 from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
 from app.services.notification_service import create_notification
 from app.services.quote_service import QuoteService
+from app.services.response_model_picker import has_masking_rules_for
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
@@ -77,7 +78,10 @@ async def list_quotes(
     }
 
 
-@router.get("/{quote_id}", response_model=QuoteResponse)
+@router.get(
+    "/{quote_id}",
+    response_model=QuoteStrictResponse | QuoteResponse,
+)
 async def get_quote(
     quote_id: int,
     current_user: User = Depends(get_current_user),
@@ -85,8 +89,14 @@ async def get_quote(
 ):
     """Get quote detail with items. Non-managers can only see their own quotes.
 
-    Round-13 Sprint 6a — response_model wired. QuoteResponse is
-    extras-tolerant so per-item joins (e.g. ``items``) round-trip.
+    Round-13 Sprint 6a — response_model wired.
+
+    Round-16 N15-API-3 (C6) — fourth per-route rollout of the
+    polymorphic picker pattern. When no field-permission masking is
+    active for ``quote``, the response is validated through
+    ``QuoteStrictResponse`` (NOT-NULL fields: id, tenant_id,
+    quote_number, created_at, updated_at). When masking IS active,
+    the picker falls back to ``QuoteResponse``.
     """
     result = await db.execute(
         select(Quote).where(Quote.id == quote_id)
@@ -100,7 +110,10 @@ async def get_quote(
     if current_user.role != UserRole.SALES_MANAGER.value and quote.created_by != current_user.id:
         raise ForbiddenException("Bu teklife erisim yetkiniz yok")
 
-    return _quote_to_dict(quote, include_items=True)
+    data = _quote_to_dict(quote, include_items=True)
+    if has_masking_rules_for("quote"):
+        return QuoteResponse.model_validate(data).model_dump()
+    return QuoteStrictResponse.model_validate(data).model_dump()
 
 
 @router.post("/", status_code=201, response_model=QuoteResponse)

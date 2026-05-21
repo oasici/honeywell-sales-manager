@@ -17,7 +17,8 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.models.contract import Contract, ContractAmendment
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
-from app.schemas.contract import ContractResponse
+from app.schemas.contract import ContractResponse, ContractStrictResponse
+from app.services.response_model_picker import has_masking_rules_for
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 
@@ -238,18 +239,33 @@ async def expiring_contracts(
     }
 
 
-@router.get("/contracts/{contract_id}", response_model=ContractResponse)
+@router.get(
+    "/contracts/{contract_id}",
+    response_model=ContractStrictResponse | ContractResponse,
+)
 async def get_contract(
     contract_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get contract detail with amendments."""
+    """Get contract detail with amendments.
+
+    Round-16 N15-API-3 (C7) — fifth per-route rollout of the
+    polymorphic picker pattern. When no field-permission masking is
+    active for ``contract``, the response is validated through
+    ``ContractStrictResponse`` (NOT-NULL fields: id, tenant_id,
+    customer_id, title, created_by, created_at, updated_at). When
+    masking IS active, the picker falls back to ``ContractResponse``.
+    """
     contract = await db.get(Contract, contract_id)
     if not contract:
         raise NotFoundException("Kontrat bulunamadi")
     assert_same_tenant(contract, current_user, exception_cls=NotFoundException)
-    return _serialize_contract(contract)
+
+    data = _serialize_contract(contract)
+    if has_masking_rules_for("contract"):
+        return ContractResponse.model_validate(data).model_dump()
+    return ContractStrictResponse.model_validate(data).model_dump()
 
 
 @router.put("/contracts/{contract_id}", response_model=ContractResponse)

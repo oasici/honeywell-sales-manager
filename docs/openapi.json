@@ -8848,7 +8848,7 @@
           "Quotes"
         ],
         "summary": "Get Quote",
-        "description": "Get quote detail with items. Non-managers can only see their own quotes.\n\nRound-13 Sprint 6a \u2014 response_model wired. QuoteResponse is\nextras-tolerant so per-item joins (e.g. ``items``) round-trip.",
+        "description": "Get quote detail with items. Non-managers can only see their own quotes.\n\nRound-13 Sprint 6a \u2014 response_model wired.\n\nRound-16 N15-API-3 (C6) \u2014 fourth per-route rollout of the\npolymorphic picker pattern. When no field-permission masking is\nactive for ``quote``, the response is validated through\n``QuoteStrictResponse`` (NOT-NULL fields: id, tenant_id,\nquote_number, created_at, updated_at). When masking IS active,\nthe picker falls back to ``QuoteResponse``.",
         "operationId": "get_quote_api_v1_quotes__quote_id__get",
         "security": [
           {
@@ -8888,7 +8888,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QuoteResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/QuoteStrictResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QuoteResponse"
+                    }
+                  ],
+                  "title": "Response Get Quote Api V1 Quotes  Quote Id  Get"
                 }
               }
             }
@@ -20883,7 +20891,7 @@
           "Leads"
         ],
         "summary": "Get Lead",
-        "description": "Get lead detail with score breakdown.",
+        "description": "Get lead detail with score breakdown.\n\nRound-16 N15-API-3 (C5) \u2014 third per-route rollout of the\npolymorphic picker pattern (see\n``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).\nWhen no field-permission masking rule is active for ``lead``,\nthe response is validated through ``LeadStrictResponse`` so\nNOT-NULL fields (id, tenant_id, first_name, last_name, email,\nowner_id, created_at, updated_at) are guaranteed present. When\nmasking IS active, the picker falls back to ``LeadResponse``.",
         "operationId": "get_lead_api_v1_leads__lead_id__get",
         "security": [
           {
@@ -20923,7 +20931,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LeadResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/LeadStrictResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LeadResponse"
+                    }
+                  ],
+                  "title": "Response Get Lead Api V1 Leads  Lead Id  Get"
                 }
               }
             }
@@ -31248,6 +31264,7 @@
           "Subscriptions"
         ],
         "summary": "Get Subscription",
+        "description": "Get subscription detail.\n\nRound-16 N15-API-3 (C8) \u2014 sixth and final per-route rollout of\nthe polymorphic picker pattern in the C3-C8 RFC sequence. When\nno field-permission masking is active for ``subscription``, the\nresponse is validated through ``SubscriptionStrictResponse``\n(NOT-NULL fields: id, tenant_id, customer_id, name, start_date,\ncreated_by, created_at, updated_at). When masking IS active,\nthe picker falls back to ``SubscriptionResponse``.",
         "operationId": "get_subscription_api_v1_subscriptions__sub_id__get",
         "security": [
           {
@@ -31287,7 +31304,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SubscriptionResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/SubscriptionStrictResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SubscriptionResponse"
+                    }
+                  ],
+                  "title": "Response Get Subscription Api V1 Subscriptions  Sub Id  Get"
                 }
               }
             }
@@ -32116,7 +32141,7 @@
           "Contracts"
         ],
         "summary": "Get Contract",
-        "description": "Get contract detail with amendments.",
+        "description": "Get contract detail with amendments.\n\nRound-16 N15-API-3 (C7) \u2014 fifth per-route rollout of the\npolymorphic picker pattern. When no field-permission masking is\nactive for ``contract``, the response is validated through\n``ContractStrictResponse`` (NOT-NULL fields: id, tenant_id,\ncustomer_id, title, created_by, created_at, updated_at). When\nmasking IS active, the picker falls back to ``ContractResponse``.",
         "operationId": "get_contract_api_v1_contracts__contract_id__get",
         "security": [
           {
@@ -32156,7 +32181,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ContractResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ContractStrictResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ContractResponse"
+                    }
+                  ],
+                  "title": "Response Get Contract Api V1 Contracts  Contract Id  Get"
                 }
               }
             }
@@ -44337,6 +44370,144 @@
         ],
         "title": "ContractResponse"
       },
+      "ContractStrictResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "integer",
+            "title": "Tenant Id"
+          },
+          "customer_id": {
+            "type": "integer",
+            "title": "Customer Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "created_by": {
+            "type": "integer",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "quote_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "terms_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms Json"
+          },
+          "signed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signed At"
+          },
+          "signed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signed By"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "customer_id",
+          "title",
+          "created_by",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ContractStrictResponse",
+        "description": "C7 canary \u2014 Round-16 (N15-API-3 RFC Option A).\n\nStrong-contract variant of ``ContractResponse`` for routes where\nfield-permission masking is NOT active.\n\nNOT-NULL fields (per ORM ``Mapped[int]`` declarations):\n  id, tenant_id, customer_id, title, created_by, created_at,\n  updated_at.\n\n``extra=\"allow\"`` mirrors the masked variant so per-route\nenrichments (``customer`` nested object, ``amendments``,\nrevenue_recognition links) round-trip through the strict-shape\nvalidator unchanged."
+      },
       "ContractUpdate": {
         "properties": {
           "title": {
@@ -52965,6 +53136,202 @@
         "title": "LeadScoringConfigUpdateResponse",
         "description": "``PUT /leads/scoring-config/{factor_name}`` \u2014 single config ack."
       },
+      "LeadStrictResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "integer",
+            "title": "Tenant Id"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "owner_id": {
+            "type": "integer",
+            "title": "Owner Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "company": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "lead_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Score"
+          },
+          "converted_customer_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted Customer Id"
+          },
+          "converted_opportunity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted Opportunity Id"
+          },
+          "converted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted At"
+          },
+          "converted_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converted By"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "first_name",
+          "last_name",
+          "email",
+          "owner_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "LeadStrictResponse",
+        "description": "C5 canary \u2014 Round-16 (N15-API-3 RFC Option A).\n\nStrong-contract variant of ``LeadResponse`` for routes where\nfield-permission masking is NOT active. Per the RFC at\n``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,\nthis is the third per-entity rollout after C3 (Customer) and\nC4 (Opportunity).\n\nNOT-NULL fields (per ORM ``Mapped[int]`` declarations):\n  id, tenant_id, first_name, last_name, email, owner_id,\n  created_at, updated_at.\n\n``extra=\"allow\"`` mirrors the masked variant so per-route\nenrichments (``score_breakdown`` on detail view, ``full_name``,\n``owner_name``) round-trip through the strict-shape validator\nunchanged."
+      },
       "LeadUpdate": {
         "properties": {
           "first_name": {
@@ -59904,6 +60271,310 @@
         ],
         "title": "QuoteRevisionsResponse"
       },
+      "QuoteStrictResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "quote_number": {
+            "type": "string",
+            "title": "Quote Number"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "email_request_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Request Id"
+          },
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "subtotal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtotal"
+          },
+          "discount_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Total"
+          },
+          "tax_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Rate"
+          },
+          "tax_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Amount"
+          },
+          "grand_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grand Total"
+          },
+          "valid_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Days"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "has_pdf": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Pdf"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "parent_quote_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Quote Id"
+          },
+          "revision_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision No"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "close_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Reason"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteItemResponse"
+            },
+            "type": "array",
+            "title": "Items",
+            "default": []
+          },
+          "customer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CustomerResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "quote_number",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "QuoteStrictResponse",
+        "description": "C6 canary \u2014 Round-16 (N15-API-3 RFC Option A).\n\nStrong-contract variant of ``QuoteResponse`` for routes where\nfield-permission masking is NOT active. Per the RFC at\n``docs/decisions/2026-05-21-polymorphic-response-schemas.md``.\n\nNOT-NULL fields (per ORM ``Mapped[int]`` declarations):\n  id, quote_number, created_at, updated_at.\n\nNote on ``tenant_id``: NOT NULL in the DB but ``_quote_to_dict``\nintentionally omits it (R10-API-2 \u2014 see the serializer's\ncomment). The strict schema reflects what the serializer emits,\nnot the raw ORM, so ``tenant_id`` stays Optional.\n\n``extra=\"allow\"`` mirrors the masked variant so per-route\nenrichments (``items`` list, ``customer`` nested object,\ncomputed totals) round-trip through the strict-shape validator\nunchanged."
+      },
       "QuoteUpdate": {
         "properties": {
           "customer_id": {
@@ -65874,6 +66545,160 @@
           "id"
         ],
         "title": "SubscriptionResponse"
+      },
+      "SubscriptionStrictResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "integer",
+            "title": "Tenant Id"
+          },
+          "customer_id": {
+            "type": "integer",
+            "title": "Customer Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "created_by": {
+            "type": "integer",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "quote_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "billing_cycle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Cycle"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "mrr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mrr"
+          },
+          "next_renewal_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Renewal Date"
+          },
+          "auto_renew": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Renew"
+          },
+          "items_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Items Json"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "customer_id",
+          "name",
+          "start_date",
+          "created_by",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SubscriptionStrictResponse",
+        "description": "C8 canary \u2014 Round-16 (N15-API-3 RFC Option A).\n\nStrong-contract variant of ``SubscriptionResponse`` \u2014 the sixth\nand final entity in the C3-C8 canary sequence laid out in the\npolymorphic response schemas RFC.\n\nNOT-NULL fields (per ORM ``Mapped[int]`` / ``Mapped[date]``):\n  id, tenant_id, customer_id, name, start_date, created_by,\n  created_at, updated_at.\n\n``extra=\"allow\"`` mirrors the masked variant so per-route\nenrichments (``customer`` nested object) round-trip through the\nstrict-shape validator unchanged."
       },
       "SubscriptionUpdate": {
         "properties": {

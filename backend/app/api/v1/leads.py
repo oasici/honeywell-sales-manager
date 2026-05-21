@@ -23,7 +23,7 @@ from app.models.lead import Lead
 from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round15_pagination import LeadScoringConfigRow
-from app.schemas.lead import LeadResponse
+from app.schemas.lead import LeadResponse, LeadStrictResponse
 from app.schemas.round16_aggregates import (
     LeadAnalyticsResponse,
     LeadConvertResponse,
@@ -32,6 +32,7 @@ from app.schemas.round16_aggregates import (
 )
 from app.core.event_bus import event_bus
 from app.services.lead_service import LeadService
+from app.services.response_model_picker import has_masking_rules_for
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
@@ -487,14 +488,27 @@ async def bulk_action_leads(
     raise BadRequestException(f"Bilinmeyen islem: {action}")
 
 
-@router.get("/{lead_id}", response_model=LeadResponse)
+@router.get(
+    "/{lead_id}",
+    response_model=LeadStrictResponse | LeadResponse,
+)
 async def get_lead(
     lead_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _flag=Depends(_require_lead_lifecycle),
 ):
-    """Get lead detail with score breakdown."""
+    """Get lead detail with score breakdown.
+
+    Round-16 N15-API-3 (C5) — third per-route rollout of the
+    polymorphic picker pattern (see
+    ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).
+    When no field-permission masking rule is active for ``lead``,
+    the response is validated through ``LeadStrictResponse`` so
+    NOT-NULL fields (id, tenant_id, first_name, last_name, email,
+    owner_id, created_at, updated_at) are guaranteed present. When
+    masking IS active, the picker falls back to ``LeadResponse``.
+    """
     result = await db.execute(select(Lead).where(Lead.id == lead_id))
     lead = result.scalar_one_or_none()
     if not lead:
@@ -507,7 +521,9 @@ async def get_lead(
     service = LeadService(db)
     lead_dict["score_breakdown"] = await service.compute_score_breakdown(lead)
 
-    return lead_dict
+    if has_masking_rules_for("lead"):
+        return LeadResponse.model_validate(lead_dict).model_dump()
+    return LeadStrictResponse.model_validate(lead_dict).model_dump()
 
 
 @router.post("/", status_code=201, response_model=LeadResponse)
