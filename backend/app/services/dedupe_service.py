@@ -113,7 +113,30 @@ async def upsert_task(
     if existing:
         return existing
 
+    # Round-16 N15-DB-3 cohort-9 — Task.tenant_id is now NOT NULL.
+    # Derive from the parent opportunity first (preferred — keeps the
+    # task in the same tenant as the deal it tracks), falling back to
+    # the owner's tenant when there is no opportunity link (rare:
+    # standalone tasks created from rep dashboards). Matches the
+    # pattern in ``upsert_opportunity_signal`` above.
+    derived_tenant_id: int | None = None
+    if opportunity_id is not None:
+        from app.models.opportunity import Opportunity
+
+        opp_row = await db.execute(
+            select(Opportunity.tenant_id).where(Opportunity.id == opportunity_id)
+        )
+        derived_tenant_id = opp_row.scalar_one_or_none()
+    if derived_tenant_id is None:
+        from app.models.user import User
+
+        owner_row = await db.execute(
+            select(User.tenant_id).where(User.id == owner_id)
+        )
+        derived_tenant_id = owner_row.scalar_one_or_none()
+
     task = Task(
+        tenant_id=derived_tenant_id,
         owner_id=owner_id,
         opportunity_id=opportunity_id,
         title=title,

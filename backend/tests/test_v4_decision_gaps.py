@@ -71,6 +71,7 @@ async def test_gap_engine_creates_missing_economic(db: AsyncSession):
     # Only technical stakeholder → should miss economic/champion
     db.add(
         Stakeholder(
+            tenant_id=_TENANT_ID,
             opportunity_id=opp.id,
             customer_id=cust.id,
             name="Tech Person",

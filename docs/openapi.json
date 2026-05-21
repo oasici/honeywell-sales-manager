@@ -48944,6 +48944,10 @@
           "parsed_data": {
             "anyOf": [
               {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
                 "type": "string"
               },
               {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -55,7 +56,13 @@ class EmailResponse(BaseModel):
     language: str | None = None
     received_at: datetime | None = None
     status: str
-    parsed_data: str | None = None
+    # ``parsed_data`` is stored as a JSON string in the DB but emitted
+    # as a dict by ``_email_to_dict(..., include_body=True)`` — the
+    # serializer ``json.loads()``-es it. Earlier schema versions declared
+    # ``str`` which made the response_model validator reject the dict
+    # at runtime. Accept either shape (CI run 26196006175 caught the
+    # regression after Round-16 picker work tightened other surfaces).
+    parsed_data: dict[str, Any] | str | None = None
     error_message: str | None = None
     category: str | None = None
     category_confidence: float | None = None

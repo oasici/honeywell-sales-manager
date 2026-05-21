@@ -101,6 +101,7 @@ async def test_followup_adherence_with_overdue_tasks(db: AsyncSession):
     # Create 2 open tasks, 1 overdue
     for i in range(2):
         task = Task(
+            tenant_id=_TENANT_ID,
             owner_id=rep.id,
             opportunity_id=opp.id,
             title=f"Gorev {i}",
@@ -111,6 +112,7 @@ async def test_followup_adherence_with_overdue_tasks(db: AsyncSession):
         db.add(task)
 
     overdue_task = Task(
+        tenant_id=_TENANT_ID,
         owner_id=rep.id,
         opportunity_id=opp.id,
         title="Gecmis gorev",
@@ -142,6 +144,7 @@ async def test_weak_indicator_generates_recommendation(db: AsyncSession):
     # Create many overdue tasks to drive score down
     for i in range(6):
         task = Task(
+            tenant_id=_TENANT_ID,
             owner_id=rep.id,
             opportunity_id=opp.id,
             title=f"Gecmis gorev {i}",
@@ -178,6 +181,7 @@ async def test_low_score_risk_level(db: AsyncSession):
     # Create heavily overdue scenario
     for i in range(10):
         task = Task(
+            tenant_id=_TENANT_ID,
             owner_id=rep.id,
             opportunity_id=opp.id,
             title=f"Gecmis {i}",

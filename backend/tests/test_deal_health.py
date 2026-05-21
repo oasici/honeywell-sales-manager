@@ -222,6 +222,7 @@ async def test_task_completion_mixed_tasks(db: AsyncSession):
 
     for i, status in enumerate(["done", "done", "open", "open"]):
         task = Task(
+            tenant_id=_TENANT_ID,
             title=f"Gorev {i}",
             owner_id=user.id,
             opportunity_id=opp.id,

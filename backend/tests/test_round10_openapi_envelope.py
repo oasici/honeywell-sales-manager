@@ -63,15 +63,32 @@ def test_list_endpoint_declares_paginated_envelope(
 
 
 def test_paginated_response_model_declares_canonical_keys(openapi_schema: dict) -> None:
-    """The component schema must declare the canonical {items,total,page,page_size,pages}."""
+    """The PaginatedResponse generic must declare the canonical
+    ``{items, total, page, page_size, pages}`` shape regardless of
+    which row type instantiates it.
+
+    Round-16 N15-API-7 retired every ``PaginatedResponse[dict]``
+    holdout, so the bare ``PaginatedResponse_dict_`` component no
+    longer exists. The contract we actually care about — "the
+    envelope shape is canonical" — is enforced by checking any
+    arbitrary instantiation; Pydantic emits the same `properties`
+    block for every generic specialization.
+    """
     components = openapi_schema.get("components", {}).get("schemas", {})
-    paginated = components.get("PaginatedResponse_dict_") or components.get(
-        "PaginatedResponse[dict]"
+    paginated_keys = [
+        name for name in components.keys() if name.startswith("PaginatedResponse_")
+    ]
+    assert paginated_keys, (
+        "No PaginatedResponse_* schemas in components — every list "
+        "endpoint must use the canonical PaginatedResponse[Row] generic."
     )
-    assert paginated is not None, "PaginatedResponse_dict_ schema missing from components"
+    # Pick any one specialization; the envelope shape is identical.
+    paginated = components[paginated_keys[0]]
     properties = paginated.get("properties", {})
     for key in ("items", "total", "page", "page_size", "pages"):
-        assert key in properties, f"PaginatedResponse missing canonical key '{key}'"
+        assert key in properties, (
+            f"PaginatedResponse ({paginated_keys[0]}) missing canonical key '{key}'"
+        )
 
 
 # Round-10 R10-API-5 (Sprint 10) — expansion gate. Started at 9

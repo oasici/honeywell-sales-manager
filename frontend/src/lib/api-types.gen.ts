@@ -13007,7 +13007,9 @@ export interface components {
             /** Status */
             status: string;
             /** Parsed Data */
-            parsed_data?: string | null;
+            parsed_data?: {
+                [key: string]: unknown;
+            } | string | null;
             /** Error Message */
             error_message?: string | null;
             /** Category */

@@ -254,8 +254,8 @@ async def test_kanban_filters_customer_tasks_rotting(client: AsyncClient, db: As
 
     db.add_all(
         [
-            Task(title="t1", opportunity_id=opp_match.id, owner_id=mgr.id, status="open", priority="normal"),
-            Task(title="t2", opportunity_id=opp_match.id, owner_id=mgr.id, status="open", priority="normal"),
+            Task(tenant_id=DEFAULT_TENANT_ID, title="t1", opportunity_id=opp_match.id, owner_id=mgr.id, status="open", priority="normal"),
+            Task(tenant_id=DEFAULT_TENANT_ID, title="t2", opportunity_id=opp_match.id, owner_id=mgr.id, status="open", priority="normal"),
         ]
     )
     old = datetime.now(timezone.utc) - timedelta(days=20)

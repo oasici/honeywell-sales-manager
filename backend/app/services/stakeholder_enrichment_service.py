@@ -83,6 +83,27 @@ async def enrich_from_transcript(
     if transcript.opportunity_id is None and transcript.customer_id is None:
         return []
 
+    # Round-16 N15-DB-3 cohort-9 — Stakeholder.tenant_id is now NOT
+    # NULL. Derive from the parent opportunity (preferred) or
+    # customer; both carry the canonical tenant for this record.
+    derived_tenant_id: int | None = None
+    if transcript.opportunity_id is not None:
+        from app.models.opportunity import Opportunity
+
+        row = await db.execute(
+            select(Opportunity.tenant_id).where(
+                Opportunity.id == transcript.opportunity_id
+            )
+        )
+        derived_tenant_id = row.scalar_one_or_none()
+    if derived_tenant_id is None and transcript.customer_id is not None:
+        from app.models.customer import Customer
+
+        row = await db.execute(
+            select(Customer.tenant_id).where(Customer.id == transcript.customer_id)
+        )
+        derived_tenant_id = row.scalar_one_or_none()
+
     created: list[int] = []
     for name, email in parse_participant_tokens(transcript.participants):
         if len(name.strip()) < 2:
@@ -97,6 +118,7 @@ async def enrich_from_transcript(
         if dup:
             continue
         s = Stakeholder(
+            tenant_id=derived_tenant_id,
             opportunity_id=transcript.opportunity_id,
             customer_id=transcript.customer_id,
             name=name,
