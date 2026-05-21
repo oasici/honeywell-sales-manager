@@ -25,7 +25,7 @@ from app.models.quote import Quote
 from app.models.user import User
 from app.core.event_bus import event_bus
 from app.schemas.common import GenericDataResponse, MessageResponse, PaginatedResponse
-from app.schemas.opportunity import OpportunityResponse
+from app.schemas.opportunity import OpportunityResponse, OpportunityStrictResponse
 from app.schemas.opportunity_intelligence import OpportunityIntelligenceResponse
 from app.schemas.round16_aggregates import (
     ActivitySummaryResponse,
@@ -36,6 +36,7 @@ from app.schemas.round16_aggregates import (
 )
 from app.services.activity_logger import log_activity
 from app.services.audit_service import log_action
+from app.services.response_model_picker import has_masking_rules_for
 from app.services.tenant_context import assert_same_tenant, scoped_for_user
 
 router = APIRouter(tags=["Opportunities (v2)"])
@@ -375,7 +376,10 @@ async def pipeline_inspection(
     }
 
 
-@router.get("/opportunities/{opp_id}", response_model=OpportunityResponse)
+@router.get(
+    "/opportunities/{opp_id}",
+    response_model=OpportunityStrictResponse | OpportunityResponse,
+)
 async def get_opportunity(
     opp_id: int,
     current_user: User = Depends(get_current_user),
@@ -387,6 +391,16 @@ async def get_opportunity(
     Round-13 Sprint 6a — response_model wired. OpportunityResponse is
     extras-tolerant so per-item joins (``quotes``, ``customer``, etc.)
     round-trip.
+
+    Round-16 N15-API-3 (C4) — second per-route rollout of the
+    polymorphic picker pattern (see
+    ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).
+    When no field-permission masking rule is active for
+    ``opportunity`` on the current request, the response is
+    validated through ``OpportunityStrictResponse`` so NOT-NULL
+    fields (id, tenant_id, title, stage, owner_id, created_at,
+    updated_at) are guaranteed present. When masking IS active, the
+    picker falls back to the loose ``OpportunityResponse`` shape.
     """
     result = await db.execute(
         select(Opportunity)
@@ -421,7 +435,13 @@ async def get_opportunity(
     )
     data["open_quotes_count"] = open_q.scalar() or 0
 
-    return data
+    # Round-16 N15-API-3 (C4) — picker decides which Pydantic shape
+    # validates the payload. ``_opp_to_dict`` already calls
+    # ``apply_request_perms``, so ``data`` reflects masking by the
+    # time we get here.
+    if has_masking_rules_for("opportunity"):
+        return OpportunityResponse.model_validate(data).model_dump()
+    return OpportunityStrictResponse.model_validate(data).model_dump()
 
 
 @router.get(

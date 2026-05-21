@@ -14071,7 +14071,7 @@
           "Opportunities (v2)"
         ],
         "summary": "Get Opportunity",
-        "description": "Get opportunity detail with quotes and computed fields.\n\nRound-13 Sprint 6a \u2014 response_model wired. OpportunityResponse is\nextras-tolerant so per-item joins (``quotes``, ``customer``, etc.)\nround-trip.",
+        "description": "Get opportunity detail with quotes and computed fields.\n\nRound-13 Sprint 6a \u2014 response_model wired. OpportunityResponse is\nextras-tolerant so per-item joins (``quotes``, ``customer``, etc.)\nround-trip.\n\nRound-16 N15-API-3 (C4) \u2014 second per-route rollout of the\npolymorphic picker pattern (see\n``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).\nWhen no field-permission masking rule is active for\n``opportunity`` on the current request, the response is\nvalidated through ``OpportunityStrictResponse`` so NOT-NULL\nfields (id, tenant_id, title, stage, owner_id, created_at,\nupdated_at) are guaranteed present. When masking IS active, the\npicker falls back to the loose ``OpportunityResponse`` shape.",
         "operationId": "get_opportunity_api_v1_opportunities__opp_id__get",
         "security": [
           {
@@ -14111,7 +14111,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OpportunityResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OpportunityStrictResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OpportunityResponse"
+                    }
+                  ],
+                  "title": "Response Get Opportunity Api V1 Opportunities  Opp Id  Get"
                 }
               }
             }
@@ -55068,6 +55076,288 @@
         ],
         "title": "OpportunitySignalSummary",
         "description": "Subset of ``OpportunitySignal`` columns surfaced to the SPA."
+      },
+      "OpportunityStrictResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "integer",
+            "title": "Tenant Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "owner_id": {
+            "type": "integer",
+            "title": "Owner Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "close_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Date"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "loss_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loss Reason"
+          },
+          "forecast_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast Category"
+          },
+          "pipeline_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pipeline Id"
+          },
+          "territory_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Territory Id"
+          },
+          "previous_stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Stage"
+          },
+          "previous_close_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Close Date"
+          },
+          "previous_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Amount"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "rotting_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotting Days"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "open_tasks_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Tasks Count"
+          },
+          "open_quotes_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Quotes Count"
+          },
+          "customer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/_CustomerSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/_OwnerSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quotes": {
+            "items": {
+              "$ref": "#/components/schemas/_QuoteSummary"
+            },
+            "type": "array",
+            "title": "Quotes",
+            "default": []
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "title",
+          "stage",
+          "owner_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OpportunityStrictResponse",
+        "description": "C4 canary \u2014 Round-16 (N15-API-3 RFC Option A).\n\nStrong-contract variant of ``OpportunityResponse`` for routes\nwhere field-permission masking is NOT active. Every NOT-NULL\ncolumn on the Opportunity ORM is declared Required; only\ngenuinely nullable columns stay Optional.\n\nPer the RFC at ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,\nthis is the second per-entity rollout after C3 (Customer). Routes\nopt in via the picker at\n``backend/app/services/response_model_picker.py``; if any\nfield-permission rule is active for ``opportunity`` on the\ncurrent request, the picker falls back to ``OpportunityResponse``\nso masking behaviour is preserved.\n\nNOT-NULL fields (per ORM ``Mapped[int]`` declarations):\n  id, tenant_id, title, stage, owner_id, created_at, updated_at.\n\n``extra=\"allow\"`` mirrors the masked variant so per-route\nenrichments (``open_quotes_count`` on GET single, ``customer`` /\n``owner`` joins) round-trip through the strict-shape validator\nunchanged."
       },
       "OpportunityTimelineResponse": {
         "properties": {

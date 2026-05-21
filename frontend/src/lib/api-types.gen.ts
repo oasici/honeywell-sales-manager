@@ -3635,6 +3635,16 @@ export interface paths {
          *     Round-13 Sprint 6a — response_model wired. OpportunityResponse is
          *     extras-tolerant so per-item joins (``quotes``, ``customer``, etc.)
          *     round-trip.
+         *
+         *     Round-16 N15-API-3 (C4) — second per-route rollout of the
+         *     polymorphic picker pattern (see
+         *     ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``).
+         *     When no field-permission masking rule is active for
+         *     ``opportunity`` on the current request, the response is
+         *     validated through ``OpportunityStrictResponse`` so NOT-NULL
+         *     fields (id, tenant_id, title, stage, owner_id, created_at,
+         *     updated_at) are guaranteed present. When masking IS active, the
+         *     picker falls back to the loose ``OpportunityResponse`` shape.
          */
         get: operations["get_opportunity_api_v1_opportunities__opp_id__get"];
         put?: never;
@@ -14935,6 +14945,98 @@ export interface components {
             is_resolved: boolean;
             /** Created At */
             created_at?: string | null;
+        };
+        /**
+         * OpportunityStrictResponse
+         * @description C4 canary — Round-16 (N15-API-3 RFC Option A).
+         *
+         *     Strong-contract variant of ``OpportunityResponse`` for routes
+         *     where field-permission masking is NOT active. Every NOT-NULL
+         *     column on the Opportunity ORM is declared Required; only
+         *     genuinely nullable columns stay Optional.
+         *
+         *     Per the RFC at ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,
+         *     this is the second per-entity rollout after C3 (Customer). Routes
+         *     opt in via the picker at
+         *     ``backend/app/services/response_model_picker.py``; if any
+         *     field-permission rule is active for ``opportunity`` on the
+         *     current request, the picker falls back to ``OpportunityResponse``
+         *     so masking behaviour is preserved.
+         *
+         *     NOT-NULL fields (per ORM ``Mapped[int]`` declarations):
+         *       id, tenant_id, title, stage, owner_id, created_at, updated_at.
+         *
+         *     ``extra="allow"`` mirrors the masked variant so per-route
+         *     enrichments (``open_quotes_count`` on GET single, ``customer`` /
+         *     ``owner`` joins) round-trip through the strict-shape validator
+         *     unchanged.
+         */
+        OpportunityStrictResponse: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id: number;
+            /** Title */
+            title: string;
+            /** Stage */
+            stage: string;
+            /** Owner Id */
+            owner_id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Amount */
+            amount?: number | null;
+            /** Currency */
+            currency?: string | null;
+            /** Close Date */
+            close_date?: string | null;
+            /** Customer Id */
+            customer_id?: number | null;
+            /** Status */
+            status?: string | null;
+            /** Probability */
+            probability?: number | null;
+            /** Loss Reason */
+            loss_reason?: string | null;
+            /** Forecast Category */
+            forecast_category?: string | null;
+            /** Pipeline Id */
+            pipeline_id?: number | null;
+            /** Territory Id */
+            territory_id?: number | null;
+            /** Previous Stage */
+            previous_stage?: string | null;
+            /** Previous Close Date */
+            previous_close_date?: string | null;
+            /** Previous Amount */
+            previous_amount?: number | null;
+            /** Source */
+            source?: string | null;
+            /** Rotting Days */
+            rotting_days?: number | null;
+            /** Last Activity At */
+            last_activity_at?: string | null;
+            /** Open Tasks Count */
+            open_tasks_count?: number | null;
+            /** Open Quotes Count */
+            open_quotes_count?: number | null;
+            customer?: components["schemas"]["_CustomerSummary"] | null;
+            owner?: components["schemas"]["_OwnerSummary"] | null;
+            /**
+             * Quotes
+             * @default []
+             */
+            quotes: components["schemas"]["_QuoteSummary"][];
+        } & {
+            [key: string]: unknown;
         };
         /**
          * OpportunityTimelineResponse
@@ -26523,7 +26625,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OpportunityResponse"];
+                    "application/json": components["schemas"]["OpportunityStrictResponse"] | components["schemas"]["OpportunityResponse"];
                 };
             };
             /** @description Validation Error */

@@ -98,3 +98,65 @@ class OpportunityResponse(BaseModel):
     quotes: list[_QuoteSummary] = []
 
     model_config = {"from_attributes": True, "extra": "allow"}
+
+
+class OpportunityStrictResponse(BaseModel):
+    """C4 canary — Round-16 (N15-API-3 RFC Option A).
+
+    Strong-contract variant of ``OpportunityResponse`` for routes
+    where field-permission masking is NOT active. Every NOT-NULL
+    column on the Opportunity ORM is declared Required; only
+    genuinely nullable columns stay Optional.
+
+    Per the RFC at ``docs/decisions/2026-05-21-polymorphic-response-schemas.md``,
+    this is the second per-entity rollout after C3 (Customer). Routes
+    opt in via the picker at
+    ``backend/app/services/response_model_picker.py``; if any
+    field-permission rule is active for ``opportunity`` on the
+    current request, the picker falls back to ``OpportunityResponse``
+    so masking behaviour is preserved.
+
+    NOT-NULL fields (per ORM ``Mapped[int]`` declarations):
+      id, tenant_id, title, stage, owner_id, created_at, updated_at.
+
+    ``extra="allow"`` mirrors the masked variant so per-route
+    enrichments (``open_quotes_count`` on GET single, ``customer`` /
+    ``owner`` joins) round-trip through the strict-shape validator
+    unchanged.
+    """
+
+    id: int
+    tenant_id: int
+    title: str
+    stage: str
+    owner_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    # Truly nullable on the ORM
+    amount: float | None = None
+    currency: str | None = None
+    close_date: date | str | None = None
+    customer_id: int | None = None
+    status: str | None = None
+    probability: float | None = None
+    loss_reason: str | None = None
+    forecast_category: str | None = None
+    pipeline_id: int | None = None
+    territory_id: int | None = None
+    previous_stage: str | None = None
+    previous_close_date: date | str | None = None
+    previous_amount: float | None = None
+    source: str | None = None
+    rotting_days: int | None = None
+
+    # Computed / joined extras — Optional because they're not always
+    # populated (list view vs detail view).
+    last_activity_at: datetime | None = None
+    open_tasks_count: int | None = None
+    open_quotes_count: int | None = None
+    customer: _CustomerSummary | None = None
+    owner: _OwnerSummary | None = None
+    quotes: list[_QuoteSummary] = []
+
+    model_config = {"from_attributes": True, "extra": "allow"}
