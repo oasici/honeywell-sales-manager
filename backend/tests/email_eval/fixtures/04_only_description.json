@@ -1,0 +1,16 @@
+{
+  "name": "Sadece açıklama — kod yok, müşteri 'flame detector' istiyor",
+  "tags": ["description_only", "en", "review_route"],
+  "input": {
+    "subject": "Need a flame detector",
+    "body_text": "Hi, we need a flame detector for our boiler system. Please send a quote.\n\nThanks,\nMike"
+  },
+  "expected": {
+    "category": "price_inquiry",
+    "min_recall": 0.5,
+    "min_precision": 0.5,
+    "parts": [
+      { "part_code": "", "part_description": "flame detector" }
+    ]
+  }
+}

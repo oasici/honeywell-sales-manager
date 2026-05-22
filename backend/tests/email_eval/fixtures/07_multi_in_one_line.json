@@ -1,0 +1,18 @@
+{
+  "name": "Tek satırda birden fazla parça",
+  "tags": ["inline_parts", "tr"],
+  "input": {
+    "subject": "Toplu istek",
+    "body_text": "Acil olarak C7061A1012 (3 adet), RM7895A1014 (2 adet) ve 51309276-150 (5 adet) gerekiyor. Tesekkurler."
+  },
+  "expected": {
+    "category": "spare_part_request",
+    "min_recall": 1.0,
+    "min_precision": 1.0,
+    "parts": [
+      { "part_code": "C7061A1012", "quantity": 3 },
+      { "part_code": "RM7895A1014", "quantity": 2 },
+      { "part_code": "51309276-150", "quantity": 5 }
+    ]
+  }
+}

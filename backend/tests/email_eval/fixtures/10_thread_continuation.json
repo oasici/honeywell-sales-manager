@@ -1,0 +1,24 @@
+{
+  "name": "Thread devamı — 'aynısından 2 tane daha'",
+  "tags": ["thread_context", "pronoun_resolution"],
+  "notes": "Regex fallback cannot resolve pronouns. Full pipeline (claude_parser + email_thread_context.prepend_thread_context) hits 1.0 because the prior message's parts are injected into the prompt. Harness scores regex-only, so min_recall is relaxed to 0.0 to document scope.",
+  "input": {
+    "subject": "Re: Acil parca istegi",
+    "body_text": "Tekrar selamlar, aynisindan 2 tane daha ekleyebilir misiniz?\n\nAhmet",
+    "thread_history": [
+      {
+        "subject": "Acil parca istegi",
+        "body_text": "Merhaba, 5 adet C7061A1012 acil lazim.",
+        "parsed_data": "{\"parts\": [{\"part_code\": \"C7061A1012\", \"quantity\": 5}]}"
+      }
+    ]
+  },
+  "expected": {
+    "category": "spare_part_request",
+    "min_recall": 0.0,
+    "min_precision": 0.0,
+    "parts": [
+      { "part_code": "C7061A1012", "quantity": 2 }
+    ]
+  }
+}

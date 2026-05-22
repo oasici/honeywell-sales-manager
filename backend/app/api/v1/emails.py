@@ -349,6 +349,55 @@ async def poll_emails(
             # Untrusted senders (anything except pass) flip review_status
             # so the auto-quote loop refuses to act until a human signs off.
             attachments_payload = item.get("attachments") or []
+
+            # Round-18 — async OCR enrichment for image attachments and
+            # scanned PDFs that produced no text on the sync pass.
+            # Bytes were preserved by the IMAP fetch loop in
+            # ``raw_attachments`` and never reach the DB.
+            raw_attachments = item.get("raw_attachments") or []
+            if attachments_payload and raw_attachments and cfg.ANTHROPIC_API_KEY:
+                needs_ocr = any(
+                    (a.get("error") == "requires_ocr")
+                    or (a.get("content_type") == "application/pdf" and not a.get("text"))
+                    for a in attachments_payload
+                )
+                if needs_ocr:
+                    from app.services.email_attachment_parser import (
+                        ParsedAttachment,
+                        enrich_with_ocr,
+                        extract_rows_as_parts,
+                    )
+
+                    placeholders = [
+                        ParsedAttachment(
+                            filename=a.get("filename", ""),
+                            content_type=a.get("content_type", ""),
+                            size_bytes=a.get("size_bytes", 0),
+                            text=a.get("text", ""),
+                            rows=[],
+                            sheet_count=a.get("sheet_count", 0) or 0,
+                            page_count=a.get("page_count", 0) or 0,
+                            error=a.get("error"),
+                        )
+                        for a in attachments_payload
+                    ]
+                    enriched = await enrich_with_ocr(raw_attachments, placeholders)
+                    attachments_payload = [
+                        {
+                            "filename": pa.filename,
+                            "content_type": pa.content_type,
+                            "size_bytes": pa.size_bytes,
+                            "sheet_count": pa.sheet_count,
+                            "page_count": pa.page_count,
+                            "text": pa.text,
+                            "heuristic_parts": (
+                                extract_rows_as_parts(pa.rows) if pa.rows else []
+                            ),
+                            "error": pa.error,
+                        }
+                        for pa in enriched
+                    ]
+
             attachments_json = None
             if attachments_payload:
                 import json as _json
@@ -877,9 +926,13 @@ def _fetch_emails_via_imap(
             if not body and not attachments:
                 continue
 
-            # Parse attachments now so the LLM context is ready when
-            # the downstream EmailProcessingService picks it up.
+            # Parse attachments synchronously (text-bearing formats).
+            # Image attachments and scanned PDFs come back with a
+            # ``requires_ocr`` / empty marker; the async OCR enrich
+            # step in ``poll_emails`` upgrades them via Claude Vision
+            # before persisting to ``EmailRequest.attachments_json``.
             parsed_attachments: list[dict] = []
+            raw_attachments_payload: list[tuple[str, bytes]] = list(attachments) if attachments else []
             if attachments:
                 from app.services.email_attachment_parser import (
                     extract_rows_as_parts,
@@ -913,6 +966,11 @@ def _fetch_emails_via_imap(
                 "html_body": sanitized_html or body_html,
                 "is_read": is_seen,
                 "attachments": parsed_attachments,
+                # Round-18 — raw bytes preserved so the async caller
+                # can run Claude Vision OCR on images / scanned PDFs
+                # before persistence. NOT serialised to the DB; only
+                # crosses the in-process boundary.
+                "raw_attachments": raw_attachments_payload,
                 "sender_auth_status": sender_auth,
             })
         except Exception as exc:

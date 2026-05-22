@@ -1,0 +1,19 @@
+{
+  "name": "HTML tablo — 3 parça, müşteri imzası",
+  "tags": ["html", "table_preservation", "en"],
+  "input": {
+    "subject": "Quote request",
+    "body_text": null,
+    "body_html": "<p>Hi,</p><p>Please quote the following:</p><table><thead><tr><th>Code</th><th>Description</th><th>Qty</th></tr></thead><tbody><tr><td>C7061A1012</td><td>Flame detector</td><td>5</td></tr><tr><td>RM7895A1014</td><td>Burner controller</td><td>2</td></tr><tr><td>51309276-150</td><td>Pressure transmitter</td><td>1</td></tr></tbody></table><p>Best regards,<br>Jane</p>"
+  },
+  "expected": {
+    "category": "price_inquiry",
+    "min_recall": 1.0,
+    "min_precision": 1.0,
+    "parts": [
+      { "part_code": "C7061A1012", "quantity": 5 },
+      { "part_code": "RM7895A1014", "quantity": 2 },
+      { "part_code": "51309276-150", "quantity": 1 }
+    ]
+  }
+}

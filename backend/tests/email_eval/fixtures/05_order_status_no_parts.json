@@ -1,0 +1,14 @@
+{
+  "name": "Sipariş durumu sorgusu — parça yok",
+  "tags": ["category_routing", "tr"],
+  "input": {
+    "subject": "Siparis 12345 durumu",
+    "body_text": "Merhaba, gecen hafta verdigimiz 12345 numarali siparisin durumu nedir? Ne zaman teslim alabiliriz?\n\nSaygilar."
+  },
+  "expected": {
+    "category": "order_status",
+    "min_recall": 1.0,
+    "min_precision": 1.0,
+    "parts": []
+  }
+}

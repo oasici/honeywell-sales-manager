@@ -62,6 +62,28 @@ SUPPORTED_EXTENSIONS: frozenset[str] = frozenset({
     ".csv",
     ".tsv",
     ".pdf",
+    # Round-18 — image attachments routed to Claude Vision OCR.
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".tiff",
+    ".tif",
+    ".webp",
+    ".bmp",
+})
+
+# Image extensions handled separately via OCR rather than the
+# text/table parsers below.
+_IMAGE_EXTENSIONS: frozenset[str] = frozenset({
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".tiff",
+    ".tif",
+    ".webp",
+    ".bmp",
 })
 
 # Defaults — overridable via app.core.config.settings if/when those
@@ -380,6 +402,20 @@ def parse_attachment(
         return _parse_csv(data, filename)
     if ext == ".pdf":
         return _parse_pdf(data, filename)
+    if ext in _IMAGE_EXTENSIONS:
+        # Image parsing requires a Claude Vision round-trip (async).
+        # ``parse_attachment`` is sync, so we return a placeholder
+        # ParsedAttachment marked ``requires_ocr=True`` via the error
+        # field; the async-aware caller (e.g. the email-processing
+        # pipeline) detects this and triggers the OCR path.
+        return ParsedAttachment(
+            filename=filename,
+            content_type=_image_content_type(ext),
+            size_bytes=len(data),
+            text="",
+            rows=[],
+            error="requires_ocr",
+        )
 
     # Shouldn't reach here given the whitelist guard above, but stay
     # defensive against future extension-set edits.
@@ -389,6 +425,21 @@ def parse_attachment(
         size_bytes=len(data),
         error=f"no parser registered for extension {ext}",
     )
+
+
+def _image_content_type(ext: str) -> str:
+    """RFC 2046 content-type for image extensions on the whitelist."""
+    mapping = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".tiff": "image/tiff",
+        ".tif": "image/tiff",
+        ".webp": "image/webp",
+        ".bmp": "image/bmp",
+    }
+    return mapping.get(ext, "application/octet-stream")
 
 
 def parse_attachments(
@@ -472,6 +523,165 @@ def merge_for_llm(body_text: str, parsed_attachments: list[ParsedAttachment]) ->
             parts.append(f"- {a.filename} ({a.size_bytes} bytes): {a.error}")
 
     return "\n\n---\n\n".join(parts)
+
+
+# ── Async OCR enrichment (Round-18) ───────────────────────────────
+
+
+async def enrich_with_ocr(
+    raw_attachments: list[tuple[str, bytes]],
+    parsed: list[ParsedAttachment],
+) -> list[ParsedAttachment]:
+    """Run Claude Vision OCR on attachments that need it.
+
+    Two pathways trigger OCR:
+
+      1. **Image attachments** marked ``requires_ocr`` by the sync
+         dispatcher (`parse_attachment`). The OCR text becomes the
+         parsed attachment's ``text`` field; extracted parts become
+         the ``rows`` payload that downstream
+         ``extract_rows_as_parts`` consumes.
+
+      2. **Scanned PDFs** where ``_parse_pdf`` returned no text or
+         table content. We re-render those pages and OCR each.
+
+    Returns a new list with the same ordering as ``parsed`` but
+    with OCR-augmented entries replacing the placeholder rows.
+    The raw_attachments tuple list is used to look up the original
+    bytes by filename — the parsed list alone doesn't carry bytes.
+    """
+    if not parsed:
+        return parsed
+
+    # Index raw bytes by filename for the OCR lookups.
+    by_name: dict[str, bytes] = {fn: data for fn, data in raw_attachments}
+
+    out: list[ParsedAttachment] = []
+    for pa in parsed:
+        ext = _filename_ext(pa.filename)
+        # Image path
+        if ext in _IMAGE_EXTENSIONS and pa.error == "requires_ocr":
+            data = by_name.get(pa.filename)
+            if data is None:
+                out.append(pa)
+                continue
+            try:
+                from app.services.email_ocr import ocr_image_via_vision
+
+                result = await ocr_image_via_vision(data, pa.filename)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("OCR image failed for %s: %s", pa.filename, exc)
+                out.append(
+                    ParsedAttachment(
+                        filename=pa.filename,
+                        content_type=pa.content_type,
+                        size_bytes=pa.size_bytes,
+                        error=f"ocr_failed: {exc}",
+                    )
+                )
+                continue
+            if result.get("error"):
+                out.append(
+                    ParsedAttachment(
+                        filename=pa.filename,
+                        content_type=pa.content_type,
+                        size_bytes=pa.size_bytes,
+                        error=result["error"],
+                    )
+                )
+                continue
+            ocr_parts = result.get("parts") or []
+            summary = result.get("page_summary") or ""
+            text_blob = _ocr_result_to_markdown(pa.filename, summary, ocr_parts)
+            out.append(
+                ParsedAttachment(
+                    filename=pa.filename,
+                    content_type=pa.content_type,
+                    size_bytes=pa.size_bytes,
+                    text=text_blob,
+                    rows=_ocr_parts_to_rows(ocr_parts),
+                    page_count=1,
+                )
+            )
+            continue
+
+        # Scanned PDF path — pdfplumber returned empty text.
+        if ext == ".pdf" and not pa.text and pa.error is None:
+            data = by_name.get(pa.filename)
+            if data is None:
+                out.append(pa)
+                continue
+            try:
+                from app.services.email_ocr import ocr_pdf_pages_via_vision
+
+                result = await ocr_pdf_pages_via_vision(data)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("OCR PDF failed for %s: %s", pa.filename, exc)
+                out.append(pa)
+                continue
+            ocr_parts = result.get("parts") or []
+            if not ocr_parts and not result.get("page_summary"):
+                # Truly empty PDF — keep the placeholder.
+                out.append(pa)
+                continue
+            text_blob = _ocr_result_to_markdown(
+                pa.filename,
+                result.get("page_summary") or "",
+                ocr_parts,
+            )
+            out.append(
+                ParsedAttachment(
+                    filename=pa.filename,
+                    content_type=pa.content_type,
+                    size_bytes=pa.size_bytes,
+                    text=text_blob,
+                    rows=_ocr_parts_to_rows(ocr_parts),
+                    page_count=result.get("page_count") or 0,
+                )
+            )
+            continue
+
+        out.append(pa)
+    return out
+
+
+def _ocr_result_to_markdown(
+    filename: str,
+    summary: str,
+    parts: list[dict[str, Any]],
+) -> str:
+    """Render OCR output in the same markdown shape as text parsers."""
+    lines: list[str] = [f"## {filename} (OCR)"]
+    if summary:
+        lines.append("")
+        lines.append(summary)
+    if parts:
+        lines.append("")
+        lines.append("| Code | Description | Qty |")
+        lines.append("| --- | --- | --- |")
+        for p in parts:
+            code = (p.get("part_code") or "").replace("|", "\\|")
+            desc = (p.get("part_description") or "").replace("|", "\\|")
+            qty = p.get("quantity") or 1
+            lines.append(f"| {code} | {desc} | {qty} |")
+    return "\n".join(lines)
+
+
+def _ocr_parts_to_rows(parts: list[dict[str, Any]]) -> list[list[Any]]:
+    """Convert OCR ``parts`` payload to the ``rows`` shape so the
+    existing ``extract_rows_as_parts`` heuristic + the
+    ``email_processing_service`` heuristic-merge codepath both
+    pick the rows up uniformly."""
+    rows: list[list[Any]] = [["Code", "Description", "Qty"]]
+    for p in parts:
+        rows.append(
+            [
+                p.get("part_code") or "",
+                p.get("part_description") or "",
+                p.get("quantity") or 1,
+            ]
+        )
+    return rows
 
 
 # ── Direct part-row heuristic (no LLM) ────────────────────────────

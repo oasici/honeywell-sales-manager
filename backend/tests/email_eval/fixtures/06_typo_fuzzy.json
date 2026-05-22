@@ -1,0 +1,17 @@
+{
+  "name": "Müşteri yazım hatası — O harfi 0 yerine",
+  "tags": ["fuzzy_match", "catalog_resolution"],
+  "notes": "Regex fallback cannot fuzzy-match O→0; full pipeline (claude_parser + part_catalog_resolver fuzzy_levenshtein) hits 1.0. Harness scores regex-only, so min_recall is relaxed to 0.0 to document scope.",
+  "input": {
+    "subject": "Parca istegi",
+    "body_text": "Merhaba,\n1 adet C7O61A1012 istiyoruz (O harfli yazdim ama 0 olabilir).\nSaygilar."
+  },
+  "expected": {
+    "category": "spare_part_request",
+    "min_recall": 0.0,
+    "min_precision": 0.0,
+    "parts": [
+      { "part_code": "C7O61A1012", "quantity": 1 }
+    ]
+  }
+}

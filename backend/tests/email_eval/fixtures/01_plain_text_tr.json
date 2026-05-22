@@ -1,0 +1,17 @@
+{
+  "name": "Düz metin TR — iki parça acil",
+  "tags": ["plain_text", "tr", "regex_fallback_eligible"],
+  "input": {
+    "subject": "Acil parça istegi",
+    "body_text": "Merhaba,\nAsagidaki parcalara ihtiyacimiz var:\nC7061A1012 - 2 adet\nRM7895A1014 - 1 adet\nAcil gonderim gerekiyor.\n\nSaygilarimla,\nAhmet Yilmaz\nABC Endustriyel"
+  },
+  "expected": {
+    "category": "spare_part_request",
+    "min_recall": 1.0,
+    "min_precision": 1.0,
+    "parts": [
+      { "part_code": "C7061A1012", "quantity": 2 },
+      { "part_code": "RM7895A1014", "quantity": 1 }
+    ]
+  }
+}

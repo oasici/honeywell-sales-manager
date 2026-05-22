@@ -1,0 +1,32 @@
+{
+  "name": "CSV ek — Türkçe karakter, ; ayraç",
+  "tags": ["attachment", "csv", "charset"],
+  "input": {
+    "subject": "Liste ekte",
+    "body_text": "Ekte parça listemiz var.",
+    "attachments_json": [
+      {
+        "filename": "rfq.csv",
+        "content_type": "text/csv",
+        "size_bytes": 256,
+        "sheet_count": 0,
+        "page_count": 0,
+        "text": "## rfq.csv\n\n| Kod | Açıklama | Adet |\n| --- | --- | --- |\n| C7061A1012 | Alev dedektörü | 3 |\n| RM7895A1014 | Brülör kontrolcüsü | 1 |",
+        "heuristic_parts": [
+          { "part_code": "C7061A1012", "part_description": "Alev dedektörü", "quantity": 3 },
+          { "part_code": "RM7895A1014", "part_description": "Brülör kontrolcüsü", "quantity": 1 }
+        ],
+        "error": null
+      }
+    ]
+  },
+  "expected": {
+    "category": "spare_part_request",
+    "min_recall": 1.0,
+    "min_precision": 1.0,
+    "parts": [
+      { "part_code": "C7061A1012", "quantity": 3 },
+      { "part_code": "RM7895A1014", "quantity": 1 }
+    ]
+  }
+}

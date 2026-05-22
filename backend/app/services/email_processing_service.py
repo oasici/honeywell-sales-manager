@@ -137,6 +137,20 @@ class EmailProcessingService:
                 self._classify_with_consolidation(email, parsed)
                 await self._set_review_status(email, parsed)
 
+                # Round-18 — link this email to its RFQ thread. Best-
+                # effort: the helper returns None when the email
+                # lacks both ``thread_id`` and a usable subject.
+                try:
+                    from app.services.email_rfq_aggregator import link_email_to_rfq
+
+                    await link_email_to_rfq(self._db, email)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "RFQ thread linking failed for email %d (non-fatal): %s",
+                        email.id,
+                        exc,
+                    )
+
                 # Round-17 — gate auto-quote on:
                 #  1. review_status APPROVED (existing rule)
                 #  2. sender_auth_status == pass (SPF/DKIM/DMARC)
@@ -290,6 +304,24 @@ class EmailProcessingService:
             attachment_text_blob = merge_for_llm(body, recon)
 
         llm_input_body = attachment_text_blob or body
+
+        # Round-18 — prepend thread history when this email belongs
+        # to an ongoing conversation. Lets Claude resolve pronouns
+        # ("the same", "more of that") + dedupe parts already
+        # acknowledged in earlier messages.
+        try:
+            from app.services.email_thread_context import prepend_thread_context
+
+            llm_input_body = await prepend_thread_context(
+                self._db, email, llm_input_body
+            )
+        except Exception as exc:  # noqa: BLE001 — thread context is best-effort
+            logger.warning(
+                "Thread-context lookup failed for email %d (continuing without): %s",
+                email.id,
+                exc,
+            )
+
         filter_result = pre_filter_email(llm_input_body, subject)
 
         if filter_result == "skip":

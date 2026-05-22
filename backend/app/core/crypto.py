@@ -5,14 +5,21 @@ Round-4 R4-PII-1 / R4-PII-2 lifted these helpers out of
 circular imports — the calendar OAuth token store and the e-sign
 provider config writer both need ``encrypt_str`` / ``decrypt_str``.
 
-Key resolution mirrors the legacy site:
+Key resolution (Round-18 rotation-aware):
 
-- ``ENCRYPTION_KEY`` env var wins (production).
-- In dev/test, persist a generated key to ``data/.encryption_key`` so
-  multiple workers + restarts share the same key. This is the
-  R4-PII-3 fix — previously the key was only set in ``os.environ``,
-  which evaporated on restart and rendered all encrypted SMTP
-  passwords undecryptable.
+- ``ENCRYPTION_KEY`` env var = the **primary** key. All new writes
+  encrypt with this one.
+- ``ENCRYPTION_KEY_OLD`` env var = comma-separated list of older
+  keys kept around for decrypt-only use. New writes never use them.
+  When the operator runs the rotation script (Round-18), old keys
+  age out of this list once every row has been re-encrypted.
+- In dev/test (no env vars), persist a generated key to
+  ``data/.encryption_key`` so workers + restarts share it.
+
+The two-tier (primary + decrypt-only) pattern uses Cryptography's
+``MultiFernet``: ``encrypt`` always uses the first key, ``decrypt``
+tries each key in order. This gives us a zero-downtime rotation
+without "decrypt all and re-encrypt all" coordination.
 
 The legacy ``_encrypt_password`` / ``_decrypt_password`` in
 ``settings.py`` continue to work via re-export.
@@ -24,40 +31,84 @@ import logging
 import os
 from typing import Any
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 logger = logging.getLogger(__name__)
 
 _KEY_FILE = os.path.join("data", ".encryption_key")
 
 
-def get_fernet() -> Fernet:
-    """Return a Fernet instance keyed by ``ENCRYPTION_KEY``.
+def _load_keys() -> list[str]:
+    """Resolve the active key list, primary first.
 
-    Raises in production when the key is unset; in dev/test, generates
-    and persists one so subsequent restarts can decrypt prior writes.
+    Returns at least one Fernet-formatted key. Falls back to disk
+    persistence in dev/test as before.
     """
     from app.core.config import settings as cfg
 
-    key = os.environ.get("ENCRYPTION_KEY", "")
-    if not key:
-        if cfg.is_production:
-            raise RuntimeError(
-                "ENCRYPTION_KEY must be set in production. "
-                "Generate one with: python -c \"from cryptography.fernet "
-                "import Fernet; print(Fernet.generate_key().decode())\""
-            )
-        # Dev/test: persist key to disk so workers + restarts share it.
-        if os.path.exists(_KEY_FILE):
-            with open(_KEY_FILE) as fh:
-                key = fh.read().strip()
-        if not key:
-            key = Fernet.generate_key().decode()
-            os.makedirs(os.path.dirname(_KEY_FILE), exist_ok=True)
-            with open(_KEY_FILE, "w") as fh:
-                fh.write(key)
-        os.environ["ENCRYPTION_KEY"] = key
-    return Fernet(key.encode() if isinstance(key, str) else key)
+    primary = os.environ.get("ENCRYPTION_KEY", "").strip()
+    rotation = [
+        k.strip()
+        for k in os.environ.get("ENCRYPTION_KEY_OLD", "").split(",")
+        if k.strip()
+    ]
+
+    if primary:
+        return [primary, *rotation]
+
+    if cfg.is_production:
+        raise RuntimeError(
+            "ENCRYPTION_KEY must be set in production. "
+            "Generate one with: python -c \"from cryptography.fernet "
+            "import Fernet; print(Fernet.generate_key().decode())\""
+        )
+
+    # Dev/test fallback — persist generated key on disk for the
+    # cross-restart use case.
+    if os.path.exists(_KEY_FILE):
+        with open(_KEY_FILE) as fh:
+            primary = fh.read().strip()
+    if not primary:
+        primary = Fernet.generate_key().decode()
+        os.makedirs(os.path.dirname(_KEY_FILE), exist_ok=True)
+        with open(_KEY_FILE, "w") as fh:
+            fh.write(primary)
+    os.environ["ENCRYPTION_KEY"] = primary
+    return [primary, *rotation]
+
+
+def get_fernet() -> Fernet | MultiFernet:
+    """Return a Fernet (or MultiFernet for rotation) keyed by config.
+
+    Round-18 — rotation-aware: when ``ENCRYPTION_KEY_OLD`` is set,
+    returns a ``MultiFernet`` that encrypts with the primary key
+    but accepts ciphertexts produced by any older key. New writes
+    always use the primary; old reads keep working until the
+    rotation script re-encrypts every row, at which point ops can
+    drop the old key from ``ENCRYPTION_KEY_OLD``.
+    """
+    keys = _load_keys()
+    fernets = [
+        Fernet(k.encode() if isinstance(k, str) else k)
+        for k in keys
+    ]
+    if len(fernets) == 1:
+        return fernets[0]
+    return MultiFernet(fernets)
+
+
+def rotate_ciphertext(ciphertext: str) -> str:
+    """Decrypt with whichever key works, re-encrypt with the primary.
+
+    Used by the rotation script to walk every encrypted row in the
+    database and migrate it onto the new primary key. Idempotent:
+    a ciphertext already encrypted with the primary key returns
+    the equivalent of itself (timestamp may differ but the
+    plaintext is preserved).
+    """
+    fernet = get_fernet()
+    plain = fernet.decrypt(ciphertext.encode()).decode()
+    return fernet.encrypt(plain.encode()).decode()
 
 
 def encrypt_str(plaintext: str) -> str:

@@ -1,0 +1,32 @@
+{
+  "name": "Excel ek — body kısa, parçalar Excel'de",
+  "tags": ["attachment", "xlsx", "heuristic_merge"],
+  "input": {
+    "subject": "RFQ ekte",
+    "body_text": "Merhaba, ekteki listeden lütfen teklif gönderir misiniz?",
+    "attachments_json": [
+      {
+        "filename": "rfq.xlsx",
+        "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "size_bytes": 4096,
+        "sheet_count": 1,
+        "page_count": 0,
+        "text": "## RFQ\n\n| Kod | Aciklama | Adet |\n| --- | --- | --- |\n| C7061A1012 | Alev detektoru | 5 |\n| RM7895A1014 | Brulor kontrol | 2 |",
+        "heuristic_parts": [
+          { "part_code": "C7061A1012", "part_description": "Alev detektoru", "quantity": 5 },
+          { "part_code": "RM7895A1014", "part_description": "Brulor kontrol", "quantity": 2 }
+        ],
+        "error": null
+      }
+    ]
+  },
+  "expected": {
+    "category": "spare_part_request",
+    "min_recall": 1.0,
+    "min_precision": 1.0,
+    "parts": [
+      { "part_code": "C7061A1012", "quantity": 5 },
+      { "part_code": "RM7895A1014", "quantity": 2 }
+    ]
+  }
+}

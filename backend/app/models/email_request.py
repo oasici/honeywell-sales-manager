@@ -80,6 +80,15 @@ class EmailRequest(Base):
     thread_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     in_reply_to: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # Round-18 — RFQ thread key. Stable 16-hex SHA-256 digest over
+    # (tenant_id, thread_id) or (tenant_id, sender_domain,
+    # normalised_subject). Emails sharing this key belong to the
+    # same logical RFQ — the quote-creation path uses it to decide
+    # whether to extend an existing draft quote or open a new one.
+    rfq_thread_key: Mapped[str | None] = mapped_column(
+        String(32), nullable=True, index=True
+    )
+
     # Review workflow
     review_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # pending_review -> approved -> rejected
