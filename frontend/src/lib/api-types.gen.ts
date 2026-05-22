@@ -13546,6 +13546,12 @@ export interface components {
             data_classification?: string | null;
             /** Last Parsed At */
             last_parsed_at?: string | null;
+            /** Sender Auth Status */
+            sender_auth_status?: string | null;
+            /** Attachments Json */
+            attachments_json?: {
+                [key: string]: unknown;
+            }[] | string | null;
         };
         /** EmailReviewRequest */
         EmailReviewRequest: {

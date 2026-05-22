@@ -36,6 +36,17 @@ class EmailRequest(Base):
     status: Mapped[str] = mapped_column(String(20), default="new", index=True)
     # new -> parsed -> quoted -> sent -> error
     parsed_data: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    # Round-17 email hardening — stores the parsed text + heuristic
+    # part rows extracted from supported attachments (Excel/CSV/PDF).
+    # Persisted as a JSON list of ``{filename, content_type,
+    # size_bytes, text, heuristic_parts, error}`` records so the
+    # Claude parse step can be re-run offline (e.g. after a system
+    # prompt update) without re-downloading the original message.
+    attachments_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Round-17 — SPF/DKIM/DMARC verification verdict at IMAP-fetch time.
+    # ``pass`` / ``fail`` / ``none`` / ``unverified``. Unverified or failing
+    # senders route to the review queue rather than the auto-quote path.
+    sender_auth_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Classification

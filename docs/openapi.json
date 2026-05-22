@@ -50280,6 +50280,35 @@
               }
             ],
             "title": "Last Parsed At"
+          },
+          "sender_auth_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Auth Status"
+          },
+          "attachments_json": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments Json"
           }
         },
         "type": "object",

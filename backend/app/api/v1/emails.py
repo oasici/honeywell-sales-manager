@@ -345,16 +345,37 @@ async def poll_emails(
             # R4-TEN-23: stamp tenant_id from the polling user so the row
             # is scoped to a tenant from creation; downstream detail
             # endpoints enforce ``assert_same_tenant``.
+            # Round-17 — persist parsed attachment payload + auth verdict.
+            # Untrusted senders (anything except pass) flip review_status
+            # so the auto-quote loop refuses to act until a human signs off.
+            attachments_payload = item.get("attachments") or []
+            attachments_json = None
+            if attachments_payload:
+                import json as _json
+                try:
+                    attachments_json = _json.dumps(attachments_payload, ensure_ascii=False)
+                except Exception:
+                    attachments_json = None
+
+            sender_auth = item.get("sender_auth_status") or "none"
+            initial_review_status = (
+                None if sender_auth == "pass" else "pending_review"
+            )
+
             email = EmailRequest(
                 message_id=item["message_id"],
                 from_address=item["from_addr"],
                 subject=item["subject"] or "(Konu yok)",
                 body_text=item["body"],
+                body_html=item.get("html_body") or None,
                 status="new",
                 is_read=item.get("is_read", False),
                 received_at=datetime.now(tz.utc),
                 assigned_to=current_user.id,
                 tenant_id=getattr(current_user, "tenant_id", None),
+                attachments_json=attachments_json,
+                sender_auth_status=sender_auth,
+                review_status=initial_review_status,
             )
             db.add(email)
             await db.flush()
@@ -731,12 +752,22 @@ def _fetch_emails_via_imap(
     Returns is_read status from IMAP SEEN flag.
     """
     import imaplib
+    import ssl
     import email as email_lib
     import re
     from email.header import decode_header
     from datetime import datetime, timedelta
 
-    imap = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=30)
+    # Round-17 — explicit TLS context with certificate + hostname
+    # verification. The default ``IMAP4_SSL`` constructor uses
+    # ``ssl.create_default_context()`` *only when* no ssl_context is
+    # passed; we pass one explicitly so the policy is loud + auditable
+    # and future overrides (cert pinning, allowed-cipher list) can
+    # land in one place.
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = True
+    ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+    imap = imaplib.IMAP4_SSL(imap_host, imap_port, ssl_context=ssl_ctx, timeout=30)
     imap.login(email_addr, email_pass)
     imap.select("INBOX", readonly=True)
 
@@ -784,12 +815,37 @@ def _fetch_emails_via_imap(
 
             message_id = msg.get("Message-ID", f"imap-{msg_id.decode() if isinstance(msg_id, bytes) else msg_id}")
 
-            # Extract body
+            # Round-17 email hardening — walk MIME tree to collect:
+            #   1. plain text body (preferred for LLM input)
+            #   2. HTML body (sanitized + table-preserved as fallback)
+            #   3. attachments (Excel / CSV / PDF for parts extraction)
             body_text = ""
             body_html = ""
+            attachments: list[tuple[str, bytes]] = []
+
             if msg.is_multipart():
                 for part in msg.walk():
                     ct = part.get_content_type()
+                    disposition = (part.get("Content-Disposition") or "").lower()
+                    is_attachment = "attachment" in disposition or bool(part.get_filename())
+                    if is_attachment:
+                        fname_raw = part.get_filename() or ""
+                        # decode_header handles RFC 2047-encoded filenames
+                        # (very common with Turkish letters in source ERPs).
+                        fname = ""
+                        for piece, cset in decode_header(fname_raw):
+                            fname += (
+                                piece.decode(cset or "utf-8", errors="replace")
+                                if isinstance(piece, bytes)
+                                else piece
+                            )
+                        try:
+                            payload = part.get_payload(decode=True)
+                        except Exception:
+                            payload = None
+                        if payload and fname:
+                            attachments.append((fname, payload))
+                        continue
                     if ct == "text/plain" and not body_text:
                         payload = part.get_payload(decode=True)
                         if payload:
@@ -807,16 +863,46 @@ def _fetch_emails_via_imap(
                     else:
                         body_text = payload.decode(cs, errors="replace")
 
-            # Prefer plain text; strip HTML tags if only HTML
-            body = body_text
-            if not body and body_html:
-                cleaned = re.sub(r'<(style|script)[^>]*>[\s\S]*?</\1>', '', body_html, flags=re.IGNORECASE)
-                cleaned = re.sub(r'<br\s*/?>', '\n', cleaned, flags=re.IGNORECASE)
-                cleaned = re.sub(r'<[^>]+>', '', cleaned)
-                body = re.sub(r'\n\s*\n+', '\n\n', cleaned).strip()
+            # Convert HTML body to plain text with table preservation
+            # (Round-17 — replaces the legacy 3-line regex strip).
+            sanitized_html = ""
+            if body_html:
+                from app.services.email_html_cleaner import sanitize_and_extract_text
 
-            if not body:
+                sanitized_html, html_plain = sanitize_and_extract_text(body_html)
+                if not body_text:
+                    body_text = html_plain
+
+            body = body_text
+            if not body and not attachments:
                 continue
+
+            # Parse attachments now so the LLM context is ready when
+            # the downstream EmailProcessingService picks it up.
+            parsed_attachments: list[dict] = []
+            if attachments:
+                from app.services.email_attachment_parser import (
+                    extract_rows_as_parts,
+                    parse_attachments,
+                )
+
+                for pa in parse_attachments(attachments):
+                    entry = {
+                        "filename": pa.filename,
+                        "content_type": pa.content_type,
+                        "size_bytes": pa.size_bytes,
+                        "sheet_count": pa.sheet_count,
+                        "page_count": pa.page_count,
+                        "text": pa.text,
+                        "heuristic_parts": extract_rows_as_parts(pa.rows) if pa.rows else [],
+                        "error": pa.error,
+                    }
+                    parsed_attachments.append(entry)
+
+            # Round-17 — resolve SPF/DKIM/DMARC verdict from raw message.
+            from app.services.email_auth_verifier import resolve_sender_auth
+
+            sender_auth = resolve_sender_auth(raw_email)
 
             results.append({
                 "uid": 0,
@@ -824,7 +910,10 @@ def _fetch_emails_via_imap(
                 "from_addr": from_addr,
                 "subject": subject,
                 "body": body,
+                "html_body": sanitized_html or body_html,
                 "is_read": is_seen,
+                "attachments": parsed_attachments,
+                "sender_auth_status": sender_auth,
             })
         except Exception as exc:
             import logging as _imap_log
@@ -873,6 +962,10 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
         "sentiment_score": getattr(email, "sentiment_score", None),
         "data_classification": getattr(email, "data_classification", None),
         "last_parsed_at": email.last_parsed_at.isoformat() if getattr(email, "last_parsed_at", None) else None,
+        # Round-17 — SPF/DKIM/DMARC verdict surfaces in the list view
+        # so the SPA can show "verified sender" / "needs review"
+        # badges without re-loading the full detail.
+        "sender_auth_status": getattr(email, "sender_auth_status", None),
         "created_at": email.created_at.isoformat() if email.created_at else None,
     }
     if include_body:
@@ -881,6 +974,15 @@ def _email_to_dict(email: EmailRequest, include_body: bool = False) -> dict:
         data["parsed_data"] = (
             json.loads(email.parsed_data) if email.parsed_data else None
         )
+        # Round-17 — return parsed attachments as structured list so
+        # the SPA can render chips with row counts + per-file open
+        # actions. JSON-decode-on-read keeps the DB column TEXT.
+        att_raw = getattr(email, "attachments_json", None)
+        if att_raw:
+            try:
+                data["attachments_json"] = json.loads(att_raw)
+            except (json.JSONDecodeError, TypeError):
+                data["attachments_json"] = None
     # Field-level masking (R4-PERM-1).
     from app.services.field_permission_service import apply_request_perms
     return apply_request_perms(data, "email")

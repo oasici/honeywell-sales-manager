@@ -102,6 +102,19 @@ class EmailResponse(BaseModel):
     # R6-API-8 — last AI parse timestamp; SPA shows "Son güncelleme".
     last_parsed_at: datetime | None = None
 
+    # Round-17 — sender authentication verdict from SPF/DKIM/DMARC.
+    # ``pass`` / ``fail`` / ``none`` / ``unverified``. The SPA shows a
+    # "verified sender" badge only when ``pass``; everything else gets
+    # a "needs review" banner.
+    sender_auth_status: str | None = None
+
+    # Round-17 — list of parsed attachments (Excel/CSV/PDF). Each entry
+    # is ``{filename, content_type, size_bytes, text, heuristic_parts,
+    # error}``. Persisted as JSON in ``email_requests.attachments_json``;
+    # the schema returns the parsed list directly so the SPA detail
+    # page can render per-attachment chips with row counts.
+    attachments_json: list[dict[str, Any]] | str | None = None
+
     model_config = {"from_attributes": True}
 
 

@@ -28,6 +28,82 @@ CONFIDENCE_THRESHOLD = 0.75
 ERROR_MESSAGE_MAX_LENGTH = 500
 
 
+def _auto_quote_eligible(email: EmailRequest, parsed: dict) -> bool:
+    """Round-17 gate for the auto-quote happy path.
+
+    Auto-quote runs only when:
+
+      1. The sender passed SPF/DKIM/DMARC (``sender_auth_status``
+         == ``"pass"``). Spoofed mail from a real customer's domain
+         should never silently create a quote.
+      2. Every parsed part resolved to a real catalog row
+         (``catalog_status`` in ``{"exact", "normalized"}``). Fuzzy
+         matches (prefix / Levenshtein) need a human to confirm —
+         the heuristic isn't strong enough to bind a customer to
+         the wrong SKU.
+
+    A False return signals the caller to demote the email to
+    review queue.
+    """
+    auth = getattr(email, "sender_auth_status", None)
+    if auth and auth != "pass":
+        return False
+    for p in parsed.get("parts") or []:
+        status = p.get("catalog_status")
+        # ``no_code`` means the LLM emitted a description-only entry.
+        # That can't auto-quote either.
+        if status not in {"exact", "normalized"}:
+            return False
+    return True
+
+
+def _merge_heuristic_parts(parsed: dict, heuristic_rows: list[dict]) -> dict:
+    """Merge attachment-derived heuristic part rows into the LLM result.
+
+    Deduplicates by ``part_code`` (case-insensitive, whitespace
+    trimmed). The LLM-extracted entry wins on conflict because it
+    typically carries richer description / urgency metadata; the
+    heuristic only contributes rows the LLM missed entirely.
+
+    Also flips ``is_spare_part_request`` to True when heuristic
+    rows are present (the email contained an Excel/CSV/PDF with
+    extractable part codes — that's a parts request even if the
+    body text was just "see attached").
+    """
+    if not heuristic_rows:
+        return parsed
+    parsed = dict(parsed or {})
+    parts = list(parsed.get("parts") or [])
+    seen = {
+        (p.get("part_code") or "").strip().upper()
+        for p in parts
+        if p.get("part_code")
+    }
+    appended = 0
+    for hp in heuristic_rows:
+        code = (hp.get("part_code") or "").strip()
+        key = code.upper()
+        if not code or key in seen:
+            continue
+        parts.append(
+            {
+                "part_code": code,
+                "part_description": hp.get("part_description", ""),
+                "quantity": hp.get("quantity") or 1,
+                "urgency": "normal",
+            }
+        )
+        seen.add(key)
+        appended += 1
+    if appended:
+        parsed["parts"] = parts
+        parsed["is_spare_part_request"] = True
+        # Don't artificially raise confidence — the LLM's own score
+        # remains; the operator sees "N parts via attachment" in the
+        # parsed_data review surface.
+    return parsed
+
+
 class EmailProcessingService:
     """Encapsulates email parsing, classification, and review workflows."""
 
@@ -46,15 +122,33 @@ class EmailProcessingService:
         try:
             parsed = await self._parse_email_with_fallback(email)
             if parsed:
+                # Round-17 — annotate every part with catalog verdict
+                # BEFORE persistence + auto-quote. Unknown / fuzzy
+                # rows route to review even when the LLM was confident.
+                if parsed.get("parts"):
+                    from app.services.part_catalog_resolver import resolve_parsed_parts
+
+                    parsed["parts"] = await resolve_parsed_parts(
+                        self._db,
+                        parsed["parts"],
+                        tenant_id=getattr(email, "tenant_id", None),
+                    )
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
                 await self._set_review_status(email, parsed)
 
-                # Auto-create customer + quote ONLY if auto-approved
+                # Round-17 — gate auto-quote on:
+                #  1. review_status APPROVED (existing rule)
+                #  2. sender_auth_status == pass (SPF/DKIM/DMARC)
+                #  3. every parsed part resolved to a real catalog row
+                # Failure on any axis routes to review queue.
                 if email.review_status == ReviewStatus.APPROVED.value:
-                    await self._auto_create_customer(email, parsed)
-                    if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
-                        await self._auto_create_draft_quote(email, parsed)
+                    if not self._auto_quote_eligible(email, parsed):
+                        email.review_status = ReviewStatus.PENDING_REVIEW.value
+                    else:
+                        await self._auto_create_customer(email, parsed)
+                        if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
+                            await self._auto_create_draft_quote(email, parsed)
             else:
                 email.status = EmailStatus.ERROR.value
                 email.error_message = "Parse returned empty"
@@ -96,15 +190,26 @@ class EmailProcessingService:
         try:
             parsed = await self._parse_email_with_fallback(email)
             if parsed:
+                if parsed.get("parts"):
+                    from app.services.part_catalog_resolver import resolve_parsed_parts
+
+                    parsed["parts"] = await resolve_parsed_parts(
+                        self._db,
+                        parsed["parts"],
+                        tenant_id=getattr(email, "tenant_id", None),
+                    )
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
                 await self._set_review_status(email, parsed)
 
-                # Auto-create customer + quote ONLY if auto-approved
+                # Round-17 — same eligibility gate as ``process_email``.
                 if email.review_status == ReviewStatus.APPROVED.value:
-                    await self._auto_create_customer(email, parsed)
-                    if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
-                        await self._auto_create_draft_quote(email, parsed)
+                    if not self._auto_quote_eligible(email, parsed):
+                        email.review_status = ReviewStatus.PENDING_REVIEW.value
+                    else:
+                        await self._auto_create_customer(email, parsed)
+                        if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
+                            await self._auto_create_draft_quote(email, parsed)
 
                 await self._db.flush()
                 await self._db.refresh(email)
@@ -136,12 +241,56 @@ class EmailProcessingService:
         self,
         email: EmailRequest,
     ) -> dict | None:
-        """Parse with pre-filtering, Claude API, and regex fallback."""
+        """Parse with pre-filtering, Claude API, and regex fallback.
+
+        Round-17 — attachments parsed at IMAP-fetch time
+        (``attachments_json`` column) are merged into the LLM
+        prompt via ``email_attachment_parser.merge_for_llm`` so
+        Excel / CSV / PDF part lists land in the same Claude call
+        as the body text. The heuristic_parts captured per
+        attachment are appended to the regex-fallback result so a
+        Claude outage doesn't lose the structured rows.
+        """
         body = email.body_text or email.body_html or ""
         subject = email.subject or ""
         start_time = time.monotonic()
 
-        filter_result = pre_filter_email(body, subject)
+        # Merge attachment text into the LLM prompt body.
+        attachment_payloads: list[dict] = []
+        attachment_text_blob = ""
+        heuristic_rows: list[dict] = []
+        attachments_raw = getattr(email, "attachments_json", None)
+        if attachments_raw:
+            try:
+                attachment_payloads = json.loads(attachments_raw) or []
+            except Exception:
+                attachment_payloads = []
+        if attachment_payloads:
+            from app.services.email_attachment_parser import (
+                ParsedAttachment,
+                merge_for_llm,
+            )
+
+            recon: list[ParsedAttachment] = []
+            for entry in attachment_payloads:
+                recon.append(
+                    ParsedAttachment(
+                        filename=entry.get("filename", ""),
+                        content_type=entry.get("content_type", ""),
+                        size_bytes=entry.get("size_bytes", 0),
+                        text=entry.get("text", ""),
+                        rows=[],  # not persisted; heuristic_parts is what we need
+                        sheet_count=entry.get("sheet_count", 0) or 0,
+                        page_count=entry.get("page_count", 0) or 0,
+                        error=entry.get("error"),
+                    )
+                )
+                for hp in entry.get("heuristic_parts") or []:
+                    heuristic_rows.append(hp)
+            attachment_text_blob = merge_for_llm(body, recon)
+
+        llm_input_body = attachment_text_blob or body
+        filter_result = pre_filter_email(llm_input_body, subject)
 
         if filter_result == "skip":
             log_parse_metrics(
@@ -159,7 +308,13 @@ class EmailProcessingService:
         try:
             from app.services.claude_parser import parse_email
 
-            parsed = await parse_email(body, subject)
+            parsed = await parse_email(llm_input_body, subject)
+
+            # Round-17 — merge heuristic_parts from attachments into the
+            # LLM result. Keeps the structured rows we already extracted
+            # even when the LLM misses them; deduplicates by part_code
+            # so we never double-count.
+            parsed = _merge_heuristic_parts(parsed, heuristic_rows)
 
             log_parse_metrics(
                 email_id=email.id,
@@ -179,7 +334,11 @@ class EmailProcessingService:
                 email.id,
                 exc,
             )
-            parsed = regex_fallback_parse(body, subject)
+            parsed = regex_fallback_parse(llm_input_body, subject)
+            # In the fallback path the heuristic rows are doubly
+            # important — they are often the only structured signal we
+            # have when Claude is down.
+            parsed = _merge_heuristic_parts(parsed, heuristic_rows)
 
             log_parse_metrics(
                 email_id=email.id,
