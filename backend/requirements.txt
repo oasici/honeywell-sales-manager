@@ -13,7 +13,7 @@ asyncpg==0.31.0
 alembic==1.18.4
 
 # Validation
-pydantic==2.13.3
+pydantic==2.13.4
 pydantic-settings==2.14.1
 email-validator==2.3.0
 
