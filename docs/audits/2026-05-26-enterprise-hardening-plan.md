@@ -27,7 +27,7 @@
 | F-015 | Workflow rule cycle detection | 3 | **SHIPPED Phase 2** |
 | F-016 | RFQ aggregation 14-day window | 3 | **EXECUTING this session** |
 | F-017 | Quote optimistic locking | 3 | **SHIPPED Phase 2** (`row_version` column + helper) |
-| F-018 | Approval quorum policy | 3 | DEFERRED |
+| F-018 | Approval quorum policy | 3 | **SHIPPED Phase 3** (quorum_policy + decisions ledger) |
 | F-019 | Email Message-Id idempotency | 1 | **EXECUTING this session** |
 | F-020 | Constant-time 404 cross-tenant | 1 | **EXECUTING this session** |
 | F-021 | Bulk imports | 4 | DEFERRED |
@@ -35,9 +35,9 @@
 | F-023 | KVKK two-person rule | 3 | DEFERRED |
 | F-024 | Sequences mandatory unsubscribe | 3 | DEFERRED |
 | F-025 | AI coaching watermark + preview | 3 | **SCHEMA SHIPPED Phase 2** (cols on `coaching_hooks`; logic awaits model presence) |
-| F-026 | Quote v1 supersede | 3 | DEFERRED |
-| F-027 | Pricing precedence | 3 | DEFERRED |
-| F-028 | Approval SLA + escalation | 3 | DEFERRED |
+| F-026 | Quote v1 supersede | 3 | **SHIPPED Phase 3** (superseded_by_id + helpers) |
+| F-027 | Pricing precedence | 3 | **SHIPPED Phase 3** (`price_source` + resolver) |
+| F-028 | Approval SLA + escalation | 3 | **SHIPPED Phase 3** (due_at + escalation_level + sla helpers) |
 | F-029 | Per-tenant auto-quote threshold | 4 | **SHIPPED Phase 2** |
 | F-030 | AI Task auto-dismiss | 3 | **SCHEMA SHIPPED Phase 2** (cols on `ai_tasks`; cron awaits model presence) |
 
