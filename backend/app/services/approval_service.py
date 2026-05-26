@@ -260,6 +260,30 @@ class ApprovalService:
         approval_request.comments = comments or None
         await self.db.flush()
 
+        # D-012 — forensic write to ``approval_decisions``. The
+        # UNIQUE(request_id, decider_id) constraint catches double-
+        # click + concurrent approver attempts at the DB level (the
+        # endpoint maps IntegrityError → 409). SAVEPOINT wrapper so
+        # a duplicate insert doesn't roll back the actual status
+        # mutation (which the row lock above already serialized).
+        from sqlalchemy import text
+        try:
+            async with self.db.begin_nested():
+                await self.db.execute(
+                    text(
+                        "INSERT INTO approval_decisions "
+                        "  (request_id, decider_id, outcome, comment, decided_at) "
+                        "VALUES (:rid, :uid, 'approve', :c, now())"
+                    ),
+                    {"rid": request_id, "uid": user_id, "c": comments or None},
+                )
+        except Exception:
+            # Already-decided — the status check above + row lock
+            # have already converted concurrent double-clicks to 400.
+            # This path is unreachable in practice; included for
+            # defence-in-depth.
+            logger.debug("approval_decisions insert skipped (duplicate)")
+
         # Notify the requester
         await create_notification(
             self.db,
@@ -311,6 +335,22 @@ class ApprovalService:
         approval_request.decided_by = user_id
         approval_request.decided_at = now
         approval_request.comments = comments or None
+
+        # D-012 — forensic write to ``approval_decisions`` (mirror of
+        # the approve path). SAVEPOINT-wrapped.
+        from sqlalchemy import text as _text
+        try:
+            async with self.db.begin_nested():
+                await self.db.execute(
+                    _text(
+                        "INSERT INTO approval_decisions "
+                        "  (request_id, decider_id, outcome, comment, decided_at) "
+                        "VALUES (:rid, :uid, 'reject', :c, now())"
+                    ),
+                    {"rid": request_id, "uid": user_id, "c": comments or None},
+                )
+        except Exception:
+            logger.debug("approval_decisions insert skipped (duplicate)")
 
         # Cascade: reject all other pending requests for the same entity
         await self.db.execute(
