@@ -153,9 +153,16 @@ async def export_audit_logs_csv(
 
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["id", "user_id", "action", "entity_type", "entity_id", "ip_address", "created_at", "changes"])
+    # F-008 — every export goes through ``sanitize_csv_row`` so cells
+    # that look like formulas (``=cmd|'/c calc'!A1`` and friends) get
+    # an apostrophe prefix and never execute in Excel.
+    from app.services.csv_sanitizer import sanitize_csv_row
+
+    writer.writerow(sanitize_csv_row(
+        ["id", "user_id", "action", "entity_type", "entity_id", "ip_address", "created_at", "changes"]
+    ))
     for log in logs:
-        writer.writerow([
+        writer.writerow(sanitize_csv_row([
             log.id,
             log.user_id if log.user_id is not None else "",
             log.action,
@@ -164,7 +171,7 @@ async def export_audit_logs_csv(
             log.ip_address or "",
             log.created_at.isoformat() if log.created_at else "",
             log.changes or "",
-        ])
+        ]))
 
     filename = f"audit-logs-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.csv"
     return PlainTextResponse(

@@ -311,25 +311,40 @@ async def load_with_tenant_check(
 ):
     """Load + tenant-check pattern used across V4-V12 read endpoints.
 
-    Replaces the boilerplate:
-        opp = (await db.execute(select(M).where(M.id == id))).scalar_one_or_none()
-        if opp is None: raise NotFoundException(...)
-        assert_same_tenant(opp, current_user, exception_cls=NotFoundException)
-        return opp
+    F-020 (Round-19): pre-Round-19 this was a two-step SELECT-then-
+    tenant-check. That leaked a *timing side-channel* — "exists but
+    foreign tenant" returned slightly later than "truly does not
+    exist" because we did the Python attribute compare + the
+    audit-log call only on the cross-tenant branch. An attacker
+    timing 404 responses could enumerate which IDs belong to other
+    tenants. The fix is to fold the tenant filter into the query
+    itself so both "no row" and "wrong tenant" cost an identical
+    one round trip with the same number of branches.
 
-    Returns the loaded ORM object. Both "doesn't exist" and "exists in
-    another tenant" map to the same 404 + message so the API never
-    leaks cross-tenant existence.
-
-    Imported lazily inside the function to keep this module's import
-    graph free of SQLAlchemy at test-collection time (the unit tests
-    on ``is_cross_tenant`` / ``assert_same_tenant`` use plain
-    dataclasses, not real SQLAlchemy objects).
+    Returns the loaded ORM object. Both "doesn't exist" and "exists
+    in another tenant" map to the same 404 + message so the API
+    never leaks cross-tenant existence.
     """
     from sqlalchemy import select
 
-    obj = (await db.execute(select(model).where(model.id == id_))).scalar_one_or_none()
+    user_tenant = getattr(current_user, "tenant_id", None)
+    model_has_tenant = hasattr(model, "tenant_id")
+
+    stmt = select(model).where(model.id == id_)
+    # Single-query path: when both the model and the user carry a
+    # tenant_id, push the filter to SQL so the result either *is* a
+    # legitimate row or *is* an absent row. Foreign-tenant rows get
+    # filtered server-side in the same round trip as "truly missing".
+    if model_has_tenant and user_tenant is not None:
+        stmt = stmt.where(model.tenant_id == user_tenant)
+
+    obj = (await db.execute(stmt)).scalar_one_or_none()
     if obj is None:
+        # We still call ``assert_same_tenant`` indirectly by raising
+        # the same 404 — no body diff, no header diff.
         raise exception_cls(message)
+    # Defensive recheck for models that *do* have tenant_id but
+    # current_user.tenant_id was None (legacy single-tenant
+    # fixtures); ``is_cross_tenant`` handles those edge cases.
     assert_same_tenant(obj, current_user, exception_cls=exception_cls)
     return obj

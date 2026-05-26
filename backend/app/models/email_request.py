@@ -89,6 +89,32 @@ class EmailRequest(Base):
         String(32), nullable=True, index=True
     )
 
+    # Round-19 — Phase 1 eligibility-gate hardening (F-002/F-003/F-004).
+    # When the auto-quote pipeline refuses to process an email it sets
+    # ``parse_skipped_reason`` and leaves the LLM call un-attempted. The
+    # reason codes are stable strings so the UI can switch on them:
+    #   ``auth_failed``         — SPF/DKIM/DMARC said fail
+    #   ``ocr_truncated``       — PDF page count exceeded MAX_OCR_PAGES
+    #   ``first_time_sender``   — sender not in customers table
+    #   ``encrypted_attachment``— ZIP/PDF needed password
+    parse_skipped_reason: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+    parse_overridden_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True
+    )
+    # OCR truncation marker (F-003). True if any PDF attachment had
+    # more pages than the per-tenant cap.
+    attachment_pages_truncated: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    ocr_skipped_pages: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # First-contact flag (F-004). True when no Customer row matches
+    # the sender's primary_email in this tenant at parse time.
+    first_time_sender: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
     # Review workflow
     review_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # pending_review -> approved -> rejected

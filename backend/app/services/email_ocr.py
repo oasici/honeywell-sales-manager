@@ -182,8 +182,10 @@ async def ocr_pdf_pages_via_vision(
         return _empty_result(error="pdfplumber not installed")
 
     pages_rendered: list[bytes] = []
+    total_pages: int = 0
     try:
         with pdfplumber.open(io.BytesIO(data)) as pdf:
+            total_pages = len(pdf.pages)
             for idx, page in enumerate(pdf.pages):
                 if idx >= max_pages:
                     break
@@ -223,11 +225,18 @@ async def ocr_pdf_pages_via_vision(
         if isinstance(page_result.get("confidence"), (int, float)):
             confidences.append(float(page_result["confidence"]))
 
+    rendered = len(pages_rendered)
+    # F-003 — truncation marker. ``page_count`` was previously "how many
+    # pages we OCR'd"; downstream couldn't tell the original was longer.
+    # We now surface both values so the eligibility gate can refuse
+    # auto-quote on incomplete OCR.
     return {
         "parts": all_parts,
         "page_summary": " | ".join(summaries) if summaries else "",
         "confidence": (sum(confidences) / len(confidences)) if confidences else 0.0,
-        "page_count": len(pages_rendered),
+        "page_count": rendered,
+        "total_pages": total_pages,
+        "truncated": total_pages > rendered,
         "error": any_error if not all_parts else None,
     }
 

@@ -112,6 +112,12 @@ class ParsedAttachment:
     rows: list[list[Any]] = field(default_factory=list)
     sheet_count: int = 0
     page_count: int = 0
+    # F-003 — set True when OCR processed fewer pages than the source
+    # PDF actually contained (e.g. 5-of-12 pages rendered). The email
+    # pipeline reads this through ``any(a.truncated for a in atts)``
+    # to refuse auto-quote on incomplete content.
+    truncated: bool = False
+    total_pages: int = 0
     error: str | None = None
 
 
@@ -637,6 +643,8 @@ async def enrich_with_ocr(
                     text=text_blob,
                     rows=_ocr_parts_to_rows(ocr_parts),
                     page_count=result.get("page_count") or 0,
+                    total_pages=result.get("total_pages") or 0,
+                    truncated=bool(result.get("truncated")),
                 )
             )
             continue

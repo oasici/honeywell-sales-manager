@@ -76,6 +76,37 @@ def _sender_domain(from_address: str | None) -> str:
     return from_address.rsplit("@", 1)[-1].lower()
 
 
+AGGREGATION_WINDOW_DAYS = 14
+
+
+def _sender_email_normalised(from_address: str | None) -> str:
+    """Full email (local + domain), lowercased + whitespace-stripped.
+
+    F-016: pre-Round-19 the fallback hashed sender *domain*, which
+    merged unrelated conversations from two different humans at the
+    same company. Using the full address keeps separate threads from
+    different senders at ``acme.com`` from collapsing into one key.
+    """
+    if not from_address:
+        return ""
+    return from_address.strip().lower()
+
+
+def _time_bucket(received_at, *, window_days: int = AGGREGATION_WINDOW_DAYS) -> int:
+    """Fixed-window bucket index from ``received_at``.
+
+    Kept for the historical contract / tests, but no longer encoded
+    into the hash key (see ``compute_rfq_thread_key`` docstring). The
+    14-day boundary enforcement lives in ``list_emails_in_rfq`` so
+    two emails 9 days apart never straddle a hash boundary.
+    """
+    if received_at is None:
+        from datetime import datetime, timezone
+
+        received_at = datetime.now(timezone.utc)
+    return received_at.toordinal() // window_days
+
+
 def compute_rfq_thread_key(email: EmailRequest) -> str:
     """Stable hash for one logical RFQ thread.
 
@@ -84,9 +115,20 @@ def compute_rfq_thread_key(email: EmailRequest) -> str:
       1. ``tenant_id`` — never mix RFQs across tenants.
       2. ``thread_id`` (Gmail / Outlook header) when present —
          that's the canonical conversation grouping.
-      3. ``sender_domain + normalised_subject`` fallback when the
-         upstream server didn't propagate ``thread_id`` (some
-         self-hosted exchange installs strip it).
+      3. ``sender_email + normalised_subject`` fallback (F-016) when
+         the upstream server didn't propagate ``thread_id``.
+         Pre-Round-19 we used sender *domain* (not full address)
+         which merged separate conversations across colleagues at
+         the same company.
+
+    **Time-window enforcement lives at query time**, not in the key.
+    A naive Round-18 design hashed (sender + subject + 14d-bucket),
+    but fixed-boundary bucketing fails when two emails sent 9 days
+    apart straddle a boundary — same conversation gets two keys.
+    ``list_emails_in_rfq`` therefore filters by ``received_at`` >=
+    ``now() - AGGREGATION_WINDOW_DAYS`` so a 6-month-old subject
+    reuse is invisible to the current RFQ without breaking
+    legitimate week-spanning conversations.
 
     Returns the first 16 hex chars of a SHA-256 digest. 16 hex
     gives 64 bits of entropy — collision-resistant for any real
@@ -96,7 +138,9 @@ def compute_rfq_thread_key(email: EmailRequest) -> str:
     if email.thread_id:
         body = f"{tenant}|tid|{email.thread_id}"
     else:
-        body = f"{tenant}|fallback|{_sender_domain(email.from_address)}|{_normalise_subject(email.subject)}"
+        sender = _sender_email_normalised(email.from_address)
+        subject = _normalise_subject(email.subject)
+        body = f"{tenant}|fb|{sender}|{subject}"
     return hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
 
 
@@ -127,19 +171,47 @@ async def list_emails_in_rfq(
     rfq_thread_key: str,
     *,
     tenant_id: int | None = None,
+    reference_email: EmailRequest | None = None,
+    window_days: int = AGGREGATION_WINDOW_DAYS,
 ) -> list[EmailRequest]:
-    """Return every email tied to the same RFQ thread key.
+    """Return every email tied to the same RFQ thread key, scoped by
+    the 14-day aggregation window (F-016).
+
+    The window is anchored to ``reference_email.received_at`` (or
+    ``now()`` if no reference is given). Emails older than
+    ``window_days`` from the anchor are excluded — that's how we
+    prevent a 6-month-old "Acil parça istegi" thread from
+    resurrecting when a customer happens to reuse the subject.
 
     Tenant-scoped: the caller always passes ``tenant_id`` so cross-
     tenant pollution is impossible even if two domains happened to
     collide on the hash (vanishingly unlikely given the 16-hex
     digest).
     """
+    from datetime import datetime, timedelta, timezone
+
     from sqlalchemy import select
 
     stmt = select(EmailRequest).where(EmailRequest.rfq_thread_key == rfq_thread_key)
     if tenant_id is not None:
         stmt = stmt.where(EmailRequest.tenant_id == tenant_id)
+
+    # Anchor the window on the reference (typically the newest email
+    # the caller is processing). Falls back to "now" so callers that
+    # only want "recent" can omit the reference.
+    anchor = None
+    if reference_email is not None:
+        anchor = getattr(reference_email, "received_at", None)
+    if anchor is None:
+        anchor = datetime.now(timezone.utc)
+    cutoff = anchor - timedelta(days=window_days)
+    # Rows with no ``received_at`` (legacy / manual inserts) are kept
+    # — we don't want to silently drop emails that lack the
+    # timestamp. Production IMAP fetches always populate it.
+    stmt = stmt.where(
+        (EmailRequest.received_at >= cutoff) | (EmailRequest.received_at.is_(None))
+    )
+
     stmt = stmt.order_by(EmailRequest.received_at.asc())
     return list((await db.execute(stmt)).scalars().all())
 

@@ -28,33 +28,44 @@ CONFIDENCE_THRESHOLD = 0.75
 ERROR_MESSAGE_MAX_LENGTH = 500
 
 
-def _auto_quote_eligible(email: EmailRequest, parsed: dict) -> bool:
-    """Round-17 gate for the auto-quote happy path.
+def _auto_quote_eligible(email: EmailRequest, parsed: dict) -> tuple[bool, str | None]:
+    """Round-19 gate for the auto-quote happy path.
 
-    Auto-quote runs only when:
+    Returns ``(eligible, block_reason)``. ``block_reason`` is a stable
+    short code so callers/audit logs can branch on it:
 
-      1. The sender passed SPF/DKIM/DMARC (``sender_auth_status``
-         == ``"pass"``). Spoofed mail from a real customer's domain
-         should never silently create a quote.
-      2. Every parsed part resolved to a real catalog row
-         (``catalog_status`` in ``{"exact", "normalized"}``). Fuzzy
-         matches (prefix / Levenshtein) need a human to confirm —
-         the heuristic isn't strong enough to bind a customer to
-         the wrong SKU.
+      * ``auth_not_pass``      — F-002. SPF/DKIM/DMARC didn't return pass.
+      * ``ocr_truncated``      — F-003. A PDF attachment had more pages
+                                  than ``MAX_OCR_PAGES``; the parse saw
+                                  only the head. Auto-quote would ship
+                                  an incomplete order.
+      * ``first_time_sender``  — F-004. The sender's address isn't in
+                                  the customers table for this tenant.
+                                  Trust-on-first-use → manual review.
+      * ``fuzzy_or_unknown``   — Round-17 rule. A part landed at fuzzy
+                                  / unknown catalog status. Sending a
+                                  fuzzy SKU bound to the customer's
+                                  account is a real-money mistake.
 
-    A False return signals the caller to demote the email to
-    review queue.
+    Pre-Round-19 this was a bare bool and two callers invoked it as
+    ``self._auto_quote_eligible(...)`` — an attribute error that
+    silently failed-closed. The new shape forces callers to pass through
+    a stable reason for audit + UI.
     """
     auth = getattr(email, "sender_auth_status", None)
     if auth and auth != "pass":
-        return False
+        return False, "auth_not_pass"
+    if getattr(email, "attachment_pages_truncated", False):
+        return False, "ocr_truncated"
+    if getattr(email, "first_time_sender", False):
+        return False, "first_time_sender"
     for p in parsed.get("parts") or []:
         status = p.get("catalog_status")
         # ``no_code`` means the LLM emitted a description-only entry.
         # That can't auto-quote either.
         if status not in {"exact", "normalized"}:
-            return False
-    return True
+            return False, "fuzzy_or_unknown"
+    return True, None
 
 
 def _merge_heuristic_parts(parsed: dict, heuristic_rows: list[dict]) -> dict:
@@ -119,6 +130,25 @@ class EmailProcessingService:
         email.error_message = None
         await self._db.flush()
 
+        # F-002 — auth=fail short-circuit. Skip the LLM entirely. We
+        # still create the EmailRequest row (so the operator can see it
+        # in the review queue with the red banner), but the spoof gets
+        # no Anthropic spend and no parsed parts. A manager may later
+        # force-parse via the override path.
+        if (email.sender_auth_status or "").lower() == "fail":
+            email.parse_skipped_reason = "auth_failed"
+            email.status = EmailStatus.NEW.value
+            email.review_status = ReviewStatus.PENDING_REVIEW.value
+            await self._db.flush()
+            await self._db.refresh(email)
+            return email
+
+        # F-004 — first-time-sender detection. We compute this *before*
+        # the parse so the gate (and any future per-sender policies)
+        # have it. Tenant-scoped lookup; a sender already a customer
+        # in another tenant doesn't count.
+        await self._mark_first_time_sender(email)
+
         try:
             parsed = await self._parse_email_with_fallback(email)
             if parsed:
@@ -157,8 +187,13 @@ class EmailProcessingService:
                 #  3. every parsed part resolved to a real catalog row
                 # Failure on any axis routes to review queue.
                 if email.review_status == ReviewStatus.APPROVED.value:
-                    if not self._auto_quote_eligible(email, parsed):
+                    eligible, reason = _auto_quote_eligible(email, parsed)
+                    if not eligible:
                         email.review_status = ReviewStatus.PENDING_REVIEW.value
+                        # Stash the reason on the row so the operator
+                        # UI can show a precise "blocked because X"
+                        # banner instead of a generic "needs review".
+                        email.parse_skipped_reason = reason
                     else:
                         await self._auto_create_customer(email, parsed)
                         if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
@@ -218,8 +253,13 @@ class EmailProcessingService:
 
                 # Round-17 — same eligibility gate as ``process_email``.
                 if email.review_status == ReviewStatus.APPROVED.value:
-                    if not self._auto_quote_eligible(email, parsed):
+                    eligible, reason = _auto_quote_eligible(email, parsed)
+                    if not eligible:
                         email.review_status = ReviewStatus.PENDING_REVIEW.value
+                        # Stash the reason on the row so the operator
+                        # UI can show a precise "blocked because X"
+                        # banner instead of a generic "needs review".
+                        email.parse_skipped_reason = reason
                     else:
                         await self._auto_create_customer(email, parsed)
                         if parsed.get("parts") and parsed.get("confidence", 0) >= 0.7:
@@ -241,6 +281,32 @@ class EmailProcessingService:
         return email
 
     # ---- Private helpers ----
+
+    async def _mark_first_time_sender(self, email: EmailRequest) -> None:
+        """F-004 — set ``first_time_sender`` based on Customer lookup.
+
+        Tenant-scoped: a sender already known to another tenant doesn't
+        count as "known" for this tenant. Address comparison is
+        case-insensitive on the local-part and host. Idempotent — safe
+        to call multiple times.
+        """
+        sender = (email.from_address or "").strip().lower()
+        if not sender:
+            email.first_time_sender = True
+            return
+
+        from app.models.customer import Customer
+
+        stmt = select(Customer.id).where(
+            Customer.email.ilike(sender),
+        )
+        tenant_id = getattr(email, "tenant_id", None)
+        if tenant_id is not None:
+            stmt = stmt.where(Customer.tenant_id == tenant_id)
+        stmt = stmt.limit(1)
+        result = await self._db.execute(stmt)
+        match = result.scalar_one_or_none()
+        email.first_time_sender = match is None
 
     async def _get_email_or_raise(self, email_id: int) -> EmailRequest:
         result = await self._db.execute(

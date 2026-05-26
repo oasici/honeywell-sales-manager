@@ -389,6 +389,8 @@ async def poll_emails(
                             "size_bytes": pa.size_bytes,
                             "sheet_count": pa.sheet_count,
                             "page_count": pa.page_count,
+                            "total_pages": pa.total_pages,
+                            "truncated": pa.truncated,
                             "text": pa.text,
                             "heuristic_parts": (
                                 extract_rows_as_parts(pa.rows) if pa.rows else []
@@ -411,6 +413,28 @@ async def poll_emails(
                 None if sender_auth == "pass" else "pending_review"
             )
 
+            # F-003 — surface OCR truncation onto the row so the
+            # eligibility gate + UI can react. ``attachments_payload``
+            # carries the per-file flag; we OR-reduce across all
+            # attachments because any single truncation invalidates
+            # auto-quote.
+            any_truncated = any(
+                bool(a.get("truncated")) for a in (attachments_payload or [])
+            )
+            total_ocr_pages = sum(
+                int(a.get("total_pages") or 0)
+                for a in (attachments_payload or [])
+                if a.get("truncated")
+            )
+            rendered_ocr_pages = sum(
+                int(a.get("page_count") or 0)
+                for a in (attachments_payload or [])
+                if a.get("truncated")
+            )
+            ocr_skipped = (
+                total_ocr_pages - rendered_ocr_pages if any_truncated else None
+            )
+
             email = EmailRequest(
                 message_id=item["message_id"],
                 from_address=item["from_addr"],
@@ -425,9 +449,25 @@ async def poll_emails(
                 attachments_json=attachments_json,
                 sender_auth_status=sender_auth,
                 review_status=initial_review_status,
+                attachment_pages_truncated=any_truncated,
+                ocr_skipped_pages=ocr_skipped,
             )
             db.add(email)
-            await db.flush()
+            # F-019 — make Message-Id idempotency airtight. The
+            # SELECT-then-INSERT above is TOCTOU-racy under concurrent
+            # IMAP poll. The unique constraint on ``message_id`` raises
+            # IntegrityError; we swallow it and move on (the other
+            # writer won).
+            from sqlalchemy.exc import IntegrityError
+            try:
+                await db.flush()
+            except IntegrityError as exc:
+                await db.rollback()
+                _logger.info(
+                    "Idempotency: message_id %s already inserted (concurrent fetch). Skipping.",
+                    item.get("message_id"),
+                )
+                continue
             await db.refresh(email)
 
             # Parse

@@ -144,7 +144,7 @@ def test_auto_quote_blocks_on_untrusted_sender() -> None:
         "parts": [{"part_code": "C7061A1012", "catalog_status": "exact"}],
         "confidence": 0.9,
     }
-    assert _auto_quote_eligible(email, parsed) is False
+    assert _auto_quote_eligible(email, parsed)[0] is False
 
 
 def test_auto_quote_blocks_on_fuzzy_catalog_match() -> None:
@@ -160,7 +160,7 @@ def test_auto_quote_blocks_on_fuzzy_catalog_match() -> None:
         ],
         "confidence": 0.95,
     }
-    assert _auto_quote_eligible(email, parsed) is False
+    assert _auto_quote_eligible(email, parsed)[0] is False
 
 
 def test_auto_quote_blocks_on_unknown_catalog_match() -> None:
@@ -173,7 +173,7 @@ def test_auto_quote_blocks_on_unknown_catalog_match() -> None:
         "parts": [{"part_code": "ZZ99XX", "catalog_status": "unknown"}],
         "confidence": 0.95,
     }
-    assert _auto_quote_eligible(email, parsed) is False
+    assert _auto_quote_eligible(email, parsed)[0] is False
 
 
 def test_auto_quote_blocks_on_description_only_part() -> None:
@@ -187,7 +187,7 @@ def test_auto_quote_blocks_on_description_only_part() -> None:
         "parts": [{"part_code": "", "catalog_status": "no_code"}],
         "confidence": 0.9,
     }
-    assert _auto_quote_eligible(email, parsed) is False
+    assert _auto_quote_eligible(email, parsed)[0] is False
 
 
 def test_auto_quote_passes_when_all_axes_clear() -> None:
@@ -203,7 +203,7 @@ def test_auto_quote_passes_when_all_axes_clear() -> None:
         ],
         "confidence": 0.85,
     }
-    assert _auto_quote_eligible(email, parsed) is True
+    assert _auto_quote_eligible(email, parsed)[0] is True
 
 
 def test_auto_quote_passes_when_no_parts_and_sender_trusted() -> None:
@@ -217,7 +217,7 @@ def test_auto_quote_passes_when_no_parts_and_sender_trusted() -> None:
     # The downstream caller decides whether to draft a quote when
     # parts is empty (it won't); the eligibility gate itself
     # returns True.
-    assert _auto_quote_eligible(email, parsed) is True
+    assert _auto_quote_eligible(email, parsed)[0] is True
 
 
 # ── 4. Full service path with catalog + attachment merge ──────────

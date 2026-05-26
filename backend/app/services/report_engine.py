@@ -380,16 +380,25 @@ class ReportEngine:
         }
 
     async def export_csv(self, template_id: int, current_user) -> str:
-        """Export report as CSV string (tenant-scoped, R4-TEN-14)."""
+        """Export report as CSV string (tenant-scoped, R4-TEN-14).
+
+        F-008: every cell passes through ``sanitize_csv_cell`` so a
+        customer name like ``=cmd|'/c calc.exe'!A1`` lands in the
+        spreadsheet as text instead of an executable formula.
+        """
+        from app.services.csv_sanitizer import sanitize_csv_row
+
         data = await self.execute_report(template_id, current_user)
 
         output = io.StringIO()
         writer = csv.writer(output)
 
-        writer.writerow(data["columns"])
+        writer.writerow(sanitize_csv_row(data["columns"]))
 
         for row in data["rows"]:
-            writer.writerow([row.get(col, "") for col in data["columns"]])
+            writer.writerow(
+                sanitize_csv_row([row.get(col, "") for col in data["columns"]])
+            )
 
         return output.getvalue()
 
