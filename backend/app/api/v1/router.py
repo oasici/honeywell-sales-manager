@@ -161,3 +161,18 @@ v1_router.include_router(network_intelligence_router)
 v1_router.include_router(decision_graph_router)
 v1_router.include_router(ai_attributes_router)
 v1_router.include_router(relationship_graph_router)
+
+# Round-19 Phase 5 — service wiring endpoints.
+from app.api.v1.kvkk_export import router as kvkk_export_router
+from app.api.v1.sign_otp import router as sign_otp_router
+from app.api.v1.unsubscribe import router as unsubscribe_router
+from app.api.v1.trash import router as trash_router
+from app.api.v1.tenant_settings import router as tenant_settings_router
+from app.api.v1.bulk_import import router as bulk_import_router
+
+v1_router.include_router(kvkk_export_router)
+v1_router.include_router(sign_otp_router)
+v1_router.include_router(unsubscribe_router)
+v1_router.include_router(trash_router)
+v1_router.include_router(tenant_settings_router)
+v1_router.include_router(bulk_import_router)

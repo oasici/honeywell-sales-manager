@@ -42,6 +42,16 @@ class Customer(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
+    # F-007 (Round-19) — soft-delete tombstone. NULL = active.
+    # Existing rows pre-migration are active by default.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    deleted_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    delete_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # KVKK Compliance fields
     kvkk_consent: Mapped[bool] = mapped_column(Boolean, default=False)
     kvkk_consent_date: Mapped[datetime | None] = mapped_column(

@@ -30,7 +30,7 @@
 | F-018 | Approval quorum policy | 3 | **SHIPPED Phase 3** (quorum_policy + decisions ledger) |
 | F-019 | Email Message-Id idempotency | 1 | **EXECUTING this session** |
 | F-020 | Constant-time 404 cross-tenant | 1 | **EXECUTING this session** |
-| F-021 | Bulk imports | 4 | DEFERRED — not needed at 20-30 users |
+| F-021 | Bulk imports | 4 | **SHIPPED Phase 5** (CSV: customers + parts, 10K row cap, sync) |
 | F-022 | Mobile responsive | 3 | DEFERRED — UX nice-to-have |
 | F-023 | KVKK two-person rule | 3 | **SHIPPED Phase 4** (state machine + DB CHECK constraint) |
 | F-024 | Sequences mandatory unsubscribe | 3 | **SHIPPED Phase 4** (validator + opt-out registry) |

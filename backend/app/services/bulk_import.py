@@ -1,0 +1,375 @@
+"""F-021 lite — synchronous CSV import for customers + parts.
+
+At 20-30 users scale, "bulk import" really means "ops uploads the
+50-500 row CSV they've been keeping in Excel." That's well within
+synchronous-handling territory — no need for a background-job
+framework, no progress polling. A single POST with the CSV file
+streamed in returns a report.
+
+Two entity types supported today; the dispatch pattern allows
+adding more (opportunities, parts pricing, etc.) by registering a
+handler tuple.
+
+Each import is *all-or-nothing per row* — a row failing validation
+is reported but doesn't roll back successful peers. The DB writes
+go in batches of 50 inside the same transaction; if the entire
+job blows up halfway we rollback the open transaction and report.
+
+Idempotency: each importable entity declares its natural key
+(``customers.vergi_no``, ``spare_parts.part_code``). Duplicates
+become updates instead of insert errors — operators upload the same
+sheet twice without surprise.
+"""
+
+from __future__ import annotations
+
+import csv
+import io
+import logging
+from dataclasses import dataclass, field
+from typing import Any, Callable, Iterable
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
+
+
+_MAX_ROWS = 10_000              # synchronous-handling safety cap
+_BATCH_SIZE = 50
+
+
+@dataclass
+class ImportError:
+    row: int           # 1-based row number in the CSV (line 1 = header)
+    field: str | None  # which field caused the error, if known
+    message: str
+
+
+@dataclass
+class ImportReport:
+    inserted: int = 0
+    updated: int = 0
+    skipped: int = 0
+    errors: list[ImportError] = field(default_factory=list)
+    total_seen: int = 0
+
+    def as_dict(self) -> dict:
+        return {
+            "inserted": self.inserted,
+            "updated": self.updated,
+            "skipped": self.skipped,
+            "errors": [
+                {"row": e.row, "field": e.field, "message": e.message}
+                for e in self.errors
+            ],
+            "total_seen": self.total_seen,
+        }
+
+
+# ── Helpers ─────────────────────────────────────────────────────────
+
+
+def _norm(s: str | None) -> str | None:
+    if s is None:
+        return None
+    s = s.strip()
+    return s or None
+
+
+# ── Customer import ────────────────────────────────────────────────
+
+
+REQUIRED_CUSTOMER_FIELDS = ("name", "vergi_no")
+CUSTOMER_OPTIONAL_FIELDS = ("email", "phone", "industry", "city", "tier")
+
+
+async def import_customers(
+    db: AsyncSession,
+    csv_text: str,
+    *,
+    tenant_id: int,
+    actor_id: int,
+) -> ImportReport:
+    """CSV columns expected: name, vergi_no, email, phone, industry, city, tier.
+
+    Order doesn't matter — DictReader honours header row. Extra columns
+    are ignored. Missing required columns abort the whole upload.
+
+    Vergi_no is the natural key; duplicate vergi_no in the same tenant
+    becomes UPDATE (the row carries the new values).
+    """
+    report = ImportReport()
+    reader = csv.DictReader(io.StringIO(csv_text))
+
+    if reader.fieldnames is None:
+        report.errors.append(ImportError(row=1, field=None, message="csv_empty"))
+        return report
+    missing = set(REQUIRED_CUSTOMER_FIELDS) - set(reader.fieldnames)
+    if missing:
+        report.errors.append(
+            ImportError(
+                row=1, field=None,
+                message=f"csv_missing_required_columns:{sorted(missing)}",
+            )
+        )
+        return report
+
+    rows_to_apply: list[dict] = []
+    for idx, raw in enumerate(reader, start=2):
+        report.total_seen += 1
+        if report.total_seen > _MAX_ROWS:
+            report.errors.append(
+                ImportError(
+                    row=idx, field=None,
+                    message=f"row_cap_exceeded:{_MAX_ROWS}",
+                )
+            )
+            break
+
+        name = _norm(raw.get("name"))
+        vergi_no = _norm(raw.get("vergi_no"))
+        if not name:
+            report.errors.append(ImportError(row=idx, field="name", message="required"))
+            report.skipped += 1
+            continue
+        if not vergi_no:
+            report.errors.append(ImportError(row=idx, field="vergi_no", message="required"))
+            report.skipped += 1
+            continue
+        if not (10 <= len(vergi_no) <= 11) or not vergi_no.isdigit():
+            report.errors.append(
+                ImportError(
+                    row=idx, field="vergi_no",
+                    message="must_be_10_or_11_digits",
+                )
+            )
+            report.skipped += 1
+            continue
+
+        rows_to_apply.append(
+            {
+                "tenant_id": tenant_id,
+                "name": name,
+                "vergi_no": vergi_no,
+                "email": _norm(raw.get("email")),
+                "phone": _norm(raw.get("phone")),
+                "industry": _norm(raw.get("industry")),
+                "city": _norm(raw.get("city")),
+                "tier": _norm(raw.get("tier")) or "Bronze",
+                "created_by": actor_id,
+            }
+        )
+
+    # Apply in batches inside one transaction.
+    for batch_start in range(0, len(rows_to_apply), _BATCH_SIZE):
+        batch = rows_to_apply[batch_start : batch_start + _BATCH_SIZE]
+        for row in batch:
+            try:
+                # Look up by (tenant_id, vergi_no) — partial unique
+                # ignores soft-deleted rows so a previously-deleted
+                # customer can be re-imported.
+                existing = (
+                    await db.execute(
+                        text(
+                            """
+                            SELECT id FROM customers
+                            WHERE tenant_id = :tenant_id
+                              AND vergi_no = :vergi_no
+                              AND deleted_at IS NULL
+                            """
+                        ),
+                        {"tenant_id": row["tenant_id"], "vergi_no": row["vergi_no"]},
+                    )
+                ).first()
+                if existing:
+                    await db.execute(
+                        text(
+                            """
+                            UPDATE customers
+                               SET name = :name,
+                                   email = COALESCE(:email, email),
+                                   phone = COALESCE(:phone, phone),
+                                   industry = COALESCE(:industry, industry),
+                                   city = COALESCE(:city, city),
+                                   tier = COALESCE(:tier, tier)
+                             WHERE id = :id
+                            """
+                        ),
+                        {**row, "id": existing[0]},
+                    )
+                    report.updated += 1
+                else:
+                    await db.execute(
+                        text(
+                            """
+                            INSERT INTO customers
+                              (tenant_id, name, vergi_no, email, phone,
+                               industry, city, tier, created_by)
+                            VALUES
+                              (:tenant_id, :name, :vergi_no, :email, :phone,
+                               :industry, :city, :tier, :created_by)
+                            """
+                        ),
+                        row,
+                    )
+                    report.inserted += 1
+            except Exception as exc:  # noqa: BLE001
+                report.errors.append(
+                    ImportError(
+                        row=batch_start + 1,
+                        field=None,
+                        message=f"db_error: {str(exc)[:200]}",
+                    )
+                )
+                report.skipped += 1
+                logger.warning(
+                    "Customer import row failed: %s", str(exc)[:300]
+                )
+        await db.flush()
+
+    return report
+
+
+# ── Spare-part import ──────────────────────────────────────────────
+
+
+REQUIRED_PART_FIELDS = ("part_code", "description")
+PART_OPTIONAL_FIELDS = ("category", "list_price", "currency", "min_stock")
+
+
+async def import_parts(
+    db: AsyncSession,
+    csv_text: str,
+    *,
+    tenant_id: int,
+    actor_id: int,
+) -> ImportReport:
+    """CSV columns: part_code, description, category, list_price, currency, min_stock.
+
+    Natural key: (tenant_id, part_code). Duplicates update.
+    """
+    report = ImportReport()
+    reader = csv.DictReader(io.StringIO(csv_text))
+
+    if reader.fieldnames is None:
+        report.errors.append(ImportError(row=1, field=None, message="csv_empty"))
+        return report
+    missing = set(REQUIRED_PART_FIELDS) - set(reader.fieldnames)
+    if missing:
+        report.errors.append(
+            ImportError(
+                row=1, field=None,
+                message=f"csv_missing_required_columns:{sorted(missing)}",
+            )
+        )
+        return report
+
+    rows_to_apply: list[dict] = []
+    for idx, raw in enumerate(reader, start=2):
+        report.total_seen += 1
+        if report.total_seen > _MAX_ROWS:
+            report.errors.append(
+                ImportError(
+                    row=idx, field=None,
+                    message=f"row_cap_exceeded:{_MAX_ROWS}",
+                )
+            )
+            break
+
+        code = _norm(raw.get("part_code"))
+        desc = _norm(raw.get("description"))
+        if not code:
+            report.errors.append(ImportError(row=idx, field="part_code", message="required"))
+            report.skipped += 1
+            continue
+        if not desc:
+            report.errors.append(ImportError(row=idx, field="description", message="required"))
+            report.skipped += 1
+            continue
+
+        list_price = _norm(raw.get("list_price"))
+        if list_price is not None:
+            try:
+                list_price = float(list_price.replace(",", "."))
+            except ValueError:
+                report.errors.append(
+                    ImportError(
+                        row=idx, field="list_price",
+                        message="must_be_number",
+                    )
+                )
+                report.skipped += 1
+                continue
+
+        rows_to_apply.append(
+            {
+                "tenant_id": tenant_id,
+                "part_code": code,
+                "description": desc,
+                "category": _norm(raw.get("category")),
+                "list_price": list_price,
+                "currency": _norm(raw.get("currency")) or "TRY",
+                "min_stock": int(raw.get("min_stock") or 0) if raw.get("min_stock") else 0,
+            }
+        )
+
+    for batch_start in range(0, len(rows_to_apply), _BATCH_SIZE):
+        batch = rows_to_apply[batch_start : batch_start + _BATCH_SIZE]
+        for row in batch:
+            try:
+                existing = (
+                    await db.execute(
+                        text(
+                            """
+                            SELECT id FROM spare_parts
+                            WHERE tenant_id = :tenant_id
+                              AND part_code = :part_code
+                            """
+                        ),
+                        {"tenant_id": row["tenant_id"], "part_code": row["part_code"]},
+                    )
+                ).first()
+                if existing:
+                    await db.execute(
+                        text(
+                            """
+                            UPDATE spare_parts
+                               SET description = :description,
+                                   category    = COALESCE(:category, category),
+                                   list_price  = COALESCE(:list_price, list_price),
+                                   currency    = COALESCE(:currency, currency),
+                                   min_stock   = COALESCE(:min_stock, min_stock)
+                             WHERE id = :id
+                            """
+                        ),
+                        {**row, "id": existing[0]},
+                    )
+                    report.updated += 1
+                else:
+                    await db.execute(
+                        text(
+                            """
+                            INSERT INTO spare_parts
+                              (tenant_id, part_code, description, category,
+                               list_price, currency, min_stock)
+                            VALUES
+                              (:tenant_id, :part_code, :description, :category,
+                               :list_price, :currency, :min_stock)
+                            """
+                        ),
+                        row,
+                    )
+                    report.inserted += 1
+            except Exception as exc:  # noqa: BLE001
+                report.errors.append(
+                    ImportError(
+                        row=batch_start + 1,
+                        field=None,
+                        message=f"db_error: {str(exc)[:200]}",
+                    )
+                )
+                report.skipped += 1
+        await db.flush()
+
+    return report

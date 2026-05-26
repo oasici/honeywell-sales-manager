@@ -279,4 +279,33 @@ __all__ = [
     "AiAttributeValue",
     "RelationshipEdge",
     "RelationshipScore",
+    # Round-19 hardening tables (Phase 2-4)
+    "TenantDek",
+    "AdminActionNonce",
+    "SignOtpToken",
+    "UserRoleGrant",
+    "KvkkExportRequest",
+    "EmailOptout",
+    "TokenBlocklist",
+    "WorkflowExecutionLog",
+    "ApprovalRulePendingChange",
+    "ApprovalDecision",
+    "TenantSettings",
 ]
+
+# Round-19 model registrations. Imported here so ``Base.metadata``
+# picks them up before ``create_all()`` runs in tests; production
+# uses the alembic migrations directly.
+from app.models.round19_tables import (  # noqa: E402, F401
+    AdminActionNonce,
+    ApprovalDecision,
+    ApprovalRulePendingChange,
+    EmailOptout,
+    KvkkExportRequest,
+    SignOtpToken,
+    TenantDek,
+    TokenBlocklist,
+    UserRoleGrant,
+    WorkflowExecutionLog,
+)
+from app.models.tenant_settings import TenantSettings  # noqa: E402, F401
