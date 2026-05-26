@@ -954,6 +954,38 @@ def start_scheduler():
         id="rag_incremental_backfill",
         replace_existing=True,
     )
+    # Round-19 cron jobs — wired here so the existing scheduler
+    # picks them up. All four are idempotent + cheap; safe to run on
+    # the 20-30 user pilot.
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("r19_token_blocklist_cleanup", r19_token_blocklist_cleanup_task)),
+        "interval",
+        hours=1,
+        id="r19_token_blocklist_cleanup",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("r19_admin_nonce_cleanup", r19_admin_nonce_cleanup_task)),
+        "interval",
+        minutes=30,
+        id="r19_admin_nonce_cleanup",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("r19_approval_sla_escalation", r19_approval_sla_task)),
+        "interval",
+        minutes=15,
+        id="r19_approval_sla_escalation",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("r19_health_recompute_batch", r19_health_recompute_task)),
+        "interval",
+        minutes=5,
+        id="r19_health_recompute_batch",
+        replace_existing=True,
+    )
+
     # In production, this is started from the FastAPI lifespan where an event loop
     # is guaranteed to be running. In sync unit tests, starting an AsyncIOScheduler
     # can fail if the loop is closed; we keep the jobs registered but skip `start()`.
@@ -1047,3 +1079,130 @@ async def build_rag_incremental_backfill_task():
 
     async with async_session() as db:
         await run_incremental_backfill(db)
+
+
+# ────────────────────────────────────────────────────────────────────
+# Round-19 cron jobs
+# ────────────────────────────────────────────────────────────────────
+
+
+async def r19_token_blocklist_cleanup_task():
+    """F-013 — drop expired JTI entries from the persistent blocklist.
+
+    Runs hourly. Idempotent (DELETE WHERE exp < now()). At 20-30 user
+    scale this trims at most a few hundred rows per run.
+    """
+    from app.core.database import async_session
+    from app.services.token_blocklist import cleanup_expired_blocklist
+
+    async with async_session() as db:
+        deleted = await cleanup_expired_blocklist(db)
+        await db.commit()
+        if deleted:
+            logger.info("token_blocklist cron removed %d expired JTIs", deleted)
+
+
+async def r19_admin_nonce_cleanup_task():
+    """F-005 — drop expired admin-action nonces.
+
+    Runs every 30 min. The TTL is 5 min so this is generous; mostly a
+    hygiene job to keep the table from growing past the daily volume.
+    """
+    from app.core.database import async_session
+    from app.services.admin_nonce import cleanup_expired_nonces
+
+    async with async_session() as db:
+        deleted = await cleanup_expired_nonces(db)
+        await db.commit()
+        if deleted:
+            logger.info("admin_nonce cron removed %d expired nonces", deleted)
+
+
+async def r19_approval_sla_task():
+    """F-028 — escalate overdue approvals.
+
+    Finds pending approval requests past their ``due_at`` and bumps
+    ``escalation_level`` / reassigns per the rule's escalation chain.
+    Never auto-approves — the Round-19 audit forbids that. On the
+    20-30 user pilot this is mostly a "send a reminder email" job.
+    """
+    from sqlalchemy import text
+
+    from app.core.database import async_session
+    from app.services.approval_sla import next_escalation_target
+
+    async with async_session() as db:
+        # Pull every pending request past due that hasn't yet been
+        # escalated. Small cap so a backlog doesn't melt the job.
+        overdue = (
+            await db.execute(
+                text(
+                    """
+                    SELECT
+                        ar.id, ar.assigned_to, ar.escalation_level,
+                        ar.rule_id, ar.tenant_id,
+                        rule.delegate_to, rule.escalation_action,
+                        u.manager_id
+                      FROM approval_requests ar
+                 LEFT JOIN approval_rules rule ON rule.id = ar.rule_id
+                 LEFT JOIN users u             ON u.id    = ar.assigned_to
+                     WHERE ar.status = 'pending'
+                       AND ar.due_at IS NOT NULL
+                       AND ar.due_at < now()
+                       AND ar.escalation_level < 5
+                     LIMIT 200
+                    """
+                )
+            )
+        ).mappings().all()
+
+        bumped = 0
+        for row in overdue:
+            nxt, action = next_escalation_target(
+                current_assignee_id=row["assigned_to"],
+                rule_delegate_id=row["delegate_to"],
+                rule_escalation_action=row["escalation_action"],
+                manager_id=row.get("manager_id"),
+            )
+            await db.execute(
+                text(
+                    """
+                    UPDATE approval_requests
+                       SET escalation_level = escalation_level + 1,
+                           escalated_at     = now(),
+                           assigned_to      = COALESCE(:nxt, assigned_to)
+                     WHERE id = :id AND status = 'pending'
+                    """
+                ),
+                {"nxt": nxt, "id": row["id"]},
+            )
+            bumped += 1
+        await db.commit()
+        if bumped:
+            logger.info("approval SLA cron escalated %d overdue requests", bumped)
+
+
+async def r19_health_recompute_task():
+    """F-014 — drain the dirty set + run health recompute for each.
+
+    Single-process in-memory dirty set. Drain every 5 min. Failures
+    are isolated per customer so one bad row doesn't break the batch.
+    """
+    from app.core.database import async_session
+    from app.services.health_recompute_debouncer import run_batch_recompute
+
+    async def _recompute(db, customer_id: int) -> None:
+        # Lazy import so the worker isn't a hard dependency for unit
+        # tests that don't exercise this code path.
+        from app.services.customer_health_service import (
+            CustomerHealthService,
+        )
+
+        svc = CustomerHealthService(db)
+        await svc.recompute_for_customer(customer_id)
+
+    async with async_session() as db:
+        processed = await run_batch_recompute(db, recompute_fn=_recompute)
+        await db.commit()
+        if processed:
+            logger.info("health recompute cron processed %d customers", processed)

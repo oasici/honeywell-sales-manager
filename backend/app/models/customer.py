@@ -52,6 +52,11 @@ class Customer(Base):
     )
     delete_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
+    # F-017 Phase 7 — optimistic concurrency lock.
+    # Every UPDATE bumps row_version; ``guarded_update`` raises 409
+    # when the client's ``expected_version`` is stale.
+    row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
     # KVKK Compliance fields
     kvkk_consent: Mapped[bool] = mapped_column(Boolean, default=False)
     kvkk_consent_date: Mapped[datetime | None] = mapped_column(

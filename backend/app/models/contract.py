@@ -54,6 +54,9 @@ class Contract(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
+    # F-017 Phase 7 — optimistic concurrency lock.
+    row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
     amendments = relationship(
         "ContractAmendment",
         back_populates="contract",
