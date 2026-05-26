@@ -50,7 +50,7 @@ const FALLBACK_VALUE: FeatureFlagContextValue = {
 
 export function FeatureFlagProvider({ children }: { children: ReactNode }) {
   // R14-FE-1 exempt: boot-time flag fetch; SPA falls back to FEATURE_DEFAULTS on error so the app keeps booting
-  const { data, isSuccess } = useQuery<FeatureFlagsResponse>({
+  const { data, isSuccess, isError, error } = useQuery<FeatureFlagsResponse>({
     queryKey: ['config', 'feature-flags'],
     queryFn: () => configApi.getFeatureFlags(),
     // Flags don't change at runtime in practice — Render redeploys
@@ -59,19 +59,50 @@ export function FeatureFlagProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
     // Auth-gated endpoint; the AuthGuard component already prevents
     // rendering before login, so this query won't fire pre-login.
-    retry: 1,
+    // Three retries because Render Free cold-starts can take 30-60s;
+    // a single retry was producing permanent blank pages whenever the
+    // backend container had spun down (Round-19 R19-FE-1).
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
 
   const value = useMemo<FeatureFlagContextValue>(() => {
-    if (!data) return FALLBACK_VALUE;
-    return {
-      flags: data.flags,
-      env: data.env,
-      release: data.release,
-      isLoaded: isSuccess,
-      isEnabled: (flag: string) => Boolean(data.flags[flag]),
-    };
-  }, [data, isSuccess]);
+    if (data) {
+      return {
+        flags: data.flags,
+        env: data.env,
+        release: data.release,
+        isLoaded: isSuccess,
+        isEnabled: (flag: string) => Boolean(data.flags[flag]),
+      };
+    }
+    if (isError) {
+      // Round-19 R19-FE-1 — fail-open when the flag fetch errors out.
+      // Pre-Round-19 the gate hung at `isLoaded=false` and every
+      // gated route (Cockpit, Forecast, Parts Intel, Compliance,
+      // Contracts, Campaigns, Invoices, Subscriptions, Dashboards,
+      // Approvals, Reports Builder, Leads, Workflow Rules, Custom
+      // Fields, Territories, Rev Rec — 20+ surfaces) rendered as a
+      // permanently blank page on Render after cold-start failures.
+      // These flags are UX/discovery gates only — the backend still
+      // enforces feature access on every endpoint via `_require_*`
+      // dependencies — so fail-open is safe and keeps the SPA usable.
+      // The console warn surfaces the underlying error for support.
+      console.warn(
+        '[FeatureFlagGate] /config/feature-flags failed; falling open. ' +
+          'Backend still enforces per-route. Error:',
+        error,
+      );
+      return {
+        flags: {},
+        env: 'unknown',
+        release: 'unknown',
+        isLoaded: true,
+        isEnabled: () => true,
+      };
+    }
+    return FALLBACK_VALUE;
+  }, [data, isSuccess, isError, error]);
 
   return <FeatureFlagContext.Provider value={value}>{children}</FeatureFlagContext.Provider>;
 }
@@ -112,7 +143,18 @@ export function FeatureFlagGate({
   fallback?: ReactNode;
 }) {
   const { isEnabled, isLoaded } = useFeatureFlags();
-  if (!isLoaded) return null;
+  // Round-19 R19-FE-1 — during the in-flight flag fetch (cold start)
+  // render a centred spinner instead of bare `null`. Returning `null`
+  // produced a fully blank main pane that was indistinguishable from
+  // a crashed route, so support kept getting tickets like "the page
+  // doesn't open" for routes that were just waiting on /config.
+  if (!isLoaded) {
+    return (
+      <div className="flex h-full min-h-[40vh] items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-(--border) border-t-honeywell-red" />
+      </div>
+    );
+  }
   if (!isEnabled(flag)) {
     return (
       <>
