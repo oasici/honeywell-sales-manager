@@ -314,6 +314,71 @@ def apply_request_perms(data: dict, entity_type: str) -> dict:
     return apply_perms_sync(data, get_request_field_perms(entity_type))
 
 
+# D-018 — auditable masking decorator. Endpoints returning data for
+# one of the 9 maskable entity types should wrap with this. Two
+# benefits over manually calling ``apply_request_perms`` at the end
+# of each handler:
+#
+#   1. The masking is visibly bound to the endpoint surface (lint
+#      can grep the decorator).
+#   2. It handles both single-object and ``items=[...]`` envelope
+#      shapes uniformly, so list endpoints don't accidentally skip
+#      the per-row mask.
+def apply_request_perms_to_response(entity_type: str):
+    """Wrap an endpoint so its return value is masked per role.
+
+    Usage::
+
+        @router.get("/{cid}", response_model=CustomerOut)
+        @apply_request_perms_to_response("customer")
+        async def get_customer(...):
+            ...
+
+    The decorator is permissive: when the return value is not a dict
+    and is not a list-of-dicts (e.g. a Pydantic model that the
+    response_model machinery hasn't dumped yet), the decorator is a
+    no-op and the FastAPI ``response_model`` masking can run via the
+    Pydantic-aware path. This is intentional — the decorator covers
+    the common "raw dict" return idiom without breaking the modern
+    typed-response path.
+    """
+
+    from functools import wraps
+
+    def deco(fn):
+        @wraps(fn)
+        async def wrap(*args, **kwargs):
+            result = await fn(*args, **kwargs)
+            if isinstance(result, dict):
+                # Common shapes: {"items": [...]} or a single record.
+                if "items" in result and isinstance(result["items"], list):
+                    result = {
+                        **result,
+                        "items": [
+                            apply_request_perms(item, entity_type)
+                            if isinstance(item, dict)
+                            else item
+                            for item in result["items"]
+                        ],
+                    }
+                else:
+                    result = apply_request_perms(result, entity_type)
+            elif isinstance(result, list):
+                result = [
+                    apply_request_perms(item, entity_type)
+                    if isinstance(item, dict)
+                    else item
+                    for item in result
+                ]
+            return result
+
+        # Tag the wrapper so the lint test can find it.
+        wrap.__field_perms_entity__ = entity_type  # type: ignore[attr-defined]
+        return wrap
+
+    return deco
+
+
 async def prefetch_field_perms_dependency(
     db: AsyncSession,
     role: str | None,

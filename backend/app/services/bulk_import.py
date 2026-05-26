@@ -238,6 +238,140 @@ REQUIRED_PART_FIELDS = ("part_code", "description")
 PART_OPTIONAL_FIELDS = ("category", "list_price", "currency", "min_stock")
 
 
+REQUIRED_LEAD_FIELDS = ("first_name", "last_name", "email")
+LEAD_OPTIONAL_FIELDS = ("phone", "company", "title", "source")
+
+
+async def import_leads(
+    db: AsyncSession,
+    csv_text: str,
+    *,
+    tenant_id: int,
+    actor_id: int,
+) -> ImportReport:
+    """CSV columns: first_name, last_name, email, phone, company, title, source.
+
+    Natural key: (tenant_id, lower(email)). Duplicate email becomes
+    UPDATE. Source defaults to ``import`` when omitted.
+    """
+    report = ImportReport()
+    reader = csv.DictReader(io.StringIO(csv_text))
+
+    if reader.fieldnames is None:
+        report.errors.append(ImportError(row=1, field=None, message="csv_empty"))
+        return report
+    missing = set(REQUIRED_LEAD_FIELDS) - set(reader.fieldnames)
+    if missing:
+        report.errors.append(
+            ImportError(
+                row=1, field=None,
+                message=f"csv_missing_required_columns:{sorted(missing)}",
+            )
+        )
+        return report
+
+    rows_to_apply: list[dict] = []
+    for idx, raw in enumerate(reader, start=2):
+        report.total_seen += 1
+        if report.total_seen > _MAX_ROWS:
+            report.errors.append(
+                ImportError(row=idx, field=None, message=f"row_cap_exceeded:{_MAX_ROWS}")
+            )
+            break
+
+        first = _norm(raw.get("first_name"))
+        last = _norm(raw.get("last_name"))
+        email = _norm(raw.get("email"))
+        if not first or not last:
+            report.errors.append(ImportError(row=idx, field="name", message="required"))
+            report.skipped += 1
+            continue
+        if not email or "@" not in email:
+            report.errors.append(ImportError(row=idx, field="email", message="invalid"))
+            report.skipped += 1
+            continue
+
+        rows_to_apply.append(
+            {
+                "tenant_id": tenant_id,
+                "first_name": first,
+                "last_name": last,
+                "email": email.lower(),
+                "phone": _norm(raw.get("phone")),
+                "company": _norm(raw.get("company")),
+                "title": _norm(raw.get("title")),
+                "source": _norm(raw.get("source")) or "import",
+                "owner_id": actor_id,
+                "status": "new",
+            }
+        )
+
+    for batch_start in range(0, len(rows_to_apply), _BATCH_SIZE):
+        batch = rows_to_apply[batch_start : batch_start + _BATCH_SIZE]
+        for row in batch:
+            # Per-row SAVEPOINT so one failing row doesn't poison the
+            # whole batch with "current transaction is aborted".
+            try:
+                async with db.begin_nested():
+                    existing = (
+                        await db.execute(
+                            text(
+                                """
+                                SELECT id FROM leads
+                                WHERE tenant_id = :tenant_id AND LOWER(email) = :email
+                                  AND deleted_at IS NULL
+                                """
+                            ),
+                            {"tenant_id": row["tenant_id"], "email": row["email"]},
+                        )
+                    ).first()
+                    if existing:
+                        await db.execute(
+                            text(
+                                """
+                                UPDATE leads
+                                   SET first_name = :first_name,
+                                       last_name  = :last_name,
+                                       phone      = COALESCE(:phone, phone),
+                                       company    = COALESCE(:company, company),
+                                       title      = COALESCE(:title, title),
+                                       source     = COALESCE(:source, source)
+                                 WHERE id = :id
+                                """
+                            ),
+                            {**row, "id": existing[0]},
+                        )
+                        report.updated += 1
+                    else:
+                        await db.execute(
+                            text(
+                                """
+                                INSERT INTO leads
+                                  (tenant_id, first_name, last_name, email, phone,
+                                   company, title, source, owner_id, status, lead_score,
+                                   created_at, updated_at)
+                                VALUES
+                                  (:tenant_id, :first_name, :last_name, :email, :phone,
+                                   :company, :title, :source, :owner_id, :status, 0,
+                                   now(), now())
+                                """
+                            ),
+                            row,
+                        )
+                        report.inserted += 1
+            except Exception as exc:  # noqa: BLE001
+                report.errors.append(
+                    ImportError(
+                        row=batch_start + 1,
+                        field=None,
+                        message=f"db_error: {str(exc)[:200]}",
+                    )
+                )
+                report.skipped += 1
+
+    return report
+
+
 async def import_parts(
     db: AsyncSession,
     csv_text: str,

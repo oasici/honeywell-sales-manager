@@ -10189,6 +10189,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bulk-import/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Import Leads
+         * @description D-031 — upload a lead CSV.
+         *
+         *     Required columns: ``first_name``, ``last_name``, ``email``.
+         *     Optional: ``phone``, ``company``, ``title``, ``source``.
+         *
+         *     Natural key: (tenant, lower(email)). Re-uploading the same sheet
+         *     updates rather than duplicates.
+         */
+        post: operations["bulk_import_leads_api_v1_bulk_import_leads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bulk-import/parts": {
         parameters: {
             query?: never;
@@ -11123,6 +11149,11 @@ export interface components {
         };
         /** Body_bulk_import_customers_api_v1_bulk_import_customers_post */
         Body_bulk_import_customers_api_v1_bulk_import_customers_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_bulk_import_leads_api_v1_bulk_import_leads_post */
+        Body_bulk_import_leads_api_v1_bulk_import_leads_post: {
             /** File */
             file: string;
         };
@@ -41279,6 +41310,41 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_bulk_import_customers_api_v1_bulk_import_customers_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_import_leads_api_v1_bulk_import_leads_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_bulk_import_leads_api_v1_bulk_import_leads_post"];
             };
         };
         responses: {
