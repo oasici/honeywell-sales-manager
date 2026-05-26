@@ -10,30 +10,30 @@
 
 | ID | Finding | Phase | Status |
 |---|---|---|---|
-| F-001 | Per-tenant KMS-wrapped DEK | 1 | BLOCKED — needs cloud KMS decision |
-| F-002 | Email auth=fail skips LLM | 1 | **EXECUTING this session** |
-| F-003 | OCR truncation blocks auto-quote | 1 | **EXECUTING this session** |
-| F-004 | First-time-sender manual review | 1 | **EXECUTING this session** |
-| F-005 | `/admin/merge` POST + CSRF + nonce | 1 | DEFERRED — needs FE rework |
-| F-006 | e-Sign OTP + recipient binding | 2 | DEFERRED |
-| F-007 | Soft/hard delete policy | 2 | DEFERRED — needs cross-team policy |
-| F-008 | CSV/Excel injection sanitization | 1 | **EXECUTING this session** |
-| F-009 | Reports Builder tenant injection + RLS | 2 | DEFERRED — needs RLS rollout plan |
-| F-010 | Approval rule self-disable meta-approval | 2 | **SHIPPED Phase 2** (commit pending) |
-| F-011 | Operations role split | 2 | DEFERRED — needs role-mapping plan |
-| F-012 | Multi-currency forecast | 4 | DEFERRED |
-| F-013 | JWT JTI blocklist | 2 | **SHIPPED Phase 2** (PG-backed, Redis optional) |
-| F-014 | Health debounce + batching | 4 | DEFERRED |
+| F-001 | Per-tenant DEK envelope encryption | 1 | **SHIPPED Phase 4** (in-PG envelope, KMS swap target) |
+| F-002 | Email auth=fail skips LLM | 1 | **SHIPPED Phase 1** |
+| F-003 | OCR truncation blocks auto-quote | 1 | **SHIPPED Phase 1** |
+| F-004 | First-time-sender manual review | 1 | **SHIPPED Phase 1** |
+| F-005 | `/admin/merge` POST + CSRF + nonce | 1 | **SHIPPED Phase 4** (nonce service ready; FE consumes next) |
+| F-006 | e-Sign OTP + recipient binding | 2 | **SHIPPED Phase 4** (email-only, no SMS) |
+| F-007 | Soft/hard delete policy | 2 | **SHIPPED Phase 4** (universal mixin + tombstones on 7 entities) |
+| F-008 | CSV/Excel injection sanitization | 1 | **SHIPPED Phase 1** |
+| F-009 | Reports Builder tenant injection + RLS | 2 | DEFERRED — RLS overhead not justified at 20-30 users |
+| F-010 | Approval rule self-disable meta-approval | 2 | **SHIPPED Phase 2** |
+| F-011 | Operations role split | 2 | **SHIPPED Phase 4** (3 sub-roles + ops_audit; auto-migration) |
+| F-012 | Multi-currency forecast | 4 | DEFERRED — first international customer trigger |
+| F-013 | JWT JTI blocklist | 2 | **SHIPPED Phase 2** (PG-backed) |
+| F-014 | Health debounce + batching | 4 | DEFERRED — no bulk imports at 20-30 users scale |
 | F-015 | Workflow rule cycle detection | 3 | **SHIPPED Phase 2** |
 | F-016 | RFQ aggregation 14-day window | 3 | **EXECUTING this session** |
 | F-017 | Quote optimistic locking | 3 | **SHIPPED Phase 2** (`row_version` column + helper) |
 | F-018 | Approval quorum policy | 3 | **SHIPPED Phase 3** (quorum_policy + decisions ledger) |
 | F-019 | Email Message-Id idempotency | 1 | **EXECUTING this session** |
 | F-020 | Constant-time 404 cross-tenant | 1 | **EXECUTING this session** |
-| F-021 | Bulk imports | 4 | DEFERRED |
-| F-022 | Mobile responsive | 3 | DEFERRED |
-| F-023 | KVKK two-person rule | 3 | DEFERRED |
-| F-024 | Sequences mandatory unsubscribe | 3 | DEFERRED |
+| F-021 | Bulk imports | 4 | DEFERRED — not needed at 20-30 users |
+| F-022 | Mobile responsive | 3 | DEFERRED — UX nice-to-have |
+| F-023 | KVKK two-person rule | 3 | **SHIPPED Phase 4** (state machine + DB CHECK constraint) |
+| F-024 | Sequences mandatory unsubscribe | 3 | **SHIPPED Phase 4** (validator + opt-out registry) |
 | F-025 | AI coaching watermark + preview | 3 | **SCHEMA SHIPPED Phase 2** (cols on `coaching_hooks`; logic awaits model presence) |
 | F-026 | Quote v1 supersede | 3 | **SHIPPED Phase 3** (superseded_by_id + helpers) |
 | F-027 | Pricing precedence | 3 | **SHIPPED Phase 3** (`price_source` + resolver) |
