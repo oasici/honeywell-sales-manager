@@ -18,9 +18,29 @@ class WorkflowService:
         self.db = db
 
     async def evaluate_event(
-        self, entity_type: str, trigger_event: str, entity_data: dict,
+        self,
+        entity_type: str,
+        trigger_event: str,
+        entity_data: dict,
+        *,
+        ctx=None,
     ) -> int:
-        """Evaluate all active rules for this event and execute matching ones."""
+        """Evaluate all active rules for this event and execute matching ones.
+
+        D-013 — caller may pass a ``RuleExecutionContext``; the runtime
+        depth + visited guards then catch runaway A→B→A chains. When
+        no ctx is supplied (root event from user action), we create a
+        fresh one so the guard *always* runs.
+        """
+        from app.services.workflow_cycle_detector import (
+            RuleExecutionContext,
+            WorkflowCycleDetected,
+            WorkflowDepthExceeded,
+        )
+
+        if ctx is None:
+            ctx = RuleExecutionContext()
+
         rules = (
             await self.db.execute(
                 select(WorkflowRule).where(
@@ -33,10 +53,62 @@ class WorkflowService:
 
         executed = 0
         for rule in rules:
-            if self._match_conditions(rule, entity_data):
+            if not self._match_conditions(rule, entity_data):
+                continue
+            # D-013 — enter/exit guards. A cycle or depth overflow
+            # raises; we log and abort the chain rather than poisoning
+            # downstream rules' state.
+            try:
+                ctx.enter(rule.id)
+            except (WorkflowCycleDetected, WorkflowDepthExceeded) as exc:
+                logger.warning(
+                    "Workflow chain aborted (rule_id=%d, root=%s): %s",
+                    rule.id, ctx.root_event_id, exc,
+                )
+                await self._record_workflow_block(
+                    rule, ctx,
+                    outcome="blocked_cycle" if isinstance(exc, WorkflowCycleDetected) else "blocked_depth",
+                    note=str(exc),
+                )
+                break
+            try:
                 await self._execute_actions(rule, entity_data)
                 executed += 1
+            finally:
+                ctx.exit_(rule.id)
         return executed
+
+    async def _record_workflow_block(self, rule, ctx, *, outcome: str, note: str) -> None:
+        """Persist a row in workflow_execution_log when a chain is blocked.
+
+        Best-effort: wrapped in a SAVEPOINT so a logging failure
+        (table missing on partial deploys, FK constraint, etc.)
+        doesn't poison the surrounding transaction.
+        """
+        from sqlalchemy import text
+
+        try:
+            async with self.db.begin_nested():
+                await self.db.execute(
+                    text(
+                        """
+                        INSERT INTO workflow_execution_log
+                          (tenant_id, root_event_id, rule_id, depth, outcome, note, created_at)
+                        VALUES
+                          (:tid, :root, :rid, :depth, :outcome, :note, now())
+                        """
+                    ),
+                    {
+                        "tid": getattr(rule, "tenant_id", None) or 0,
+                        "root": ctx.root_event_id,
+                        "rid": rule.id,
+                        "depth": ctx.depth,
+                        "outcome": outcome,
+                        "note": (note or "")[:500],
+                    },
+                )
+        except Exception:
+            logger.exception("workflow_execution_log insert failed")
 
     def _match_conditions(self, rule: WorkflowRule, entity_data: dict) -> bool:
         """Check whether all conditions on a rule match the entity data."""
