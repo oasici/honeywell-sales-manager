@@ -9876,6 +9876,403 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kvkk-export/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Kvkk Requests
+         * @description List requests for the user's tenant.
+         */
+        get: operations["list_kvkk_requests_api_v1_kvkk_export_requests_get"];
+        put?: never;
+        /**
+         * Create Kvkk Request
+         * @description Operator A files a new request. Two-person rule kicks in on
+         *     the approve step — for now this just creates the row.
+         */
+        post: operations["create_kvkk_request_api_v1_kvkk_export_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kvkk-export/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Kvkk Request */
+        get: operations["get_kvkk_request_api_v1_kvkk_export_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kvkk-export/requests/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Kvkk Request
+         * @description Operator B approves. Enforces approver != requester.
+         */
+        post: operations["approve_kvkk_request_api_v1_kvkk_export_requests__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kvkk-export/requests/{request_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Kvkk Request */
+        post: operations["reject_kvkk_request_api_v1_kvkk_export_requests__request_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kvkk-export/requests/{request_id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute Kvkk Request
+         * @description Kick off the export job. Refuses if status != ``approved``.
+         *
+         *     The actual data-collection worker runs separately; this endpoint
+         *     only locks the row to ``executing`` so a second operator can't
+         *     double-trigger.
+         */
+        post: operations["execute_kvkk_request_api_v1_kvkk_export_requests__request_id__execute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sign/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sign Token */
+        get: operations["get_sign_token_api_v1_sign__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sign/{token}/send-otp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Otp */
+        post: operations["send_otp_api_v1_sign__token__send_otp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sign/{token}/verify-otp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Otp */
+        post: operations["verify_otp_api_v1_sign__token__verify_otp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sign/{token}/contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View Contract
+         * @description Returns the contract content. Refuses if OTP not verified.
+         *
+         *     The actual rendering (PDF stream, HTML, etc.) is left to the
+         *     caller for now — we surface the contract_id + a verified flag so
+         *     the frontend knows it's safe to render. Phase 5 wires the real
+         *     contract fetch.
+         */
+        get: operations["view_contract_api_v1_sign__token__contract_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sign/{token}/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign
+         * @description Records the signature + consumes the token.
+         *
+         *     Captures IP + UA from the request for the legal audit trail.
+         *     Idempotency: the token is single-use; double-clicking yields
+         *     410 Gone on the second call (consumed_at already set).
+         */
+        post: operations["sign_api_v1_sign__token__sign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/unsubscribe/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Unsubscribe */
+        get: operations["preview_unsubscribe_api_v1_unsubscribe__token__get"];
+        put?: never;
+        /** Confirm Unsubscribe */
+        post: operations["confirm_unsubscribe_api_v1_unsubscribe__token__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/trash/{entity}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Trashed
+         * @description Return soft-deleted rows for ``entity`` within the user's tenant.
+         *
+         *     Default 100-row limit. Operators with a long backlog can paginate
+         *     via offset (not needed yet at 20-30 user scale).
+         */
+        get: operations["list_trashed_api_v1_trash__entity__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/trash/{entity}/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Entity
+         * @description Un-tombstone a soft-deleted row.
+         *
+         *     Tenant-scoped: a foreign-tenant row returns 404, not 403, to
+         *     avoid leaking existence (F-020 pattern).
+         *     Operations + sales_manager only.
+         */
+        post: operations["restore_entity_api_v1_trash__entity___id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/tenant-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_v1_admin_tenant_settings_get"];
+        /** Update Settings */
+        put: operations["update_settings_api_v1_admin_tenant_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bulk-import/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Import Customers
+         * @description Upload a customer CSV. Returns inserted/updated/skipped counts
+         *     + per-row errors.
+         *
+         *     Required columns: ``name``, ``vergi_no``.
+         *     Optional: ``email``, ``phone``, ``industry``, ``city``, ``tier``.
+         *
+         *     Vergi_no is the natural key — re-uploading the same sheet
+         *     updates rather than duplicates.
+         */
+        post: operations["bulk_import_customers_api_v1_bulk_import_customers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bulk-import/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Import Parts
+         * @description Upload a spare-parts CSV.
+         *
+         *     Required columns: ``part_code``, ``description``.
+         *     Optional: ``category``, ``list_price``, ``currency``, ``min_stock``.
+         *
+         *     (tenant_id, part_code) is the natural key.
+         */
+        post: operations["bulk_import_parts_api_v1_bulk_import_parts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/dlq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Dlq
+         * @description Return unresolved DLQ entries. Tenant-agnostic (DLQ is platform-level).
+         */
+        get: operations["list_dlq_api_v1_admin_dlq_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/dlq/{dlq_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Dlq */
+        post: operations["resolve_dlq_api_v1_admin_dlq__dlq_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/dlq/{dlq_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Dlq
+         * @description Increment the retry counter. The actual re-execution is the
+         *     operator's job (they fix the underlying issue then trigger the
+         *     original endpoint again). This endpoint just records the attempt.
+         */
+        post: operations["retry_dlq_api_v1_admin_dlq__dlq_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sentry-tunnel": {
         parameters: {
             query?: never;
@@ -10723,6 +11120,16 @@ export interface components {
             items: {
                 [key: string]: unknown;
             }[];
+        };
+        /** Body_bulk_import_customers_api_v1_bulk_import_customers_post */
+        Body_bulk_import_customers_api_v1_bulk_import_customers_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_bulk_import_parts_api_v1_bulk_import_parts_post */
+        Body_bulk_import_parts_api_v1_bulk_import_parts_post: {
+            /** File */
+            file: string;
         };
         /** Body_bulk_import_users_api_v1_users_bulk_import_post */
         Body_bulk_import_users_api_v1_users_bulk_import_post: {
@@ -14689,6 +15096,56 @@ export interface components {
             /** Packs */
             packs: components["schemas"]["KeywordPackItem"][];
         };
+        /** KvkkRequestApprove */
+        KvkkRequestApprove: {
+            /** Note */
+            note?: string | null;
+        };
+        /** KvkkRequestCreate */
+        KvkkRequestCreate: {
+            /** Subject Lookup */
+            subject_lookup: string;
+            /**
+             * Subject Kind
+             * @description One of ('email', 'vergi_no', 'phone')
+             */
+            subject_kind: string;
+        };
+        /** KvkkRequestOut */
+        KvkkRequestOut: {
+            /** Id */
+            id: number;
+            /** Tenant Id */
+            tenant_id: number;
+            /** Subject Lookup */
+            subject_lookup: string;
+            /** Subject Kind */
+            subject_kind: string;
+            /** Status */
+            status: string;
+            /** Requested By */
+            requested_by: number;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Approved By */
+            approved_by: number | null;
+            /** Approved At */
+            approved_at: string | null;
+            /** Executed At */
+            executed_at: string | null;
+            /** Artifact Url */
+            artifact_url: string | null;
+            /** Reject Reason */
+            reject_reason: string | null;
+        };
+        /** KvkkRequestReject */
+        KvkkRequestReject: {
+            /** Reason */
+            reason: string;
+        };
         /** LastTimeBuyResponse */
         LastTimeBuyResponse: {
             /** Items */
@@ -18062,6 +18519,20 @@ export interface components {
         RagReindexResponse: {
             [key: string]: unknown;
         };
+        /** RecipientSummary */
+        RecipientSummary: {
+            /** Masked Email */
+            masked_email: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Otp Sent */
+            otp_sent: boolean;
+            /** Otp Verified */
+            otp_verified: boolean;
+        };
         /**
          * RecognitionDashboardResponse
          * @description ``GET /revenue-recognition/dashboard`` — tenant rollup.
@@ -18423,6 +18894,11 @@ export interface components {
             action_type?: string | null;
             /** Action Ts */
             action_ts?: string | null;
+        };
+        /** ResolveRequest */
+        ResolveRequest: {
+            /** Note */
+            note?: string | null;
         };
         /** ResolveSignalResponse */
         ResolveSignalResponse: {
@@ -18960,6 +19436,11 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * SendOtpRequest
+         * @description Empty — present only so OpenAPI documents the POST shape.
+         */
+        SendOtpRequest: Record<string, never>;
         /** SendQuoteRequest */
         SendQuoteRequest: {
             /** Email */
@@ -19276,6 +19757,22 @@ export interface components {
             created_at?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * SignRequest
+         * @description Captures the signer's acknowledgement.
+         *
+         *     ``signature_payload`` is the rendered signature (base64 of a
+         *     canvas image, or just the typed name for typed-signature flows).
+         *     Storage / cryptographic binding is the contract-domain caller's
+         *     job; this endpoint only records that signing happened with a
+         *     valid OTP-verified session.
+         */
+        SignRequest: {
+            /** Signature Payload */
+            signature_payload: string;
+            /** Typed Name */
+            typed_name?: string | null;
         };
         /** SignalItem */
         SignalItem: {
@@ -20206,6 +20703,41 @@ export interface components {
              */
             role: string;
         };
+        /** TenantSettingsUpdate */
+        TenantSettingsUpdate: {
+            /** Auto Quote Max Amount */
+            auto_quote_max_amount?: number | string | null;
+            /** Auto Quote Currency */
+            auto_quote_currency?: string | null;
+            /** Base Currency */
+            base_currency?: string | null;
+            /** Ocr Max Pages */
+            ocr_max_pages?: number | null;
+            /** Ai Monthly Quota Usd */
+            ai_monthly_quota_usd?: number | string | null;
+            /** At Risk Threshold */
+            at_risk_threshold?: number | null;
+        };
+        /** TenantSettingsView */
+        TenantSettingsView: {
+            /** Tenant Id */
+            tenant_id: number;
+            /** Auto Quote Max Amount */
+            auto_quote_max_amount: string | null;
+            /** Auto Quote Currency */
+            auto_quote_currency: string;
+            /** Base Currency */
+            base_currency: string;
+            /** Ocr Max Pages */
+            ocr_max_pages: number;
+            /** Ai Monthly Quota Usd */
+            ai_monthly_quota_usd: string | null;
+            /**
+             * At Risk Threshold
+             * @default 40
+             */
+            at_risk_threshold: number;
+        };
         /**
          * TerritoryAssignmentAck
          * @description ``POST /territories/{id}/assignments``.
@@ -20535,6 +21067,15 @@ export interface components {
             /** Unread Count */
             unread_count: number;
         };
+        /** UnsubscribePreview */
+        UnsubscribePreview: {
+            /** Masked Email */
+            masked_email: string;
+            /** Sequence Name */
+            sequence_name: string | null;
+            /** Already Opted Out */
+            already_opted_out: boolean;
+        };
         /** UserCreate */
         UserCreate: {
             /**
@@ -20701,6 +21242,11 @@ export interface components {
             }[];
             /** Total */
             total: number;
+        };
+        /** VerifyOtpRequest */
+        VerifyOtpRequest: {
+            /** Code */
+            code: string;
         };
         /**
          * WaterfallResponse
@@ -40135,6 +40681,752 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RelationshipGraphRebuildResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_kvkk_requests_api_v1_kvkk_export_requests_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by status */
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_kvkk_request_api_v1_kvkk_export_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KvkkRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KvkkRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_kvkk_request_api_v1_kvkk_export_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: number;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KvkkRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_kvkk_request_api_v1_kvkk_export_requests__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: number;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["KvkkRequestApprove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KvkkRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_kvkk_request_api_v1_kvkk_export_requests__request_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: number;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KvkkRequestReject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KvkkRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    execute_kvkk_request_api_v1_kvkk_export_requests__request_id__execute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: number;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KvkkRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sign_token_api_v1_sign__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipientSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_otp_api_v1_sign__token__send_otp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SendOtpRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_otp_api_v1_sign__token__verify_otp_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyOtpRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    view_contract_api_v1_sign__token__contract_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sign_api_v1_sign__token__sign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_unsubscribe_api_v1_unsubscribe__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnsubscribePreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_unsubscribe_api_v1_unsubscribe__token__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_trashed_api_v1_trash__entity__get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_entity_api_v1_trash__entity___id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: string;
+                id: number;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_api_v1_admin_tenant_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_settings_api_v1_admin_tenant_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_import_customers_api_v1_bulk_import_customers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_bulk_import_customers_api_v1_bulk_import_customers_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_import_parts_api_v1_bulk_import_parts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_bulk_import_parts_api_v1_bulk_import_parts_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_dlq_api_v1_admin_dlq_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_dlq_api_v1_admin_dlq__dlq_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dlq_id: number;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_dlq_api_v1_admin_dlq__dlq_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dlq_id: number;
+            };
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
