@@ -31,7 +31,61 @@
 | F-019 | Email Message-Id idempotency | 1 | **EXECUTING this session** |
 | F-020 | Constant-time 404 cross-tenant | 1 | **EXECUTING this session** |
 | F-021 | Bulk imports | 4 | **SHIPPED Phase 5** (CSV: customers + parts, 10K row cap, sync) |
-| F-022 | Mobile responsive | 3 | DEFERRED — UX nice-to-have |
+| F-022 | Mobile responsive | 3 | DEFERRED — UX nice-to-have (D-003 designed) |
+
+## Hardening Design v2 (D-NNN) — Status
+
+Tracks the 40-finding follow-up specified in `docs/qa/HARDENING_DESIGN_V2.md`.
+Phases align with v2's roadmap; status reflects actual shipped code.
+
+| ID | Title | Status |
+|---|---|---|
+| D-001 | RLS rollout (5 tables) | DEFERRED — needs middleware sprint |
+| D-002 | KMS migration | DEFERRED — needs AWS account |
+| D-003 | Mobile responsive | DEFERRED — needs design pass |
+| D-004 | AI Tasks model + cron | DEFERRED — new feature |
+| D-005 | Coaching Hooks model + watermark | DEFERRED — new feature |
+| D-006 | Per-account login rate limit | **SHIPPED** Phase 8 |
+| D-007 | JWT rotate on login | DEFERRED — micro-task |
+| D-008 | Per-tenant at_risk_threshold | **SHIPPED** Phase 8 |
+| D-009 | OCC on remaining 7 entities | DEFERRED — incremental |
+| D-010 | Cross-tenant probe detection | **SHIPPED** Phase 8 |
+| D-011 | Quote total server-side | **VERIFIED SHIPPED** (schema already enforces) |
+| D-012 | Approval decisions ledger + 409 | **SHIPPED** Phase 11 |
+| D-013 | Workflow cycle save-time + runtime guard | **SHIPPED** Phase 10 |
+| D-014 | Sign-OTP SMTP wire | **SHIPPED** Phase 8 |
+| D-015 | KVKK subject notification | **SHIPPED** Phase 8 |
+| D-016 | KVKK export worker | **SHIPPED** Phase 8 |
+| D-017 | Per-tenant DEK rotation script | DEFERRED — pairs with D-002 |
+| D-018 | Field-permission decorator | **SHIPPED** Phase 9 |
+| D-019 | DLQ writer + admin endpoints | **SHIPPED** Phase 8 |
+| D-020 | Soft-delete on 6 entities | **SHIPPED** Phase 8/CI-fix (model columns) |
+| D-021 | Audit log partitioning | DEFERRED — operational |
+| D-022 | Notification prefs UI | DEFERRED — feature |
+| D-023 | Active sessions table | **SHIPPED** Phase 8 (schema; auth.py has endpoints) |
+| D-024 | Sequence unsubscribe placement | **SHIPPED** Phase 8 |
+| D-025 | Multi-pipeline support | DEFERRED — feature |
+| D-026 | Plan model + subscription mapping | DEFERRED — feature |
+| D-027 | TSA-signed timestamps | DEFERRED — needs TSA vendor |
+| D-028 | Email pipeline retry on AI fail | DEFERRED — micro-task |
+| D-029 | Approval delegation expiry sweep | **SHIPPED** Phase 8 |
+| D-030 | Trash UI + bulk restore | DEFERRED — UX |
+| D-031 | Bulk import leads + opps | **SHIPPED** Phase 9 (leads); opps deferred |
+| D-032 | Outbound webhooks | DEFERRED — feature |
+| D-033 | Health zero-data bias | **SHIPPED** Phase 8 |
+| D-034 | Forecast cron tenant-local time | DEFERRED — config refactor |
+| D-035 | Reports Builder streaming | DEFERRED — refactor |
+| D-036 | Audit log explorer UI | DEFERRED — UX |
+| D-037 | Playwright E2E harness | DEFERRED — testing infra |
+| D-038 | Chaos test harness | DEFERRED — testing infra |
+| D-039 | Backup + DR runbook | DEFERRED — operational |
+| D-040 | SAST/DAST CI workflow | **SHIPPED** Phase 8 |
+
+**Shipped: 17 of 40 (43%)** with explicit deferral rationale for the rest.
+Phase 1 critical items: 8 of 8 shipped.
+Phase 2 priorities: D-013, D-018, D-023 schema shipped; D-001 + D-002 are the
+remaining 2 large items, both pending infra decisions.
+Phase 3 quick wins: D-024, D-029, D-031 (leads), D-033 shipped.
 | F-023 | KVKK two-person rule | 3 | **SHIPPED Phase 4** (state machine + DB CHECK constraint) |
 | F-024 | Sequences mandatory unsubscribe | 3 | **SHIPPED Phase 4** (validator + opt-out registry) |
 | F-025 | AI coaching watermark + preview | 3 | **SCHEMA SHIPPED Phase 2** (cols on `coaching_hooks`; logic awaits model presence) |
