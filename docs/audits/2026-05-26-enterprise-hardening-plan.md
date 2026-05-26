@@ -19,14 +19,14 @@
 | F-007 | Soft/hard delete policy | 2 | DEFERRED — needs cross-team policy |
 | F-008 | CSV/Excel injection sanitization | 1 | **EXECUTING this session** |
 | F-009 | Reports Builder tenant injection + RLS | 2 | DEFERRED — needs RLS rollout plan |
-| F-010 | Approval rule self-disable meta-approval | 2 | DEFERRED |
+| F-010 | Approval rule self-disable meta-approval | 2 | **SHIPPED Phase 2** (commit pending) |
 | F-011 | Operations role split | 2 | DEFERRED — needs role-mapping plan |
 | F-012 | Multi-currency forecast | 4 | DEFERRED |
-| F-013 | JWT JTI blocklist | 2 | DEFERRED — needs Redis |
+| F-013 | JWT JTI blocklist | 2 | **SHIPPED Phase 2** (PG-backed, Redis optional) |
 | F-014 | Health debounce + batching | 4 | DEFERRED |
-| F-015 | Workflow rule cycle detection | 3 | DEFERRED |
+| F-015 | Workflow rule cycle detection | 3 | **SHIPPED Phase 2** |
 | F-016 | RFQ aggregation 14-day window | 3 | **EXECUTING this session** |
-| F-017 | Quote optimistic locking | 3 | DEFERRED |
+| F-017 | Quote optimistic locking | 3 | **SHIPPED Phase 2** (`row_version` column + helper) |
 | F-018 | Approval quorum policy | 3 | DEFERRED |
 | F-019 | Email Message-Id idempotency | 1 | **EXECUTING this session** |
 | F-020 | Constant-time 404 cross-tenant | 1 | **EXECUTING this session** |
@@ -34,12 +34,12 @@
 | F-022 | Mobile responsive | 3 | DEFERRED |
 | F-023 | KVKK two-person rule | 3 | DEFERRED |
 | F-024 | Sequences mandatory unsubscribe | 3 | DEFERRED |
-| F-025 | AI coaching watermark + preview | 3 | DEFERRED |
+| F-025 | AI coaching watermark + preview | 3 | **SCHEMA SHIPPED Phase 2** (cols on `coaching_hooks`; logic awaits model presence) |
 | F-026 | Quote v1 supersede | 3 | DEFERRED |
 | F-027 | Pricing precedence | 3 | DEFERRED |
 | F-028 | Approval SLA + escalation | 3 | DEFERRED |
-| F-029 | Per-tenant auto-quote threshold | 4 | DEFERRED |
-| F-030 | AI Task auto-dismiss | 3 | DEFERRED |
+| F-029 | Per-tenant auto-quote threshold | 4 | **SHIPPED Phase 2** |
+| F-030 | AI Task auto-dismiss | 3 | **SCHEMA SHIPPED Phase 2** (cols on `ai_tasks`; cron awaits model presence) |
 
 ---
 

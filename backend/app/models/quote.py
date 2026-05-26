@@ -76,7 +76,13 @@ class Quote(Base):
     )
 
     # Versioning
+    # ``version``     — *semantic* version (v1 sent → customer rejects →
+    #                   rep edits → v2 supersedes v1). See F-026.
+    # ``row_version`` — *optimistic concurrency* counter (F-017).
+    #                   Every UPDATE bumps it; conflicting concurrent
+    #                   edits race on this and the loser gets 409.
     version: Mapped[int] = mapped_column(Integer, default=1)
+    row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

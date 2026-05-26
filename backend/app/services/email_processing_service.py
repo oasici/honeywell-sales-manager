@@ -28,29 +28,38 @@ CONFIDENCE_THRESHOLD = 0.75
 ERROR_MESSAGE_MAX_LENGTH = 500
 
 
-def _auto_quote_eligible(email: EmailRequest, parsed: dict) -> tuple[bool, str | None]:
+def _auto_quote_eligible(
+    email: EmailRequest,
+    parsed: dict,
+    tenant_config=None,
+) -> tuple[bool, str | None]:
     """Round-19 gate for the auto-quote happy path.
 
     Returns ``(eligible, block_reason)``. ``block_reason`` is a stable
     short code so callers/audit logs can branch on it:
 
-      * ``auth_not_pass``      — F-002. SPF/DKIM/DMARC didn't return pass.
-      * ``ocr_truncated``      — F-003. A PDF attachment had more pages
-                                  than ``MAX_OCR_PAGES``; the parse saw
-                                  only the head. Auto-quote would ship
-                                  an incomplete order.
-      * ``first_time_sender``  — F-004. The sender's address isn't in
-                                  the customers table for this tenant.
-                                  Trust-on-first-use → manual review.
-      * ``fuzzy_or_unknown``   — Round-17 rule. A part landed at fuzzy
-                                  / unknown catalog status. Sending a
-                                  fuzzy SKU bound to the customer's
-                                  account is a real-money mistake.
+      * ``auth_not_pass``       — F-002. SPF/DKIM/DMARC didn't return pass.
+      * ``ocr_truncated``       — F-003. A PDF attachment had more pages
+                                   than ``MAX_OCR_PAGES``; the parse saw
+                                   only the head.
+      * ``first_time_sender``   — F-004. The sender's address isn't in
+                                   the customers table for this tenant.
+                                   Trust-on-first-use → manual review.
+      * ``value_above_threshold`` — F-029. Sum of line items exceeds the
+                                   per-tenant ``auto_quote_max_amount``.
+                                   Big deals always require a human.
+      * ``fuzzy_or_unknown``    — Round-17 rule. A part landed at fuzzy
+                                   / unknown catalog status. Sending a
+                                   fuzzy SKU bound to the customer's
+                                   account is a real-money mistake.
 
     Pre-Round-19 this was a bare bool and two callers invoked it as
     ``self._auto_quote_eligible(...)`` — an attribute error that
     silently failed-closed. The new shape forces callers to pass through
     a stable reason for audit + UI.
+
+    ``tenant_config`` is an optional ``TenantConfig`` snapshot. When
+    omitted (legacy unit tests), the F-029 amount check is skipped.
     """
     auth = getattr(email, "sender_auth_status", None)
     if auth and auth != "pass":
@@ -59,6 +68,15 @@ def _auto_quote_eligible(email: EmailRequest, parsed: dict) -> tuple[bool, str |
         return False, "ocr_truncated"
     if getattr(email, "first_time_sender", False):
         return False, "first_time_sender"
+    # F-029 — per-tenant max-amount cap. ``estimate_quote_total`` is
+    # best-effort (the parser may not surface prices yet); only enforce
+    # when both a cap and a positive estimate are available.
+    if tenant_config is not None and tenant_config.auto_quote_max_amount is not None:
+        from app.services.tenant_settings_service import estimate_quote_total
+
+        est = estimate_quote_total(parsed)
+        if est > 0 and est > tenant_config.auto_quote_max_amount:
+            return False, "value_above_threshold"
     for p in parsed.get("parts") or []:
         status = p.get("catalog_status")
         # ``no_code`` means the LLM emitted a description-only entry.
@@ -187,7 +205,16 @@ class EmailProcessingService:
                 #  3. every parsed part resolved to a real catalog row
                 # Failure on any axis routes to review queue.
                 if email.review_status == ReviewStatus.APPROVED.value:
-                    eligible, reason = _auto_quote_eligible(email, parsed)
+                    from app.services.tenant_settings_service import (
+                        get_tenant_settings,
+                    )
+
+                    tenant_cfg = await get_tenant_settings(
+                        self._db, getattr(email, "tenant_id", None)
+                    )
+                    eligible, reason = _auto_quote_eligible(
+                        email, parsed, tenant_config=tenant_cfg
+                    )
                     if not eligible:
                         email.review_status = ReviewStatus.PENDING_REVIEW.value
                         # Stash the reason on the row so the operator
@@ -253,7 +280,16 @@ class EmailProcessingService:
 
                 # Round-17 — same eligibility gate as ``process_email``.
                 if email.review_status == ReviewStatus.APPROVED.value:
-                    eligible, reason = _auto_quote_eligible(email, parsed)
+                    from app.services.tenant_settings_service import (
+                        get_tenant_settings,
+                    )
+
+                    tenant_cfg = await get_tenant_settings(
+                        self._db, getattr(email, "tenant_id", None)
+                    )
+                    eligible, reason = _auto_quote_eligible(
+                        email, parsed, tenant_config=tenant_cfg
+                    )
                     if not eligible:
                         email.review_status = ReviewStatus.PENDING_REVIEW.value
                         # Stash the reason on the row so the operator
