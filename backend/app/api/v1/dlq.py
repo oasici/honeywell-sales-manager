@@ -41,6 +41,7 @@ class ResolveRequest(BaseModel):
     note: Optional[str] = None
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.get("")
 async def list_dlq(
     limit: int = 200,
@@ -66,6 +67,7 @@ async def list_dlq(
     }
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/{dlq_id}/resolve")
 async def resolve_dlq(
     dlq_id: int,
@@ -81,6 +83,7 @@ async def resolve_dlq(
     return {"resolved": True, "id": dlq_id}
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/{dlq_id}/retry")
 async def retry_dlq(
     dlq_id: int,

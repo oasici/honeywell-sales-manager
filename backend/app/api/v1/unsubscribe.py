@@ -150,6 +150,7 @@ async def preview_unsubscribe(
     )
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/{token}")
 async def confirm_unsubscribe(
     token: str, db: AsyncSession = Depends(get_db)

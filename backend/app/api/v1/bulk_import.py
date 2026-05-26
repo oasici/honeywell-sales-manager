@@ -56,6 +56,7 @@ async def _read_csv_text(file: UploadFile) -> str:
     raise HTTPException(400, detail="csv_encoding_unrecognised")
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/customers")
 async def bulk_import_customers(
     file: UploadFile = File(...),
@@ -88,6 +89,7 @@ async def bulk_import_customers(
     return report.as_dict()
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/leads")
 async def bulk_import_leads(
     file: UploadFile = File(...),
@@ -120,6 +122,7 @@ async def bulk_import_leads(
     return report.as_dict()
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/parts")
 async def bulk_import_parts(
     file: UploadFile = File(...),

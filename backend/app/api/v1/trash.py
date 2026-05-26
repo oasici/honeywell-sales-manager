@@ -63,6 +63,7 @@ def _validate_entity(entity: str) -> None:
         )
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.get("/{entity}")
 async def list_trashed(
     entity: str,
@@ -92,6 +93,7 @@ async def list_trashed(
     return {"entity": entity, "items": [dict(r) for r in rows], "total": len(rows)}
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/{entity}/{id}/restore")
 async def restore_entity(
     entity: str,

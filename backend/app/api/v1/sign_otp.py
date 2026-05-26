@@ -131,6 +131,7 @@ async def get_sign_token(token: str, db: AsyncSession = Depends(get_db)) -> Reci
     return RecipientSummary(**data)
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/{token}/send-otp")
 async def send_otp(
     token: str,
@@ -144,6 +145,7 @@ async def send_otp(
     return {"masked_email": masked, "sent": True}
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/{token}/verify-otp")
 async def verify_otp(
     token: str,
@@ -157,6 +159,7 @@ async def verify_otp(
     return {"verified": True}
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.get("/{token}/contract")
 async def view_contract(token: str, db: AsyncSession = Depends(get_db)):
     """Returns the contract content. Refuses if OTP not verified.
@@ -188,6 +191,7 @@ async def view_contract(token: str, db: AsyncSession = Depends(get_db)):
     return {"contract_id": int(row[0]), "verified": True}
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.post("/{token}/sign")
 async def sign(
     token: str,

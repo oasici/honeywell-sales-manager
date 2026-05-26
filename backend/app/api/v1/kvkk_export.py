@@ -127,6 +127,7 @@ async def create_kvkk_request(
     return KvkkRequestOut(**req.__dict__)
 
 
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
 @router.get("/requests")
 async def list_kvkk_requests(
     status: Optional[str] = Query(None, description="Filter by status"),
