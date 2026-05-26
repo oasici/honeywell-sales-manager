@@ -26,6 +26,14 @@ class Opportunity(Base):
         Numeric(19, 2, asdecimal=False), nullable=True
     )
     currency: Mapped[str] = mapped_column(String(10), default="TRY")
+    # F-012 (Round-19) — FX rate snapshot at create/update time.
+    # Multi-currency forecast rolls up to ``tenant_settings.base_currency``
+    # by multiplying ``amount * fx_rate_to_base``. NULL = legacy row
+    # that predates this column; forecast falls back to 1.0 and flags
+    # the result as estimate-tainted so finance can fix it.
+    fx_rate_to_base: Mapped[float | None] = mapped_column(
+        Numeric(18, 8, asdecimal=False), nullable=True
+    )
     close_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     customer_id: Mapped[int | None] = mapped_column(

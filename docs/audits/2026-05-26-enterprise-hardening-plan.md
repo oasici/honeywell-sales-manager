@@ -21,9 +21,9 @@
 | F-009 | Reports Builder tenant injection + RLS | 2 | DEFERRED — RLS overhead not justified at 20-30 users |
 | F-010 | Approval rule self-disable meta-approval | 2 | **SHIPPED Phase 2** |
 | F-011 | Operations role split | 2 | **SHIPPED Phase 4** (3 sub-roles + ops_audit; auto-migration) |
-| F-012 | Multi-currency forecast | 4 | DEFERRED — first international customer trigger |
+| F-012 | Multi-currency forecast | 4 | **SHIPPED Phase 6** (per-currency + base-currency rollup with FX snapshot) |
 | F-013 | JWT JTI blocklist | 2 | **SHIPPED Phase 2** (PG-backed) |
-| F-014 | Health debounce + batching | 4 | DEFERRED — no bulk imports at 20-30 users scale |
+| F-014 | Health debounce + batching | 4 | **SHIPPED Phase 6** (in-process dirty-set + LRU eviction; Redis swap-ready) |
 | F-015 | Workflow rule cycle detection | 3 | **SHIPPED Phase 2** |
 | F-016 | RFQ aggregation 14-day window | 3 | **EXECUTING this session** |
 | F-017 | Quote optimistic locking | 3 | **SHIPPED Phase 2** (`row_version` column + helper) |
