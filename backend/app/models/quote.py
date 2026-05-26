@@ -84,6 +84,24 @@ class Quote(Base):
     version: Mapped[int] = mapped_column(Integer, default=1)
     row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
+    # F-026 (Phase 3) — supersede chain. When rep edits a sent quote
+    # to create v2, the v1 row's superseded_by_id points at v2.
+    superseded_by_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("quotes.id"), nullable=True
+    )
+    superseded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # F-007 Phase 4 — soft-delete tombstones.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deleted_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    delete_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

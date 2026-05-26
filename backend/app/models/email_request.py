@@ -129,4 +129,13 @@ class EmailRequest(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
+    # F-007 Phase 4 — soft-delete tombstones.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deleted_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    delete_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     customer = relationship("Customer", back_populates="email_requests", lazy="selectin")

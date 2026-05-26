@@ -57,6 +57,15 @@ class Contract(Base):
     # F-017 Phase 7 — optimistic concurrency lock.
     row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
+    # F-007 Phase 4 — soft-delete tombstones.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deleted_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    delete_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     amendments = relationship(
         "ContractAmendment",
         back_populates="contract",

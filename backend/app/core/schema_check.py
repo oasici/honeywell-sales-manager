@@ -142,10 +142,13 @@ def _normalise_type(type_repr: str) -> str:
         ("DOUBLE PRECISION", "FLOAT"),  # space form (compiled DDL)
         ("REAL", "FLOAT"),
         ("BIGSERIAL", "BIGINT"),
+        ("BIGINTEGER", "BIGINT"),       # SQLAlchemy BigInteger ↔ PG BIGINT
         ("SERIAL", "INTEGER"),
         ("SMALLINT", "INTEGER"),  # generally interchangeable for our schema
         ("BYTEA", "BLOB"),
+        ("LARGEBINARY", "BLOB"),        # SQLAlchemy LargeBinary ↔ PG BYTEA
         ("JSONB", "JSON"),
+        ("INET", "STRING"),             # PG INET ↔ String(45) for our IP columns
         ("TIMESTAMP WITH TIME ZONE", "TIMESTAMPTZ"),
         ("TIMESTAMP WITHOUT TIME ZONE", "TIMESTAMP"),
         ("TIMESTAMP(TIMEZONE=TRUE)", "TIMESTAMPTZ"),

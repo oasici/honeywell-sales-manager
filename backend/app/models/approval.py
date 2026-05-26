@@ -59,6 +59,12 @@ class ApprovalRule(Base):
         String(30), nullable=True
     )  # auto_approve | escalate_to_manager
 
+    # F-018 (Phase 3) — quorum policy + threshold for multi-approver rules.
+    quorum_policy: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="any_one", server_default="any_one"
+    )
+    quorum_n: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -103,6 +109,17 @@ class ApprovalRequest(Base):
     comments: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    # F-028 (Phase 3) — SLA + escalation tracking.
+    due_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    escalated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    escalation_level: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
     )
 
     # Relationships

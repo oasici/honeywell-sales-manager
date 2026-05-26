@@ -63,6 +63,15 @@ class Lead(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
+    # F-007 Phase 4 — soft-delete tombstones.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deleted_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    delete_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # Relationships
     owner: Mapped["User"] = relationship(  # type: ignore[name-defined]  # noqa: F821
         foreign_keys=[owner_id], lazy="selectin"

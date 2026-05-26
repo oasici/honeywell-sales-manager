@@ -45,7 +45,7 @@ class Customer(Base):
     # F-007 (Round-19) — soft-delete tombstone. NULL = active.
     # Existing rows pre-migration are active by default.
     deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True
+        DateTime(timezone=True), nullable=True
     )
     deleted_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True

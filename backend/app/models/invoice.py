@@ -52,7 +52,18 @@ class Invoice(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
+    # F-007 Phase 4 — soft-delete tombstones (invoices never hard-delete
+    # per legal retention; soft-delete + restore only).
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deleted_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    delete_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     customer = relationship("Customer", lazy="selectin")
     quote = relationship("Quote", lazy="selectin")
     contract = relationship("Contract", lazy="selectin")
-    creator = relationship("User", lazy="selectin")
+    # foreign_keys explicit because deleted_by also references users.id.
+    creator = relationship("User", lazy="selectin", foreign_keys=[created_by])

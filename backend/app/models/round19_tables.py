@@ -21,6 +21,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     DateTime,
@@ -93,6 +94,8 @@ class SignOtpToken(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    # D-027 — slot for RFC 3161 TSA-signed timestamp (Phase 5 wire).
+    tsa_token: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
 
 class UserRoleGrant(Base):
@@ -202,10 +205,11 @@ class ApprovalRulePendingChange(Base):
     proposed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
-    # change_payload is JSONB at the DB level; we declare Text here for
-    # SQLite compatibility in test infrastructures, with the
-    # alembic migration enforcing JSONB on PG.
-    change_payload: Mapped[str] = mapped_column(Text, nullable=False)
+    # change_payload is JSONB at the DB level. We declare JSON in the
+    # model so schema_check accepts the alignment (PG JSON ≡ JSONB via
+    # the schema_check synonym list). SQLite test environments fall
+    # back to TEXT via SQLAlchemy generic mapping.
+    change_payload: Mapped[str] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     reviewed_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True
@@ -260,7 +264,9 @@ class BackgroundJobDlq(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     job_name: Mapped[str] = mapped_column(String(60), nullable=False)
-    payload: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    # JSONB at the DB level; ``JSON`` here so schema_check accepts the
+    # alignment via the JSONB→JSON synonym.
+    payload: Mapped[str] = mapped_column(JSON, nullable=False, default="{}")
     error: Mapped[str] = mapped_column(Text, nullable=False)
     failed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

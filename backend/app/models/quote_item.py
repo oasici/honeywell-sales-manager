@@ -42,6 +42,14 @@ class QuoteItem(Base):
     match_strategy: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    # F-027 (Phase 3) — pricing precedence source. Stamped by the
+    # pricing resolver at line creation. ``ref`` carries the source
+    # identifier (campaign_id / contract_id / tier name).
+    price_source: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="catalog", server_default="catalog"
+    )
+    price_source_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
