@@ -297,11 +297,15 @@ __all__ = [
 # picks them up before ``create_all()`` runs in tests; production
 # uses the alembic migrations directly.
 from app.models.round19_tables import (  # noqa: E402, F401
+    ActiveSession,
     AdminActionNonce,
     ApprovalDecision,
     ApprovalRulePendingChange,
+    BackgroundJobDlq,
+    CrossTenantAttempt,
     EmailOptout,
     KvkkExportRequest,
+    LoginLockout,
     SignOtpToken,
     TenantDek,
     TokenBlocklist,

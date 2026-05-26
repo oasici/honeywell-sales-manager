@@ -234,8 +234,36 @@ async def execute_kvkk_request(
         await mark_executing(db, request_id)
     except StateError as exc:
         raise HTTPException(409, detail=str(exc))
-    # TODO: enqueue the export job here (background task / Celery).
-    # For now we just mark it executing; the operator runs the
-    # data-collection script manually and posts back via mark_done
-    # (Phase 5 will wire the async job).
+    # D-016 — dispatch the actual data-collection worker.
+    # ``run_export`` collects subject data across all relevant tables,
+    # builds a ZIP artifact, marks the request done, and (D-015)
+    # notifies the subject via email. We commit the ``executing``
+    # transition first so the worker sees the locked row even on a
+    # cold restart.
+    await db.commit()
+
+    import asyncio
+    from app.core.database import async_session
+    from app.services.kvkk_export_worker import run_export
+
+    async def _runner(rid: int) -> None:
+        async with async_session() as worker_db:
+            try:
+                await run_export(worker_db, rid)
+            except Exception as exc:  # noqa: BLE001
+                # The worker already marks 'failed' on its own
+                # collection-failure path; this catches truly
+                # unexpected errors (DB connectivity, disk, etc.)
+                # and routes to the DLQ for visibility.
+                from app.services.dlq_service import write_to_dlq
+                async with async_session() as dlq_db:
+                    await write_to_dlq(
+                        dlq_db,
+                        job_name="kvkk_export_worker",
+                        error=str(exc),
+                        payload={"request_id": rid},
+                    )
+                    await dlq_db.commit()
+
+    asyncio.create_task(_runner(request_id))
     return await get_kvkk_request(request_id, current_user=current_user, db=db)

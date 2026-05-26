@@ -176,3 +176,8 @@ v1_router.include_router(unsubscribe_router)
 v1_router.include_router(trash_router)
 v1_router.include_router(tenant_settings_router)
 v1_router.include_router(bulk_import_router)
+
+# Round-19 Phase 8 — roadmap-driven additions.
+from app.api.v1.dlq import router as dlq_router
+
+v1_router.include_router(dlq_router)

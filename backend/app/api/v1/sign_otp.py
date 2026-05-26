@@ -102,14 +102,21 @@ class RecipientSummary(BaseModel):
 
 
 def _send_otp_email(to: str, subject: str, body: str) -> None:
-    """Minimal SMTP shim. Real deployments inject the IntegrationsService
-    SMTP client; for the Phase 5 cut we log + skip so dev environments
-    keep working without SMTP creds. The OTP code lands in logs at
-    DEBUG so a tester can pick it up locally."""
-    logger.debug(
-        "[sign_otp] would send to=%s subject=%s body=%s", to, subject, body
-    )
-    # TODO Phase 5: wire app.services.smtp_service.send(...)
+    """D-014 — wired to the real SMTP service.
+
+    Uses the sync shim because the existing send_otp service contract
+    accepts a synchronous callable. If SMTP isn't configured the shim
+    returns False and we log + continue — the operator can then
+    re-issue from the UI after fixing integration settings.
+    """
+    from app.services.smtp_service import send_email_sync
+
+    ok = send_email_sync(to, subject, body)
+    if not ok:
+        logger.warning(
+            "[sign_otp] SMTP send failed/unconfigured to=%s subject=%s",
+            to, subject,
+        )
 
 
 # ── Endpoints ───────────────────────────────────────────────────────

@@ -54,6 +54,11 @@ class TenantSettings(Base):
     ai_monthly_quota_usd: Mapped[Decimal | None] = mapped_column(
         Numeric(10, 2), nullable=True
     )
+    # D-008 (Round-19 Phase 8) — per-tenant Cockpit At-Risk threshold.
+    # Default 40 matches the legacy hardcoded value.
+    at_risk_threshold: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=40
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

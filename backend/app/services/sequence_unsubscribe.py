@@ -39,6 +39,14 @@ logger = logging.getLogger(__name__)
 _UNSUBSCRIBE_TOKEN_RE = re.compile(
     r"\{\{\s*unsubscribe_link\s*\}\}", re.IGNORECASE
 )
+# D-024 — placement check: forbid the token inside an HTML comment.
+# A clever sequence author could embed ``{{unsubscribe_link}}`` in
+# ``<!-- ... -->`` which would parse-pass the validator but never
+# render. The opt-out link must be visible to the recipient.
+_TOKEN_IN_COMMENT_RE = re.compile(
+    r"<!--[^-]*(?:-(?!-)[^-]*)*?\{\{\s*unsubscribe_link\s*\}\}",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 class SequenceValidationError(Exception):
@@ -61,6 +69,12 @@ def validate_sequence_body(body: str) -> None:
     if not _UNSUBSCRIBE_TOKEN_RE.search(body):
         raise SequenceValidationError(
             "sequence_body_missing_unsubscribe_token"
+        )
+    # D-024 — the visible-placement check. Token inside an HTML
+    # comment doesn't render to the recipient → KVKK/CAN-SPAM fail.
+    if _TOKEN_IN_COMMENT_RE.search(body):
+        raise SequenceValidationError(
+            "sequence_body_unsubscribe_in_comment"
         )
 
 

@@ -35,6 +35,7 @@ class TenantSettingsView(BaseModel):
     base_currency: str
     ocr_max_pages: int
     ai_monthly_quota_usd: Optional[Decimal]
+    at_risk_threshold: int = 40
 
 
 class TenantSettingsUpdate(BaseModel):
@@ -43,6 +44,8 @@ class TenantSettingsUpdate(BaseModel):
     base_currency: Optional[str] = Field(default=None, min_length=3, max_length=3)
     ocr_max_pages: Optional[int] = Field(default=None, ge=1, le=100)
     ai_monthly_quota_usd: Optional[Decimal] = Field(default=None, ge=0)
+    # D-008 (Round-19 Phase 8) — Cockpit At-Risk threshold.
+    at_risk_threshold: Optional[int] = Field(default=None, ge=0, le=100)
 
 
 def _require_ops(user: User) -> None:
@@ -88,6 +91,7 @@ async def update_settings(
         "base_currency",
         "ocr_max_pages",
         "ai_monthly_quota_usd",
+        "at_risk_threshold",
     }
     bad = set(updates.keys()) - allowed
     if bad:

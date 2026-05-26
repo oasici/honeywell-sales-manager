@@ -340,8 +340,28 @@ async def load_with_tenant_check(
 
     obj = (await db.execute(stmt)).scalar_one_or_none()
     if obj is None:
-        # We still call ``assert_same_tenant`` indirectly by raising
-        # the same 404 — no body diff, no header diff.
+        # D-010 — fire-and-forget probe detection. We log if this ID
+        # exists in a DIFFERENT tenant. Truly missing IDs are silent.
+        # The check runs AFTER the 404 decision is shaped so latency
+        # doesn't leak the difference between "missing" and "foreign".
+        if model_has_tenant and user_tenant is not None:
+            try:
+                from app.services.cross_tenant_audit import maybe_record_probe
+
+                entity_name = getattr(
+                    model, "__tablename__", model.__name__.lower()
+                ).rstrip("s")
+                await maybe_record_probe(
+                    db,
+                    user_id=getattr(current_user, "id", 0),
+                    user_tenant=user_tenant,
+                    entity=entity_name,
+                    entity_id=int(id_),
+                )
+            except Exception:
+                # Never let observability break the request path.
+                pass
+        # Same 404 + message for "doesn't exist" and "wrong tenant".
         raise exception_cls(message)
     # Defensive recheck for models that *do* have tenant_id but
     # current_user.tenant_id was None (legacy single-tenant

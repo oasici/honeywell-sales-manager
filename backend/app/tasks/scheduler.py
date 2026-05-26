@@ -985,6 +985,16 @@ def start_scheduler():
         id="r19_health_recompute_batch",
         replace_existing=True,
     )
+    # D-029 — Phase 8: revert approval-rule delegations whose
+    # delegate_until has passed. Hourly is fine; delegations are
+    # measured in days.
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(_tracked("r19_delegation_expiry", r19_delegation_expiry_task)),
+        "interval",
+        hours=1,
+        id="r19_delegation_expiry",
+        replace_existing=True,
+    )
 
     # In production, this is started from the FastAPI lifespan where an event loop
     # is guaranteed to be running. In sync unit tests, starting an AsyncIOScheduler
@@ -1206,3 +1216,29 @@ async def r19_health_recompute_task():
         await db.commit()
         if processed:
             logger.info("health recompute cron processed %d customers", processed)
+
+
+async def r19_delegation_expiry_task():
+    """D-029 — revert approval-rule delegations past their delegate_until.
+
+    Runs hourly. The UPDATE is idempotent — already-reverted rows are
+    no-ops because the WHERE clause filters them out.
+    """
+    from sqlalchemy import text
+    from app.core.database import async_session
+
+    async with async_session() as db:
+        res = await db.execute(
+            text(
+                "UPDATE approval_rules "
+                "   SET delegate_to = NULL, delegate_until = NULL "
+                " WHERE delegate_until IS NOT NULL "
+                "   AND delegate_until < now()"
+            )
+        )
+        await db.commit()
+        if res.rowcount:
+            logger.info(
+                "delegation expiry cron reverted %d rule delegations",
+                res.rowcount,
+            )

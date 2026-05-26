@@ -118,9 +118,33 @@ async def login(
     # cap stops them at the same login target.
     enforce_login_username_rate_limit(form_data.username)
 
+    # D-006 — persistent per-account lockout. The in-memory check above
+    # disappears on process restart; this layer survives.
+    from app.services.login_rate_limiter import (
+        is_locked, record_failure, record_success,
+    )
+    if await is_locked(db, form_data.username):
+        raise UnauthorizedException(
+            "Hesabiniz 15 dakika kilitlendi. Lutfen daha sonra deneyin."
+        )
+
     user = await auth_service.authenticate(db, form_data.username, form_data.password)
     if user is None:
+        # Persist the failure. Increments counter + flips locked_until
+        # at threshold. Even cross-restart-resilient.
+        try:
+            await record_failure(db, form_data.username)
+            await db.commit()
+        except Exception:
+            await db.rollback()
         raise UnauthorizedException("Gecersiz e-posta veya sifre")
+
+    # Successful auth — clear the persistent counter.
+    try:
+        await record_success(db, form_data.username)
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})

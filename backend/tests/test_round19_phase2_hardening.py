@@ -189,6 +189,7 @@ def test_gate_blocks_when_total_above_tenant_threshold() -> None:
         base_currency=cfg.base_currency,
         ocr_max_pages=cfg.ocr_max_pages,
         ai_monthly_quota_usd=cfg.ai_monthly_quota_usd,
+        at_risk_threshold=40,
     )
     eligible, reason = _auto_quote_eligible(
         _GateStub(), _parsed_with_value(10000, qty=1), tenant_config=cfg_with_cap
@@ -205,6 +206,7 @@ def test_gate_allows_when_total_under_tenant_threshold() -> None:
         base_currency="TRY",
         ocr_max_pages=5,
         ai_monthly_quota_usd=None,
+        at_risk_threshold=40,
     )
     eligible, reason = _auto_quote_eligible(
         _GateStub(), _parsed_with_value(1000, qty=1), tenant_config=cfg
@@ -231,6 +233,7 @@ def test_gate_skips_amount_check_when_estimate_is_zero() -> None:
         base_currency="TRY",
         ocr_max_pages=5,
         ai_monthly_quota_usd=None,
+        at_risk_threshold=40,
     )
     parsed = {"parts": [{"part_code": "x", "catalog_status": "exact"}]}
     eligible, reason = _auto_quote_eligible(_GateStub(), parsed, tenant_config=cfg)

@@ -37,6 +37,7 @@ class TenantConfig:
     base_currency: str
     ocr_max_pages: int
     ai_monthly_quota_usd: Optional[Decimal]
+    at_risk_threshold: int
 
     @classmethod
     def defaults(cls, tenant_id: int) -> "TenantConfig":
@@ -47,6 +48,7 @@ class TenantConfig:
             base_currency="TRY",
             ocr_max_pages=5,
             ai_monthly_quota_usd=None,
+            at_risk_threshold=40,
         )
 
     @classmethod
@@ -58,6 +60,7 @@ class TenantConfig:
             base_currency=row.base_currency,
             ocr_max_pages=row.ocr_max_pages,
             ai_monthly_quota_usd=row.ai_monthly_quota_usd,
+            at_risk_threshold=getattr(row, "at_risk_threshold", 40),
         )
 
 

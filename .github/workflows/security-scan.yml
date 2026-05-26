@@ -1,0 +1,104 @@
+name: security-scan
+
+# D-040 — SAST + DAST + secret scanning + dependency audit.
+# Runs on every PR (fast SAST) and nightly (full DAST against staging).
+# All HIGH+ findings block merge / deploy.
+
+on:
+  pull_request:
+    branches: [main, deploy/render-sandbox]
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC nightly
+  workflow_dispatch:
+
+jobs:
+  sast-python:
+    name: SAST — Python (Bandit + Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit
+        run: pip install bandit==1.8.0
+
+      - name: Run Bandit
+        # -ll = report MEDIUM+ ; -lll would be HIGH+ only.
+        # Skip noisy assert checks in tests.
+        run: |
+          bandit -r backend/app \
+            --skip B101,B601 \
+            -ll \
+            -f txt
+
+      - name: Run Semgrep
+        # The default rule set covers OWASP Top 10 + Python-specific
+        # patterns. Exit on ERROR severity (LOW + INFO ignored).
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/owasp-top-ten
+            p/python
+            p/security-audit
+            p/secrets
+
+  secret-scan:
+    name: Secret scanning (TruffleHog)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+
+  dependency-audit:
+    name: Dependency audit (pip-audit + npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt \
+            --strict \
+            --vulnerability-service osv
+
+      - name: npm audit (frontend)
+        working-directory: frontend
+        run: |
+          npm ci --no-audit
+          # Fail on HIGH+ vulnerabilities only; advisories below
+          # require human review but don't block.
+          npm audit --audit-level=high
+
+  dast-baseline:
+    # Nightly only; PR runs skip to keep PR latency low.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    name: DAST — OWASP ZAP baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: ${{ vars.STAGING_URL || 'https://honeywell-frontend.onrender.com' }}
+          fail_action: true
+          cmd_options: -a -j -m 10 -T 60

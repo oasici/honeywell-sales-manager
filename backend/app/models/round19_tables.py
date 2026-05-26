@@ -214,6 +214,95 @@ class ApprovalRulePendingChange(Base):
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class LoginLockout(Base):
+    """D-006 persistent per-account login rate limit."""
+
+    __tablename__ = "login_lockouts"
+
+    email_lower: Mapped[str] = mapped_column(String(320), primary_key=True)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_failure_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_locked_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+
+
+class CrossTenantAttempt(Base):
+    """D-010 cross-tenant probe audit log."""
+
+    __tablename__ = "cross_tenant_attempts"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    user_tenant: Mapped[int] = mapped_column(Integer, nullable=False)
+    attempted_entity: Mapped[str] = mapped_column(String(40), nullable=False)
+    attempted_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    attempted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+    )
+    ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    ua: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class BackgroundJobDlq(Base):
+    """D-019 dead-letter queue for failed background jobs."""
+
+    __tablename__ = "background_job_dlq"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    job_name: Mapped[str] = mapped_column(String(60), nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    error: Mapped[str] = mapped_column(Text, nullable=False)
+    failed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+    )
+    retry_count: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    resolved_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ActiveSession(Base):
+    """D-023 active sessions for logout-everywhere + audit."""
+
+    __tablename__ = "active_sessions"
+
+    jti: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    issued_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    ua: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+    )
+
+
 class ApprovalDecision(Base):
     """F-018 per-approver decision ledger."""
 
