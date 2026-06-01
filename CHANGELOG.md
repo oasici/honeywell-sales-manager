@@ -9,6 +9,101 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.21.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.20.0...v1.21.0) (2026-06-01)
+
+
+### Added
+
+* **round-15:** 5 PaginatedResponse[dict] quick wins (N15-API-1) ([c4bab40](https://github.com/oasici/honeywell-sales-manager/commit/c4bab40742e5c907f4daf0347a308b8d20fa08a5))
+* **round-15:** bulk response_model push — 17 routers, 16 new schema files ([ed04a68](https://github.com/oasici/honeywell-sales-manager/commit/ed04a68665bda9ebf66950109b8e28ba9990f776))
+* **round-15:** close ALL 41 PaginatedResponse[dict] holdouts → 0 ([fe05af4](https://github.com/oasici/honeywell-sales-manager/commit/fe05af4aa03658e6455e3784d2b57fc408291229))
+* **round-15:** close N15-FE-1/2/3 edit-form + serializer drift ([f454dfd](https://github.com/oasici/honeywell-sales-manager/commit/f454dfdaa591b27ae66852d0424c00a105ce93eb))
+* **round-15:** close R14-FE-1 — isError on every useQuery hook ([d766543](https://github.com/oasici/honeywell-sales-manager/commit/d76654335cf446bd1e09cb3ad9d18e7cb7f0275d))
+* **round-15:** R14-FE-1 isError closeout — admin pages cohort ([26fabdf](https://github.com/oasici/honeywell-sales-manager/commit/26fabdf35ac242c638a5d96efc86dd51250f4855))
+* **round-15:** response_model = 100% accounted across all 538 endpoints ([754362c](https://github.com/oasici/honeywell-sales-manager/commit/754362ced284b3a0d7698c2b69556cb6a06845b0))
+* **round-15:** Sprint 16e cohort 9 + Sprint 16i schema-drift gate ([47afc12](https://github.com/oasici/honeywell-sales-manager/commit/47afc12033ce412cdb2992929e5b7a466a5654b2))
+* **round-15:** Sprint 16g pre-step - backfill schemas + refresh api-types ([ef98ee4](https://github.com/oasici/honeywell-sales-manager/commit/ef98ee459c9c3a712416367016e4bc814a8574bc))
+* **round-16:** A2 - annotate feature-flag allowlist with verified intent ([e15f09e](https://github.com/oasici/honeywell-sales-manager/commit/e15f09ed8f3fddcb1a3d29f5451291e4b86d04fe))
+* **round-16:** A2 follow-up + B-3 + CI gate cleanup ([feae8fe](https://github.com/oasici/honeywell-sales-manager/commit/feae8fe0017756910486425eccb0f4bb74d3e2c0))
+* **round-16:** admin i18n sweep + codemod analysis ([7d6383d](https://github.com/oasici/honeywell-sales-manager/commit/7d6383db04c3a05676d3fae9c45ca05b98fac392))
+* **round-16:** B - swap 31 more response_model=dict to existing entity schemas ([237fbb9](https://github.com/oasici/honeywell-sales-manager/commit/237fbb941d29d18f9ec15a17750b37d6409dcb89))
+* **round-16:** B - tighten 65 response_model=dict to MessageResponse / GenericDataResponse ([bb67b36](https://github.com/oasici/honeywell-sales-manager/commit/bb67b36d8333bce78890e53735ed3617baeaf270))
+* **round-16:** C3 - wire polymorphic picker on GET /customers/{id} ([a1b4771](https://github.com/oasici/honeywell-sales-manager/commit/a1b47716ffb1810cafeed2000d9464c644994eb1))
+* **round-16:** C4 - wire polymorphic picker on GET /opportunities/{id} ([60649f9](https://github.com/oasici/honeywell-sales-manager/commit/60649f91fc0452354ab782b0b4baefd48f0234d2))
+* **round-16:** C5-C8 - complete polymorphic picker rollout ([a05b286](https://github.com/oasici/honeywell-sales-manager/commit/a05b286a26e46d27dcd81cd918a3b5b4f3712958))
+* **round-16:** close remaining actionable Round-16 items ([2494753](https://github.com/oasici/honeywell-sales-manager/commit/249475343379d4f7d294772594ed012312dcf6d9))
+* **round-16:** N15-API-7 batch 1 - tighten 10 dict response_models ([160ab6c](https://github.com/oasici/honeywell-sales-manager/commit/160ab6c478f7c817322597f74ae2910e5b33cbbb))
+* **round-16:** N15-API-7 batch 2 - tighten 9 more dict response_models ([a8c7531](https://github.com/oasici/honeywell-sales-manager/commit/a8c753141e9d461e391cd8f3617085cb35fba8b9))
+* **round-16:** N15-API-7 batch 3 - tighten 9 more dict response_models ([e820b6e](https://github.com/oasici/honeywell-sales-manager/commit/e820b6e48de184b33a9486aba908c10baac7c58e))
+* **round-16:** N15-API-7 batch 4 - tighten 15 more dict response_models ([91e32fc](https://github.com/oasici/honeywell-sales-manager/commit/91e32fcdc088d9ba1fe136f1bc130a7afbd032bf))
+* **round-16:** N15-API-7 batch 5 - tighten 3 more subscription dict handlers ([7436957](https://github.com/oasici/honeywell-sales-manager/commit/743695751a9d5fda3f9b9248ab08b9fe62f27fef))
+* **round-16:** N15-API-7 batch 6 - tighten 6 more dict response_models ([d1552ad](https://github.com/oasici/honeywell-sales-manager/commit/d1552adf2eb94afc7f9032cb5d7f67a7f8fb7ef7))
+* **round-16:** N15-API-7 batch 7 - tighten 6 more FE-critical dict handlers ([6a97144](https://github.com/oasici/honeywell-sales-manager/commit/6a971444745ffcb9f429c5e1dc8084055e1707c6))
+* **round-16:** N15-API-7 batch 8 - tighten final 32 dict handlers (0 remaining) ([bed946a](https://github.com/oasici/honeywell-sales-manager/commit/bed946a62791b62e49e314fdd7e0208031059cdc))
+* **round-16:** unblock A1+E+C2 - cohort-9 proven, M-02 landed, polymorphic canary ([2fb3e99](https://github.com/oasici/honeywell-sales-manager/commit/2fb3e99d458fbb9c43bed01f148d9112086d1c80))
+* **round-17:** email pipeline hardening — attachments + auth + catalog ([b6640c6](https://github.com/oasici/honeywell-sales-manager/commit/b6640c60980b46af60e3cce2cc7e4e592258ff84))
+* **round-18:** email pipeline OCR + key rotation + RFQ aggregation ([2a04267](https://github.com/oasici/honeywell-sales-manager/commit/2a04267618786036c17517f2de1598f47113cca0))
+* **round-19:** Phase 1 enterprise hardening — 7 critical fixes ([41bb5fe](https://github.com/oasici/honeywell-sales-manager/commit/41bb5fec79b68aeb6742452739df7f5a594d7a68))
+* **round-19:** Phase 10 — D-013 workflow cycle guard wired into runtime ([d766468](https://github.com/oasici/honeywell-sales-manager/commit/d76646877aff81d97569db9fa78b092990b43c52))
+* **round-19:** Phase 11 — D-012 forensic approval_decisions write ([48eaeaf](https://github.com/oasici/honeywell-sales-manager/commit/48eaeaf6cdda72b414f932e11e11c6882dae92a7))
+* **round-19:** Phase 12 — D-007 JWT rotate, D-028 email DLQ, D-031 opps import ([24160b6](https://github.com/oasici/honeywell-sales-manager/commit/24160b689e1b6ed05e7fdf167858017d32ea9a19))
+* **round-19:** Phase 12 — D-009 complete OCC rollout across 7 entities ([a8935ae](https://github.com/oasici/honeywell-sales-manager/commit/a8935ae861e08ac145043b5f78cdcd7cb105bcea))
+* **round-19:** Phase 12 — D-030 Trash UI + bulk restore ([57914bb](https://github.com/oasici/honeywell-sales-manager/commit/57914bb20acdee5ee101316702b5db77b99425ab))
+* **round-19:** Phase 12 — D-034 per-tenant tenant-local forecast cron ([a754663](https://github.com/oasici/honeywell-sales-manager/commit/a7546630b862483fa82eaff5e16189e667e9cd5c))
+* **round-19:** Phase 12 — D-035 Reports Builder streaming CSV export ([e849eb7](https://github.com/oasici/honeywell-sales-manager/commit/e849eb76e1f428557919e13689f95257b311a04b))
+* **round-19:** Phase 2 hardening — 5 shipped + 2 schema-staged ([dc46091](https://github.com/oasici/honeywell-sales-manager/commit/dc46091d943f74389514915aae28d200bab0c589))
+* **round-19:** Phase 3 hardening — quorum, supersede, pricing, SLA ([7195251](https://github.com/oasici/honeywell-sales-manager/commit/71952516d42bd886dffa43fd04c204e174f54824))
+* **round-19:** Phase 4 hardening — 7 items, 20-30 user pragmatic mode ([1e61044](https://github.com/oasici/honeywell-sales-manager/commit/1e610449ec7c374349eb30889ad8d8a4bcfbbe44))
+* **round-19:** Phase 5 — service-to-endpoint wiring + F-021 bulk import ([8926172](https://github.com/oasici/honeywell-sales-manager/commit/8926172e7fe58e9e540e0dbdd911f487f5a8deaa))
+* **round-19:** Phase 6 — multi-currency forecast + health debounce ([d5268c8](https://github.com/oasici/honeywell-sales-manager/commit/d5268c8e61e670ef2828aa9ebee7659b13507c5f))
+* **round-19:** Phase 7 — wire R19 crons + extend OCC to 3 entities ([f414ae9](https://github.com/oasici/honeywell-sales-manager/commit/f414ae950ddacd4268949212596d3e9793f75c91))
+* **round-19:** Phase 8 — execute HARDENING_DESIGN_V2 roadmap (Phase 1+2 critical) ([acaa8d4](https://github.com/oasici/honeywell-sales-manager/commit/acaa8d49f8ba4cb23074c8adcc73c3e5fe2e5c17))
+* **round-19:** Phase 9 — continue roadmap (D-018 field-perm decorator + D-031 lead bulk import) ([2575c07](https://github.com/oasici/honeywell-sales-manager/commit/2575c0718835c295b075cac758f23b392a320544))
+
+
+### Fixed
+
+* **ci:** close 4 backend-test gates from Phase 8 additions ([e50194e](https://github.com/oasici/honeywell-sales-manager/commit/e50194ee1da886e384126762a1024c5f88aa7047))
+* **ci:** close schema drift gate — model columns + type aliases catch up to migrations ([6d073df](https://github.com/oasici/honeywell-sales-manager/commit/6d073dfb67be4f5bb03363a6e56df3a6557a05b5))
+* **ci:** get security-scan green — SAST findings + ZAP rules format ([abb7380](https://github.com/oasici/honeywell-sales-manager/commit/abb73801d07d690c33e80c3acfc59f1deda95626))
+* **ci:** resolve Phase 12 backend-test + frontend-build regressions ([6837ef8](https://github.com/oasici/honeywell-sales-manager/commit/6837ef8911832e60f0077f87b9f7f15a8f54061f))
+* **ci:** semgrep gate on ERROR severity, exclude text() audit rule ([19d344f](https://github.com/oasici/honeywell-sales-manager/commit/19d344f55a34e174196b0e596f3add8fe87bcce2))
+* **ci:** silence ZAP noise + skip load-test when secrets unset ([5e32b13](https://github.com/oasici/honeywell-sales-manager/commit/5e32b132fade337544ff7a0d1f46c6c6cc3c954e))
+* **ci:** skip monthly restore drill when DR secrets unconfigured ([abbdae5](https://github.com/oasici/honeywell-sales-manager/commit/abbdae55a03435acd6f941bedeb48139a932435f))
+* **ci:** ZAP — tolerate action's deprecated artifact upload, gate on jq ([c75ef58](https://github.com/oasici/honeywell-sales-manager/commit/c75ef584534b67850bab676270c968dab7567a72))
+* **ci:** ZAP gate must exclude allowlisted plugin IDs ([127fea0](https://github.com/oasici/honeywell-sales-manager/commit/127fea0299899463c29e031a53b2f6e164660b90))
+* **deps:** revert cryptography to 46.x (msal pin) + robust dashboard typing ([3b08614](https://github.com/oasici/honeywell-sales-manager/commit/3b086143c5a294e6d93ca35fe21ce6871dbf51c3))
+* **round-15:** close N15-AUTH-3/N15-AUTH-4/N15-OPS-1 (CRITICAL) ([9f41229](https://github.com/oasici/honeywell-sales-manager/commit/9f41229096ff4f1a906d82b1e3e099ca0bdd32d4))
+* **round-15:** close R14-LOG-1 / R14-I18N-1 / R14-A11Y-1 / R14-RBAC-1 ([7b16dd4](https://github.com/oasici/honeywell-sales-manager/commit/7b16dd4e1c02d6a7acfddc54aed0d5e153253161))
+* **round-15:** realtime + DB docstring + UI rendering hygiene ([188f30f](https://github.com/oasici/honeywell-sales-manager/commit/188f30f8ce5c2104ac8ace35f8b66f1aa13c8210))
+* **round-16:** backend-test CI failures - 27 tests across 5 root causes ([1ae2e0f](https://github.com/oasici/honeywell-sales-manager/commit/1ae2e0fda734f5c7316fb0844cc8fd1a37ef5c36))
+* **round-16:** CI frontend-build - JSX.Element to ReactNode in ApprovalRulesPage ([07df1d7](https://github.com/oasici/honeywell-sales-manager/commit/07df1d761c09b079180f98380ccde26c0b109083))
+* **round-16:** CI OpenAPI drift gate - regen api-types after B-1/B-2/B-3 swaps ([cd6841e](https://github.com/oasici/honeywell-sales-manager/commit/cd6841eda92abfd78e3ed7de35bdc39fb3069e2c))
+* **round-16:** DealHealthIndicatorRow.raw_value - widen to Any ([89fb157](https://github.com/oasici/honeywell-sales-manager/commit/89fb15756bcbae6b9057ca061c75edce13f06bc4))
+* **round-16:** DealReplayFramesResponse - widen narrow types to Any ([b1d33b2](https://github.com/oasici/honeywell-sales-manager/commit/b1d33b29dab634d6b236e0b2273454626cba3f8b))
+* **round-16:** MaterializeDnaResponse.coaching_hooks - widen to Any ([6f04c35](https://github.com/oasici/honeywell-sales-manager/commit/6f04c35d1902178900c561cb11e655f2c5cd2bf0))
+* **round-19:** boş gate sayfası — flag fetch fail-open + cold-start retry ([09b5d08](https://github.com/oasici/honeywell-sales-manager/commit/09b5d08eac3c461974cc1240951931189124b256))
+* **security:** bump starlette 1.0.1 + js-cookie 3.0.6 — close R18 CI gate ([39b4946](https://github.com/oasici/honeywell-sales-manager/commit/39b49460373017325b86dffcdfefcb81a84db8e5))
+
+
+### Changed
+
+* **round-15:** Sprint 16g codemod - migrate local User to shared ([1914559](https://github.com/oasici/honeywell-sales-manager/commit/19145595a33b9571e74592ce5f2b0ceaf2351cd5))
+
+
+### Documentation
+
+* **qa:** enterprise master test coverage — 43 sections, 200+ test cases ([e2ff245](https://github.com/oasici/honeywell-sales-manager/commit/e2ff245d4d0c3f1543a707249fc193a208b3dcd5))
+* **qa:** hardening design v2 — 40 findings, exact engineering specs ([42a7edc](https://github.com/oasici/honeywell-sales-manager/commit/42a7edc12a57707cf757eb78a96295b8c769dbdd))
+* **round-15:** cross-layer audit report (2026-05-20) ([b60a3c8](https://github.com/oasici/honeywell-sales-manager/commit/b60a3c8c88d4a614d830a6fe764a3648d0f2d85c))
+* **round-16:** A1 + E1 execution log + Track A/E acceptance ticked ([f16c0dc](https://github.com/oasici/honeywell-sales-manager/commit/f16c0dccdee54cb4cabc8f54d24baed6987d6ccf))
+* **round-16:** C1 - RFC for polymorphic response schemas (N15-API-3) ([fc60137](https://github.com/oasici/honeywell-sales-manager/commit/fc60137d90b96553f74bf717aa112ac836969e86))
+* **round-16:** deferred-items plan with concrete sequencing ([a673a85](https://github.com/oasici/honeywell-sales-manager/commit/a673a856681696c4964dd4ddd54d9be1e52c8ae1))
+* **round-18:** email pipeline coverage push (%80 → %90) audit doc ([fc628d8](https://github.com/oasici/honeywell-sales-manager/commit/fc628d8e9f0601c12b65898d4ace87c5af6cbfb5))
+* Türkçe UAT-style kullanıcı kılavuzu (Round-18 sürümü) ([c89c6a4](https://github.com/oasici/honeywell-sales-manager/commit/c89c6a4327e5a5ac7e76e6869133b09403ba28eb))
+* update plan with D-NNN status table — 17/40 shipped, rest documented ([e98136a](https://github.com/oasici/honeywell-sales-manager/commit/e98136a7495dbe0bc3cae204dc9bbb06df790761))
+* USER_MANUAL Phase 12 — opps import, CSV streaming, tenant-local forecast, OCC ([3644f29](https://github.com/oasici/honeywell-sales-manager/commit/3644f290b68cc0228ca817cfbd6b44e3ac3e77b8))
+
 ## [1.20.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.19.0...v1.20.0) (2026-05-20)
 
 
