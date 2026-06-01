@@ -104,7 +104,7 @@ aiosqlite==0.22.1
 # ─────────────────────────────────────────────────────────────────────────
 starlette==1.0.1          # GHSA-86qp-5c8j-p5mr (host header injection in URL reconstruction)
 pillow==12.2.0             # CVE-2026-25990, CVE-2026-40192 (via weasyprint)
-lxml==6.1.0                # CVE-2026-41066 (via weasyprint/pdfplumber)
+lxml==6.1.1                # CVE-2026-41066 (via weasyprint/pdfplumber)
 pdfminer.six==20251230     # CVE-2025-64512, CVE-2025-70559 (matches pdfplumber 0.11.9 pin)
 pyOpenSSL==26.1.0          # CVE-2026-27448, CVE-2026-27459 (via cryptography graph)
 # litellm — only consumed by crawl4ai which is now optional. Drop the
