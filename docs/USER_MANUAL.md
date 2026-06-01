@@ -1,8 +1,10 @@
 # Honeywell Sales Suite — Kullanıcı Kılavuzu ve UAT El Kitabı
 
-> **Sürüm:** Round-19+ Hardening (2026-05-26) · **Dil:** Türkçe · **Hedef Kitle:** Saha satış ekibi, satış müdürleri, operasyon ekibi, UAT/QA test mühendisleri
+> **Sürüm:** Round-19+ Hardening · Phase 12 (2026-06-01) · **Dil:** Türkçe · **Hedef Kitle:** Saha satış ekibi, satış müdürleri, operasyon ekibi, UAT/QA test mühendisleri
 >
-> **Bu sürümde yeni / değişen:** Kalıcı login lockout (D-006), gerçek SMTP gönderimi (D-014), KVKK export worker + iki-kişi onayı (D-015/D-016), arka plan iş başarısızlıkları için DLQ (D-019), 7 entity için Trash/Restore (F-007), e-İmza OTP doğrulama akışı (F-006), Lead toplu içe aktarım (D-031), onay forensik audit (D-012), kvorum onay politikası (F-018), onay SLA escalation (F-028), teklif supersede zinciri (F-026), workflow döngü algılama (D-013), düşük-veri için health skor bias düzeltme (D-033), cross-tenant ihlal tespiti (D-010), aktif oturum yönetimi.
+> **Phase 12'de yeni / değişen:** Fırsat toplu içe aktarım (D-031 opps), Reports Builder CSV streaming (D-035), tenant-yerel forecast snapshot cron (D-034), tüm 11 mutable entity'de OCC `row_version` (D-009), login'de JWT rotation (D-007 — session-fixation savunması), email pipeline başarısızlığı → DLQ (D-028).
+>
+> **Önceki Round-19+ değişiklikleri:** Kalıcı login lockout (D-006), gerçek SMTP gönderimi (D-014), KVKK export worker + iki-kişi onayı (D-015/D-016), arka plan iş başarısızlıkları için DLQ (D-019), 7 entity için Trash/Restore (F-007), e-İmza OTP doğrulama akışı (F-006), Lead toplu içe aktarım (D-031), onay forensik audit (D-012), kvorum onay politikası (F-018), onay SLA escalation (F-028), teklif supersede zinciri (F-026), workflow döngü algılama (D-013), düşük-veri için health skor bias düzeltme (D-033), cross-tenant ihlal tespiti (D-010), aktif oturum yönetimi.
 
 Bu doküman, ürünü hiç kullanmamış bir kişinin baştan sona her özelliği doğru kullanabilmesi ve QA ekibinin her özelliği UAT testine tabi tutabilmesi için tek kaynak olacak şekilde hazırlanmıştır.
 
@@ -569,6 +571,33 @@ Bir satırın hatası diğerlerini bozmaz. Her satır kendi SAVEPOINT'inde işle
 - **Maks dosya boyutu:** 10 MB (yaklaşık 50.000 satır). Daha büyük dosyaları bölün.
 - **Encoding:** chardet ile otomatik tespit edilir; başarısızsa "Encoding tespit edilemedi, UTF-8 olarak kaydedin" hatası.
 - **Roll-up zorunlu değil:** "Müşteriye dönüştür" otomatik yapılmaz; tüm yeni satırlar `new` durumundaki lead olarak yaratılır.
+
+#### Özellik: Fırsat Toplu İçe Aktarım (D-031 — Opportunity CSV Bulk Import)
+
+**Nerede:** Fırsatlar sayfasının sağ üstündeki "Toplu İçe Aktar" → `POST /bulk-import/opportunities`.
+
+**Amaç:** Bir CSV'den çok sayıda fırsatı (forecast pipeline) tek seferde eklemek. Lead içe aktarımıyla aynı per-row SAVEPOINT desenini kullanır.
+
+**Yetki:** Sales Manager + Operations.
+
+**Zorunlu Sütunlar:** `title`, `customer_vergi_no`.
+**Opsiyonel Sütunlar:** `amount` (TR `1.234,56` veya US `1234.56` formatı), `currency` (varsayılan TRY), `stage`, `close_date` (ISO `2026-08-15` / `15/08/2026` / `15.08.2026`), `probability` (0-100; boşsa aşamadan türetilir), `source`.
+
+**Davranış:**
+- Her satırda `customer_vergi_no` → `customers.tax_id` ile tenant-içi eşleştirilir; müşteri bulunamazsa satır atlanır (önce müşterileri içe aktarın).
+- Aşama `OpportunityStage` enum'una göre doğrulanır; boş olasılık aşamadan otomatik (prospecting=10, qualified=25, proposal=50, negotiation=75, closed_won=100, closed_lost=0).
+- **Doğal anahtar (tenant, title, customer_id):** aynı forecast CSV'sini yeniden yüklemek mükerrer fırsat yaratmaz, mevcut satırı günceller.
+
+**UAT:**
+
+| Adım | Eylem | Test Verisi | Beklenen Sonuç |
+|---|---|---|---|
+| 1 | Sales rep import çağırır | - | 403 |
+| 2 | Zorunlu sütun eksik | `customer_vergi_no` yok | `csv_missing_required_columns` |
+| 3 | Bilinmeyen müşteri vergi no | `9999999999` | satır atlanır, `customer_not_found` |
+| 4 | Geçersiz aşama | `not-a-stage` | satır atlanır, `invalid_stage` |
+| 5 | Olasılık > 100 | `150` | satır atlanır, `out_of_range` |
+| 6 | Aynı CSV ikinci yükleme | - | `updated` (mükerrer değil) |
 
 ---
 
@@ -1145,6 +1174,8 @@ E-İmza akışı **token + 6 haneli OTP** ile iki faktörlü çalışır. Müşt
 | 3 | Gruplama: Müşteri | - | Müşteri bazlı toplam |
 | 4 | Kaydet, ad: "Aylık Quote" | - | Saved'de görünür |
 | 5 | Export CSV | - | Dosya indirilir |
+
+**D-035 — CSV Streaming (büyük raporlar):** CSV dışa aktarımı artık veritabanı imlecinden **akış (streaming)** ile üretilir; tüm satırları belleğe yüklemez. 50.000 satırlık bir rapor bile sabit bellekle indirilir. Gruplanmış (aggregate) raporlar küçük olduğundan tamponlu yola düşer. Her hücre F-008 formül-enjeksiyonu sanitizasyonundan geçer (örn. `=cmd|...` ile başlayan müşteri adı pasif metne çevrilir). Güvenlik tavanı: tek dışa aktarımda max 200.000 satır (aşılırsa log'a "truncated" yazılır).
 
 ---
 
@@ -1886,7 +1917,9 @@ closed_revenue[month] = Σ opportunity.amount
 
 **Yuvarlama:** İki ondalığa banker's rounding (round-half-to-even).
 
-**Güncelleme:** Anlık (CRUD trigger) + her gece 04:00 cron job revize.
+**Güncelleme:** Anlık (CRUD trigger) + her gece pipeline snapshot.
+
+**D-034 — Tenant-yerel snapshot zamanı:** Pipeline forecast snapshot'ı artık tek bir UTC anında değil, **her tenant'ın kendi saat diliminde** alınır. Ayarlar: `tenant_settings.forecast_cron_hour` (varsayılan 4) + `forecast_cron_tz` (varsayılan `UTC`). Dispatcher her 15 dakikada bir çalışır; bir tenant'ın yerel saati yapılandırılan saate ulaştığında o tenant'a özel (tenant-scoped) snapshot alınır — böylece forecast tabanı tutarlı bir yerel iş-günü sınırında oluşur. Geçersiz timezone UTC'ye düşer + uyarı log'lanır. Aynı gün içinde mükerrer çalışma per-(tenant, yerel-tarih) guard ile engellenir.
 
 **Sınır durumları:**
 - `expected_close_date` boşsa fırsat hiçbir aya konmaz; raporda "Unscheduled" başlığı altına düşer.
@@ -2155,9 +2188,9 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 4. **AI Coaching**: `coaching_hooks` döngüsü beta; manager'a sunulan öneriler her zaman doğru olmayabilir, daima manuel değerlendirin.
 5. **TSA (Time Stamping Authority)**: e-İmza akışında `sign_otp_tokens.tsa_token` kolonu rezerve ama harici TSA entegrasyonu beklemede. Şu anda IP + UA + zaman damgası iç audit için yeterli; hukuki noter onayı için TSA entegrasyonu gerekli.
 6. **KMS / DEK rotation**: Per-tenant DEK envelope encryption aktif (tenant_dek + Fernet KEK) ama AWS KMS entegrasyonu (D-002) ve key rotation otomasyonu (D-017) pilot scale (20-30 kullanıcı) sonrasına ertelendi.
-7. **RLS (Row-Level Security)**: PostgreSQL RLS politikaları henüz uygulanmadı; tenant izolasyonu uygulama katmanında (`assert_same_tenant`) sağlanıyor. DB seviyesi savunma katmanı Phase 4'te eklenecek.
+7. **RLS (Row-Level Security)**: PostgreSQL RLS politikaları henüz uygulanmadı; tenant izolasyonu uygulama katmanında (`assert_same_tenant`) sağlanıyor (D-001 beklemede).
 8. **KVKK Export artifact storage**: Şu anda local disk (`/var/lib/kvkk-exports`); S3/object storage entegrasyonu beklemede. Pilot scale için yeterli.
-9. **Opportunity Bulk Import**: D-031 Lead bulk import shipped, opportunity için aynı pattern devam ediyor.
+9. **OCC endpoint/UI wiring**: D-009 row_version artık 11 entity'de mevcut + `guarded_update` helper'ı hazır, ancak PUT/PATCH endpoint'lerinin `row_version` zorunlu kılması + frontend 409 üç-yön merge modali (P3, sözleşme-kıran) pilot sonrasına ertelendi.
 10. **Mobile responsive**: D-003 mobile-first pass beklemede; tablet/mobile breakpoint'lerde DataTable scroll bazı durumlarda kesik gösterilebilir.
 
 ---
@@ -2168,6 +2201,7 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 |---|---|---|
 | D-006 | Kalıcı per-account login lockout (5 deneme / 15 dk) | 4.1 Auth, 8. SSS |
 | D-007 | JWT rotation on login (token-fixation koruması) | 4.1 Auth |
+| D-009 | OCC (`row_version`) tüm 11 mutable entity'de | (backend) |
 | D-010 | Cross-tenant probe tespiti + audit | 2.2 Tenant, 4.31 Admin |
 | D-012 | Onay forensik audit (`approval_decisions`) | 4.12 Onay Akışları |
 | D-013 | Workflow cycle + depth detection (max 10) | 4.31 Workflow Rules |
@@ -2177,8 +2211,11 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 | D-018 | Field permission decorator (apply_request_perms_to_response) | 2.3 Field Permissions |
 | D-019 | Background-job DLQ + admin endpoints | 4.31 Admin → DLQ |
 | D-024 | Unsubscribe token HTML-comment leak engelleme | 4.20 Engagement |
-| D-031 | Lead toplu içe aktarım (CSV + per-row SAVEPOINT) | 4.4 Leadler |
+| D-028 | Email pipeline başarısızlığı → DLQ yönlendirme | 4.31 Admin → DLQ |
+| D-031 | Lead **+ Fırsat** toplu içe aktarım (CSV + per-row SAVEPOINT) | 4.4 Leadler, 4.5 Fırsatlar |
 | D-033 | Health score sparse-data bias correction | 6.3 Health Algoritması |
+| D-034 | Tenant-yerel forecast snapshot cron (timezone başına) | 4.16 Forecast, 6.2 |
+| D-035 | Reports Builder CSV streaming (büyük dışa aktarım) | 4.15 Raporlar |
 | F-006 | e-Sign OTP 5-aşamalı doğrulama akışı | 4.7 Sözleşmeler |
 | F-007 | Soft-delete + Trash/Restore (7 entity) | 4.31 Admin → Trash |
 | F-018 | Quorum onay politikası (N-of-M) | 4.12 Onay Kuralları |
@@ -2194,5 +2231,6 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 **Sürüm geçmişi:**
 - 2026-05-25 — İlk yayın (Round-18'e karşılık gelir).
 - 2026-05-26 — Round-19+ Hardening update: login lockout, KVKK worker + iki-kişi onayı, DLQ, Trash/Restore, e-Sign OTP, onay forensik/quorum/SLA, lead bulk import, workflow cycle detection, health bias correction, active sessions, cross-tenant audit. (17/40 D-NNN findings shipped — 43%.)
+- 2026-06-01 — Phase 12: D-007 JWT rotation, D-009 OCC (11 entity), D-028 email→DLQ, D-031 opportunity bulk import, D-034 tenant-yerel forecast cron, D-035 reports CSV streaming. Ayrıca kapsamlı CI sertleştirme (security-scan 4/4 yeşil: TruffleHog/ZAP/SAST/dependency-audit; restore-drill + load-test secret-yoksa-atla). (25/40 D-NNN findings shipped — 63%.)
 
 **Geri bildirim:** Yanlış veya eksik gördüğünüz yerleri `docs/USER_MANUAL.md` üzerinde PR açarak iyileştirin.
