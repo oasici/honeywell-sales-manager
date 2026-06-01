@@ -169,12 +169,23 @@ jobs:
             exit 1
           fi
           # ZAP riskcode: 0=Informational, 1=Low, 2=Medium, 3=High.
-          # Anything Medium+ should block; lower severities surface in the
-          # artifact for review without failing nightly.
-          fails=$(jq '[.site[].alerts[] | select((.riskcode | tonumber) >= 2)] | length' report_json.json)
-          echo "ZAP Medium+ alerts: $fails"
+          # rules.tsv IGNORE entries suppress WARN/FAIL classification but
+          # the alerts STILL appear in report_json with their original
+          # riskcode — so the gate must exclude the same plugin IDs the
+          # rules file ignores, otherwise an allowlisted Medium (e.g. CSP
+          # style-src 10055) re-triggers a failure. (CI fix 2026-06-01.)
+          ignored=$(awk -F'\t' '!/^#/ && $2=="IGNORE" {print $1}' .zap/rules.tsv | paste -sd, -)
+          echo "Ignored plugin IDs: $ignored"
+          fails=$(jq --arg ig "$ignored" '
+            ($ig | split(",")) as $ignore
+            | [ .site[].alerts[]
+                | select((.riskcode | tonumber) >= 2)
+                | select(((.pluginid // .pluginId // "") | tostring) as $p
+                         | ($ignore | index($p)) | not) ]
+            | length' report_json.json)
+          echo "ZAP Medium+ alerts (excluding allowlisted): $fails"
           if [ "$fails" -gt 0 ]; then
-            echo "::error::ZAP found $fails Medium+ alerts — see zap-scan artifact."
+            echo "::error::ZAP found $fails non-allowlisted Medium+ alerts — see zap-scan artifact."
             exit 1
           fi
-          echo "ZAP baseline clean (0 Medium+ alerts)."
+          echo "ZAP baseline clean (0 non-allowlisted Medium+ alerts)."
