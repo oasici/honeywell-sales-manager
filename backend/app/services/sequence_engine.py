@@ -130,9 +130,10 @@ def select_variant(
     if not variants:
         return None
 
-    # Create deterministic hash from target_id + step_number
+    # Create deterministic hash from target_id + step_number.
+    # Deterministic bucketing only — not a security hash (Bandit B324).
     key = f"{target_id}:{step_number}"
-    hash_val = int(hashlib.md5(key.encode()).hexdigest(), 16)
+    hash_val = int(hashlib.md5(key.encode(), usedforsecurity=False).hexdigest(), 16)
     bucket = hash_val % 100  # 0-99
 
     cumulative = 0

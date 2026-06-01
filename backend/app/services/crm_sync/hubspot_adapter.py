@@ -131,7 +131,9 @@ class HubSpotAdapter:
         if data is not None:
             req.add_header("Content-Type", "application/json")
         try:
-            with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+            # nosec B310 - URL is the configured HubSpot API base + path,
+            # https-only and not user-controlled; no file:// / custom scheme.
+            with urllib.request.urlopen(req, timeout=self._timeout) as resp:  # nosec B310
                 raw = resp.read()
                 if not raw:
                     return {}

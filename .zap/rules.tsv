@@ -1,53 +1,24 @@
-# ZAP baseline rule overrides for Honeywell Sales Suite frontend.
+# ZAP baseline rule configuration for Honeywell Sales Suite frontend.
 #
-# Format:  <RULE_ID>	<THRESHOLD>	[<URL_REGEX>]
-# Thresholds: IGNORE | INFO | WARN | FAIL
+# Format (zap-baseline `-c` config): three TAB-separated columns —
+#   <plugin_id>	<IGNORE|WARN|FAIL>	<rule name / comment>
+# The third column is a human label; this ZAP version requires it.
 #
-# All entries below downgrade Informational/Low advisories that are
-# either irrelevant to a Vite-built React SPA on Render or are
-# wired into the platform's default response headers (which we
-# do not control from the app side).
+# Every entry downgrades an Informational/Low advisory that is either
+# irrelevant to a Vite-built React SPA on Render or is wired into the
+# platform's default response headers (which we do not control from the
+# app side). Real Medium+ findings still fail the job via the jq
+# fail-gate in .github/workflows/security-scan.yml (riskcode >= 2).
 #
-# Real Medium+ findings still trigger a workflow failure via the
-# jq fail-gate in .github/workflows/security-scan.yml.
-#
-# Rule IDs reference https://www.zaproxy.org/docs/alerts/.
-# ---------------------------------------------------------------
-
-# Re-examine Cache-control Directives — Render CDN headers, expected.
-10015	IGNORE
-
-# Information Disclosure - Suspicious Comments — flags benign comments
-# in our bundled JS (react-query, recharts). Informational only.
-10027	IGNORE
-
-# Strict-Transport-Security Header Not Set on /robots.txt 404 —
-# Render does not emit HSTS on 404 paths.
-10035	IGNORE
-
-# Storable and Cacheable Content / Retrieved from Cache —
-# expected behavior for hashed static assets.
-10049	IGNORE
-10050	IGNORE
-
-# CSP: style-src unsafe-inline — required by React for inline style
-# attributes. Backend CSP middleware enforces script-src nonce.
-10055	IGNORE
-
-# Base64 Disclosure — bundled sourceMappingURL data URIs.
-10094	IGNORE
-
-# Modern Web Application — informational marker, not a finding.
-10109	IGNORE
-
-# Sub Resource Integrity Attribute Missing — Vite hashed chunks
-# change per build; SRI is incompatible with our chunked SPA.
-90003	IGNORE
-
-# Cross-Origin-Embedder/Opener/Resource-Policy Header Missing —
-# Render's default response headers; not controllable from the app.
-90004	IGNORE
-
-# Sec-Fetch-* Header is Missing — these are REQUEST headers, not
-# response headers. ZAP misclassifies them here.
-90005	IGNORE
+# Rule IDs: https://www.zaproxy.org/docs/alerts/
+10015	IGNORE	Re-examine Cache-control Directives
+10027	IGNORE	Information Disclosure - Suspicious Comments
+10035	IGNORE	Strict-Transport-Security Header Not Set
+10049	IGNORE	Storable and Cacheable Content
+10050	IGNORE	Retrieved from Cache
+10055	IGNORE	CSP style-src unsafe-inline
+10094	IGNORE	Base64 Disclosure
+10109	IGNORE	Modern Web Application
+90003	IGNORE	Sub Resource Integrity Attribute Missing
+90004	IGNORE	Cross-Origin Embedder/Opener/Resource Policy Header Missing
+90005	IGNORE	Sec-Fetch-* Header is Missing

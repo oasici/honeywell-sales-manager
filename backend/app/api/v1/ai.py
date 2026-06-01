@@ -289,7 +289,9 @@ async def summarize(
         raise HTTPException(status_code=503, detail="AI devre disi")
 
     raw_key = f"v2:{body.entity_type}:{body.entity_id}:{body.focus or ''}"
-    cache_key = f"ai:summary:{hashlib.md5(raw_key.encode()).hexdigest()}"
+    # md5 here is a cache-key digest, not a security primitive — flag it
+    # so Bandit B324 doesn't treat it as a weak-crypto finding.
+    cache_key = f"ai:summary:{hashlib.md5(raw_key.encode(), usedforsecurity=False).hexdigest()}"
 
     # Rate limit (best-effort): protect AI endpoint from abuse.
     # Prefer Redis to work in multi-worker deployments.
@@ -396,7 +398,8 @@ async def summarize_changes(
         raise HTTPException(status_code=503, detail="AI devre disi")
 
     raw_key = f"v2:changes:{body.entity_type}:{body.entity_id}:{body.days}"
-    cache_key = f"ai:summary:changes:{hashlib.md5(raw_key.encode()).hexdigest()}"
+    # md5 here is a cache-key digest, not a security primitive (B324).
+    cache_key = f"ai:summary:changes:{hashlib.md5(raw_key.encode(), usedforsecurity=False).hexdigest()}"
 
     try:
         from app.core.redis_client import get_redis

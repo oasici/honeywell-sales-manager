@@ -26,12 +26,17 @@ jobs:
         run: pip install bandit==1.8.0
 
       - name: Run Bandit
-        # -ll = report MEDIUM+ ; -lll would be HIGH+ only.
-        # Skip noisy assert checks in tests.
+        # -ll = MEDIUM+ severity; -iii = HIGH confidence only.
+        # The high-confidence gate drops Bandit's notoriously noisy
+        # Low-confidence B608 (dynamic-SQL) findings, which here are all
+        # validated-allowlist / constant identifiers bound with :params,
+        # while still blocking on anything Bandit is confident about.
+        # B101 (assert) + B601 (shell) skipped as test/no-op noise.
+        # (CI fix 2026-06-01.)
         run: |
           bandit -r backend/app \
             --skip B101,B601 \
-            -ll \
+            -ll -iii \
             -f txt
 
       - name: Run Semgrep

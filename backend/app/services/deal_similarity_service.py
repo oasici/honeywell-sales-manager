@@ -77,7 +77,9 @@ def _size_score(employee_count: int | None) -> float:
 def _industry_hash(industry: str | None) -> float:
     if not industry:
         return 0.0
-    digest = hashlib.md5(industry.lower().encode("utf-8")).hexdigest()
+    digest = hashlib.md5(
+        industry.lower().encode("utf-8"), usedforsecurity=False
+    ).hexdigest()
     # First 4 hex chars → [0..1]
     return int(digest[:4], 16) / 0xFFFF
 

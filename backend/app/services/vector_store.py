@@ -160,6 +160,7 @@ async def store_deal(deal_data: dict[str, Any]) -> str:
         embedding = _get_embedding(text)
         point_id = hashlib.md5(
             f"deal_{deal_data.get('id', '')}".encode(),
+            usedforsecurity=False,
         ).hexdigest()
 
         client.upsert(
@@ -254,6 +255,7 @@ async def store_interaction(interaction_data: dict[str, Any]) -> str:
         embedding = _get_embedding(text[:2000])
         point_id = hashlib.md5(
             f"interaction_{interaction_data.get('id', '')}_{interaction_data.get('type', '')}".encode(),
+            usedforsecurity=False,
         ).hexdigest()
 
         client.upsert(
@@ -341,6 +343,7 @@ async def store_competitor_intel(intel_data: dict[str, Any]) -> str:
         embedding = _get_embedding(text[:2000])
         point_id = hashlib.md5(
             f"comp_{intel_data.get('competitor', '')}_{intel_data.get('source', '')}_{intel_data.get('date', '')}".encode(),
+            usedforsecurity=False,
         ).hexdigest()
 
         client.upsert(

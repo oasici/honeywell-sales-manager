@@ -157,7 +157,9 @@ class SalesforceAdapter:
         if data is not None:
             req.add_header("Content-Type", "application/json")
         try:
-            with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+            # nosec B310 - URL is the configured Salesforce instance base
+            # + path, https-only and not user-controlled.
+            with urllib.request.urlopen(req, timeout=self._timeout) as resp:  # nosec B310
                 raw = resp.read()
                 if not raw:
                     return {}

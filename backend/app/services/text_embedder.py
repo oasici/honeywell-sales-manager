@@ -39,7 +39,8 @@ _LOOKAHEAD_WEIGHT = 0.4
 
 def _hash_to_bucket(feature: str, dim: int) -> int:
     """Deterministic feature → bucket mapping."""
-    digest = hashlib.sha1(feature.encode("utf-8")).digest()
+    # Feature-hashing bucket, not a security hash (Bandit B324).
+    digest = hashlib.sha1(feature.encode("utf-8"), usedforsecurity=False).digest()
     # Take 4 bytes → uint → mod dim.
     return int.from_bytes(digest[:4], "big") % dim
 
@@ -54,7 +55,10 @@ def vocab_hash(tokens: Sequence[str]) -> str:
     if not tokens:
         return "0" * 12
     canonical = ",".join(sorted({str(t) for t in tokens}))
-    return hashlib.sha1(canonical.encode("utf-8")).hexdigest()[:12]
+    # Vocabulary-drift digest, not a security hash (Bandit B324).
+    return hashlib.sha1(
+        canonical.encode("utf-8"), usedforsecurity=False
+    ).hexdigest()[:12]
 
 
 def _features(tokens: Sequence[str]) -> Iterable[tuple[str, float]]:

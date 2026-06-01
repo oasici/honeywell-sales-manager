@@ -64,7 +64,8 @@ def _part_text(part: SparePart) -> str:
 def _hash_part(part: SparePart) -> str:
     """Hash part content to detect changes."""
     text = _part_text(part)
-    return hashlib.md5(text.encode()).hexdigest()
+    # Change-detection digest, not a security primitive (Bandit B324).
+    return hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()
 
 
 async def update_embeddings_incremental(db: AsyncSession) -> dict:
