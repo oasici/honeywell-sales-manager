@@ -45,7 +45,7 @@ class Subscription(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     # D-009 Phase 12 — optimistic concurrency lock.
-    row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    row_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
 
     # R5-RENDER-SUB-1 — surface the customer summary on the serializer
     # (mirroring the R5-API-1 invoice fix). selectin keeps lists single

@@ -212,11 +212,18 @@ async def test_demand_heatmap_empty_when_no_quotes_in_window(db: AsyncSession):
 async def test_demand_heatmap_groups_by_month(db: AsyncSession):
     cust = await _seed_customer(db)
     part = await _seed_part(db, code="HW-HEAT")
+    # Both quotes must land in the SAME calendar month for the
+    # single-cell assertion. Seeding at ``now`` and ``now - 2 days``
+    # straddled the month boundary when the suite ran in the first
+    # couple days of a month (e.g. Jun 1 vs May 30 → 2 cells, the test
+    # failed). Use a small offset and clamp it so the earlier quote
+    # never crosses into the previous month, regardless of run date.
     now = datetime.now(timezone.utc)
+    earlier = now - timedelta(hours=2)
+    if earlier.month != now.month:
+        earlier = now
     await _seed_quote_with_item(db, customer=cust, part=part, created_at=now)
-    await _seed_quote_with_item(
-        db, customer=cust, part=part, created_at=now - timedelta(days=2)
-    )
+    await _seed_quote_with_item(db, customer=cust, part=part, created_at=earlier)
     cells = await parts_intelligence_service.demand_heatmap(db, window_days=30)
     assert len(cells) == 1
     assert cells[0].quote_count == 2

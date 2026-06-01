@@ -52,7 +52,7 @@ class Invoice(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     # D-009 Phase 12 — optimistic concurrency lock.
-    row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    row_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
 
     # F-007 Phase 4 — soft-delete tombstones (invoices never hard-delete
     # per legal retention; soft-delete + restore only).

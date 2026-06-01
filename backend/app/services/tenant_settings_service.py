@@ -38,9 +38,10 @@ class TenantConfig:
     ocr_max_pages: int
     ai_monthly_quota_usd: Optional[Decimal]
     at_risk_threshold: int
-    # D-034 — forecast snapshot timing, per tenant.
-    forecast_cron_hour: int
-    forecast_cron_tz: str
+    # D-034 — forecast snapshot timing, per tenant. Defaulted so existing
+    # direct constructions of TenantConfig (tests, callers) keep working.
+    forecast_cron_hour: int = 4
+    forecast_cron_tz: str = "UTC"
 
     @classmethod
     def defaults(cls, tenant_id: int) -> "TenantConfig":

@@ -6145,6 +6145,12 @@ export interface paths {
         /**
          * Export Template
          * @description Export report as CSV.
+         *
+         *     D-035 — streams from the DB cursor (StreamingResponse) so a 50K-row
+         *     report no longer buffers the whole result set in memory. Grouped
+         *     reports transparently fall back to the buffered path inside
+         *     ``stream_report_csv``. Tenant scoping + the F-008 formula-injection
+         *     sanitiser are applied per row in the generator.
          */
         get: operations["export_template_api_v1_reports_templates__template_id__export_get"];
         put?: never;
@@ -10215,6 +10221,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bulk-import/opportunities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Import Opportunities
+         * @description D-031 (opportunities half) — upload an opportunity CSV.
+         *
+         *     Required columns: ``title``, ``customer_vergi_no``.
+         *     Optional: ``amount``, ``currency``, ``stage``, ``close_date``,
+         *               ``probability``, ``source``.
+         *
+         *     Customer is resolved per row by tenant-scoped ``vergi_no`` lookup;
+         *     rows pointing at unknown customers are reported but don't poison
+         *     the rest of the batch. Natural key for dedupe:
+         *     (tenant, title, customer_id) — re-uploading the same forecast
+         *     sheet updates instead of duplicating opportunities.
+         */
+        post: operations["bulk_import_opportunities_api_v1_bulk_import_opportunities_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bulk-import/parts": {
         parameters: {
             query?: never;
@@ -11154,6 +11190,11 @@ export interface components {
         };
         /** Body_bulk_import_leads_api_v1_bulk_import_leads_post */
         Body_bulk_import_leads_api_v1_bulk_import_leads_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_bulk_import_opportunities_api_v1_bulk_import_opportunities_post */
+        Body_bulk_import_opportunities_api_v1_bulk_import_opportunities_post: {
             /** File */
             file: string;
         };
@@ -41345,6 +41386,41 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_bulk_import_leads_api_v1_bulk_import_leads_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_import_opportunities_api_v1_bulk_import_opportunities_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                access_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_bulk_import_opportunities_api_v1_bulk_import_opportunities_post"];
             };
         };
         responses: {
