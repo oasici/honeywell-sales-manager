@@ -22,7 +22,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.services.bulk_import import import_customers, import_leads, import_parts
+from app.services.bulk_import import (
+    import_customers,
+    import_leads,
+    import_opportunities,
+    import_parts,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +121,43 @@ async def bulk_import_leads(
     await db.commit()
     logger.info(
         "Lead bulk import by user %d (tenant %d): %s",
+        current_user.id, tenant_id,
+        {"inserted": report.inserted, "updated": report.updated, "skipped": report.skipped},
+    )
+    return report.as_dict()
+
+
+    # Round-15 N15-API-1: response_model exempt — admin/operational dict response
+@router.post("/opportunities")
+async def bulk_import_opportunities(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """D-031 (opportunities half) — upload an opportunity CSV.
+
+    Required columns: ``title``, ``customer_vergi_no``.
+    Optional: ``amount``, ``currency``, ``stage``, ``close_date``,
+              ``probability``, ``source``.
+
+    Customer is resolved per row by tenant-scoped ``vergi_no`` lookup;
+    rows pointing at unknown customers are reported but don't poison
+    the rest of the batch. Natural key for dedupe:
+    (tenant, title, customer_id) — re-uploading the same forecast
+    sheet updates instead of duplicating opportunities.
+    """
+    _require_ops(current_user)
+    tenant_id = getattr(current_user, "tenant_id", None)
+    if tenant_id is None:
+        raise HTTPException(400, detail="user_has_no_tenant")
+
+    csv_text = await _read_csv_text(file)
+    report = await import_opportunities(
+        db, csv_text, tenant_id=tenant_id, actor_id=current_user.id
+    )
+    await db.commit()
+    logger.info(
+        "Opportunity bulk import by user %d (tenant %d): %s",
         current_user.id, tenant_id,
         {"inserted": report.inserted, "updated": report.updated, "skipped": report.skipped},
     )

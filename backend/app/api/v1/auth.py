@@ -96,12 +96,56 @@ def _clear_auth_cookies(response: Response) -> None:
         response.delete_cookie(key=name, path=path)
 
 
+async def _revoke_incoming_tokens(request: Request, db: AsyncSession) -> None:
+    """D-007 — revoke any tokens the caller presents before login issues new ones.
+
+    Defense against session fixation: if an attacker plants a token in
+    the victim's browser (XSS-like vector) and the victim then logs in
+    normally, that planted token would otherwise remain valid and let
+    the attacker piggyback on the authenticated session. By revoking
+    the incoming token(s) here, the only valid token after login is the
+    one we just issued.
+
+    Best-effort: revocation / session invalidation errors are swallowed
+    so a transient Redis blip cannot block login itself.
+    """
+    candidates: list[str] = []
+
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        candidates.append(auth_header[7:])
+
+    cookie_access = request.cookies.get("access_token")
+    if cookie_access:
+        candidates.append(cookie_access)
+
+    cookie_refresh = request.cookies.get("refresh_token")
+    if cookie_refresh:
+        candidates.append(cookie_refresh)
+
+    for token in candidates:
+        try:
+            await revoke_token_async(token)
+        except Exception:
+            # Revocation is best-effort — fall through and continue with login.
+            pass
+        if not settings.FEATURE_SESSION_MANAGEMENT:
+            continue
+        try:
+            payload = await decode_token_async(token)
+            if payload and payload.get("jti"):
+                await session_service.invalidate_session(db, payload["jti"])
+        except Exception:
+            pass
+
+
 @router.post(
     "/login",
     response_model=TokenResponse,
     dependencies=[Depends(enforce_login_rate_limit)],
 )
 async def login(
+    request: Request,
     response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -145,6 +189,12 @@ async def login(
         await db.commit()
     except Exception:
         await db.rollback()
+
+    # D-007 — session-fixation defense. If the caller already presents
+    # tokens (cookies or Authorization: Bearer), revoke them BEFORE we
+    # issue new ones. Stops an attacker who planted a token via XSS-like
+    # vector from sharing the post-login session.
+    await _revoke_incoming_tokens(request, db)
 
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})

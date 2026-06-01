@@ -236,6 +236,11 @@ class EmailProcessingService:
                 email.error_message = error_str[:ERROR_MESSAGE_MAX_LENGTH] + "..."
             else:
                 email.error_message = error_str
+            # D-028 — route exhausted-retry failures to the DLQ so
+            # Operations can triage from /admin/dlq instead of having
+            # to grep `email.status=error` rows by hand. Best-effort;
+            # never block the email row update on a DLQ insert glitch.
+            await self._write_email_failure_to_dlq(email, exc)
 
         await self._db.flush()
         await self._db.refresh(email)
@@ -311,12 +316,52 @@ class EmailProcessingService:
                 email.error_message = error_str[:ERROR_MESSAGE_MAX_LENGTH] + "..."
             else:
                 email.error_message = error_str
+            # D-028 — same DLQ routing as process_email so manual-entry
+            # failures are visible to Operations alongside IMAP failures.
+            await self._write_email_failure_to_dlq(email, exc)
             await self._db.flush()
             await self._db.refresh(email)
 
         return email
 
     # ---- Private helpers ----
+
+    async def _write_email_failure_to_dlq(
+        self, email: EmailRequest, exc: Exception
+    ) -> None:
+        """D-028 — best-effort DLQ writer for email pipeline failures.
+
+        Uses a separate AsyncSession so a DLQ-write blip cannot taint
+        the original transaction that is updating the email row. If
+        DLQ writing itself fails, swallow the error — we already logged
+        the original exception above; losing the DLQ entry is a
+        visibility regression, not a correctness one.
+        """
+        try:
+            from app.core.database import async_session
+            from app.services.dlq_service import write_to_dlq
+
+            payload = {
+                "email_id": getattr(email, "id", None),
+                "tenant_id": getattr(email, "tenant_id", None),
+                "from_address": getattr(email, "from_address", None),
+                "subject": (getattr(email, "subject", None) or "")[:200],
+                "message_id": getattr(email, "message_id", None),
+            }
+            async with async_session() as dlq_db:
+                await write_to_dlq(
+                    dlq_db,
+                    job_name="email_parser_pipeline",
+                    error=str(exc),
+                    payload=payload,
+                )
+                await dlq_db.commit()
+        except Exception as dlq_exc:  # noqa: BLE001
+            logger.warning(
+                "DLQ write failed for email %s (non-fatal): %s",
+                getattr(email, "id", "?"),
+                dlq_exc,
+            )
 
     async def _mark_first_time_sender(self, email: EmailRequest) -> None:
         """F-004 — set ``first_time_sender`` based on Customer lookup.

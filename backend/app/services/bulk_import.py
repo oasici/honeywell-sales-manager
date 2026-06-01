@@ -372,6 +372,272 @@ async def import_leads(
     return report
 
 
+# ── Opportunity import (D-031 second half) ─────────────────────────
+
+
+REQUIRED_OPP_FIELDS = ("title", "customer_vergi_no")
+OPP_OPTIONAL_FIELDS = (
+    "amount", "currency", "stage", "close_date", "probability", "source",
+)
+_VALID_STAGES = {
+    "prospecting", "qualified", "proposal", "negotiation",
+    "closed_won", "closed_lost",
+}
+_STAGE_DEFAULT_PROBABILITY = {
+    "prospecting": 10.0,
+    "qualified": 25.0,
+    "proposal": 50.0,
+    "negotiation": 75.0,
+    "closed_won": 100.0,
+    "closed_lost": 0.0,
+}
+
+
+def _parse_amount(raw: str | None) -> float | None:
+    if raw is None or not raw.strip():
+        return None
+    # Tolerate Turkish-locale decimals ("1.234,56") and plain floats.
+    cleaned = raw.strip().replace(" ", "")
+    if "," in cleaned and "." in cleaned:
+        cleaned = cleaned.replace(".", "").replace(",", ".")
+    elif "," in cleaned:
+        cleaned = cleaned.replace(",", ".")
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def _parse_close_date(raw: str | None):
+    """Accept ISO (2026-08-15) or DD/MM/YYYY. Returns a ``date`` or None.
+
+    asyncpg's prepared-statement plan requires a python ``date`` when
+    the column is DATE — a CAST-from-text bind raises
+    ``'str' object has no attribute 'toordinal'``.
+    """
+    from datetime import datetime as _dt
+
+    if raw is None or not raw.strip():
+        return None
+    s = raw.strip()
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d.%m.%Y", "%Y/%m/%d"):
+        try:
+            return _dt.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+async def import_opportunities(
+    db: AsyncSession,
+    csv_text: str,
+    *,
+    tenant_id: int,
+    actor_id: int,
+) -> ImportReport:
+    """D-031 (opportunities half).
+
+    CSV columns:
+      Required: ``title``, ``customer_vergi_no``
+      Optional: ``amount`` (decimal, TR or US format), ``currency``
+                (default TRY), ``stage`` (default prospecting),
+                ``close_date`` (ISO / DD-MM-YYYY), ``probability``
+                (0-100; auto from stage when blank), ``source``.
+
+    Natural key: (tenant_id, title, customer_id). Duplicates update;
+    avoids re-inserting the same forecast row when an operator
+    uploads a refreshed CSV. ``customer_vergi_no`` is resolved to
+    ``customer_id`` per row; missing customer = row skipped (caller
+    must import customers first).
+    """
+    report = ImportReport()
+    reader = csv.DictReader(io.StringIO(csv_text))
+
+    if reader.fieldnames is None:
+        report.errors.append(ImportError(row=1, field=None, message="csv_empty"))
+        return report
+    missing = set(REQUIRED_OPP_FIELDS) - set(reader.fieldnames)
+    if missing:
+        report.errors.append(
+            ImportError(
+                row=1, field=None,
+                message=f"csv_missing_required_columns:{sorted(missing)}",
+            )
+        )
+        return report
+
+    rows_to_apply: list[dict] = []
+    for idx, raw in enumerate(reader, start=2):
+        report.total_seen += 1
+        if report.total_seen > _MAX_ROWS:
+            report.errors.append(
+                ImportError(row=idx, field=None, message=f"row_cap_exceeded:{_MAX_ROWS}")
+            )
+            break
+
+        title = _norm(raw.get("title"))
+        vergi = _norm(raw.get("customer_vergi_no"))
+        if not title:
+            report.errors.append(ImportError(row=idx, field="title", message="required"))
+            report.skipped += 1
+            continue
+        if not vergi:
+            report.errors.append(
+                ImportError(row=idx, field="customer_vergi_no", message="required")
+            )
+            report.skipped += 1
+            continue
+
+        stage = (_norm(raw.get("stage")) or "prospecting").lower()
+        if stage not in _VALID_STAGES:
+            report.errors.append(
+                ImportError(
+                    row=idx, field="stage",
+                    message=f"invalid_stage:{stage}",
+                )
+            )
+            report.skipped += 1
+            continue
+
+        prob_raw = _norm(raw.get("probability"))
+        if prob_raw is None:
+            probability = _STAGE_DEFAULT_PROBABILITY[stage]
+        else:
+            try:
+                probability = float(prob_raw)
+            except ValueError:
+                report.errors.append(
+                    ImportError(row=idx, field="probability", message="not_a_number")
+                )
+                report.skipped += 1
+                continue
+            if probability < 0 or probability > 100:
+                report.errors.append(
+                    ImportError(row=idx, field="probability", message="out_of_range")
+                )
+                report.skipped += 1
+                continue
+
+        rows_to_apply.append(
+            {
+                "tenant_id": tenant_id,
+                "title": title,
+                "customer_vergi_no": vergi,
+                "amount": _parse_amount(raw.get("amount")),
+                "currency": _norm(raw.get("currency")) or "TRY",
+                "stage": stage,
+                "close_date": _parse_close_date(raw.get("close_date")),
+                "probability": probability,
+                "source": _norm(raw.get("source")),
+                "owner_id": actor_id,
+                "_row_idx": idx,
+            }
+        )
+
+    for batch_start in range(0, len(rows_to_apply), _BATCH_SIZE):
+        batch = rows_to_apply[batch_start : batch_start + _BATCH_SIZE]
+        for row in batch:
+            row_idx = row.pop("_row_idx")
+            # SAVEPOINT per row so one bad customer lookup doesn't
+            # poison the rest of the batch (matches lead-import pattern).
+            try:
+                async with db.begin_nested():
+                    # Customer table stores the Turkish tax number in
+                    # `tax_id`; the CSV column stays user-friendly as
+                    # ``customer_vergi_no`` since that's the term operators
+                    # see in the rest of the UI.
+                    cust = (
+                        await db.execute(
+                            text(
+                                """
+                                SELECT id FROM customers
+                                WHERE tenant_id = :t AND tax_id = :v
+                                  AND deleted_at IS NULL
+                                """
+                            ),
+                            {"t": row["tenant_id"], "v": row["customer_vergi_no"]},
+                        )
+                    ).first()
+                    if not cust:
+                        raise ValueError(
+                            f"customer_not_found:vergi_no={row['customer_vergi_no']}"
+                        )
+                    customer_id = cust[0]
+
+                    existing = (
+                        await db.execute(
+                            text(
+                                """
+                                SELECT id FROM opportunities
+                                WHERE tenant_id = :t AND title = :title
+                                  AND customer_id = :cid
+                                  AND deleted_at IS NULL
+                                """
+                            ),
+                            {"t": row["tenant_id"], "title": row["title"], "cid": customer_id},
+                        )
+                    ).first()
+
+                    payload = {
+                        "tenant_id": row["tenant_id"],
+                        "title": row["title"],
+                        "customer_id": customer_id,
+                        "amount": row["amount"],
+                        "currency": row["currency"],
+                        "stage": row["stage"],
+                        "close_date": row["close_date"],
+                        "probability": row["probability"],
+                        "source": row["source"],
+                        "owner_id": row["owner_id"],
+                    }
+                    if existing:
+                        await db.execute(
+                            text(
+                                """
+                                UPDATE opportunities
+                                   SET amount      = COALESCE(:amount, amount),
+                                       currency    = :currency,
+                                       stage       = :stage,
+                                       close_date  = COALESCE(:close_date, close_date),
+                                       probability = :probability,
+                                       source      = COALESCE(:source, source),
+                                       updated_at  = now()
+                                 WHERE id = :id
+                                """
+                            ),
+                            {**payload, "id": existing[0]},
+                        )
+                        report.updated += 1
+                    else:
+                        await db.execute(
+                            text(
+                                """
+                                INSERT INTO opportunities
+                                  (tenant_id, title, customer_id, amount, currency,
+                                   stage, close_date, probability, source, owner_id,
+                                   status, row_version, created_at, updated_at)
+                                VALUES
+                                  (:tenant_id, :title, :customer_id, :amount, :currency,
+                                   :stage, :close_date, :probability, :source,
+                                   :owner_id, 'active', 1, now(), now())
+                                """
+                            ),
+                            payload,
+                        )
+                        report.inserted += 1
+            except Exception as exc:  # noqa: BLE001
+                report.errors.append(
+                    ImportError(
+                        row=row_idx,
+                        field=None,
+                        message=f"db_error: {str(exc)[:200]}",
+                    )
+                )
+                report.skipped += 1
+
+    return report
+
+
 async def import_parts(
     db: AsyncSession,
     csv_text: str,
