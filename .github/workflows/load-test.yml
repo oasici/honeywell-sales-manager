@@ -25,15 +25,25 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Verify required secrets
+      # Missing load-test secrets are not a CI failure — the run is
+      # opt-in and the 20-30 user pilot doesn't depend on weekly k6
+      # against staging. Hard-fail only on the safety check (prod URL).
+      # (CI fix 2026-05-31.)
+      - name: Check load-test secrets
+        id: secrets
         run: |
+          missing=()
           for var in BASE_URL TEST_USER_EMAIL TEST_USER_PASSWORD; do
             if [ -z "${!var}" ]; then
-              echo "::error::Required secret $var is not set."
-              echo "::error::Configure it under Settings → Secrets → Actions."
-              exit 1
+              missing+=("$var")
             fi
           done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::warning::Load-test secrets not configured (${missing[*]}). Skipping run."
+            echo "::warning::Configure under Settings → Secrets → Actions to enable."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           # Defense in depth: the k6 guard.js will also check, but failing
           # earlier here surfaces misconfig in the workflow log directly.
           case "$BASE_URL" in
@@ -42,8 +52,10 @@ jobs:
               exit 1
               ;;
           esac
+          echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Install k6
+        if: steps.secrets.outputs.configured == 'true'
         run: |
           curl https://dl.k6.io/key.gpg | sudo apt-key add -
           echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
@@ -51,6 +63,7 @@ jobs:
           sudo apt-get install -yqq k6
 
       - name: Run k6 load test
+        if: steps.secrets.outputs.configured == 'true'
         working-directory: load-test
         run: |
           k6 run \
@@ -59,7 +72,7 @@ jobs:
             "${SCRIPT}.js"
 
       - name: Upload k6 reports
-        if: always()
+        if: always() && steps.secrets.outputs.configured == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: load-test-${{ env.SCRIPT }}-${{ github.sha }}
@@ -69,7 +82,7 @@ jobs:
           retention-days: 90
 
       - name: Surface summary
-        if: always()
+        if: always() && steps.secrets.outputs.configured == 'true'
         working-directory: load-test
         run: |
           if [ -f summary.json ]; then

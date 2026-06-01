@@ -1,6 +1,8 @@
 # Honeywell Sales Suite — Kullanıcı Kılavuzu ve UAT El Kitabı
 
-> **Sürüm:** Round-18 (2026-05-25) · **Dil:** Türkçe · **Hedef Kitle:** Saha satış ekibi, satış müdürleri, operasyon ekibi, UAT/QA test mühendisleri
+> **Sürüm:** Round-19+ Hardening (2026-05-26) · **Dil:** Türkçe · **Hedef Kitle:** Saha satış ekibi, satış müdürleri, operasyon ekibi, UAT/QA test mühendisleri
+>
+> **Bu sürümde yeni / değişen:** Kalıcı login lockout (D-006), gerçek SMTP gönderimi (D-014), KVKK export worker + iki-kişi onayı (D-015/D-016), arka plan iş başarısızlıkları için DLQ (D-019), 7 entity için Trash/Restore (F-007), e-İmza OTP doğrulama akışı (F-006), Lead toplu içe aktarım (D-031), onay forensik audit (D-012), kvorum onay politikası (F-018), onay SLA escalation (F-028), teklif supersede zinciri (F-026), workflow döngü algılama (D-013), düşük-veri için health skor bias düzeltme (D-033), cross-tenant ihlal tespiti (D-010), aktif oturum yönetimi.
 
 Bu doküman, ürünü hiç kullanmamış bir kişinin baştan sona her özelliği doğru kullanabilmesi ve QA ekibinin her özelliği UAT testine tabi tutabilmesi için tek kaynak olacak şekilde hazırlanmıştır.
 
@@ -130,12 +132,23 @@ Sistemde üç temel rol vardır (`UserRole` enum'una göre): `sales_rep`, `sales
 | Admin → Territories | ✗ | ✓ | ✓ |
 | Admin → Pricing | ✗ | ✗ | ✓ |
 | Audit Log | ✗ | ✓ | ✓ |
+| Çöp Kutusu / Restore | ✗ | ✓ | ✓ |
+| DLQ (arka plan iş hataları) | ✗ | ✗ | ✓ |
+| Login Lockout Yönetimi | ✗ | ✗ | ✓ |
+| Aktif Oturumlar (Kendi) | ✓ | ✓ | ✓ |
+| Aktif Oturumlar (Başka kullanıcı) | ✗ | ✗ | ✓ |
+| Onay Forensik Audit | ✗ | ✓ | ✓ |
+| Cross-Tenant Probe Raporu | ✗ | ✗ | ✓ |
+| Lead Toplu İçe Aktar (CSV) | ✗ | ✓ | ✓ |
 
 ### 2.2 Çok Kiracılılık (Tenant) Sınırı
 
 - Her kullanıcı yalnızca **kendi `tenant_id`'sine ait** verileri görür.
 - Başka tenant'a ait bir kayda URL ile doğrudan gitmeye çalışırsanız sistem **404 Bulunamadı** döner (varlığı bile sızdırmaz).
 - Tenant ID değiştirme yetkisi **hiçbir rolde yoktur**; bu yalnızca veritabanı yöneticisi tarafından yapılır.
+
+**D-010 — Cross-Tenant Probe Tespiti:**
+Bir kullanıcı kasıtlı/kasıtsız olarak başka tenant'ın id'sini URL'e yazarsa, sistem 404 dönmenin yanı sıra olayı `cross_tenant_attempts` tablosuna kaydeder (user_id, hedef entity, hedef id, IP, User-Agent, timestamp). Operations rolündeki kullanıcı `/admin/security/cross-tenant-attempts` üzerinden bu denemelerin raporunu görür. 1 saat içinde aynı kullanıcıdan 10+ probe gelirse otomatik security alert tetiklenir.
 
 ### 2.3 Alan Bazlı Maskeleme (Field Permissions)
 
@@ -264,12 +277,15 @@ Menü, **feature flag**'lere ve **role**'e göre dinamik açılır/kapanır. Ör
 - E-posta zorunlu, geçerli format.
 - Şifre zorunlu, minimum 8 karakter.
 - 1 dakikada 10 deneme sonrası IP başına 429 dönülür.
+- **Hesap bazlı kalıcı lockout (D-006):** 15 dakika içinde 5 başarısız deneme sonrası hesap 15 dakika kilitlenir. Lockout kaydı `login_lockouts` tablosunda kalıcıdır (server restart'tan etkilenmez).
 
 **Sınır Durumları:**
 - **Şifre süresi dolmuş:** Otomatik "Şifre Değiştir" sayfasına yönlendirir.
 - **Hesap pasif:** "Hesabınız pasif. Yöneticinizle iletişime geçin."
+- **Hesap kilitli:** "Bu hesap çok fazla başarısız deneme nedeniyle geçici olarak kilitlendi. Lütfen 15 dk sonra yeniden deneyin." Operations rolündeki kullanıcı `/admin/login-lockouts` üzerinden kilidi manuel açabilir.
 - **Çoklu tenant kullanıcısı [VARSAYIM]:** Bir e-posta tek tenant'a bağlı; çoklu tenant desteklenmez.
 - **Cookie kapalı:** Login sonrası tekrar login sayfasına döner; tarayıcı uyarısı çıkar.
+- **JWT rotation:** Her başarılı login'de eski JTI revoke edilir (token-fixation koruması).
 
 #### Özellik: Şifre Değiştir
 
@@ -302,7 +318,27 @@ Menü, **feature flag**'lere ve **role**'e göre dinamik açılır/kapanır. Ör
 
 **Adım Adım:** Profile tıkla → "Çıkış" → Login sayfasına dönülür.
 
-**Beklenen Sonuç:** Tüm cache temizlenir (`queryClient.clear()`), cookie silinir, login sayfası açılır.
+**Beklenen Sonuç:** Tüm cache temizlenir (`queryClient.clear()`), cookie silinir, JTI blocklist'e eklenir, login sayfası açılır.
+
+#### Özellik: Aktif Oturumlarım (Active Sessions)
+
+**Nerede:** Profil menüsü > "Aktif Oturumlar" veya `/auth/sessions`
+
+**Amaç:** Hesabınızla şu anda açık olan tüm tarayıcı / cihaz oturumlarını görmek ve istemediğiniz oturumları sonlandırmak.
+
+**Görünen Sütunlar:** Cihaz / Tarayıcı | IP Adresi | Lokasyon (yaklaşık) | Son Aktivite | Bu Oturum mu?
+
+**Adım Adım:**
+1. Profil ikonuna tıkla, "Aktif Oturumlar" seç.
+2. Listeden tanımadığınız bir oturumu seçin.
+3. "Bu Oturumu Sonlandır" tıklayın → o oturumun token'ı revoke edilir, ilgili cihazda 401 alınır.
+4. "Tüm Diğer Oturumları Sonlandır" toplu eylem ile kendi oturumunuz hariç hepsi kapatılır.
+
+**Beklenen Sonuç:** Sonlandırılan oturumlardaki kullanıcı bir sonraki istekte login'e atılır. Audit log'a `session.revoked` olayı düşer.
+
+**Doğrulama Kuralları:**
+- En az 1 aktif oturum kalmalı (mevcut oturumu kendiniz sonlandıramazsınız → onun yerine "Çıkış" kullanın).
+- Operations rolü, `/admin/users/:id/sessions` üzerinden başka bir kullanıcının oturumlarını da görüntüleyebilir/sonlandırabilir (güvenlik vakası).
 
 ---
 
@@ -492,6 +528,48 @@ Menü, **feature flag**'lere ve **role**'e göre dinamik açılır/kapanır. Ör
 - Aynı lead'i 2 kişi aynı anda dönüştürmeye çalışırsa, ikincisi 409 alır.
 - Vergi no boşsa "Vergi No zorunlu" hata.
 
+#### Özellik: Lead Toplu İçe Aktarım (D-031 — CSV Bulk Import)
+
+**Nerede:** Leads sayfasının sağ üstündeki "Toplu İçe Aktar" butonu → modal.
+
+**Amaç:** Bir CSV dosyasından yüzlerce/binlerce lead'i tek seferde sisteme eklemek.
+
+**Yetki:** Sales Manager + Operations.
+
+**Zorunlu Sütunlar:** `first_name`, `last_name`, `email`.
+**Opsiyonel Sütunlar:** `phone`, `company`, `source`, `notes`, `assigned_to_email`.
+
+**Adım Adım:**
+1. "Toplu İçe Aktar" tıkla.
+2. Şablon CSV'yi indir (boş başlık satırı + örnek).
+3. Excel'de doldur, CSV olarak kaydet (UTF-8 önerilir; Latin-9 / Windows-1254 de destekli — chardet sniff).
+4. "Dosya Yükle" tıkla, dosyayı seç.
+5. Sistem dosyayı önizler: kaç satır geçerli, kaç satır hatalı?
+6. "Onayla ve İçe Aktar" tıkla → `POST /bulk-import/leads`.
+
+**Per-Row SAVEPOINT Davranışı:**
+Bir satırın hatası diğerlerini bozmaz. Her satır kendi SAVEPOINT'inde işlenir:
+- Geçerli satır → INSERT, commit.
+- Hatalı satır → ROLLBACK savepoint, hata satıra ait error listesine eklenir, bir sonraki satıra geçilir.
+- Sonuçta dönen JSON: `{"imported": 487, "failed": 13, "errors": [{"row": 14, "reason": "invalid email"}, ...]}`
+
+**UAT:**
+
+| Adım | Eylem | Test Verisi | Beklenen Sonuç |
+|---|---|---|---|
+| 1 | Sales rep import çağırır | - | 403 |
+| 2 | Boş dosya | 0 satır | "Dosya boş veya başlık yok" |
+| 3 | Zorunlu sütun yok | `email` yok | 400 + "missing required field: email" |
+| 4 | 500 satırın 12'si invalid email | - | `imported=488, failed=12` + error detayları |
+| 5 | 1. satır geçerli, 2. satır invalid, 3. satır geçerli | - | 1 ve 3 INSERT, 2 reddedilir; transaction abort olmaz |
+| 6 | Aynı email 2 satırda | - | İlki INSERT, ikincisi `duplicate_email` |
+| 7 | Tenant izolasyonu | - | Yeni leadler `current_user.tenant_id` ile yazılır |
+
+**Sınır Durumları:**
+- **Maks dosya boyutu:** 10 MB (yaklaşık 50.000 satır). Daha büyük dosyaları bölün.
+- **Encoding:** chardet ile otomatik tespit edilir; başarısızsa "Encoding tespit edilemedi, UTF-8 olarak kaydedin" hatası.
+- **Roll-up zorunlu değil:** "Müşteriye dönüştür" otomatik yapılmaz; tüm yeni satırlar `new` durumundaki lead olarak yaratılır.
+
 ---
 
 ### 4.5 Fırsatlar ve Deal Room
@@ -630,8 +708,28 @@ Menü, **feature flag**'lere ve **role**'e göre dinamik açılır/kapanır. Ör
 **Aksiyonlar:**
 - **PDF İndir** — anında PDF üretir.
 - **Müşteriye Yeniden Gönder** — son e-postanın aynısını tekrarlar.
-- **Düzenle (Versiyon 2)** — kabul edilmemiş tekliflerde, yeni versiyon açar.
+- **Düzenle (Versiyon 2)** — kabul edilmemiş tekliflerde, yeni versiyon açar. Eski teklif **superseded** olarak işaretlenir ve `superseded_by_id` ile yenisini gösterir (F-026).
 - **Sözleşmeye Dönüştür** — accepted teklifleri sözleşmeye çevirir.
+
+#### Özellik: Teklif Versiyon Zinciri (Supersede Chain — F-026)
+
+**Amaç:** Bir teklifin kaç kez revize edildiğini ve hangi versiyonun "kanonik" olduğunu kayıt altına almak.
+
+**Davranış:**
+- "Yeni Versiyon" tıklandığında orijinal teklif `superseded_at = now()` ile mühürlenir; yeni teklif aynı zincire bağlanır.
+- Süresi dolmuş veya superseded teklifler PDF olarak yeniden indirilebilir ama "Müşteriye Gönder" butonu disable olur — yanlışlıkla eski versiyonun gönderilmesi engellenir.
+- Detay sayfasının üstünde "Bu teklifin 3 önceki versiyonu var — v1 (Mart), v2 (Nisan), v3 (Mayıs, current)" şeklinde zincir gösterilir.
+
+#### Özellik: Fiyat Kaynağı Takibi (Price Source — F-027)
+
+Her satır kalemi için fiyatın nereden geldiği `price_source` alanında saklanır:
+- `catalog_list` — varsayılan parça liste fiyatı
+- `customer_special` — müşteri özel anlaşma fiyatı
+- `manual_override` — operatör elle yazdı (warning gösterir)
+- `bundle_discount` — bundle kural uyguladı
+- `competitor_match` — rakip teklifi eşleştirme
+
+`price_source_ref` alanı kaynağın id'sini tutar (`price_lists.id`, `customer_special_prices.id`, ...). Margin raporları artık "Manuel override yüzdesi: %12" gibi metrik üretebilir.
 
 ---
 
@@ -645,15 +743,34 @@ Menü, **feature flag**'lere ve **role**'e göre dinamik açılır/kapanır. Ör
 
 **Durumlar:** `draft → pending_signature → active → expired / terminated`.
 
-#### Özellik: Sözleşmeyi e-İmzaya Gönderme
+#### Özellik: Sözleşmeyi e-İmzaya Gönderme (F-006 5-aşamalı OTP akışı)
 
-**Adım Adım:**
+E-İmza akışı **token + 6 haneli OTP** ile iki faktörlü çalışır. Müşteriye gönderilen URL tek başına imza atmak için yetmez; aynı kişinin **kendi e-postasına** gelen OTP kodunu da girmesi gerekir. Token TTL: 7 gün. OTP kilitleme: 5 yanlış denemeden sonra token kalıcı olarak yanmış sayılır.
+
+**Operatör Tarafı — Adım Adım:**
 1. Sözleşme detayında sağ üst "e-İmzaya Gönder" tıkla.
 2. İmzalayacak kişiyi seç (müşteri kişileri arasından).
 3. "Gönder" tıkla.
-4. Sistem `/sign/:token` linki içeren e-posta gönderir.
-5. Müşteri linke tıklar, sözleşmeyi okur, "İmzala" basar.
-6. İmza zaman damgalı, IP'li kayıt altına alınır.
+4. Sistem `/sign/<token>` linki içeren e-posta gönderir (D-014 SMTP wire — artık gerçek SMTP üzerinden, debug stub değil).
+5. Sözleşme durumu `pending_signature` olur.
+
+**Müşteri Tarafı — 5 Aşama:**
+
+| Aşama | Endpoint | Davranış |
+|---|---|---|
+| 1. Açılış | `GET /sign/{token}` | Maskelenmiş alıcı e-postası + son geçerlilik tarihi + OTP durumu gösterilir |
+| 2. OTP iste | `POST /sign/{token}/send-otp` | 6 haneli OTP yalnızca token'ın bağlı olduğu e-postaya gönderilir (link yönlendirmesi işe yaramaz) |
+| 3. OTP doğrula | `POST /sign/{token}/verify-otp` | Yanlış kod → kalan deneme sayacı, 5'te kilit; doğru kod → 4. aşama açılır |
+| 4. Sözleşmeyi gör | `GET /sign/{token}/contract` | OTP doğrulanmadan 403 (`otp_unverified`); doğrulandıktan sonra contract_id + verified bayrağı |
+| 5. İmzala | `POST /sign/{token}/sign` | Imza payload + IP + User-Agent kayda alınır, token consumed, sözleşme `active` olur |
+
+**HTTP Hata Kodları:**
+- 404 `not_found` — geçersiz / sahte token
+- 410 `expired` — token süresi doldu (7 gün) veya `consumed` — zaten imzalandı
+- 423 `otp_locked` — 5 yanlış OTP sonrası kilit
+- 429 `otp_rate` — kısa sürede çok fazla OTP isteme
+- 400 `otp_wrong` / `otp_expired`
+- 403 `otp_unverified` — OTP doğrulanmadan contract'a erişim
 
 **UAT Testi:**
 
@@ -661,14 +778,22 @@ Menü, **feature flag**'lere ve **role**'e göre dinamik açılır/kapanır. Ör
 |---|---|---|---|
 | 1 | Draft sözleşme aç | - | "e-İmzaya Gönder" görünür |
 | 2 | İmzalayıcı seçmeden gönder | - | "Lütfen imzalayıcı seçin" |
-| 3 | Geçerli kişiyle gönder | `ahmet@firma.com` | "İmza linki gönderildi" toast |
-| 4 | Müşteri tarafında link aç | (geçerli token) | Sözleşme PDF + İmzala butonu |
-| 5 | Süresi dolmuş token | 30 gün eski | "Bu link süresi dolmuş" |
-| 6 | İmza sonrası | - | Durum `active`, sözleşme listesi güncellenir, dashboard sayacı +1 |
+| 3 | Geçerli kişiyle gönder | `ahmet@firma.com` | "İmza linki gönderildi" toast, gerçek SMTP send |
+| 4 | Müşteri tarafında link aç | (geçerli token) | Aşama 1 — masked email + "OTP Gönder" butonu |
+| 5 | OTP iste | - | Müşterinin posta kutusuna 6 haneli kod düşer (60 sn) |
+| 6 | Yanlış OTP gir 4 kez | `000000` | "Geçersiz kod, kalan 1 deneme" |
+| 7 | 5. yanlış deneme | - | 423 Locked, token kalıcı yanmış, yeni link gerekir |
+| 8 | Doğru OTP gir | (gerçek) | Aşama 4 — sözleşme PDF + "İmzala" butonu |
+| 9 | Forwarded URL'i 2. kişi açar | - | Aşama 2'de OTP başka kişiye gitmediği için ilerleyemez |
+| 10 | Geçerli OTP + imza | - | `active` durumu, audit log'a `IP + UA` ile düşer, dashboard sayacı +1 |
+| 11 | Aynı linke 2. kez "İmzala" | - | 410 `consumed` |
+| 12 | 7 gün geçmiş token | - | 410 `expired` |
 
 **Sınır Durumları:**
-- Token'lar tek kullanımlık; ikinci tıklamada "Bu sözleşme zaten imzalandı" gösterilir.
-- Müşteri linki sızdırırsa risk vardır; admin paneli imza geçmişini gösterir.
+- **Token forwarding:** Müşteri linki üçüncü kişiye iletse bile OTP yalnızca kayıtlı e-postaya gider → 2FA garantisi.
+- **Brute-force OTP:** 5-attempt sayacı per-token kalıcıdır (server restart hile yapmaz).
+- **Audit:** Tüm aşama geçişleri `audit_log` + `sign_otp_tokens` tablosunda kalıcıdır. İmza sonrası IP + User-Agent + zaman damgası hukuki kanıt için saklanır.
+- **TSA (Time Stamping Authority):** `tsa_token` kolonu rezerve (Phase 5 + harici TSA entegrasyonu beklemede).
 
 ---
 
@@ -893,8 +1018,13 @@ Menü, **feature flag**'lere ve **role**'e göre dinamik açılır/kapanır. Ör
 3. **Tetikleyici Olay:** quote_discount > X, opportunity_amount > Y, contract_term > Z
 4. **Eşik Değer**
 5. **Onaylayıcı:** Rol (sales_manager) veya belirli kullanıcı
-6. **Aktif** toggle'ı
-7. "Kaydet".
+6. **Quorum Politikası (F-018):** `single` (tek onay) veya `quorum_n` (N onayın hepsi gerekli).
+   - Örnek: 3 manager'lık quorum, indirim %50 üstü için → 2/3 onay verene kadar bekler.
+7. **SLA (F-028):** "Onay verilmesi gereken süre (saat)". Default 24h. Süre dolarsa otomatik escalation.
+   - Level 1: Manager'ın yöneticisine ek bildirim
+   - Level 2: Operations'a "stuck approval" raporu
+8. **Aktif** toggle'ı
+9. "Kaydet".
 
 **UAT:**
 
@@ -904,6 +1034,40 @@ Menü, **feature flag**'lere ve **role**'e göre dinamik açılır/kapanır. Ör
 | 2 | Bir teklif %35 indirimle gönder | - | Otomatik onay isteği oluşur |
 | 3 | Kuralı pasif et | - | %35 indirimli teklif onaysız gider |
 | 4 | İki kural aynı koşulda | - | Tüm onaylayıcılar paralel istek alır |
+| 5 | Quorum_n=2 kuralı, 1 manager onaylar | - | İstek hala `pending` |
+| 6 | 2. manager onaylar | - | İstek `approved` |
+| 7 | SLA = 24h, 25 saat bekle | - | `escalation_level=1`, üst yöneticiye bildirim |
+| 8 | 48 saat bekle | - | `escalation_level=2`, Operations dashboard'a "stuck" listesi |
+
+#### Özellik: Onay Forensik Audit (D-012)
+
+**Nerede:** Onay detay sayfasında "Karar Geçmişi" sekmesi + `/audit?event_type=approval.*`
+
+**Amaç:** "Kim onayladı/reddetti, ne zaman, hangi IP'den, hangi yorum ile" sorularını **inkar edilemez** kayıt altına almak.
+
+**Saklanan Alanlar (`approval_decisions` tablosu):**
+- `decider_id`, `decided_at`, `decision` (approve/reject)
+- `reason` (red gerekçesi)
+- `ip_address`, `user_agent`
+- `delegation_chain` (varsa: A→B→C onay zinciri)
+
+**Önemli:** Aynı kişi aynı isteğe 2. kez karar veremez — `UNIQUE(request_id, decider_id)` constraint ile DB seviyesinde de garanti edilir.
+
+#### Özellik: Onay Delegasyonu
+
+**Nerede:** Profil > "Onaylarımı Delege Et"
+
+**Amaç:** Tatildeyken onaylarınızı geçici olarak başkasına yönlendirmek.
+
+**Adım Adım:**
+1. "Yeni Delegasyon" tıkla.
+2. Hedef kullanıcı seç (aynı rol veya üstü).
+3. Başlangıç + bitiş tarihi.
+4. Öncelik (P0/P1/P2): hangi seviye onaylar delege edilsin.
+5. "Aktif".
+6. R19 `r19_delegation_expiry` cron'u bitiş tarihinde otomatik kapatır.
+
+**Audit:** Delege edilmiş onaylar `delegation_chain` alanında zincir olarak gözükür ("A delege etti B'ye, B onayladı").
 
 ---
 
@@ -1292,17 +1456,73 @@ KVKK kapsamında 72 saat içinde Kurul'a bildirim takibi yapar.
 
 ---
 
-### 4.29 KVKK Export
+### 4.29 KVKK Export (F-023 + D-015/D-016)
 
 **Nerede:** `/kvkk-export`
 
-**Amaç:** KVKK'nın "veri sahibi talep hakkı" kapsamında, bir kişinin tüm verilerini PDF/CSV olarak çıkarmak.
+**Amaç:** KVKK'nın "veri sahibi talep hakkı" kapsamında, bir kişinin tüm verilerini ZIP arşivi olarak çıkarmak. **İki kişi kuralı** (two-person rule) zorunludur — tek operatör tek başına export çalıştıramaz.
 
-**Adım Adım:**
-1. "Yeni Export" tıkla.
-2. Kişinin e-posta veya kimlik bilgisi gir.
-3. "Bul" → sistemdeki tüm kayıt bağlantıları listelenir.
-4. "Export Oluştur" → PDF/ZIP olarak indirilir + audit log.
+**Yetki:** Operations + Sales Manager (sales_rep reddedilir).
+
+**State Machine:**
+
+```
+draft → pending_approval → approved → executing → done
+                       ↘ rejected
+```
+
+**Adım Adım — Operator A (Talep Eden):**
+1. "Yeni Export Talebi" tıkla.
+2. **Subject lookup:** kişinin e-postası, vergi no veya müşteri id'si.
+3. **Subject kind:** `customer`, `lead`, `contact`, `user`.
+4. "Talep Oluştur" → durum `pending_approval`. Listede tüm Operations+Manager kullanıcılara bildirim düşer.
+
+**Adım Adım — Operator B (Onaylayan):**
+1. Bekleyen talepler listesine git (`/kvkk-export/requests?status=pending_approval`).
+2. Talebi aç, kim talep etti / hangi kişi için olduğunu kontrol et.
+3. **"Onayla"** veya **"Reddet"** (reddet için min 10 karakter gerekçe).
+4. Onay sonrası durum `approved`.
+
+**Önemli — İki Kişi Kuralı (Two-Person Rule):**
+- Talep eden kişi kendi talebini onaylayamaz (`TwoPersonViolation` → 403).
+- Kural 3 katmanda enforce edilir:
+  1. API handler katmanı (`approver_id != requested_by`)
+  2. Service katmanı (`kvkk_two_person.approve_request`)
+  3. DB CHECK constraint (`kvkk_export_requests.approved_by != requested_by`)
+- Gelecekte birinin bypass etmeye çalışması durumunda DB constraint son savunma hattıdır.
+
+**Adım Adım — Execute:**
+1. `approved` talebin sağ üstündeki "Çalıştır" butonu.
+2. Durum `executing` olur, transaction commit edilir.
+3. Arka planda `kvkk_export_worker.run_export` koşar:
+   - Customer + opportunities + quotes + invoices + contracts + email_requests + audit_log tablolarından subject verisi çekilir
+   - **Coaching notları HARIÇ tutulur** (TC-KVKK-005 — koçluk gözlemleri kişisel veri tabanında talep edilemez).
+   - ZIP arşivi oluşturulur ve `KVKK_ARTIFACT_DIR` altına yazılır (env var, default `/var/lib/kvkk-exports`).
+   - `artifact_url` alanına path/URL yazılır.
+   - Durum `done` olur.
+4. **D-015 Konu Bildirimi:** Subject'e (eğer e-postası varsa) "KVKK talebiniz tamamlandı, ekteki dosya verinizdir" maili gerçek SMTP ile gönderilir.
+
+**Hata Halinde:**
+- Worker exception fırlatırsa durum `failed` olur, hata mesajı detayda görünür.
+- Aynı zamanda **DLQ'ya yazılır** (D-019) — Operations DLQ panelinden re-run trigger edebilir.
+
+**UAT Senaryoları:**
+
+| Adım | Eylem | Test Verisi | Beklenen Sonuç |
+|---|---|---|---|
+| 1 | Sales rep KVKK talebi açmaya çalışır | - | 403 `kvkk_export_requires_ops_or_manager` |
+| 2 | Manager A talep oluşturur | subject=`ali@firma.com`, kind=customer | `pending_approval` |
+| 3 | Manager A kendi talebini onaylar | - | 403 `TwoPersonViolation` |
+| 4 | Manager B onaylar | - | `approved` |
+| 5 | Manager B "Çalıştır" | - | `executing` → `done`, ZIP üretilir |
+| 6 | Subject kullanıcıya bildirim | - | "KVKK talebiniz tamamlandı" e-postası |
+| 7 | ZIP içeriği denetle | - | customer/opps/quotes/.../*; coaching_notes/ klasörü YOK |
+| 8 | Foreign-tenant subject id'si | - | 404 (varlığı sızdırmaz) |
+| 9 | Worker DB connection patlatır | - | `failed`, DLQ'ya kaydedilir |
+
+**Audit Trail:**
+- `kvkk_export_requests` tablosu kalıcı: kim talep etti, kim onayladı/reddetti, ne zaman çalıştı, artifact nerede.
+- `audit_log`'a `kvkk.request_created / kvkk.approved / kvkk.rejected / kvkk.executed / kvkk.delivered` olayları düşer.
 
 ---
 
@@ -1402,6 +1622,12 @@ If-then-else otomasyon kuralları:
 - "Müşteri tier'i Platinum olduğunda → Manager bildirim al"
 - "Lead 30 gündür çalışılmıyorsa → Auto-archive"
 
+**D-013 — Workflow Döngü ve Derinlik Algılama:**
+Bir kuralın action'ı başka bir kuralı tetikleyebilir ("opportunity.stage=closed_won" → contract oluştur → "contract.created" event → notification gönder). Sonsuz döngüye düşmeyi engellemek için sistem her event chain'i `RuleExecutionContext` ile sarmalar:
+- **Cycle:** A → B → A şeklinde geri dönüş tespit edilirse `WorkflowCycleDetected` raised, blok atılır.
+- **Depth:** Max chain derinliği 10 (`WorkflowDepthExceeded`).
+- Bloklanan akış `workflow_execution_log`'a kayıt edilir ve admin için "Bloklanan Akışlar" raporunda görünür.
+
 **UAT:**
 | Adım | Eylem | Test Verisi | Beklenen Sonuç |
 |---|---|---|---|
@@ -1409,6 +1635,8 @@ If-then-else otomasyon kuralları:
 | 2 | Trigger: "lead_inactive_30d" | - | Node yerleşir |
 | 3 | Action: "set_status='archived'" | - | İkinci node + ok |
 | 4 | Aktif et + 30 gün simüle | - | Job çalışır, lead'ler arşivlenir |
+| 5 | A → B → A döngüsel kural tanımla | - | İlk tetikleme cycle algılar, blok'a düşer |
+| 6 | 11 derinlikli zincir | - | 10. seviyede `WorkflowDepthExceeded`, log'a düşer |
 
 #### Özellik: Merge (Birleştirme)
 
@@ -1433,6 +1661,76 @@ Parça fiyat listesi, müşteri özel fiyatları, currency override.
 **Nerede:** `/admin/chat`
 
 Admin'in tüm sistem genelinde chat/destek mesajları yönetimi (varsa).
+
+#### Özellik: Çöp Kutusu / Trash (F-007 — Soft-Delete + Restore)
+
+**Nerede:** `/admin/trash` (sol menü > "Çöp Kutusu")
+
+**Amaç:** Yanlışlıkla silinen kayıtları geri yüklemek. Sistemdeki tüm önemli entity'ler artık **soft-delete** ile çalışır — fiziksel silme yerine `deleted_at` zaman damgası işaretlenir.
+
+**Desteklenen Entity'ler (7):** `customers`, `leads`, `opportunities`, `quotes`, `contracts`, `invoices`, `email_requests`.
+
+**Yetki:** Operations + Sales Manager (sales_rep göremez).
+
+**Adım Adım:**
+1. "Çöp Kutusu" menüsüne tıkla.
+2. Üstte entity dropdown'u seç (örn. "Müşteriler").
+3. `GET /trash/customers?limit=100` çağrılır → soft-deleted satırlar listelenir.
+4. Sütunlar: ID | Silinme Tarihi | Silen Kullanıcı | Silme Sebebi.
+5. Bir satırda **"Geri Yükle"** tıkla → `POST /trash/customers/:id/restore`.
+6. `deleted_at = NULL` yapılır, kayıt aktif duruma döner, audit log düşer.
+
+**UAT:**
+
+| Adım | Eylem | Test Verisi | Beklenen Sonuç |
+|---|---|---|---|
+| 1 | Sales rep `/admin/trash`'ı açar | - | 403 `trash_requires_ops_or_manager` |
+| 2 | Manager, customers tab'ı açar | - | Soft-deleted müşteriler listelenir |
+| 3 | Bilinmeyen entity tipi yaz | `widgets` | 400 `unknown_entity` (allowed list döner) |
+| 4 | "Geri Yükle" tıkla | id=42 | "1 müşteri geri yüklendi" toast |
+| 5 | Aynı id'yi 2. kez restore et | - | 404 `customers_not_found_or_not_deleted` |
+| 6 | Foreign-tenant id'si restore et | - | 404 (tenant izolasyonu, 403 değil) |
+
+**Sınır Durumları:**
+- Tenant scoping: yabancı tenant'ın silinmiş kaydı görünmez ve restore edilemez (404).
+- Silme nedeni (`delete_reason`) DELETE çağrısında kaydedildiyse görünür; aksi halde "—".
+- Saklama süresi: KVKK retention politikasında tanımlanan süre dolduğunda **fiziksel** silinir (hard delete cron); restore artık mümkün değildir.
+
+#### Özellik: DLQ — Arka Plan İş Başarısızlık Kuyruğu (D-019)
+
+**Nerede:** `/admin/dlq` (sol menü > "DLQ")
+
+**Amaç:** Cron, worker veya scheduler işlerinden hata fırlatıp **çözülmemiş** olan başarısızlıkları operatöre göstermek; tekrar denetip resolve etmek.
+
+**Yetki:** Operations rolündeki kullanıcılar (DLQ entry payload'ları hassas içerik barındırabilir: KVKK export request id, sign-OTP token hash, vb.).
+
+**Görünen Sütunlar:** ID | Job Adı | Hata | Başarısızlık Zamanı | Retry Sayısı | Payload (JSON).
+
+**Adım Adım (Çözme):**
+1. Listede unresolved entry'leri gör.
+2. Satıra tıkla → payload + stack-trace görünür.
+3. Operatör asıl sebebi düzeltir (örn. SMTP credential, disk space).
+4. "Retry" tıkla → `POST /admin/dlq/:id/retry`, retry sayacı +1 (asıl re-execution operatör'ün asıl endpoint'i tekrar tetiklemesiyle yapılır).
+5. Sorun çözüldüyse "Resolve" tıkla → `POST /admin/dlq/:id/resolve` (opsiyonel `note`).
+6. Resolved entries kuyruktan kalkar ama tabloda audit amacıyla saklanır.
+
+**Yaygın Job'lar ve DLQ'ya Düşme Sebepleri:**
+
+| Job | Yaygın Hata | Çözüm |
+|---|---|---|
+| `kvkk_export_worker` | DB disconnect / disk dolu | Connection pool / disk temizliği, sonra retry |
+| `sequence_email_sender` | SMTP credential expired | Integrations → SMTP yenile → retry |
+| `imap_poll_emails` | IMAP login fail | Integrations → IMAP test → retry |
+| `revenue_recognition_cron` | Decimal divide-by-zero | Sözleşmede term=0; düzelt + retry |
+
+**UAT:**
+
+| Adım | Eylem | Test Verisi | Beklenen Sonuç |
+|---|---|---|---|
+| 1 | Sales manager DLQ açmaya çalışır | - | 403 `dlq_requires_ops` |
+| 2 | Ops kullanıcı listeyi açar | - | Unresolved entry'ler listelenir |
+| 3 | Resolve note ile | "SMTP fix" | Entry resolved olarak işaretlenir |
+| 4 | Retry tıkla | - | `retry_count` +1 |
 
 ---
 
@@ -1618,6 +1916,14 @@ closed_revenue[month] = Σ opportunity.amount
 
 **Güncelleme:** Gece 02:00 cron + her büyük olayda (fatura ödendi, breach açıldı vb.) anlık trigger.
 
+**D-033 — Düşük Veri Bias Düzeltmesi:**
+Yeni müşteriler veya yeterli sinyal toplanmamış müşteriler "0 fatura, 0 transkript" girdileri ile yapay bir 0 skor alıyorlardı. Şimdi `health_bias_correction.correct_for_data_sparsity(raw_score, signal_count)` katmanı devreye girdi:
+- `signal_count` < 3 → confidence < 0.3 → skor `50` (neutral) olarak override edilir, UI'da `⚠️ Yeterli veri yok` rozeti gösterilir.
+- `signal_count` 3-10 → raw skor 50'ye doğru yumuşatılır (Bayesian shrinkage).
+- `signal_count` > 10 → raw skor olduğu gibi kullanılır.
+
+Bu düzeltme yeni müşterilerin yanlışlıkla "at-risk" listesinde toplanmasını engeller.
+
 **Pseudocode:**
 ```python
 def compute_health_score(customer, today):
@@ -1752,8 +2058,13 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 - **Beklenen Sonuç:** Yeni şifre belirledikten sonra giriş yapabilirsiniz.
 
 **Sorun:** "Hesabım kilitlendi."
-- **Neden:** 5 yanlış şifre denemesi sonrası 15 dakika rate-limit.
-- **Çözüm:** 15 dk bekleyin veya Operations'tan unlock isteyin.
+- **Neden:** 15 dakika içinde 5 yanlış şifre denemesi sonrası hesap 15 dakika kilitlenir (D-006 — `login_lockouts` tablosunda kalıcı kayıt).
+- **Çözüm:** 15 dk bekleyin veya Operations rolündeki bir kullanıcıdan `/admin/login-lockouts` üzerinden manuel unlock isteyin.
+- **Beklenen Sonuç:** Lockout süresi sonunda veya manuel unlock sonrası login yeniden mümkün.
+
+**Sorun:** "Yanlış kişi adıma onay kuyruğuma erişiyor gibi (forensik şüphe)."
+- **Neden:** Token ele geçirilmiş veya delege akışı yanlış kurulmuş olabilir.
+- **Çözüm:** Profil > "Aktif Oturumlar" → tanımadığınız oturumu sonlandırın; ardından Onay Forensik Audit'ten (`/audit?event_type=approval.*`) son kararları IP+UA ile inceleyin.
 
 ### Cockpit & Veri
 
@@ -1836,16 +2147,52 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 
 > **[VARSAYIM]** Kısayolların tamamı sahada doğrulanmalı; bazıları henüz wireup edilmemiş olabilir.
 
-## Ek B — Bilinen Sınırlamalar (Round-18)
+## Ek B — Bilinen Sınırlamalar (Round-19+ Hardening)
 
 1. **AV taraması**: ClamAV daemon henüz Render üzerinde provisioned değil → tüm ekler `unscanned` etiketiyle geçer.
 2. **OCR 5 sayfa cap'i**: Çok sayfalı scanned PDF'lerde 6+ sayfa görüntülenmez (review kuyruğunda not ile işaretlenir).
 3. **Eval harness**: 10 fixture; tam coverage henüz ulaşılmadı. `06_typo_fuzzy` ve `10_thread_continuation` regex fallback ile %0 (full pipeline %100).
 4. **AI Coaching**: `coaching_hooks` döngüsü beta; manager'a sunulan öneriler her zaman doğru olmayabilir, daima manuel değerlendirin.
+5. **TSA (Time Stamping Authority)**: e-İmza akışında `sign_otp_tokens.tsa_token` kolonu rezerve ama harici TSA entegrasyonu beklemede. Şu anda IP + UA + zaman damgası iç audit için yeterli; hukuki noter onayı için TSA entegrasyonu gerekli.
+6. **KMS / DEK rotation**: Per-tenant DEK envelope encryption aktif (tenant_dek + Fernet KEK) ama AWS KMS entegrasyonu (D-002) ve key rotation otomasyonu (D-017) pilot scale (20-30 kullanıcı) sonrasına ertelendi.
+7. **RLS (Row-Level Security)**: PostgreSQL RLS politikaları henüz uygulanmadı; tenant izolasyonu uygulama katmanında (`assert_same_tenant`) sağlanıyor. DB seviyesi savunma katmanı Phase 4'te eklenecek.
+8. **KVKK Export artifact storage**: Şu anda local disk (`/var/lib/kvkk-exports`); S3/object storage entegrasyonu beklemede. Pilot scale için yeterli.
+9. **Opportunity Bulk Import**: D-031 Lead bulk import shipped, opportunity için aynı pattern devam ediyor.
+10. **Mobile responsive**: D-003 mobile-first pass beklemede; tablet/mobile breakpoint'lerde DataTable scroll bazı durumlarda kesik gösterilebilir.
+
+---
+
+## Ek C — Round-19+ Geliştirmeleri Özeti (Mayıs 2026)
+
+| Bulgu | Açıklama | Etkilenen Bölüm |
+|---|---|---|
+| D-006 | Kalıcı per-account login lockout (5 deneme / 15 dk) | 4.1 Auth, 8. SSS |
+| D-007 | JWT rotation on login (token-fixation koruması) | 4.1 Auth |
+| D-010 | Cross-tenant probe tespiti + audit | 2.2 Tenant, 4.31 Admin |
+| D-012 | Onay forensik audit (`approval_decisions`) | 4.12 Onay Akışları |
+| D-013 | Workflow cycle + depth detection (max 10) | 4.31 Workflow Rules |
+| D-014 | Gerçek SMTP gönderimi (debug stub kaldırıldı) | 4.7, 4.29, sequences |
+| D-015 | KVKK subject notification email | 4.29 KVKK Export |
+| D-016 | KVKK export worker (ZIP, coaching exclude) | 4.29 KVKK Export |
+| D-018 | Field permission decorator (apply_request_perms_to_response) | 2.3 Field Permissions |
+| D-019 | Background-job DLQ + admin endpoints | 4.31 Admin → DLQ |
+| D-024 | Unsubscribe token HTML-comment leak engelleme | 4.20 Engagement |
+| D-031 | Lead toplu içe aktarım (CSV + per-row SAVEPOINT) | 4.4 Leadler |
+| D-033 | Health score sparse-data bias correction | 6.3 Health Algoritması |
+| F-006 | e-Sign OTP 5-aşamalı doğrulama akışı | 4.7 Sözleşmeler |
+| F-007 | Soft-delete + Trash/Restore (7 entity) | 4.31 Admin → Trash |
+| F-018 | Quorum onay politikası (N-of-M) | 4.12 Onay Kuralları |
+| F-026 | Quote supersede chain (versiyon zinciri) | 4.6 Teklifler |
+| F-027 | Quote item price source tracking | 4.6 Teklifler |
+| F-028 | Approval SLA + escalation (24h/48h) | 4.12 Onay Kuralları |
+| — | Active sessions yönetimi (kendi + admin) | 4.1 Auth |
+| — | Approval delegation (chain_mode, expiry cron) | 4.12 Onay Akışları |
+| — | R19 5 yeni cron job (token blocklist, nonce cleanup, SLA escalation, health batch, delegation expiry) | 6. Algoritmalar |
 
 ---
 
 **Sürüm geçmişi:**
 - 2026-05-25 — İlk yayın (Round-18'e karşılık gelir).
+- 2026-05-26 — Round-19+ Hardening update: login lockout, KVKK worker + iki-kişi onayı, DLQ, Trash/Restore, e-Sign OTP, onay forensik/quorum/SLA, lead bulk import, workflow cycle detection, health bias correction, active sessions, cross-tenant audit. (17/40 D-NNN findings shipped — 43%.)
 
 **Geri bildirim:** Yanlış veya eksik gördüğünüz yerleri `docs/USER_MANUAL.md` üzerinde PR açarak iyileştirin.
