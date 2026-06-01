@@ -223,10 +223,15 @@ export default function DashboardViewerPage() {
   }, [executeQuery.dataUpdatedAt]);
 
   const dashboard = dashboardQuery.data?.data;
-  const result =
-    (executeQuery.data && 'data' in executeQuery.data
-      ? executeQuery.data.data
-      : executeQuery.data) ?? null;
+  // The execute endpoint may return either the bare result or a
+  // ``{ data: result }`` envelope. Unwrap with an explicit annotation so
+  // the type stays ``DashboardExecuteResult | null`` — a stricter
+  // @types/react / TS bump stopped collapsing the ``'data' in …`` union
+  // narrowing on its own, which broke ``result.widgets`` access.
+  const execData = executeQuery.data;
+  const result: DashboardExecuteResult | null = execData
+    ? ('data' in execData ? execData.data : execData)
+    : null;
   const widgets = (result?.widgets ?? []) as ExecutedWidget[];
 
   const handleDownloadJson = () => {

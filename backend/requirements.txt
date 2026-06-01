@@ -49,7 +49,8 @@ slowapi==0.1.9
 # redis[hiredis] removed — see app/core/redis_client.py for the rationale.
 # All caches degrade to in-memory; cross-worker invalidation is lost
 # but the project intentionally runs without Redis now.
-cryptography==48.0.0  # CVE-2024-12797, CVE-2026-26007, CVE-2026-34073, CVE-2026-39892
+cryptography==46.0.7  # PINNED 46.x: msal==1.36.0 (line 34) + pyjwt[crypto] cap here;
+# dependabot #79 bumped to 48.0.0 which ResolutionImpossible's against msal — reverted.
 prometheus-client==0.25.0
 
 # Observability
