@@ -57,7 +57,7 @@ prometheus-client==0.25.0
 sentry-sdk[fastapi]==2.58.0  # security advisory — see pip install --upgrade "sentry-sdk>=2.44.0"
 
 # Vector search
-pgvector==0.3.6
+pgvector==0.4.2
 qdrant-client==1.18.0
 
 # Background jobs
