@@ -127,35 +127,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # v0.10.0 shipped a deprecated artifact-upload helper that 400s
-      # against the current Actions runtime API. v0.12.0 uses
-      # actions/upload-artifact@v4 internally. (CI fix 2026-05-31.)
+      # fail_action: false because ZAP's default classifies every
+      # advisory as WARN-NEW (HSTS missing on 404, CSP unsafe-inline for
+      # styles, COEP header missing on a SPA, etc.) — noise for a CRM
+      # that hosts no user-generated HTML. We gate on Medium+ alerts in
+      # the json report below instead.
       #
-      # We also set fail_action: false because ZAP's default classifies
-      # every advisory as WARN-NEW (HSTS missing on 404, CSP unsafe-inline
-      # for styles, COEP header missing on a SPA, etc.) — these are noise
-      # for a CRM that does not host user-generated HTML. We gate failure
-      # on Medium+ alerts in the json report below instead.
+      # continue-on-error: the action's BUNDLED artifact uploader still
+      # calls a deprecated Actions artifact API that 400s on this runner
+      # ("artifact name … is not valid"), failing the step even though
+      # the scan itself succeeds (FAIL-NEW: 0). We tolerate that here and
+      # do our own upload-artifact@v4 below; the jq fail-gate is the
+      # authoritative pass/fail. (CI fix 2026-06-01.)
       - name: ZAP Baseline Scan
+        continue-on-error: true
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: ${{ vars.STAGING_URL || 'https://honeywell-frontend.onrender.com' }}
           fail_action: false
           cmd_options: -a -j -m 10 -T 60
-          artifact_name: zap-scan
-          # Stop filing daily duplicate issues — findings live in the
-          # zap-scan artifact + the workflow log. Issues 84-88 were
-          # auto-filed before this was set. (CI fix 2026-05-31.)
           allow_issue_writing: false
-          # Rule overrides: downgrade SPA/Render-default noise to IGNORE.
           rules_file_name: .zap/rules.tsv
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-scan
+          path: |
+            report_json.json
+            report_md.md
+            report_html.html
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Fail on Medium+ ZAP findings
         if: always()
         run: |
           if [ ! -f report_json.json ]; then
-            echo "report_json.json not generated; skipping fail-gate."
-            exit 0
+            echo "::error::report_json.json not generated — ZAP scan did not complete."
+            exit 1
           fi
           # ZAP riskcode: 0=Informational, 1=Low, 2=Medium, 3=High.
           # Anything Medium+ should block; lower severities surface in the
@@ -166,3 +177,4 @@ jobs:
             echo "::error::ZAP found $fails Medium+ alerts — see zap-scan artifact."
             exit 1
           fi
+          echo "ZAP baseline clean (0 Medium+ alerts)."
