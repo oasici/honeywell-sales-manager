@@ -30,6 +30,7 @@ const AuditLogPage = lazy(() => import('../features/admin/AuditLogPage'));
 const DataExportPage = lazy(() => import('../features/admin/DataExportPage'));
 const SystemHealthPage = lazy(() => import('../features/admin/SystemHealthPage'));
 const EventAuditLogPage = lazy(() => import('../features/admin/EventAuditLogPage'));
+const TrashPage = lazy(() => import('../features/admin/TrashPage'));
 
 // v2 pages (behind FEATURE_V2_BOARD flag)
 const BoardPage = lazy(() => import('../features/board/BoardPage'));
@@ -437,6 +438,18 @@ export default function App() {
               <Suspense fallback={<LoadingSpinner />}>
                 <ErrorBoundary>
                   <EventAuditLogPage />
+                </ErrorBoundary>
+              </Suspense>
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="admin/trash"
+          element={
+            <RoleGuard role={['sales_manager', 'operations']}>
+              <Suspense fallback={<LoadingSpinner />}>
+                <ErrorBoundary>
+                  <TrashPage />
                 </ErrorBoundary>
               </Suspense>
             </RoleGuard>

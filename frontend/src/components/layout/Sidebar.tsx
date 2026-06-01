@@ -56,6 +56,7 @@ import {
   HandCoins,
   Wallet,
   Globe2,
+  Trash2,
 } from 'lucide-react';
 import { approvalsApi } from '../../lib/api';
 import type { TranslationKey } from '../../lib/i18n';
@@ -502,6 +503,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
           label: 'nav.data_quality',
           to: '/admin/data-quality',
           icon: <BarChart2 size={16} className="shrink-0" />,
+        },
+        {
+          label: 'nav.trash',
+          to: '/admin/trash',
+          icon: <Trash2 size={16} className="shrink-0" />,
         },
         {
           label: 'nav.territories',

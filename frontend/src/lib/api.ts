@@ -889,6 +889,34 @@ export const auditApi = {
   },
 };
 
+// ── F-007 / D-030: Soft-delete Trash + Restore ─────────────────────
+export interface TrashedRow {
+  id: number;
+  deleted_at: string | null;
+  deleted_by: number | null;
+  delete_reason: string | null;
+}
+
+export interface TrashListResponse {
+  entity: string;
+  items: TrashedRow[];
+  total: number;
+}
+
+export const trashApi = {
+  list: async (entity: string, limit = 100): Promise<TrashListResponse> => {
+    const { data } = await api.get(`/trash/${entity}`, { params: { limit } });
+    return data;
+  },
+  restore: async (
+    entity: string,
+    id: number,
+  ): Promise<{ restored: boolean; entity: string; id: number }> => {
+    const { data } = await api.post(`/trash/${entity}/${id}/restore`);
+    return data;
+  },
+};
+
 // ── v2: Opportunities + Board ──────────────────────
 export const opportunitiesApi = {
   list: async (params?: Record<string, unknown>) => {
