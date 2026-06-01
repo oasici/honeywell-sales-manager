@@ -140,8 +140,7 @@ export default function TrashPage() {
       {
         key: 'deleted_at',
         header: 'Silinme Tarihi',
-        render: (row: TrashedRow) =>
-          row.deleted_at ? formatDate(row.deleted_at) : '—',
+        render: (row: TrashedRow) => (row.deleted_at ? formatDate(row.deleted_at) : '—'),
       },
       {
         key: 'deleted_by',
@@ -196,8 +195,8 @@ export default function TrashPage() {
         <div className="min-w-0 flex-1 text-[13px] leading-5 text-sky-900 dark:text-sky-200">
           <p className="font-semibold">Silinen kayıtlar burada saklanır.</p>
           <p className="mt-0.5 text-sky-800/90 dark:text-sky-300/80">
-            Geri yükleme işlemi kaydı aktif duruma döndürür ve audit log'a yazılır. Saklama
-            süresi dolduğunda kayıt kalıcı olarak silinir ve artık geri yüklenemez.
+            Geri yükleme işlemi kaydı aktif duruma döndürür ve audit log'a yazılır. Saklama süresi
+            dolduğunda kayıt kalıcı olarak silinir ve artık geri yüklenemez.
           </p>
         </div>
       </div>

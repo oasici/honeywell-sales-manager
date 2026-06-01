@@ -6,7 +6,7 @@ import io
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func as sa_func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -503,14 +503,20 @@ async def export_template(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Export report as CSV."""
+    """Export report as CSV.
+
+    D-035 — streams from the DB cursor (StreamingResponse) so a 50K-row
+    report no longer buffers the whole result set in memory. Grouped
+    reports transparently fall back to the buffered path inside
+    ``stream_report_csv``. Tenant scoping + the F-008 formula-injection
+    sanitiser are applied per row in the generator.
+    """
     _check_feature_flag()
 
     engine = ReportEngine(db)
-    csv_content = await engine.export_csv(template_id, current_user)
 
-    return PlainTextResponse(
-        content=csv_content,
+    return StreamingResponse(
+        engine.stream_report_csv(template_id, current_user),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=report_{template_id}.csv"},
     )

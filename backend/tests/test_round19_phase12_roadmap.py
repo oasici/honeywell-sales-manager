@@ -584,3 +584,125 @@ async def test_global_snapshot_still_works_without_tenant(db, admin_user) -> Non
 
     assert snapshots
     assert all(s.tenant_id is None for s in snapshots)
+
+
+# ────────────────────────────────────────────────────────────────────
+# D-035 — Reports Builder streaming CSV export
+# ────────────────────────────────────────────────────────────────────
+
+
+async def _seed_report_customer(db, *, tenant_id: int, name: str) -> int:
+    from app.models.customer import Customer
+
+    cust = Customer(
+        tenant_id=tenant_id,
+        name=name,
+        email=f"{abs(hash(name)) % 100000}@example.com",
+        tax_id=str(6000000000 + (abs(hash(name)) % 1000000000)),
+    )
+    db.add(cust)
+    await db.flush()
+    await db.refresh(cust)
+    return cust.id
+
+
+@pytest.mark.asyncio
+async def test_stream_report_csv_yields_header_and_rows(db, admin_user) -> None:
+    """The streaming generator yields a header line first, then one
+    sanitised CSV line per row — without buffering the whole result set.
+    """
+    import json as _json
+
+    from app.models.report import ReportTemplate
+    from app.services.report_engine import ReportEngine
+
+    await _seed_report_customer(db, tenant_id=admin_user.tenant_id, name="Acme Co")
+    await _seed_report_customer(db, tenant_id=admin_user.tenant_id, name="Beta Co")
+
+    template = ReportTemplate(
+        name="Customers CSV",
+        entity_type="customer",
+        columns_json=_json.dumps(["id", "name"]),
+        filters_json=None,
+        created_by=admin_user.id,
+        tenant_id=admin_user.tenant_id,
+    )
+    db.add(template)
+    await db.commit()
+    await db.refresh(template)
+
+    engine = ReportEngine(db)
+    chunks = [c async for c in engine.stream_report_csv(template.id, admin_user)]
+
+    # First chunk is the header.
+    assert chunks[0].strip() == "id,name"
+    # Two data rows (order not guaranteed).
+    body = "".join(chunks[1:])
+    assert "Acme Co" in body
+    assert "Beta Co" in body
+    assert body.count("\n") == 2
+
+
+@pytest.mark.asyncio
+async def test_stream_report_csv_sanitizes_formula_injection(db, admin_user) -> None:
+    """F-008 sanitiser still applies on the streaming path — a customer
+    name starting with '=' must not be emitted as a live formula.
+    """
+    import json as _json
+
+    from app.models.report import ReportTemplate
+    from app.services.report_engine import ReportEngine
+
+    await _seed_report_customer(
+        db, tenant_id=admin_user.tenant_id, name="=cmd|'/c calc'!A1"
+    )
+
+    template = ReportTemplate(
+        name="Inj CSV",
+        entity_type="customer",
+        columns_json=_json.dumps(["id", "name"]),
+        filters_json=None,
+        created_by=admin_user.id,
+        tenant_id=admin_user.tenant_id,
+    )
+    db.add(template)
+    await db.commit()
+    await db.refresh(template)
+
+    engine = ReportEngine(db)
+    body = "".join([c async for c in engine.stream_report_csv(template.id, admin_user)])
+
+    # The raw "=cmd" must be neutralised (sanitiser prefixes a quote so
+    # the cell is inert). The exact prefix is the sanitiser's business;
+    # we just assert a bare leading "=cmd" never appears in a cell.
+    assert "=cmd|" not in body or "'=cmd|" in body or "\t=cmd|" in body
+
+
+@pytest.mark.asyncio
+async def test_stream_report_csv_foreign_tenant_template_404(db, admin_user) -> None:
+    """A template owned by another tenant is unreachable (NotFound),
+    matching execute_report's tenant contract."""
+    import json as _json
+
+    import pytest as _pytest
+
+    from app.core.exceptions import NotFoundException
+    from app.models.report import ReportTemplate
+    from app.services.report_engine import ReportEngine
+
+    template = ReportTemplate(
+        name="Foreign",
+        entity_type="customer",
+        columns_json=_json.dumps(["id", "name"]),
+        filters_json=None,
+        created_by=admin_user.id,
+        tenant_id=admin_user.tenant_id + 999,
+    )
+    db.add(template)
+    await db.commit()
+    await db.refresh(template)
+
+    engine = ReportEngine(db)
+    with _pytest.raises(NotFoundException):
+        async for _ in engine.stream_report_csv(template.id, admin_user):
+            pass
