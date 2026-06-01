@@ -16,7 +16,7 @@ jobs:
     name: SAST — Python (Bandit + Semgrep)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v5
         with:
@@ -68,7 +68,7 @@ jobs:
     name: Secret scanning (TruffleHog)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -94,7 +94,7 @@ jobs:
     name: Dependency audit (pip-audit + npm audit)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v5
         with:
@@ -125,7 +125,7 @@ jobs:
     name: DAST — OWASP ZAP baseline
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # fail_action: false because ZAP's default classifies every
       # advisory as WARN-NEW (HSTS missing on 404, CSP unsafe-inline for
