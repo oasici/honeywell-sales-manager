@@ -49,6 +49,8 @@ class Campaign(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+    # D-009 Phase 12 — optimistic concurrency lock.
+    row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     members = relationship("CampaignMember", back_populates="campaign", lazy="noload")
     creator = relationship("User", lazy="selectin")

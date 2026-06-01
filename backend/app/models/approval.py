@@ -68,6 +68,8 @@ class ApprovalRule(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    # D-009 Phase 12 — optimistic concurrency lock.
+    row_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     # Relationships
     approver_user: Mapped["User"] = relationship(  # type: ignore[name-defined]  # noqa: F821

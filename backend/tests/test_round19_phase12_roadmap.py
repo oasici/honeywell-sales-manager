@@ -398,3 +398,108 @@ async def test_opportunity_bulk_import_missing_columns_returns_400ish(
     assert any(
         "csv_missing_required_columns" in e.message for e in report.errors
     )
+
+
+# ────────────────────────────────────────────────────────────────────
+# D-009 — OCC across the remaining 7 entities
+# ────────────────────────────────────────────────────────────────────
+
+
+def test_remaining_entities_have_row_version() -> None:
+    """All seven entities targeted by D-009 now carry a row_version
+    column so guarded_update can lock them.
+    """
+    from app.models.approval import ApprovalRule
+    from app.models.campaign import Campaign
+    from app.models.email_request import EmailRequest
+    from app.models.invoice import Invoice
+    from app.models.lead import Lead
+    from app.models.subscription import Subscription
+    from app.models.workflow_rule import WorkflowRule
+
+    for model in (
+        Invoice, Subscription, Campaign, Lead,
+        EmailRequest, WorkflowRule, ApprovalRule,
+    ):
+        cols = {c.key for c in model.__mapper__.column_attrs}
+        assert "row_version" in cols, f"{model.__name__} missing row_version"
+
+
+@pytest.mark.asyncio
+async def test_guarded_update_blocks_stale_lead_write(db, admin_user) -> None:
+    """Two concurrent writers on a lead; the stale one gets
+    OptimisticLockConflict (representative of the 7-entity rollout).
+    """
+    from app.models.lead import Lead
+    from app.services.optimistic_locking import (
+        OptimisticLockConflict,
+        guarded_update,
+    )
+
+    lead = Lead(
+        tenant_id=admin_user.tenant_id,
+        first_name="Occ",
+        last_name="Lead",
+        email="occ-lead@test.com",
+        owner_id=admin_user.id,
+        status="new",
+    )
+    db.add(lead)
+    await db.commit()
+    await db.refresh(lead)
+    expected = lead.row_version
+    assert expected == 1
+
+    # First writer wins, bumps to 2.
+    res = await guarded_update(
+        db, Lead, id_=lead.id, expected_version=expected,
+        updates={"first_name": "First"},
+    )
+    assert res.new_row_version == expected + 1
+
+    # Stale second writer (still thinks version is 1) is blocked.
+    with pytest.raises(OptimisticLockConflict):
+        await guarded_update(
+            db, Lead, id_=lead.id, expected_version=expected,
+            updates={"first_name": "Second"},
+        )
+
+
+@pytest.mark.asyncio
+async def test_guarded_update_locks_invoice(db, admin_user) -> None:
+    """Invoice is the highest-value OCC target (financial row). Verify
+    the happy-path version bump works end to end.
+    """
+    from sqlalchemy import text as _text
+
+    from app.models.invoice import Invoice
+    from app.services.optimistic_locking import guarded_update
+
+    cust_id = await _seed_customer(
+        db, tenant_id=admin_user.tenant_id, name="InvCust", tax_id="5554567890"
+    )
+    inv = Invoice(
+        tenant_id=admin_user.tenant_id,
+        customer_id=cust_id,
+        created_by=admin_user.id,
+        invoice_number="INV-OCC-001",
+        status="draft",
+        subtotal=1000,
+        grand_total=1000,
+    )
+    db.add(inv)
+    await db.commit()
+    await db.refresh(inv)
+
+    expected = inv.row_version
+    res = await guarded_update(
+        db, Invoice, id_=inv.id, expected_version=expected,
+        updates={"status": "sent"},
+    )
+    assert res.new_row_version == expected + 1
+
+    row = (await db.execute(_text(
+        "SELECT status, row_version FROM invoices WHERE id = :i"
+    ), {"i": inv.id})).first()
+    assert row.status == "sent"
+    assert row.row_version == 2
