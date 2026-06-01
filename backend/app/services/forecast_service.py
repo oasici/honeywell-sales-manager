@@ -151,14 +151,23 @@ class ForecastService:
         )
         return list(result.scalars().all())
 
-    async def take_pipeline_snapshot(self) -> list[PipelineSnapshot]:
+    async def take_pipeline_snapshot(
+        self, tenant_id: int | None = None
+    ) -> list[PipelineSnapshot]:
         """Create a snapshot of the current pipeline grouped by stage.
 
         Weighted amount = total_amount * stage probability.
+
+        D-034 — when ``tenant_id`` is provided the snapshot is scoped to
+        that tenant's active opportunities and the rows are stamped with
+        it (the tenant-local cron dispatcher passes this). When omitted
+        the legacy global behaviour is preserved: every active
+        opportunity across all tenants is rolled up and ``tenant_id`` is
+        left NULL (the on-demand ``/forecast/snapshot`` endpoint).
         """
         today = date.today()
 
-        result = await self.db.execute(
+        stage_q = (
             select(
                 Opportunity.stage,
                 func.count(Opportunity.id).label("opp_count"),
@@ -167,6 +176,9 @@ class ForecastService:
             .where(Opportunity.status == "active")
             .group_by(Opportunity.stage)
         )
+        if tenant_id is not None:
+            stage_q = stage_q.where(Opportunity.tenant_id == tenant_id)
+        result = await self.db.execute(stage_q)
         rows = result.all()
 
         stage_probabilities = await _get_stage_probabilities(self.db)
@@ -180,6 +192,7 @@ class ForecastService:
             weighted = total * probability
 
             snapshot = PipelineSnapshot(
+                tenant_id=tenant_id,
                 snapshot_date=today,
                 stage=stage,
                 opportunity_count=opp_count,
@@ -194,18 +207,19 @@ class ForecastService:
         # Capture per-opportunity forecast detail for accuracy tracking
         from app.models.forecast_snapshot_detail import ForecastSnapshotDetail
 
-        active_opps_q = await self.db.execute(
-            select(
-                Opportunity.id,
-                Opportunity.forecast_category,
-                Opportunity.amount,
-                Opportunity.stage,
-                # Round-15 Sprint 15o cohort 5 — pull tenant_id alongside
-                # the row so ForecastSnapshotDetail can be NOT NULL on
-                # tenant_id without an extra query.
-                Opportunity.tenant_id,
-            ).where(Opportunity.status == "active")
-        )
+        detail_q = select(
+            Opportunity.id,
+            Opportunity.forecast_category,
+            Opportunity.amount,
+            Opportunity.stage,
+            # Round-15 Sprint 15o cohort 5 — pull tenant_id alongside
+            # the row so ForecastSnapshotDetail can be NOT NULL on
+            # tenant_id without an extra query.
+            Opportunity.tenant_id,
+        ).where(Opportunity.status == "active")
+        if tenant_id is not None:
+            detail_q = detail_q.where(Opportunity.tenant_id == tenant_id)
+        active_opps_q = await self.db.execute(detail_q)
 
         # Map stages to snapshot IDs for linking
         snapshot_map = {s.stage: s.id for s in snapshots}

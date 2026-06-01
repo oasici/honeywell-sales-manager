@@ -17,7 +17,9 @@ def test_start_scheduler_registers_all_jobs():
         assert "email_poll" in job_ids, "email_poll job not registered"
         assert "quote_expiry" in job_ids, "quote_expiry job not registered"
         assert "batch_email_process" in job_ids, "batch_email_process job not registered"
-        assert "pipeline_snapshot" in job_ids, "pipeline_snapshot job not registered"
+        assert (
+            "forecast_tenant_local_dispatch" in job_ids
+        ), "forecast_tenant_local_dispatch job not registered (D-034 replaced pipeline_snapshot)"
         assert "scheduled_reports" in job_ids, "scheduled_reports job not registered"
         assert "kvkk_anonymize" in job_ids, "kvkk_anonymize job not registered"
         assert "v4_feature_store" in job_ids, "v4_feature_store job not registered"

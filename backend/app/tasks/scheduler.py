@@ -397,6 +397,80 @@ async def take_pipeline_snapshot_task():
         logger.error("Pipeline snapshot failed: %s", e)
 
 
+# D-034 — per-tenant, timezone-aware forecast snapshot dispatcher.
+#
+# Runs every 15 minutes; for each tenant it computes the current local
+# time in that tenant's configured timezone and, when the local hour
+# equals the tenant's ``forecast_cron_hour`` (within the first 15-minute
+# window of that hour), captures a tenant-scoped pipeline snapshot. A
+# per-(tenant, local-date) guard makes the run idempotent even if the
+# window logic fires more than once or the process restarts mid-window.
+_forecast_snapshot_ran: set[tuple[int, str]] = set()
+
+
+async def forecast_tenant_local_dispatch_task():
+    """Capture each tenant's forecast snapshot at its local cron hour."""
+    if not settings.FEATURE_V2_BOARD:
+        return
+
+    from datetime import datetime
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    from sqlalchemy import select
+
+    from app.core.database import async_session
+    from app.models.v7_tenant import Tenant
+    from app.services.forecast_service import ForecastService
+    from app.services.tenant_settings_service import get_tenant_settings
+
+    try:
+        async with async_session() as db:
+            tenants = (await db.execute(select(Tenant.id))).scalars().all()
+            for tenant_id in tenants:
+                cfg = await get_tenant_settings(db, tenant_id)
+                try:
+                    tz = ZoneInfo(cfg.forecast_cron_tz)
+                except (ZoneInfoNotFoundError, ValueError):
+                    logger.warning(
+                        "Tenant %d has invalid forecast_cron_tz=%r; using UTC",
+                        tenant_id, cfg.forecast_cron_tz,
+                    )
+                    tz = ZoneInfo("UTC")
+
+                now_local = datetime.now(tz)
+                if now_local.hour != cfg.forecast_cron_hour or now_local.minute >= 15:
+                    continue
+
+                guard_key = (tenant_id, now_local.date().isoformat())
+                if guard_key in _forecast_snapshot_ran:
+                    continue
+
+                service = ForecastService(db)
+                snapshots = await service.take_pipeline_snapshot(tenant_id=tenant_id)
+                await db.commit()
+                _forecast_snapshot_ran.add(guard_key)
+                logger.info(
+                    "Tenant-local forecast snapshot: tenant=%d tz=%s hour=%d records=%d",
+                    tenant_id, cfg.forecast_cron_tz, cfg.forecast_cron_hour,
+                    len(snapshots),
+                )
+
+            # Prune guard keys from previous days so the set stays small.
+            today_isos = {
+                datetime.now(ZoneInfo("UTC")).date().isoformat(),
+            }
+            for tid in tenants:
+                cfg = await get_tenant_settings(db, tid)
+                try:
+                    today_isos.add(datetime.now(ZoneInfo(cfg.forecast_cron_tz)).date().isoformat())
+                except Exception:
+                    pass
+            stale = {k for k in _forecast_snapshot_ran if k[1] not in today_isos}
+            _forecast_snapshot_ran.difference_update(stale)
+    except Exception as e:
+        logger.error("Tenant-local forecast dispatch failed: %s", e)
+
+
 async def send_scheduled_reports_task():
     """Send scheduled report emails (daily/weekly/monthly)."""
     import json
@@ -835,11 +909,18 @@ def start_scheduler():
         id="sequence_steps",
         replace_existing=True,
     )
+    # D-034 — replaced the weekly global interval with a 15-minute
+    # tenant-local dispatcher. Each tenant's snapshot now fires at its
+    # own configured local hour (default 04:00 UTC = legacy behaviour)
+    # so the forecast baseline lands on a consistent local business-day
+    # boundary instead of a single UTC instant.
     scheduler.add_job(
-        lambda: asyncio.ensure_future(_tracked("pipeline_snapshot", take_pipeline_snapshot_task)),
-        "interval",
-        hours=168,  # weekly (Sunday)
-        id="pipeline_snapshot",
+        lambda: asyncio.ensure_future(
+            _tracked("forecast_tenant_local_dispatch", forecast_tenant_local_dispatch_task)
+        ),
+        "cron",
+        minute="*/15",
+        id="forecast_tenant_local_dispatch",
         replace_existing=True,
     )
     scheduler.add_job(

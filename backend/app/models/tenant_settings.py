@@ -59,6 +59,15 @@ class TenantSettings(Base):
     at_risk_threshold: Mapped[int] = mapped_column(
         Integer, nullable=False, default=40
     )
+    # D-034 (Round-19 Phase 12) — when (and in which timezone) the
+    # nightly forecast pipeline snapshot is captured for this tenant.
+    # Default 04:00 UTC reproduces the legacy global behaviour.
+    forecast_cron_hour: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=4
+    )
+    forecast_cron_tz: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="UTC"
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

@@ -67,9 +67,14 @@ class PipelineSnapshot(Base):
     __tablename__ = "pipeline_snapshots"
     __table_args__ = (
         Index("ix_pipeline_snapshot_date", "snapshot_date"),
+        Index("ix_pipeline_snapshot_tenant", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # D-034 — nullable so legacy global snapshots (and the on-demand
+    # /forecast/snapshot endpoint) keep working; the tenant-local cron
+    # dispatcher stamps this so per-tenant snapshots are distinguishable.
+    tenant_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     snapshot_date: Mapped[date] = mapped_column(Date, nullable=False)
     stage: Mapped[str] = mapped_column(String(30), nullable=False)
     opportunity_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

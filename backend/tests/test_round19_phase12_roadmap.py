@@ -503,3 +503,84 @@ async def test_guarded_update_locks_invoice(db, admin_user) -> None:
     ), {"i": inv.id})).first()
     assert row.status == "sent"
     assert row.row_version == 2
+
+
+# ────────────────────────────────────────────────────────────────────
+# D-034 — per-tenant, timezone-aware forecast snapshot
+# ────────────────────────────────────────────────────────────────────
+
+
+def test_tenant_config_carries_forecast_cron_defaults() -> None:
+    """A tenant with no settings row gets the legacy 04:00 UTC default."""
+    from app.services.tenant_settings_service import TenantConfig
+
+    cfg = TenantConfig.defaults(1)
+    assert cfg.forecast_cron_hour == 4
+    assert cfg.forecast_cron_tz == "UTC"
+
+
+@pytest.mark.asyncio
+async def test_take_pipeline_snapshot_scopes_to_tenant(db, admin_user) -> None:
+    """take_pipeline_snapshot(tenant_id=…) only rolls up that tenant's
+    active opportunities and stamps the snapshot rows with the tenant.
+    """
+    from sqlalchemy import text as _text
+
+    from app.services.forecast_service import ForecastService
+
+    my_tenant = admin_user.tenant_id
+    other_tenant = my_tenant + 999
+
+    # One active opp in our tenant, one in a foreign tenant.
+    await db.execute(_text(
+        """
+        INSERT INTO opportunities
+          (tenant_id, title, stage, amount, currency, owner_id, status,
+           probability, row_version, created_at, updated_at)
+        VALUES
+          (:mine, 'Mine', 'qualified', 1000, 'TRY', :owner, 'active', 25, 1, now(), now()),
+          (:other, 'Theirs', 'qualified', 5000, 'TRY', :owner, 'active', 25, 1, now(), now())
+        """
+    ), {"mine": my_tenant, "other": other_tenant, "owner": admin_user.id})
+    await db.flush()
+
+    service = ForecastService(db)
+    snapshots = await service.take_pipeline_snapshot(tenant_id=my_tenant)
+    await db.flush()
+
+    # Every snapshot row is stamped with our tenant.
+    assert snapshots, "expected at least one stage snapshot"
+    assert all(s.tenant_id == my_tenant for s in snapshots)
+
+    # The rolled-up total reflects ONLY our tenant's opp (1000), not the
+    # foreign tenant's 5000.
+    total = sum(float(s.total_amount) for s in snapshots)
+    assert total == 1000.0
+
+
+@pytest.mark.asyncio
+async def test_global_snapshot_still_works_without_tenant(db, admin_user) -> None:
+    """Calling without tenant_id preserves the legacy global behaviour:
+    snapshot rows have NULL tenant_id (on-demand endpoint path).
+    """
+    from sqlalchemy import text as _text
+
+    from app.services.forecast_service import ForecastService
+
+    await db.execute(_text(
+        """
+        INSERT INTO opportunities
+          (tenant_id, title, stage, amount, currency, owner_id, status,
+           probability, row_version, created_at, updated_at)
+        VALUES
+          (:t, 'GlobalOpp', 'proposal', 2000, 'TRY', :owner, 'active', 50, 1, now(), now())
+        """
+    ), {"t": admin_user.tenant_id, "owner": admin_user.id})
+    await db.flush()
+
+    service = ForecastService(db)
+    snapshots = await service.take_pipeline_snapshot()
+    await db.flush()
+
+    assert snapshots
+    assert all(s.tenant_id is None for s in snapshots)

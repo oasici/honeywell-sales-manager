@@ -38,6 +38,9 @@ class TenantConfig:
     ocr_max_pages: int
     ai_monthly_quota_usd: Optional[Decimal]
     at_risk_threshold: int
+    # D-034 — forecast snapshot timing, per tenant.
+    forecast_cron_hour: int
+    forecast_cron_tz: str
 
     @classmethod
     def defaults(cls, tenant_id: int) -> "TenantConfig":
@@ -49,6 +52,8 @@ class TenantConfig:
             ocr_max_pages=5,
             ai_monthly_quota_usd=None,
             at_risk_threshold=40,
+            forecast_cron_hour=4,
+            forecast_cron_tz="UTC",
         )
 
     @classmethod
@@ -61,6 +66,8 @@ class TenantConfig:
             ocr_max_pages=row.ocr_max_pages,
             ai_monthly_quota_usd=row.ai_monthly_quota_usd,
             at_risk_threshold=getattr(row, "at_risk_threshold", 40),
+            forecast_cron_hour=getattr(row, "forecast_cron_hour", 4),
+            forecast_cron_tz=getattr(row, "forecast_cron_tz", "UTC"),
         )
 
 
