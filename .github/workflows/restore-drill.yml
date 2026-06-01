@@ -30,23 +30,32 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Verify required secrets are set
+      # The drill needs prod-backup + staging-DB secrets that aren't
+      # configured for the 20-30 user pilot. Treat a missing-secret run
+      # as a skip-with-warning rather than a hard failure so the monthly
+      # schedule doesn't paint the branch red. Once DR is provisioned and
+      # the secrets are set, the drill runs for real. (CI fix 2026-06-01.)
+      - name: Check restore-drill secrets
+        id: secrets
         run: |
-          if [ -z "$PROD_DB_BACKUP_URL" ]; then
-            echo "::error::PROD_DB_BACKUP_URL secret is not set."
-            echo "::error::Configure it under Settings → Secrets → Actions before this drill can run."
-            exit 1
-          fi
-          if [ -z "$STAGING_DATABASE_URL" ]; then
-            echo "::error::STAGING_DATABASE_URL secret is not set."
-            exit 1
+          missing=()
+          [ -z "$PROD_DB_BACKUP_URL" ] && missing+=("PROD_DB_BACKUP_URL")
+          [ -z "$STAGING_DATABASE_URL" ] && missing+=("STAGING_DATABASE_URL")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::warning::Restore-drill secrets not configured (${missing[*]}). Skipping drill."
+            echo "::warning::Configure under Settings → Secrets → Actions to enable DR verification."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: actions/setup-python@v6
+        if: steps.secrets.outputs.configured == 'true'
         with:
           python-version: "3.11"
 
       - name: Install Postgres client
+        if: steps.secrets.outputs.configured == 'true'
         run: |
           # Use the official PGDG repo so pg_dump/pg_restore version matches
           # the production cluster (16). Default Ubuntu repos lag behind.
@@ -56,19 +65,21 @@ jobs:
           sudo apt-get install -yqq postgresql-client-16
 
       - name: Install Python dependencies
+        if: steps.secrets.outputs.configured == 'true'
         working-directory: backend
         run: pip install -r requirements.txt
 
       - name: Run drill
+        if: steps.secrets.outputs.configured == 'true'
         run: bash backend/scripts/restore_drill.sh
 
       - name: Record success
-        if: success()
+        if: success() && steps.secrets.outputs.configured == 'true'
         run: |
           echo "::notice::Restore drill PASSED $(date -u +%Y-%m-%d)"
 
       - name: Record failure
-        if: failure()
+        if: failure() && steps.secrets.outputs.configured == 'true'
         run: |
           echo "::error::Restore drill FAILED $(date -u +%Y-%m-%d) — backup integrity is at risk."
           echo "::error::See job logs and update docs/runbooks/last-restore-drill.md."
