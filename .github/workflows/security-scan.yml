@@ -141,7 +141,7 @@ jobs:
       # authoritative pass/fail. (CI fix 2026-06-01.)
       - name: ZAP Baseline Scan
         continue-on-error: true
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: ${{ vars.STAGING_URL || 'https://honeywell-frontend.onrender.com' }}
           fail_action: false
