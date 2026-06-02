@@ -80,6 +80,48 @@ def select_price_entry(
     return valid[0]
 
 
+def resolve_unit_price_with_currency(
+    part: Any,
+    *,
+    preferred_currency: str | None = None,
+    today: date | None = None,
+) -> tuple[float, str, str | None]:
+    """Resolve a unit price plus the currency it is denominated in.
+
+    Returns ``(unit_price, price_source, currency)``. ``currency`` is the
+    source currency of the chosen price (``PriceEntry.currency`` for a
+    price-list hit, ``SparePart.price_currency`` for cost+margin, ``None``
+    when unpriced). The caller (R4) converts this into the quote currency
+    rather than silently treating, say, a USD ``net_price`` as TRY.
+    """
+    entry = select_price_entry(
+        part, preferred_currency=preferred_currency, today=today
+    )
+    if entry is not None:
+        net = getattr(entry, "net_price", None)
+        if net is not None and float(net) > 0:
+            return (
+                round(float(net), 2),
+                PRICE_SOURCE_LIST,
+                getattr(entry, "currency", None) or None,
+            )
+
+    cost = getattr(part, "transfer_price", None) or getattr(part, "supplier_price", None)
+    if cost is not None and float(cost) > 0:
+        margin_pct = float(getattr(part, "min_margin_pct", 0.0) or 0.0)
+        sell = float(cost) * (1.0 + margin_pct / 100.0)
+        # Strictly greater than cost — a 0% (or missing) margin must not
+        # let the part be quoted at cost.
+        if sell > float(cost):
+            return (
+                round(sell, 2),
+                PRICE_SOURCE_COST_MARGIN,
+                getattr(part, "price_currency", None) or None,
+            )
+
+    return 0.0, PRICE_SOURCE_UNPRICED, None
+
+
 def resolve_unit_price(
     part: Any,
     *,
@@ -92,22 +134,12 @@ def resolve_unit_price(
     of :data:`PRICE_SOURCE_LIST`, :data:`PRICE_SOURCE_COST_MARGIN`, or
     :data:`PRICE_SOURCE_UNPRICED`. An ``unpriced`` result (``0.0``) means
     the caller must NOT auto-confirm the line — there is no safe price.
+
+    Currency-agnostic convenience wrapper around
+    :func:`resolve_unit_price_with_currency` for callers that don't need
+    to reconcile currency (e.g. the best-effort gate estimate).
     """
-    entry = select_price_entry(
+    price, source, _currency = resolve_unit_price_with_currency(
         part, preferred_currency=preferred_currency, today=today
     )
-    if entry is not None:
-        net = getattr(entry, "net_price", None)
-        if net is not None and float(net) > 0:
-            return round(float(net), 2), PRICE_SOURCE_LIST
-
-    cost = getattr(part, "transfer_price", None) or getattr(part, "supplier_price", None)
-    if cost is not None and float(cost) > 0:
-        margin_pct = float(getattr(part, "min_margin_pct", 0.0) or 0.0)
-        sell = float(cost) * (1.0 + margin_pct / 100.0)
-        # Strictly greater than cost — a 0% (or missing) margin must not
-        # let the part be quoted at cost.
-        if sell > float(cost):
-            return round(sell, 2), PRICE_SOURCE_COST_MARGIN
-
-    return 0.0, PRICE_SOURCE_UNPRICED
+    return price, source

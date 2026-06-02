@@ -3,6 +3,7 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +17,11 @@ from app.models.quote_item import QuoteItem
 from app.models.spare_part import SparePart
 from app.models.user import User
 from app.services.opportunity_linking_service import ensure_opportunity_for_email
-from app.services.part_pricing import PRICE_SOURCE_UNPRICED, resolve_unit_price
+from app.services.part_pricing import (
+    PRICE_SOURCE_UNPRICED,
+    resolve_unit_price,
+    resolve_unit_price_with_currency,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +44,21 @@ _RESOLVER_SUGGEST_STATUSES = {"fuzzy_prefix", "fuzzy_levenshtein"}
 # (never silently coerced to 1) but flag the line as unconfirmed so a
 # human reviews it.
 MAX_LINE_QUANTITY = 100_000
+
+# R5 — money is computed in Decimal then stored to the 2-dp NUMERIC
+# columns as float, so cent-level float drift can't accumulate across a
+# multi-line quote.
+_CENTS = Decimal("0.01")
+
+
+def _dec(value) -> Decimal:
+    """Coerce any numeric/None to Decimal via str (avoids float artifacts)."""
+    return Decimal(str(value if value is not None else 0))
+
+
+def _money(amount: Decimal) -> float:
+    """Quantize to 2 decimals (half-up) and return as float for storage."""
+    return float(amount.quantize(_CENTS, rounding=ROUND_HALF_UP))
 
 
 def _safe_quantity(raw) -> tuple[int, bool]:
@@ -267,22 +287,26 @@ class QuoteService:
         )
         items = items_result.scalars().all()
 
+        # R5 — accumulate in Decimal so cents don't drift on large quotes.
         # subtotal = sum of discounted line totals
-        subtotal = sum(item.line_total for item in items)
+        subtotal = sum((_dec(item.line_total) for item in items), Decimal(0))
 
         # discount_total = sum of (gross - net) per line
         discount_total = sum(
-            (item.unit_price * item.quantity) - item.line_total
-            for item in items
+            (
+                (_dec(item.unit_price) * _dec(item.quantity)) - _dec(item.line_total)
+                for item in items
+            ),
+            Decimal(0),
         )
 
-        tax_amount = subtotal * (quote.tax_rate / 100)
+        tax_amount = subtotal * (_dec(quote.tax_rate) / Decimal(100))
         grand_total = subtotal + tax_amount
 
-        quote.subtotal = round(subtotal, 2)
-        quote.discount_total = round(discount_total, 2)
-        quote.tax_amount = round(tax_amount, 2)
-        quote.grand_total = round(grand_total, 2)
+        quote.subtotal = _money(subtotal)
+        quote.discount_total = _money(discount_total)
+        quote.tax_amount = _money(tax_amount)
+        quote.grand_total = _money(grand_total)
 
         await self._db.flush()
 
@@ -305,8 +329,8 @@ class QuoteService:
                     honeywell_code = honeywell_code or part.honeywell_code
                     description = description or part.name_en
 
-            discounted_price = unit_price * (1 - discount_pct / 100)
-            line_total = quantity * discounted_price
+            discounted_price = _dec(unit_price) * (Decimal(1) - _dec(discount_pct) / Decimal(100))
+            line_total = _dec(quantity) * discounted_price
 
             qi = QuoteItem(
                 quote_id=quote_id,
@@ -317,7 +341,7 @@ class QuoteService:
                 quantity=quantity,
                 unit_price=unit_price,
                 discount_pct=discount_pct,
-                line_total=round(line_total, 2),
+                line_total=_money(line_total),
                 match_score=item_data.get("match_score"),
                 match_strategy=item_data.get("match_strategy"),
                 is_confirmed=item_data.get("is_confirmed", False),
@@ -380,6 +404,13 @@ class QuoteService:
                 or part_req.get("description", "")
             )
             quantity, qty_suspect = _safe_quantity(part_req.get("quantity", 1))
+            # R1 — honor the upstream quantity-uncertainty flags
+            # (extract_rows_as_parts / _merge_heuristic_parts). A body↔
+            # attachment conflict leaves an in-range number that passes
+            # _safe_quantity, so without this the line would be confirmed
+            # despite the disagreement.
+            if part_req.get("quantity_conflict") or part_req.get("quantity_suspect"):
+                qty_suspect = True
             original_text = part_req.get("original_text", "")
 
             resolution = await self._resolve_line_match(
@@ -405,7 +436,7 @@ class QuoteService:
                 and resolution["unit_price"] > 0
             )
 
-            line_total = quantity * resolution["unit_price"]
+            line_total = _dec(quantity) * _dec(resolution["unit_price"])
 
             qi = QuoteItem(
                 quote_id=quote_id,
@@ -415,7 +446,7 @@ class QuoteService:
                 description=description,
                 quantity=quantity,
                 unit_price=resolution["unit_price"],
-                line_total=round(line_total, 2),
+                line_total=_money(line_total),
                 match_score=resolution["match_score"],
                 match_strategy=resolution["match_strategy"],
                 is_confirmed=is_confirmed,
@@ -463,7 +494,7 @@ class QuoteService:
             part = await self._find_spare_part_by_id(catalog_part_id)
             if part:
                 gate_ok = catalog_status in _GATE_OK_STATUSES
-                self._apply_part_to_resolution(
+                await self._apply_part_to_resolution(
                     out, part, preferred_currency, code=code
                 )
                 out["match_strategy"] = f"catalog_{catalog_status}"
@@ -485,7 +516,7 @@ class QuoteService:
                 if score >= LINE_ITEM_MATCH_THRESHOLD:
                     part = await self._find_spare_part_by_id(best["spare_part_id"])
                     if part:
-                        self._apply_part_to_resolution(
+                        await self._apply_part_to_resolution(
                             out, part, preferred_currency, code=code
                         )
                         out["match_score"] = score
@@ -499,7 +530,7 @@ class QuoteService:
         if code:
             part = await self._find_spare_part_by_code(code)
             if part:
-                self._apply_part_to_resolution(
+                await self._apply_part_to_resolution(
                     out, part, preferred_currency, code=code
                 )
                 out["match_score"] = 100.0
@@ -508,7 +539,7 @@ class QuoteService:
 
         return out
 
-    def _apply_part_to_resolution(
+    async def _apply_part_to_resolution(
         self,
         out: dict,
         part: SparePart,
@@ -516,14 +547,48 @@ class QuoteService:
         *,
         code: str,
     ) -> None:
-        """Populate ``out`` with a part's SKU, canonical code, and sell price."""
+        """Populate ``out`` with a part's SKU, canonical code, and sell price.
+
+        R4 — the catalog price may be denominated in a different currency
+        than the quote (the catalog commonly lists in USD, quotes default
+        to TRY). We convert it into the quote currency via
+        ``currency_service`` rather than silently writing a foreign-currency
+        number onto the line. If conversion isn't possible (FX unavailable
+        / unknown currency) the line is left unpriced for human review —
+        never a wrong-currency number.
+        """
         out["spare_part_id"] = part.id
         out["honeywell_code"] = part.honeywell_code or code
-        unit_price, source = resolve_unit_price(
+        unit_price, source, src_currency = resolve_unit_price_with_currency(
             part, preferred_currency=preferred_currency
         )
+
+        if (
+            unit_price > 0
+            and src_currency
+            and preferred_currency
+            and src_currency.upper() != preferred_currency.upper()
+        ):
+            try:
+                from app.services.currency_service import convert_currency
+
+                unit_price = await convert_currency(
+                    unit_price, src_currency, preferred_currency
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Part %s price is in %s but quote is %s and FX conversion "
+                    "failed (%s) — leaving the line unpriced for review.",
+                    part.id,
+                    src_currency,
+                    preferred_currency,
+                    exc,
+                )
+                unit_price = 0.0
+                source = PRICE_SOURCE_UNPRICED
+
         out["unit_price"] = unit_price
-        if source == PRICE_SOURCE_UNPRICED:
+        if source == PRICE_SOURCE_UNPRICED or unit_price <= 0:
             logger.info(
                 "Part %s (%s) resolved but has no safe sell price — line left "
                 "unpriced for review.",
@@ -562,7 +627,7 @@ class QuoteService:
                     spare_part_id = part.id
                     unit_price, _src = resolve_unit_price(part)
 
-            line_total = quantity * unit_price
+            line_total = _money(_dec(quantity) * _dec(unit_price))
 
             qi = QuoteItem(
                 quote_id=quote_id,

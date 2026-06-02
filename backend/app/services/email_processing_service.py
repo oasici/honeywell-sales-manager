@@ -85,12 +85,38 @@ def _auto_quote_eligible(
         if est > 0 and est > tenant_config.auto_quote_max_amount:
             return False, "value_above_threshold"
     for p in parsed.get("parts") or []:
+        # R1 — a quantity we couldn't pin down (out-of-range, unparseable,
+        # or body↔attachment conflict) must never auto-quote. The flags are
+        # set by extract_rows_as_parts / _merge_heuristic_parts upstream.
+        if p.get("quantity_conflict") or p.get("quantity_suspect"):
+            return False, "quantity_uncertain"
         status = p.get("catalog_status")
         # ``no_code`` means the LLM emitted a description-only entry.
         # That can't auto-quote either.
         if status not in {"exact", "normalized"}:
             return False, "fuzzy_or_unknown"
     return True, None
+
+
+def _bound_llm_input(current_blob: str, threaded: str, max_input: int) -> str:
+    """R3 — assemble the LLM prompt under ``max_input`` chars without ever
+    sacrificing the current email.
+
+    ``threaded`` is ``[older thread history] + [current email]`` (thread
+    first). A naive ``[:max_input]`` would keep the stale history and drop
+    the current email's tail (its attachments). Instead keep the current
+    email intact and trim the older history to whatever budget remains.
+    """
+    if not max_input or len(threaded) <= max_input:
+        return threaded
+    budget = max_input - len(current_blob)
+    if budget > 0:
+        return (
+            threaded[:budget]
+            + "\n\n[...earlier thread truncated...]\n\n"
+            + current_blob
+        )
+    return current_blob
 
 
 def _as_int_qty(value) -> int | None:
@@ -227,6 +253,9 @@ class EmailProcessingService:
                         parsed["parts"],
                         tenant_id=getattr(email, "tenant_id", None),
                     )
+                    # R2 — stamp catalog sell prices so the auto-quote
+                    # value cap (estimate_quote_total) reflects real money.
+                    await self._annotate_catalog_sell_prices(parsed)
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
                 await self._set_review_status(email, parsed)
@@ -325,6 +354,7 @@ class EmailProcessingService:
                         parsed["parts"],
                         tenant_id=getattr(email, "tenant_id", None),
                     )
+                    await self._annotate_catalog_sell_prices(parsed)
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
                 await self._set_review_status(email, parsed)
@@ -444,6 +474,38 @@ class EmailProcessingService:
             raise NotFoundException(f"{email_id} numarali e-posta bulunamadi")
         return email
 
+    async def _annotate_catalog_sell_prices(self, parsed: dict) -> None:
+        """R2 — stamp each resolved part's catalog sell price onto the
+        parsed dict so the auto-quote value cap reflects real money.
+
+        Prices are taken from the spare-parts catalog (``PriceEntry`` /
+        cost+margin via ``resolve_unit_price``), never from the email —
+        customer RFQs don't contain prices, so without this the F-029
+        per-tenant max-amount cap saw a total of 0 and never fired.
+
+        Best-effort: parts without a resolved ``catalog_part_id`` or with
+        no safe price are left unpriced and simply don't contribute to the
+        estimate. ``create_quote_from_email`` re-prices independently, so
+        this annotation only feeds the gate's estimate.
+        """
+        from app.models.spare_part import SparePart
+        from app.services.part_pricing import resolve_unit_price
+
+        for part_req in parsed.get("parts") or []:
+            part_id = part_req.get("catalog_part_id")
+            if not part_id:
+                continue
+            part = (
+                await self._db.execute(
+                    select(SparePart).where(SparePart.id == part_id)
+                )
+            ).scalar_one_or_none()
+            if part is None:
+                continue
+            price, _source = resolve_unit_price(part)
+            if price > 0:
+                part_req["unit_price"] = price
+
     async def _parse_email_with_fallback(
         self,
         email: EmailRequest,
@@ -498,42 +560,47 @@ class EmailProcessingService:
                 body, recon, max_attachment_chars=settings.AI_MAX_ATTACHMENT_CHARS
             )
 
-        llm_input_body = attachment_text_blob or body
+        max_input = settings.AI_MAX_INPUT_CHARS
 
-        # Round-18 — prepend thread history when this email belongs
-        # to an ongoing conversation. Lets Claude resolve pronouns
-        # ("the same", "more of that") + dedupe parts already
-        # acknowledged in earlier messages.
+        # The current email (body + attachments) is what we're quoting, so
+        # it must survive the token cap. Per-attachment caps already bound
+        # it; truncate here only in the pathological case where the current
+        # email alone exceeds the ceiling.
+        current_blob = attachment_text_blob or body
+        if max_input and len(current_blob) > max_input:
+            logger.info(
+                "Email %d current-email LLM input truncated %d->%d chars",
+                email.id,
+                len(current_blob),
+                max_input,
+            )
+            current_blob = current_blob[:max_input] + "\n\n[...truncated for length...]"
+
+        # Round-18 — prepend thread history when this email belongs to an
+        # ongoing conversation (pronoun resolution / dedupe). R3 — thread
+        # history is prepended at the FRONT, so a naive tail-truncation
+        # would discard the current email and keep stale history. Instead
+        # keep the current email intact and trim the OLDER thread history
+        # to whatever budget remains under the cap.
+        llm_input_body = current_blob
         try:
             from app.services.email_thread_context import prepend_thread_context
 
-            llm_input_body = await prepend_thread_context(
-                self._db, email, llm_input_body
-            )
+            threaded = await prepend_thread_context(self._db, email, current_blob)
+            llm_input_body = _bound_llm_input(current_blob, threaded, max_input)
+            if max_input and len(threaded) > max_input:
+                logger.info(
+                    "Email %d thread context trimmed to fit %d-char cap",
+                    email.id,
+                    max_input,
+                )
         except Exception as exc:  # noqa: BLE001 — thread context is best-effort
             logger.warning(
                 "Thread-context lookup failed for email %d (continuing without): %s",
                 email.id,
                 exc,
             )
-
-        # Hard backstop on total prompt size (body + attachments + thread
-        # context). The per-attachment cap above bounds the common case;
-        # this guarantees a ceiling on tokens-per-call even when several
-        # attachments or a long thread stack up. Structured rows are
-        # preserved via the heuristic_parts merge, so end-truncation here
-        # can't drop a part the parser already extracted.
-        max_input = settings.AI_MAX_INPUT_CHARS
-        if max_input and len(llm_input_body) > max_input:
-            logger.info(
-                "Email %d LLM input truncated %d->%d chars to bound token usage",
-                email.id,
-                len(llm_input_body),
-                max_input,
-            )
-            llm_input_body = (
-                llm_input_body[:max_input] + "\n\n[...truncated for length...]"
-            )
+            llm_input_body = current_blob
 
         filter_result = pre_filter_email(llm_input_body, subject)
 
