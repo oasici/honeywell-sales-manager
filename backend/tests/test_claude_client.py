@@ -8,10 +8,24 @@ These verify that ``claude_messages_create``:
 
 from __future__ import annotations
 
+import anthropic
+import httpx
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.core.circuit_breaker import CircuitOpenError, claude_breaker
+
+
+def _rate_limit_error(retry_after=None) -> anthropic.RateLimitError:
+    headers = {}
+    if retry_after is not None:
+        headers["retry-after"] = str(retry_after)
+    response = httpx.Response(
+        429,
+        headers=headers,
+        request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"),
+    )
+    return anthropic.RateLimitError("rate limited", response=response, body=None)
 
 
 @pytest.fixture(autouse=True)
@@ -115,6 +129,79 @@ async def test_wrapper_success_keeps_breaker_closed():
 
     assert claude_breaker.state == "closed"
     assert claude_breaker._failure_count == 0
+
+
+@pytest.mark.asyncio
+async def test_retries_on_429_then_succeeds():
+    """A 429 is retried (after backoff) and a subsequent success returns
+    normally — the breaker stays closed because it never sees the 429."""
+    from app.core.claude_client import claude_messages_create
+
+    sentinel = MagicMock(name="ok-after-429")
+    fake_messages = MagicMock()
+    fake_messages.create = AsyncMock(side_effect=[_rate_limit_error(), sentinel])
+    fake_client = MagicMock()
+    fake_client.messages = fake_messages
+
+    with patch("app.core.claude_client.anthropic.AsyncAnthropic", return_value=fake_client), \
+         patch("app.core.claude_client.asyncio.sleep", new=AsyncMock()) as fake_sleep:
+        result = await claude_messages_create(model="m", max_tokens=1, messages=[])
+
+    assert result is sentinel
+    assert fake_messages.create.await_count == 2
+    fake_sleep.assert_awaited_once()
+    assert claude_breaker.state == "closed"
+    assert claude_breaker._failure_count == 0
+
+
+@pytest.mark.asyncio
+async def test_429_honors_retry_after_header():
+    """The Retry-After header value drives the backoff delay."""
+    from app.core.claude_client import claude_messages_create
+
+    fake_messages = MagicMock()
+    fake_messages.create = AsyncMock(
+        side_effect=[_rate_limit_error(retry_after=5), MagicMock()]
+    )
+    fake_client = MagicMock()
+    fake_client.messages = fake_messages
+
+    with patch("app.core.claude_client.anthropic.AsyncAnthropic", return_value=fake_client), \
+         patch("app.core.claude_client.asyncio.sleep", new=AsyncMock()) as fake_sleep:
+        await claude_messages_create(model="m", max_tokens=1, messages=[])
+
+    fake_sleep.assert_awaited_once_with(5.0)
+
+
+@pytest.mark.asyncio
+async def test_exhausted_429_propagates_after_max_attempts():
+    """Persistent 429s exhaust the rate-limit retries and propagate as a
+    single breaker failure (not one per internal attempt)."""
+    from app.core.claude_client import (
+        _RATE_LIMIT_MAX_ATTEMPTS,
+        claude_messages_create,
+    )
+
+    fake_messages = MagicMock()
+    fake_messages.create = AsyncMock(side_effect=_rate_limit_error())
+    fake_client = MagicMock()
+    fake_client.messages = fake_messages
+
+    with patch("app.core.claude_client.anthropic.AsyncAnthropic", return_value=fake_client), \
+         patch("app.core.claude_client.asyncio.sleep", new=AsyncMock()):
+        with pytest.raises(anthropic.RateLimitError):
+            await claude_messages_create(model="m", max_tokens=1, messages=[])
+
+    assert fake_messages.create.await_count == _RATE_LIMIT_MAX_ATTEMPTS
+    # One logical call -> one breaker failure, even though it retried N times.
+    assert claude_breaker._failure_count == 1
+
+
+def test_retry_after_seconds_parsing():
+    from app.core.claude_client import _retry_after_seconds
+
+    assert _retry_after_seconds(_rate_limit_error(retry_after=12)) == 12.0
+    assert _retry_after_seconds(_rate_limit_error()) is None
 
 
 def test_breaker_status_payload_shape():

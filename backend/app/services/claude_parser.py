@@ -5,6 +5,8 @@ import hashlib
 import logging
 from collections import OrderedDict
 
+import anthropic
+
 from app.core.circuit_breaker import CircuitOpenError
 from app.core.claude_client import claude_messages_create
 from app.core.config import settings
@@ -267,6 +269,15 @@ async def parse_email(body: str, subject: str = "") -> dict:
         except CircuitOpenError as exc:
             logger.warning("Claude breaker open; skipping retries: %s", exc)
             raise ClaudeApiError(f"Claude breaker open: {exc}") from exc
+
+        except anthropic.RateLimitError as exc:
+            # The chokepoint (claude_client) already retried with
+            # Retry-After-aware backoff. If a 429 still surfaces here the
+            # rate-limit window hasn't cleared — retrying again with the
+            # short 1/2/4s backoff would just re-hit the breaker. Surface
+            # it so the email routes to the DLQ/review instead.
+            logger.warning("Claude rate limit persisted after backoff: %s", exc)
+            raise ClaudeApiError(f"Claude rate limited: {exc}") from exc
 
         except Exception as exc:
             last_error = exc

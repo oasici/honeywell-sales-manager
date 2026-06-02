@@ -26,6 +26,8 @@ Sentry and breaks the SLO loop.
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import time
 from typing import Any
 
@@ -33,6 +35,36 @@ import anthropic
 
 from app.core.circuit_breaker import claude_breaker
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+# Anthropic 429 (rate-limit) handling. A 429 is the org's per-minute
+# token budget, not a service outage — the old caller-side retry used a
+# 1/2/4s backoff that always exhausted while still inside the same
+# rate-limit window, failing the email parse to the DLQ. We retry HERE,
+# inside the breaker-wrapped call, honoring the ``Retry-After`` header so
+# the breaker only records a final success (after backoff) or a fully
+# exhausted failure — a successful retry never counts against it.
+_RATE_LIMIT_MAX_ATTEMPTS = 4
+_RATE_LIMIT_BACKOFF_BASE = 2.0
+_RATE_LIMIT_BACKOFF_CAP = 60.0
+
+
+def _retry_after_seconds(exc: anthropic.RateLimitError) -> float | None:
+    """Extract the ``Retry-After`` hint (in seconds) from a 429 response."""
+    response = getattr(exc, "response", None)
+    headers = getattr(response, "headers", None) or {}
+    raw = None
+    try:
+        raw = headers.get("retry-after") or headers.get("Retry-After")
+    except Exception:
+        return None
+    if raw is None:
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
 
 
 def _emit_metric(name: str, value: float, *, kind: str, tags: dict[str, str]) -> None:
@@ -72,7 +104,33 @@ async def claude_messages_create(
 
     async def _do_call() -> Any:
         client = _build_client(timeout)
-        return await client.messages.create(**kwargs)
+        for attempt in range(_RATE_LIMIT_MAX_ATTEMPTS):
+            try:
+                return await client.messages.create(**kwargs)
+            except anthropic.RateLimitError as exc:
+                if attempt >= _RATE_LIMIT_MAX_ATTEMPTS - 1:
+                    # Out of rate-limit retries — let it propagate so the
+                    # breaker records the failure and the caller degrades.
+                    raise
+                delay = _retry_after_seconds(exc)
+                if delay is None:
+                    delay = _RATE_LIMIT_BACKOFF_BASE * (2 ** attempt)
+                delay = min(delay, _RATE_LIMIT_BACKOFF_CAP)
+                _emit_metric(
+                    "claude.rate_limited",
+                    1,
+                    kind="count",
+                    tags={"model": model},
+                )
+                logger.warning(
+                    "Claude 429 rate limit (attempt %d/%d) — backing off %.1fs",
+                    attempt + 1,
+                    _RATE_LIMIT_MAX_ATTEMPTS,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+        # Unreachable: the loop either returns or raises on the last attempt.
+        raise RuntimeError("rate-limit retry loop exited unexpectedly")
 
     started = time.monotonic()
     try:
