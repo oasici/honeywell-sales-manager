@@ -62,7 +62,13 @@ def select_price_entry(
         return None
 
     today = today or _today()
-    valid = [e for e in entries if _is_valid(e, today)] or entries
+    # T4 — only entries whose validity window includes today are usable.
+    # Entries with no dates are open-ended (always valid). If EVERY entry
+    # is explicitly expired or future-dated, we return None → the line is
+    # left unpriced for review rather than quoting an out-of-window price.
+    valid = [e for e in entries if _is_valid(e, today)]
+    if not valid:
+        return None
 
     if preferred_currency:
         pref = preferred_currency.upper()

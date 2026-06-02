@@ -246,13 +246,19 @@ class EmailProcessingService:
                 # BEFORE persistence + auto-quote. Unknown / fuzzy
                 # rows route to review even when the LLM was confident.
                 if parsed.get("parts"):
-                    from app.services.part_catalog_resolver import resolve_parsed_parts
+                    from app.services.part_catalog_resolver import (
+                        dedupe_parsed_parts,
+                        resolve_parsed_parts,
+                    )
 
                     parsed["parts"] = await resolve_parsed_parts(
                         self._db,
                         parsed["parts"],
                         tenant_id=getattr(email, "tenant_id", None),
                     )
+                    # T2 — collapse same-SKU duplicates (summed qty, flagged
+                    # for review) before the gate so R1 catches the merge.
+                    parsed["parts"] = dedupe_parsed_parts(parsed["parts"])
                     # R2 — stamp catalog sell prices so the auto-quote
                     # value cap (estimate_quote_total) reflects real money.
                     await self._annotate_catalog_sell_prices(parsed)
@@ -347,13 +353,17 @@ class EmailProcessingService:
             parsed = await self._parse_email_with_fallback(email)
             if parsed:
                 if parsed.get("parts"):
-                    from app.services.part_catalog_resolver import resolve_parsed_parts
+                    from app.services.part_catalog_resolver import (
+                        dedupe_parsed_parts,
+                        resolve_parsed_parts,
+                    )
 
                     parsed["parts"] = await resolve_parsed_parts(
                         self._db,
                         parsed["parts"],
                         tenant_id=getattr(email, "tenant_id", None),
                     )
+                    parsed["parts"] = dedupe_parsed_parts(parsed["parts"])
                     await self._annotate_catalog_sell_prices(parsed)
                 self._apply_parsed_data(email, parsed)
                 self._classify_with_consolidation(email, parsed)
@@ -489,8 +499,15 @@ class EmailProcessingService:
         this annotation only feeds the gate's estimate.
         """
         from app.models.spare_part import SparePart
-        from app.services.part_pricing import resolve_unit_price
+        from app.services.part_pricing import resolve_unit_price_with_currency
 
+        # T5 — email-derived quotes use the Quote default currency (TRY), so
+        # convert each catalog price into that currency before stamping.
+        # Otherwise a USD catalog estimate compared against a TRY cap
+        # under-counts ~30× and a big order slips the value gate. Best-
+        # effort: if FX is unavailable we keep the raw price (the estimate
+        # is advisory; the line price is reconciled separately in R4).
+        target_ccy = "TRY"
         for part_req in parsed.get("parts") or []:
             part_id = part_req.get("catalog_part_id")
             if not part_id:
@@ -502,9 +519,17 @@ class EmailProcessingService:
             ).scalar_one_or_none()
             if part is None:
                 continue
-            price, _source = resolve_unit_price(part)
-            if price > 0:
-                part_req["unit_price"] = price
+            price, _source, src_ccy = resolve_unit_price_with_currency(part)
+            if price <= 0:
+                continue
+            if src_ccy and src_ccy.upper() != target_ccy:
+                try:
+                    from app.services.currency_service import convert_currency
+
+                    price = await convert_currency(price, src_ccy, target_ccy)
+                except Exception:  # noqa: BLE001 — estimate is best-effort
+                    pass
+            part_req["unit_price"] = price
 
     async def _parse_email_with_fallback(
         self,

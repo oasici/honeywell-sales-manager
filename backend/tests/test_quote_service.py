@@ -230,6 +230,13 @@ class TestDraftStatusOnCreation:
 class TestApproveQuote:
     """Test cycle 6: approve changes status."""
 
+    @staticmethod
+    def _confirmed_item():
+        item = MagicMock()
+        item.is_confirmed = True
+        item.unit_price = 100.0
+        return item
+
     @pytest.mark.asyncio
     async def test_should_change_status_to_approved_on_approve(self):
         db = _make_mock_db()
@@ -238,6 +245,8 @@ class TestApproveQuote:
 
         select_result = MagicMock()
         select_result.scalar_one_or_none.return_value = quote
+        # T3 — approve_quote now verifies all lines are confirmed + priced.
+        select_result.scalars.return_value.all.return_value = [self._confirmed_item()]
         db.execute = AsyncMock(return_value=select_result)
 
         service = QuoteService(db)
@@ -246,6 +255,50 @@ class TestApproveQuote:
 
         assert result.status == QuoteStatus.APPROVED.value
         assert result.approved_by == 42
+
+    @pytest.mark.asyncio
+    async def test_should_reject_approval_with_unconfirmed_line(self):
+        """T3 — a quote with an unconfirmed line cannot be approved."""
+        db = _make_mock_db()
+        quote = _make_mock_quote(status=QuoteStatus.DRAFT.value)
+        unconfirmed = MagicMock(); unconfirmed.is_confirmed = False; unconfirmed.unit_price = 100.0
+        select_result = MagicMock()
+        select_result.scalar_one_or_none.return_value = quote
+        select_result.scalars.return_value.all.return_value = [unconfirmed]
+        db.execute = AsyncMock(return_value=select_result)
+        service = QuoteService(db)
+        with pytest.raises(BadRequestException):
+            await service.approve_quote(quote_id=1, approved_by=42)
+
+    @pytest.mark.asyncio
+    async def test_should_reject_approval_with_unpriced_line(self):
+        """T3 — a quote with a 0.00 line cannot be approved."""
+        db = _make_mock_db()
+        quote = _make_mock_quote(status=QuoteStatus.DRAFT.value)
+        unpriced = MagicMock(); unpriced.is_confirmed = True; unpriced.unit_price = 0.0
+        select_result = MagicMock()
+        select_result.scalar_one_or_none.return_value = quote
+        select_result.scalars.return_value.all.return_value = [unpriced]
+        db.execute = AsyncMock(return_value=select_result)
+        service = QuoteService(db)
+        with pytest.raises(BadRequestException):
+            await service.approve_quote(quote_id=1, approved_by=42)
+
+    @pytest.mark.asyncio
+    async def test_force_override_approves_unconfirmed(self):
+        """T3 — allow_unconfirmed=True bypasses the line gate (manager override)."""
+        db = _make_mock_db()
+        quote = _make_mock_quote(status=QuoteStatus.DRAFT.value)
+        unconfirmed = MagicMock(); unconfirmed.is_confirmed = False; unconfirmed.unit_price = 0.0
+        select_result = MagicMock()
+        select_result.scalar_one_or_none.return_value = quote
+        select_result.scalars.return_value.all.return_value = [unconfirmed]
+        db.execute = AsyncMock(return_value=select_result)
+        service = QuoteService(db)
+        result = await service.approve_quote(
+            quote_id=1, approved_by=42, allow_unconfirmed=True
+        )
+        assert result.status == QuoteStatus.APPROVED.value
 
     @pytest.mark.asyncio
     async def test_should_reject_approval_of_already_approved_quote(self):

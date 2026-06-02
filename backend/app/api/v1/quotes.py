@@ -301,10 +301,21 @@ async def update_quote(
 @router.patch("/{quote_id}/approve", response_model=QuoteResponse)
 async def approve_quote(
     quote_id: int,
+    force: bool = Query(
+        False,
+        description="Override the line-confirmation gate (T3). Approves "
+        "even when lines are unconfirmed/unpriced; the override is "
+        "audit-logged.",
+    ),
     current_user: User = Depends(require_role(UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Approve a quote and generate PDF (sales_manager only)."""
+    """Approve a quote and generate PDF (sales_manager only).
+
+    T3 — by default a quote with any unconfirmed or unpriced line is
+    rejected; a manager may pass ``?force=true`` to override, which is
+    recorded in the audit log.
+    """
     # Tenant guard (audit TEN-6). The QuoteService helper does a
     # generic ID lookup with no tenant scoping, so a manager from
     # tenant A could otherwise approve any tenant B quote.
@@ -319,7 +330,19 @@ async def approve_quote(
     quote = await service.approve_quote(
         quote_id=quote_id,
         approved_by=current_user.id,
+        allow_unconfirmed=force,
     )
+
+    if force:
+        # T3 — a forced approval bypasses the line-confirmation gate; make
+        # it loud and auditable rather than silent.
+        await log_activity(
+            db, activity_type="quote_approved_override", entity_type="quote",
+            entity_id=quote.id, opportunity_id=quote.opportunity_id,
+            customer_id=quote.customer_id, user_id=current_user.id,
+            summary=f"Teklif zorla onaylandi (dogrulanmamis satirlar): {quote.quote_number}",
+            source_ref=f"quote_approved_override:{quote.quote_number}",
+        )
 
     await log_activity(
         db, activity_type="quote_approved", entity_type="quote", entity_id=quote.id,
@@ -379,6 +402,25 @@ async def send_quote(
     if quote.status not in ("approved", "sent"):
         raise BadRequestException(
             f"Teklif gonderilmeden once onaylanmalidir (mevcut durum: {quote.status})"
+        )
+
+    # T3 (defence-in-depth) — a zero-priced line must never be emailed to a
+    # customer, even on a force-approved quote. This is the last gate before
+    # the PDF leaves the building.
+    from app.models.quote_item import QuoteItem as _QuoteItem
+
+    unpriced_items = (
+        await db.execute(
+            select(func.count(_QuoteItem.id)).where(
+                _QuoteItem.quote_id == quote_id,
+                (_QuoteItem.unit_price.is_(None)) | (_QuoteItem.unit_price <= 0),
+            )
+        )
+    ).scalar() or 0
+    if unpriced_items:
+        raise BadRequestException(
+            f"Teklif gonderilemez: {unpriced_items} satir fiyatsiz (0). "
+            "Once fiyatlandirin."
         )
 
     # Determine recipient email

@@ -158,9 +158,12 @@ async def resolve_part_code(
     raw = code.strip()
     norm = _normalize(raw)
 
-    # 1. Exact (case-insensitive).
+    # 1. Exact (case-insensitive). T1 — only ACTIVE parts resolve; a
+    # discontinued (is_active=False) SKU must not be sellable via the
+    # auto-quote gate. Inactive codes fall through to ``unknown`` → review.
     stmt = select(SparePart.id, SparePart.honeywell_code).where(
-        func.lower(SparePart.honeywell_code) == raw.lower()
+        func.lower(SparePart.honeywell_code) == raw.lower(),
+        SparePart.is_active.is_(True),
     )
     row = (await db.execute(stmt)).first()
     if row:
@@ -171,8 +174,10 @@ async def resolve_part_code(
             part_id=row.id,
         )
 
-    # 2. Normalized comparison (strip hyphens/spaces).
-    stmt = select(SparePart.id, SparePart.honeywell_code)
+    # 2. Normalized comparison (strip hyphens/spaces). T1 — active only.
+    stmt = select(SparePart.id, SparePart.honeywell_code).where(
+        SparePart.is_active.is_(True)
+    )
     rows = (await db.execute(stmt)).all()
     if not rows:
         return CatalogResolution(input_code=raw, status="unknown")
@@ -259,6 +264,47 @@ async def resolve_part_code(
         )
 
     return CatalogResolution(input_code=raw, status="unknown")
+
+
+def dedupe_parsed_parts(parts: list[dict]) -> list[dict]:
+    """T2 — collapse parsed parts that refer to the same physical SKU.
+
+    Keys on the canonical code (the resolver's ``canonical_part_code`` when
+    present, else the normalized ``part_code``). Duplicates are merged into
+    a single entry with **summed** quantity and flagged ``quantity_suspect``
+    + ``duplicate_merged`` — the merge is a guess (two mentions might be one
+    line restated or two genuine needs), so it routes to review rather than
+    being silently trusted. Entries without a code pass through untouched.
+    Returns a new list.
+    """
+    out: list[dict] = []
+    index: dict[str, int] = {}
+    for entry in parts or []:
+        code = (
+            entry.get("part_code")
+            or entry.get("honeywell_code")
+            or entry.get("code")
+            or ""
+        )
+        canonical = entry.get("canonical_part_code") or code
+        key = _normalize(canonical) if canonical else ""
+        if not key:
+            out.append(entry)
+            continue
+        if key in index:
+            existing = out[index[key]]
+            try:
+                existing["quantity"] = int(existing.get("quantity")) + int(
+                    entry.get("quantity")
+                )
+            except (TypeError, ValueError):
+                pass
+            existing["quantity_suspect"] = True
+            existing["duplicate_merged"] = True
+        else:
+            index[key] = len(out)
+            out.append(dict(entry))
+    return out
 
 
 async def resolve_parsed_parts(

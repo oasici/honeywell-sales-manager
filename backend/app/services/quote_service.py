@@ -223,12 +223,30 @@ class QuoteService:
 
         return quote
 
-    async def approve_quote(self, quote_id: int, approved_by: int) -> Quote:
-        """Approve a quote and generate PDF."""
+    async def approve_quote(
+        self,
+        quote_id: int,
+        approved_by: int,
+        *,
+        allow_unconfirmed: bool = False,
+    ) -> Quote:
+        """Approve a quote and generate PDF.
+
+        T3 — the review flags produced upstream (``is_confirmed=False`` for
+        fuzzy/quantity-uncertain/cross-currency matches, ``unit_price<=0``
+        for unpriced lines) are *binding* here: a quote with any such line
+        cannot be approved (and therefore cannot be sent) unless a manager
+        explicitly overrides with ``allow_unconfirmed=True``, which the
+        caller audit-logs. Without this gate every prior is_confirmed fix
+        was advisory at the one step that reaches the customer.
+        """
         quote = await self._get_quote_or_raise(quote_id)
 
         approvable_statuses = (QuoteStatus.DRAFT.value, QuoteStatus.PENDING_APPROVAL.value)
         self._require_status(quote, approvable_statuses, "onaylama")
+
+        if not allow_unconfirmed:
+            await self._assert_lines_confirmed_and_priced(quote_id)
 
         quote.approved_by = approved_by
 
@@ -279,6 +297,33 @@ class QuoteService:
             )
 
     # ---- Private helpers ----
+
+    async def _assert_lines_confirmed_and_priced(self, quote_id: int) -> None:
+        """T3 — raise unless every quote line is confirmed AND positively priced.
+
+        ``is_confirmed=False`` marks a match the pipeline wasn't sure of
+        (fuzzy SKU, quantity conflict/suspect, cross-currency); ``unit_price
+        <= 0`` marks an unpriced line. Either must block approval/send.
+        """
+        items_result = await self._db.execute(
+            select(QuoteItem).where(QuoteItem.quote_id == quote_id)
+        )
+        items = list(items_result.scalars().all())
+        if not items:
+            raise BadRequestException(
+                "Teklif onaylanamaz: satir bulunamadi."
+            )
+        unconfirmed = [it for it in items if not it.is_confirmed]
+        unpriced = [it for it in items if (it.unit_price or 0) <= 0]
+        if unconfirmed or unpriced:
+            n_unconf = len(unconfirmed)
+            n_unpriced = len(unpriced)
+            raise BadRequestException(
+                "Teklif onaylanamaz: "
+                f"{n_unconf} satir dogrulanmamis, {n_unpriced} satir fiyatsiz. "
+                "Once satirlari kontrol edip onaylayin "
+                "(yonetici gerekirse zorla onaylayabilir)."
+            )
 
     async def _recalculate_totals(self, quote: Quote) -> None:
         """Recalculate quote subtotal, discount_total, tax, and grand total in-place."""
@@ -372,6 +417,13 @@ class QuoteService:
         parsed_parts = parsed.get("parts", []) or parsed.get("items", [])
         if not parsed_parts:
             return
+
+        # T2 — collapse same-SKU duplicates before line creation. Parse-time
+        # dedup already handles fresh emails; this also covers legacy
+        # parsed_data stored before the dedup landed. Idempotent.
+        from app.services.part_catalog_resolver import dedupe_parsed_parts
+
+        parsed_parts = dedupe_parsed_parts(parsed_parts)
 
         preferred_currency = await self._quote_currency(quote_id)
 
@@ -491,7 +543,7 @@ class QuoteService:
         if catalog_part_id and catalog_status in (
             _GATE_OK_STATUSES | _RESOLVER_SUGGEST_STATUSES
         ):
-            part = await self._find_spare_part_by_id(catalog_part_id)
+            part = await self._find_spare_part_by_id(catalog_part_id, active_only=True)
             if part:
                 gate_ok = catalog_status in _GATE_OK_STATUSES
                 await self._apply_part_to_resolution(
@@ -514,7 +566,9 @@ class QuoteService:
                 out["match_score"] = score
                 out["match_strategy"] = best["strategy"]
                 if score >= LINE_ITEM_MATCH_THRESHOLD:
-                    part = await self._find_spare_part_by_id(best["spare_part_id"])
+                    part = await self._find_spare_part_by_id(
+                        best["spare_part_id"], active_only=True
+                    )
                     if part:
                         await self._apply_part_to_resolution(
                             out, part, preferred_currency, code=code
@@ -528,7 +582,7 @@ class QuoteService:
 
         # 4 — legacy direct exact-code lookup.
         if code:
-            part = await self._find_spare_part_by_code(code)
+            part = await self._find_spare_part_by_code(code, active_only=True)
             if part:
                 await self._apply_part_to_resolution(
                     out, part, preferred_currency, code=code
@@ -622,7 +676,7 @@ class QuoteService:
             spare_part_id = None
             unit_price = 0.0
             if code:
-                part = await self._find_spare_part_by_code(code)
+                part = await self._find_spare_part_by_code(code, active_only=True)
                 if part:
                     spare_part_id = part.id
                     unit_price, _src = resolve_unit_price(part)
@@ -693,12 +747,27 @@ class QuoteService:
             raise NotFoundException(f"{record_id} numarali {label} bulunamadi")
         return record
 
-    async def _find_spare_part_by_id(self, part_id: int) -> SparePart | None:
-        result = await self._db.execute(select(SparePart).where(SparePart.id == part_id))
+    async def _find_spare_part_by_id(
+        self, part_id: int, *, active_only: bool = False
+    ) -> SparePart | None:
+        # T1 — ``active_only`` guards the from-email path: a stale
+        # ``catalog_part_id`` (resolved when the part was active, quoted
+        # later after it was discontinued) must not silently price an
+        # inactive part. The manual quote path leaves it False so an
+        # operator can still quote a part being phased out.
+        stmt = select(SparePart).where(SparePart.id == part_id)
+        if active_only:
+            stmt = stmt.where(SparePart.is_active.is_(True))
+        result = await self._db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def _find_spare_part_by_code(self, code: str) -> SparePart | None:
-        result = await self._db.execute(select(SparePart).where(SparePart.honeywell_code == code))
+    async def _find_spare_part_by_code(
+        self, code: str, *, active_only: bool = False
+    ) -> SparePart | None:
+        stmt = select(SparePart).where(SparePart.honeywell_code == code)
+        if active_only:
+            stmt = stmt.where(SparePart.is_active.is_(True))
+        result = await self._db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def _build_quote_data(self, quote: Quote, user_id: int | None = None) -> dict:
