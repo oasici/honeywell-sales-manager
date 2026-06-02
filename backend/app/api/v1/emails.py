@@ -19,7 +19,7 @@ from app.core.event_bus import event_bus
 from app.services.activity_logger import log_activity
 from app.services.email_processing_service import EmailProcessingService
 from app.services.notification_service import create_notification
-from app.services.tenant_context import assert_same_tenant
+from app.services.tenant_context import assert_same_tenant, scoped_for_user
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.round16_aggregates import EmailMatchesResponse
 
@@ -100,6 +100,15 @@ async def list_emails(
     if conditions:
         query = query.where(and_(*conditions))
         count_query = count_query.where(and_(*conditions))
+
+    # E3 — tenant isolation. Non-managers are scoped by ``assigned_to``
+    # above (implicitly same-tenant), but a SALES_MANAGER otherwise saw
+    # every tenant's mail. ``scoped_for_user`` is a no-op when the user's
+    # tenant_id is None (single-tenant deployments).
+    query = scoped_for_user(query, current_user, column=EmailRequest.tenant_id)
+    count_query = scoped_for_user(
+        count_query, current_user, column=EmailRequest.tenant_id
+    )
 
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
@@ -323,152 +332,24 @@ async def poll_emails(
         return {"message": "Yeni email bulunamadi (son 14 gun)", "fetched_count": 0}
 
     # ── Process fetched emails ──
+    # Row construction (auth verdict, attachment payload, OCR enrich, AV
+    # scan, tenant stamp, idempotency) is delegated to the shared
+    # ``email_ingestion_service`` so this path and the scheduled cron poll
+    # can't drift (email hardening audit E1/E2/E6/E7).
     fetched_count = 0
     service = EmailProcessingService(db)
-    from app.core.config import settings as cfg
+    from app.services.email_ingestion_service import ingest_fetched_email
 
     for item in raw_emails:
         try:
-            # Skip internal emails
-            from_domain = item["from_addr"].rsplit("@", 1)[-1].lower() if "@" in item["from_addr"] else ""
-            if from_domain in cfg.internal_domains_list:
-                continue
-
-            # Skip duplicates
-            existing = await db.execute(
-                select(EmailRequest).where(EmailRequest.message_id == item["message_id"])
-            )
-            if existing.scalar_one_or_none():
-                continue
-
-            # Create with IMAP SEEN status as is_read
-            # R4-TEN-23: stamp tenant_id from the polling user so the row
-            # is scoped to a tenant from creation; downstream detail
-            # endpoints enforce ``assert_same_tenant``.
-            # Round-17 — persist parsed attachment payload + auth verdict.
-            # Untrusted senders (anything except pass) flip review_status
-            # so the auto-quote loop refuses to act until a human signs off.
-            attachments_payload = item.get("attachments") or []
-
-            # Round-18 — async OCR enrichment for image attachments and
-            # scanned PDFs that produced no text on the sync pass.
-            # Bytes were preserved by the IMAP fetch loop in
-            # ``raw_attachments`` and never reach the DB.
-            raw_attachments = item.get("raw_attachments") or []
-            if attachments_payload and raw_attachments and cfg.ANTHROPIC_API_KEY:
-                needs_ocr = any(
-                    (a.get("error") == "requires_ocr")
-                    or (a.get("content_type") == "application/pdf" and not a.get("text"))
-                    for a in attachments_payload
-                )
-                if needs_ocr:
-                    from app.services.email_attachment_parser import (
-                        ParsedAttachment,
-                        enrich_with_ocr,
-                        extract_rows_as_parts,
-                    )
-
-                    placeholders = [
-                        ParsedAttachment(
-                            filename=a.get("filename", ""),
-                            content_type=a.get("content_type", ""),
-                            size_bytes=a.get("size_bytes", 0),
-                            text=a.get("text", ""),
-                            rows=[],
-                            sheet_count=a.get("sheet_count", 0) or 0,
-                            page_count=a.get("page_count", 0) or 0,
-                            error=a.get("error"),
-                        )
-                        for a in attachments_payload
-                    ]
-                    enriched = await enrich_with_ocr(raw_attachments, placeholders)
-                    attachments_payload = [
-                        {
-                            "filename": pa.filename,
-                            "content_type": pa.content_type,
-                            "size_bytes": pa.size_bytes,
-                            "sheet_count": pa.sheet_count,
-                            "page_count": pa.page_count,
-                            "total_pages": pa.total_pages,
-                            "truncated": pa.truncated,
-                            "text": pa.text,
-                            "heuristic_parts": (
-                                extract_rows_as_parts(pa.rows) if pa.rows else []
-                            ),
-                            "error": pa.error,
-                        }
-                        for pa in enriched
-                    ]
-
-            attachments_json = None
-            if attachments_payload:
-                import json as _json
-                try:
-                    attachments_json = _json.dumps(attachments_payload, ensure_ascii=False)
-                except Exception:
-                    attachments_json = None
-
-            sender_auth = item.get("sender_auth_status") or "none"
-            initial_review_status = (
-                None if sender_auth == "pass" else "pending_review"
-            )
-
-            # F-003 — surface OCR truncation onto the row so the
-            # eligibility gate + UI can react. ``attachments_payload``
-            # carries the per-file flag; we OR-reduce across all
-            # attachments because any single truncation invalidates
-            # auto-quote.
-            any_truncated = any(
-                bool(a.get("truncated")) for a in (attachments_payload or [])
-            )
-            total_ocr_pages = sum(
-                int(a.get("total_pages") or 0)
-                for a in (attachments_payload or [])
-                if a.get("truncated")
-            )
-            rendered_ocr_pages = sum(
-                int(a.get("page_count") or 0)
-                for a in (attachments_payload or [])
-                if a.get("truncated")
-            )
-            ocr_skipped = (
-                total_ocr_pages - rendered_ocr_pages if any_truncated else None
-            )
-
-            email = EmailRequest(
-                message_id=item["message_id"],
-                from_address=item["from_addr"],
-                subject=item["subject"] or "(Konu yok)",
-                body_text=item["body"],
-                body_html=item.get("html_body") or None,
-                status="new",
-                is_read=item.get("is_read", False),
-                received_at=datetime.now(tz.utc),
-                assigned_to=current_user.id,
+            email = await ingest_fetched_email(
+                db,
+                item,
                 tenant_id=getattr(current_user, "tenant_id", None),
-                attachments_json=attachments_json,
-                sender_auth_status=sender_auth,
-                review_status=initial_review_status,
-                attachment_pages_truncated=any_truncated,
-                ocr_skipped_pages=ocr_skipped,
+                assigned_to=current_user.id,
             )
-            db.add(email)
-            # F-019 — make Message-Id idempotency airtight. The
-            # SELECT-then-INSERT above is TOCTOU-racy under concurrent
-            # IMAP poll. The unique constraint on ``message_id`` raises
-            # IntegrityError; we swallow it and move on (the other
-            # writer won).
-            from sqlalchemy.exc import IntegrityError
-            try:
-                await db.flush()
-            except IntegrityError as exc:
-                await db.rollback()
-                _logger.info(
-                    "Idempotency: message_id %s already inserted (concurrent fetch). Skipping.",
-                    item.get("message_id"),
-                )
-                continue
-            await db.refresh(email)
+            if email is None:
+                continue  # internal domain, duplicate, or concurrent-insert race
 
             # Parse
             try:
@@ -531,11 +412,16 @@ async def get_email_thread(
             "emails": single,
         }
 
-    thread_result = await db.execute(
-        select(EmailRequest)
-        .where(EmailRequest.thread_id == email.thread_id)
-        .order_by(EmailRequest.created_at.asc())
-    )
+    # E4 — tenant-scope the thread members. ``thread_id`` comes from
+    # message headers and can collide across tenants; without this filter
+    # a colliding id could surface a foreign tenant's emails. No-op in
+    # single-tenant deployments.
+    thread_stmt = scoped_for_user(
+        select(EmailRequest).where(EmailRequest.thread_id == email.thread_id),
+        current_user,
+        column=EmailRequest.tenant_id,
+    ).order_by(EmailRequest.created_at.asc())
+    thread_result = await db.execute(thread_stmt)
     thread_emails = thread_result.scalars().all()
     items = [_email_to_dict(e) for e in thread_emails]
     total = len(items)

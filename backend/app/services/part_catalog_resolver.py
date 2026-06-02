@@ -31,6 +31,7 @@ implementation tuned for short tokens (part codes are typically
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 
 from sqlalchemy import func, select
@@ -39,6 +40,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.spare_part import SparePart
 
 logger = logging.getLogger(__name__)
+
+# A "structurally complete" code: a letter prefix followed by digits,
+# carrying enough digits that a single-digit edit yields a *different real
+# part* rather than a typo (e.g. …1011 vs …1012).
+_FULL_CODE_RE = re.compile(r"^[a-z]+\d")
+
+
+def _looks_like_full_code(norm: str) -> bool:
+    return (
+        bool(_FULL_CODE_RE.match(norm))
+        and sum(c.isdigit() for c in norm) >= 3
+        and len(norm) >= 6
+    )
+
+
+def _letters_only(s: str) -> list[str]:
+    return [c for c in s if c.isalpha()]
 
 
 @dataclass(frozen=True)
@@ -159,7 +177,29 @@ async def resolve_part_code(
     if not rows:
         return CatalogResolution(input_code=raw, status="unknown")
 
-    norm_to_row = {(_normalize(r.honeywell_code)): r for r in rows}
+    # M2 — detect normalized-key collisions: two *distinct* catalog SKUs
+    # that normalize to the same key. Auto-resolving to either is a coin
+    # flip (the pre-fix dict-comprehension silently kept whichever sorted
+    # last), so treat such keys as ambiguous and route to review.
+    norm_to_rows: dict[str, list] = {}
+    for r in rows:
+        norm_to_rows.setdefault(_normalize(r.honeywell_code), []).append(r)
+
+    colliding = {
+        k
+        for k, group in norm_to_rows.items()
+        if len({x.honeywell_code for x in group}) > 1
+    }
+    if norm in colliding:
+        logger.warning(
+            "Catalog normalized-key collision for %r: codes %s — routing to "
+            "review instead of guessing.",
+            norm,
+            sorted({x.honeywell_code for x in norm_to_rows[norm]}),
+        )
+        return CatalogResolution(input_code=raw, status="unknown")
+
+    norm_to_row = {k: g[0] for k, g in norm_to_rows.items() if k not in colliding}
     if norm in norm_to_row:
         match = norm_to_row[norm]
         return CatalogResolution(
@@ -191,6 +231,25 @@ async def resolve_part_code(
             best = (d, None)
     if best[1] is not None and best[0] <= 2:
         match = best[1]
+        cand_norm = _normalize(match.honeywell_code)
+        # M1 — when the *input* is a structurally-complete code and the
+        # near candidate differs only in its digits (identical letter
+        # skeleton), the candidate is almost certainly a *different real
+        # part* (…1011 vs …1012), not a typo. Refuse to suggest it. OCR
+        # letter↔digit slips (e.g. "C7061A1O12" → "C7061A1012") change the
+        # letter skeleton and are still resolved.
+        if (
+            _looks_like_full_code(norm)
+            and norm != cand_norm
+            and _letters_only(norm) == _letters_only(cand_norm)
+        ):
+            logger.info(
+                "Levenshtein match %r→%r suppressed (full code, digit-only "
+                "difference) — routing to review.",
+                raw,
+                match.honeywell_code,
+            )
+            return CatalogResolution(input_code=raw, status="unknown")
         return CatalogResolution(
             input_code=raw,
             status="fuzzy_levenshtein",

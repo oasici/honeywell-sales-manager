@@ -4,6 +4,10 @@
 >
 > **Phase 12'de yeni / değişen:** Fırsat toplu içe aktarım (D-031 opps), Reports Builder CSV streaming (D-035), tenant-yerel forecast snapshot cron (D-034), tüm 11 mutable entity'de OCC `row_version` (D-009), login'de JWT rotation (D-007 — session-fixation savunması), email pipeline başarısızlığı → DLQ (D-028).
 >
+> **2026-06-01 — Yedek parça çıkarımı sıfır-tolerans sertleştirmesi:** E-postadan parça çıkarımı → katalog eşleştirme → teklif fiyatlandırma zinciri baştan sona denetlendi ve düzeltildi (bkz. `docs/audits/2026-06-01-spare-parts-extraction-audit.md`). Teklif artık asla maliyetten fiyatlanmaz; satır SKU'su gate'in değerlendirdiği parçayla aynıdır; ek adetleri başlık-duyarlı okunur; tire varyasyonları çift saymaz; gerçek bir koda 1 hane uzaklıktaki farklı parça otomatik seçilmez (incelemeye yönlendirilir). Bkz. §4.10 "Parça çıkarımı & fiyatlandırma garantileri".
+>
+> **2026-06-02 — E-posta özelliği sertleştirmesi:** E-posta hattı baştan sona denetlendi (bkz. `docs/audits/2026-06-02-email-feature-hardening-audit.md`). Manuel `/poll` ve zamanlanmış cron poll artık **tek ortak alım yolunu** (`email_ingestion_service`) kullanır; zamanlanmış poll'ün auth/tenant/ek verisini düşürmesi (auth-gate atlatma) giderildi. AV tarama kancası alım hattına bağlandı (infected ek nötralize edilir + incelemeye düşer). `list_emails` ve thread görünümü artık tenant ile filtrelenir (yöneticiler başka tenant'ın postasını göremez).
+>
 > **Önceki Round-19+ değişiklikleri:** Kalıcı login lockout (D-006), gerçek SMTP gönderimi (D-014), KVKK export worker + iki-kişi onayı (D-015/D-016), arka plan iş başarısızlıkları için DLQ (D-019), 7 entity için Trash/Restore (F-007), e-İmza OTP doğrulama akışı (F-006), Lead toplu içe aktarım (D-031), onay forensik audit (D-012), kvorum onay politikası (F-018), onay SLA escalation (F-028), teklif supersede zinciri (F-026), workflow döngü algılama (D-013), düşük-veri için health skor bias düzeltme (D-033), cross-tenant ihlal tespiti (D-010), aktif oturum yönetimi.
 
 Bu doküman, ürünü hiç kullanmamış bir kişinin baştan sona her özelliği doğru kullanabilmesi ve QA ekibinin her özelliği UAT testine tabi tutabilmesi için tek kaynak olacak şekilde hazırlanmıştır.
@@ -927,11 +931,11 @@ E-İmza akışı **token + 6 haneli OTP** ile iki faktörlü çalışır. Müşt
    - **Ekler:** Excel/CSV/PDF/görsel ekleri; "Önizle" ile içeriği gör.
    - **Sağ panel:** AI'nın çıkardığı parçalar listesi.
 4. Parça satırlarını gözden geçir:
-   - 🟢 `exact` — katalogda tam eşleşme
-   - 🟡 `normalized` — katalogla normalize edilerek eşleşti (tire/boşluk farkı)
-   - 🟠 `fuzzy` — fuzzy eşleşme (Levenshtein); operatör doğrulamalı
-   - 🔴 `unknown` — katalogda yok; manuel girmeniz gerekir
-5. Eksik/hatalı satırı düzenle.
+   - 🟢 `exact` — katalogda tam eşleşme (otomatik fiyatlanır + onaylanabilir)
+   - 🟡 `normalized` — katalogla normalize edilerek eşleşti (tire/boşluk farkı) (otomatik fiyatlanır + onaylanabilir)
+   - 🟠 `fuzzy` — fuzzy eşleşme (Levenshtein/prefix); **öneri olarak gösterilir, asla otomatik onaylanmaz** — operatör doğrulamalı
+   - 🔴 `unknown` — katalogda yok **veya** geçerli bir koda 1 hane uzaklıkta farklı bir gerçek parçaya denk geldi (örn. …1011 ↔ …1012); sistem bilerek tahmin etmez, manuel seçmeniz gerekir
+5. Eksik/hatalı satırı düzenle. **⚠ Adet uyuşmazlığı (`quantity_conflict`)** rozeti varsa: aynı parça hem mail metninde hem ekte farklı adetle geçmiş — her iki değer de gösterilir, doğru olanı siz seçin (sistem sessizce birini atmaz).
 6. **"Onayla ve Teklif Oluştur"** tıkla.
 7. Sistem yeni bir teklif taslağı açar, müşteri pre-fill edilir.
 
@@ -955,12 +959,19 @@ E-İmza akışı **token + 6 haneli OTP** ile iki faktörlü çalışır. Müşt
   3. Review status `approved`
 - Bu gate sağlanmazsa otomatik teklif oluşmaz, manuel oluşturulur.
 
+**Parça çıkarımı & fiyatlandırma garantileri (2026-06-01 sıfır-tolerans sertleştirmesi):**
+- **Asla maliyetten fiyatlanmaz.** Satış fiyatı önceliği: müşteri fiyat listesi (`PriceEntry.net_price`) → yalnızca liste yoksa maliyet × (1 + `min_margin_pct`). Marj 0 ise satır **fiyatsız** bırakılır (otomatik onaylanmaz), sıfır-marjlı maliyetle teklif **verilmez**.
+- **Teklif satırındaki SKU = gate'in değerlendirdiği SKU.** Satır kalemi, otomatik-teklif gate'inin kullandığı katalog çözücünün verdiği parçayı kullanır; iki ayrı eşleştirme motorunun farklı parça seçmesi sorunu giderildi.
+- **Düşük skorlu eşleşme SKU/fiyat yazmaz.** Eşik (`80`) altındaki bulanık eşleşmeler yalnızca *öneri* olarak kaydedilir; satır SKU'su ve fiyatı boş kalır → zorunlu inceleme. (Örn. kodsuz "valf" tanımının %50 isim eşleşmesiyle gerçek bir SKU+fiyat alması engellendi.)
+- **Ek (Excel/CSV/PDF) adetleri başlık-duyarlı okunur.** Qty / Adet / Miktar / Quantity sütunu tespit edilir; baştaki satır-numarası (`#`) sütunu adet sanılmaz. 10.000 üstü toplu siparişler artık `1`'e indirgenmez.
+- **Şüpheli adet sessizce `1` olmaz.** Eksik/aralık-dışı adet `quantity_suspect` ile işaretlenir ve satır otomatik onaylanmaz.
+
 **Sınır Durumları:**
 - **Aynı thread'den ikinci mail:** RFQ Aggregator otomatik bağlar (`rfq_thread_key`). Detayda "Bu mail [konu] thread'ine ait, 2 mail var" bilgisi.
-- **AV taraması** (eğer ClamAV aktif): infected ek kuyruğa "blocked" olarak düşer; içeriği görüntülenmez.
+- **AV taraması:** Ekler alım sırasında taranır (varsayılan `_NoopScanner` → `unscanned`; `AV_SCAN_BACKEND=clamav` ile gerçek tarama). `infected` ek: içeriği LLM'e verilmez, ek nötralize edilir ve e-posta incelemeye düşer.
 - **Şifrelenmiş ZIP eki:** "İçerik okunamadı" notu; manuel inceleme gerekir.
 - **OCR başarısız:** "Görsel okunamadı, manuel inceleyin" + ek olarak indirilebilir.
-- **Aynı parça farklı yerlerde:** Toplam adet birleşik gösterilir, kaynak satırlar listelenir.
+- **Aynı parça farklı yerlerde (mail + ek):** Normalize edilmiş koda göre tek satıra birleşir (tire/boşluk varyasyonu çift saymaz). Adetler farklıysa `quantity_conflict` rozetiyle her iki değer gösterilir; sistem birini sessizce seçmez.
 
 #### Özellik: RFQ Aggregation (Çoklu Mail Birleştirme)
 
@@ -1883,7 +1894,7 @@ Admin'in tüm sistem genelinde chat/destek mesajları yönetimi (varsa).
 
 8. **RFQ Aggregator:** SHA-256(tenant + thread_id || tenant + sender_domain + normalized_subject)[:16] → `rfq_thread_key`.
 
-9. **AV Scan Hook (opsiyonel):** ClamAV INSTREAM; aktif değilse `_NoopScanner`.
+9. **AV Scan Hook:** Her iki alım yolunda da (manuel `/poll` + zamanlanmış cron) ortak `email_ingestion_service` içinde çalışır. `AV_SCAN_BACKEND=clamav` ise ClamAV INSTREAM ile taranır; varsayılan `_NoopScanner` her eki `unscanned` işaretler. `infected` çıkan ekin metni + heuristic parçaları temizlenir (LLM'e gitmez), e-posta `pending_review`'a düşer ve otomatik teklif `av_infected` gerekçesiyle engellenir.
 
 10. **Eligibility Gate (auto-quote):**
     - Auth = `pass` AND
@@ -2182,7 +2193,7 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 
 ## Ek B — Bilinen Sınırlamalar (Round-19+ Hardening)
 
-1. **AV taraması**: ClamAV daemon henüz Render üzerinde provisioned değil → tüm ekler `unscanned` etiketiyle geçer.
+1. **AV taraması**: Tarama kancası alım hattına bağlandı (2026-06-02, her iki poll yolunda) → ancak ClamAV daemon henüz Render üzerinde provisioned değil, dolayısıyla varsayılan `_NoopScanner` ile tüm ekler `unscanned` geçer. `AV_SCAN_BACKEND=clamav` + daemon sağlandığında otomatik devreye girer.
 2. **OCR 5 sayfa cap'i**: Çok sayfalı scanned PDF'lerde 6+ sayfa görüntülenmez (review kuyruğunda not ile işaretlenir).
 3. **Eval harness**: 10 fixture; tam coverage henüz ulaşılmadı. `06_typo_fuzzy` ve `10_thread_continuation` regex fallback ile %0 (full pipeline %100).
 4. **AI Coaching**: `coaching_hooks` döngüsü beta; manager'a sunulan öneriler her zaman doğru olmayabilir, daima manuel değerlendirin.

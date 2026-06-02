@@ -61,6 +61,12 @@ def _auto_quote_eligible(
     ``tenant_config`` is an optional ``TenantConfig`` snapshot. When
     omitted (legacy unit tests), the F-029 amount check is skipped.
     """
+    # E2 — an attachment that scanned ``infected`` at ingest time
+    # (``parse_skipped_reason == "av_infected"``) never auto-quotes; the
+    # infected file's text was already stripped, but the whole email
+    # still routes to a human.
+    if getattr(email, "parse_skipped_reason", None) == "av_infected":
+        return False, "av_infected"
     auth = getattr(email, "sender_auth_status", None)
     if auth and auth != "pass":
         return False, "auth_not_pass"
@@ -86,46 +92,85 @@ def _auto_quote_eligible(
     return True, None
 
 
+def _as_int_qty(value) -> int | None:
+    """Best-effort int coercion for a quantity field; None if not numeric."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _merge_heuristic_parts(parsed: dict, heuristic_rows: list[dict]) -> dict:
     """Merge attachment-derived heuristic part rows into the LLM result.
 
-    Deduplicates by ``part_code`` (case-insensitive, whitespace
-    trimmed). The LLM-extracted entry wins on conflict because it
-    typically carries richer description / urgency metadata; the
-    heuristic only contributes rows the LLM missed entirely.
+    Phase-4 (spare-parts audit Q3/Q4):
 
-    Also flips ``is_spare_part_request`` to True when heuristic
-    rows are present (the email contained an Excel/CSV/PDF with
-    extractable part codes — that's a parts request even if the
-    body text was just "see attached").
+      * Dedup is by **normalized** code (reusing the catalog resolver's
+        normalizer) so ``C7061A1012`` (LLM/body) and ``C7061-A1012``
+        (spreadsheet) collapse to one physical part instead of two lines.
+      * When the same part appears in both the body and an attachment with
+        **different** quantities, neither value is silently discarded:
+        the line is flagged ``quantity_suspect`` and both values are
+        surfaced under ``quantity_conflict`` for the operator to resolve.
+
+    Also flips ``is_spare_part_request`` to True when the attachment
+    contributed part rows the LLM missed entirely.
     """
     if not heuristic_rows:
         return parsed
+
+    from app.services.part_catalog_resolver import _normalize
+
     parsed = dict(parsed or {})
     parts = list(parsed.get("parts") or [])
-    seen = {
-        (p.get("part_code") or "").strip().upper()
-        for p in parts
-        if p.get("part_code")
-    }
+
+    # Map normalized code -> index of the existing (body/LLM) part.
+    index: dict[str, int] = {}
+    for idx, p in enumerate(parts):
+        code = p.get("part_code")
+        if code:
+            index[_normalize(code)] = idx
+
     appended = 0
     for hp in heuristic_rows:
         code = (hp.get("part_code") or "").strip()
-        key = code.upper()
-        if not code or key in seen:
+        if not code:
             continue
-        parts.append(
-            {
-                "part_code": code,
-                "part_description": hp.get("part_description", ""),
-                "quantity": hp.get("quantity") or 1,
-                "urgency": "normal",
-            }
-        )
-        seen.add(key)
+        norm = _normalize(code)
+        if norm in index:
+            # Q4 — same physical part already present. Don't append a
+            # duplicate (Q3); instead reconcile the quantity.
+            existing = parts[index[norm]]
+            body_qty = _as_int_qty(existing.get("quantity"))
+            attach_qty = _as_int_qty(hp.get("quantity"))
+            if (
+                body_qty is not None
+                and attach_qty is not None
+                and body_qty != attach_qty
+            ):
+                existing["quantity_conflict"] = {
+                    "body": body_qty,
+                    "attachment": attach_qty,
+                }
+                existing["quantity_suspect"] = True
+            continue
+
+        new_part = {
+            "part_code": code,
+            "part_description": hp.get("part_description", ""),
+            "quantity": hp.get("quantity") or 1,
+            "urgency": "normal",
+        }
+        if hp.get("quantity_suspect"):
+            new_part["quantity_suspect"] = True
+        parts.append(new_part)
+        index[norm] = len(parts) - 1
         appended += 1
+
+    # Persist mutations (conflict flags) regardless of whether new rows
+    # were appended.
+    parsed["parts"] = parts
     if appended:
-        parsed["parts"] = parts
         parsed["is_spare_part_request"] = True
         # Don't artificially raise confidence — the LLM's own score
         # remains; the operator sees "N parts via attachment" in the

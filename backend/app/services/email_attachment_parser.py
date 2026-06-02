@@ -703,49 +703,207 @@ _TABULAR_PART_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Phase-3 (spare-parts audit Q1/Q2/Q5): header-aware column detection.
+# The pre-fix heuristic took "the first integer ≤ 9999 in the row" as the
+# quantity, which captured the line-number column ("1 | code | desc | 5")
+# and silently dropped the real qty, and clamped bulk orders ≥ 10 000 to 1.
+MAX_REASONABLE_QTY = 1_000_000
 
-def extract_rows_as_parts(rows: list[list[Any]]) -> list[dict[str, Any]]:
-    """Heuristic part-row extraction from a 2D row list.
+_QTY_HEADERS = {
+    "qty", "qty.", "quantity", "adet", "miktar", "amount", "qnty", "qmt",
+    "quantity required", "req qty", "req. qty", "order qty", "siparis adedi",
+    "sipariş adedi", "talep adedi",
+}
+_CODE_HEADERS = {
+    "code", "kod", "part", "part no", "part no.", "part number", "partno",
+    "parca", "parça", "parca kodu", "parça kodu", "honeywell", "honeywell code",
+    "honeywell kodu", "sku", "malzeme", "malzeme kodu", "urun kodu",
+    "ürün kodu", "item code", "stok kodu", "model",
+}
+_DESC_HEADERS = {
+    "description", "desc", "desc.", "aciklama", "açıklama", "tanim", "tanım",
+    "name", "urun", "ürün", "urun adi", "ürün adı", "product", "item",
+    "item description", "malzeme adi", "malzeme adı",
+}
+_LINE_NO_HEADERS = {
+    "#", "no", "no.", "sira", "sıra", "sira no", "sıra no", "line", "line no",
+    "s.no", "sno", "seq", "item no", "row",
+}
 
-    Used as a sanity / coverage check alongside the LLM extraction:
-    if the LLM returns 3 parts but the heuristic finds 50 in the
-    same Excel, the result lands in the review queue. Conservative
-    on column detection — we look for any cell matching the part
-    code regex and treat its row as a candidate. Quantity / unit
-    column is best-effort (number cell nearby).
+
+def _norm_header(cell: Any) -> str:
+    return ("" if cell is None else str(cell)).strip().lower()
+
+
+def _detect_columns(rows: list[list[Any]]) -> tuple[int, dict[str, int]] | None:
+    """Find the header row and map qty/code/desc column indices.
+
+    Returns ``(header_row_index, {"code": i, "qty": j, "desc": k})`` (any
+    key may be absent) or ``None`` when no header row is recognizable. A
+    header row contains known labels and (unlike data rows) no part code.
     """
+    for idx, row in enumerate(rows):
+        if not row:
+            continue
+        if any(
+            _TABULAR_PART_PATTERN.search(str(c)) for c in row if c is not None
+        ):
+            continue  # rows with part codes are data, not headers
+        cols: dict[str, int] = {}
+        for col_idx, cell in enumerate(row):
+            label = _norm_header(cell)
+            if not label:
+                continue
+            if "code" not in cols and label in _CODE_HEADERS:
+                cols["code"] = col_idx
+            elif "qty" not in cols and label in _QTY_HEADERS:
+                cols["qty"] = col_idx
+            elif "desc" not in cols and label in _DESC_HEADERS:
+                cols["desc"] = col_idx
+        # A usable header must locate at least the code (or qty) column.
+        if "code" in cols or "qty" in cols:
+            return idx, cols
+    return None
+
+
+def _parse_qty_cell(cell: Any) -> int | None:
+    """Parse an integer quantity from a cell. Returns None if not numeric."""
+    text = ("" if cell is None else str(cell)).strip()
+    if not text:
+        return None
+    # Strip a thousands separator only when it groups exactly 3 trailing
+    # digits (e.g. "12.000" / "12,000" -> 12000); otherwise take the
+    # leading integer ("5.0" -> 5, "5 adet" -> 5).
+    grouped = re.fullmatch(r"(\d{1,3}(?:[.,]\d{3})+)", text)
+    if grouped:
+        return int(re.sub(r"[.,]", "", text))
+    m = re.search(r"\d+", text)
+    return int(m.group()) if m else None
+
+
+def _bound_qty(qty: int | None) -> tuple[int, bool]:
+    """Apply Q2/Q5 bounds. Returns ``(quantity, suspect)``."""
+    if qty is None:
+        return 1, True
+    if qty < 1:
+        return 1, True
+    if qty > MAX_REASONABLE_QTY:
+        return qty, True  # keep the real value; flag for review
+    return qty, False
+
+
+def _extract_with_header(
+    rows: list[list[Any]], header_idx: int, cols: dict[str, int]
+) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    code_col = cols.get("code")
+    qty_col = cols.get("qty")
+    desc_col = cols.get("desc")
+    for row in rows[header_idx + 1 :]:
+        if not row:
+            continue
+        # Code: prefer the mapped column; fall back to a regex scan so a
+        # mis-aligned row still contributes.
+        part_code: str | None = None
+        if code_col is not None and code_col < len(row) and row[code_col] is not None:
+            candidate = str(row[code_col]).strip()
+            part_code = candidate or None
+        if not part_code:
+            for cell in row:
+                if cell is None:
+                    continue
+                m = _TABULAR_PART_PATTERN.search(str(cell))
+                if m:
+                    part_code = m.group(1)
+                    break
+        if not part_code:
+            continue
+
+        qty_raw = (
+            row[qty_col]
+            if qty_col is not None and qty_col < len(row)
+            else None
+        )
+        quantity, suspect = _bound_qty(_parse_qty_cell(qty_raw))
+
+        description = ""
+        if desc_col is not None and desc_col < len(row) and row[desc_col] is not None:
+            description = str(row[desc_col]).strip()
+
+        out.append(
+            {
+                "part_code": part_code,
+                "part_description": description,
+                "quantity": quantity,
+                "quantity_suspect": suspect,
+            }
+        )
+    return out
+
+
+def _extract_without_header(rows: list[list[Any]]) -> list[dict[str, Any]]:
+    """Fallback heuristic: find the code cell, then take the first integer
+    strictly *after* it as the quantity — skipping a leading line-number
+    column (``1 | code | desc | 5`` correctly yields 5, not 1)."""
     out: list[dict[str, Any]] = []
     for row in rows:
         if not row:
             continue
         part_code: str | None = None
+        code_idx: int | None = None
+        for col_idx, cell in enumerate(row):
+            if cell is None:
+                continue
+            m = _TABULAR_PART_PATTERN.search(str(cell).strip())
+            if m:
+                part_code = m.group(1)
+                code_idx = col_idx
+                break
+        if part_code is None:
+            continue
+
         qty: int | None = None
-        description: str = ""
-        for cell in row:
-            text = "" if cell is None else str(cell).strip()
+        description = ""
+        for col_idx, cell in enumerate(row):
+            if col_idx == code_idx or cell is None:
+                continue
+            text = str(cell).strip()
             if not text:
                 continue
-            m = _TABULAR_PART_PATTERN.search(text)
-            if m and part_code is None:
-                part_code = m.group(1)
+            is_int = re.fullmatch(r"\d+", text.replace(".", "").replace(",", ""))
+            if qty is None and is_int and col_idx > (code_idx or -1):
+                qty = _parse_qty_cell(text)
                 continue
-            # First plain integer ≤ 9999 is treated as quantity guess
-            if qty is None and text.replace(".", "").replace(",", "").isdigit():
-                try:
-                    val = int(text.replace(",", "").replace(".", ""))
-                    if 0 < val < 10_000:
-                        qty = val
-                        continue
-                except ValueError:
-                    pass
-            if not description:
+            if not description and not is_int:
                 description = text
-        if part_code is not None:
-            out.append(
-                {
-                    "part_code": part_code,
-                    "part_description": description,
-                    "quantity": qty or 1,
-                }
-            )
+        quantity, suspect = _bound_qty(qty)
+        out.append(
+            {
+                "part_code": part_code,
+                "part_description": description,
+                "quantity": quantity,
+                "quantity_suspect": suspect,
+            }
+        )
     return out
+
+
+def extract_rows_as_parts(rows: list[list[Any]]) -> list[dict[str, Any]]:
+    """Heuristic part-row extraction from a 2D row list.
+
+    Used as a sanity / coverage check alongside the LLM extraction: if the
+    LLM returns 3 parts but the heuristic finds 50 in the same Excel, the
+    result lands in the review queue.
+
+    Quantity extraction is header-aware (Qty / Adet / Miktar / Quantity),
+    ignoring a leading line-number column. Quantities are bounded
+    (``1 ≤ qty ≤`` :data:`MAX_REASONABLE_QTY`); out-of-range or missing
+    values keep their parsed value where possible and set
+    ``quantity_suspect`` so the line is reviewed rather than silently
+    coerced.
+    """
+    detected = _detect_columns(rows)
+    if detected is not None:
+        header_idx, cols = detected
+        return _extract_with_header(rows, header_idx, cols)
+    return _extract_without_header(rows)

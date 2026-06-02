@@ -267,6 +267,10 @@ async def save_email_credentials(
         "imap_port": str(body.imap_port),
         "smtp_host": body.smtp_host,
         "smtp_port": str(body.smtp_port),
+        # Audit E1/E5 — record the configuring manager so the scheduled
+        # IMAP poll (which has no request user) can stamp cron-ingested
+        # rows with the right tenant via ``_resolve_mailbox_owner``.
+        "email_owner_user_id": str(current_user.id),
     }
 
     for key, value in cred_map.items():

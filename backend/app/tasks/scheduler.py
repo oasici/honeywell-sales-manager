@@ -80,17 +80,49 @@ async def _get_imap_credentials(db) -> dict | None:
     }
 
 
+async def _resolve_mailbox_owner(db) -> tuple[int | None, int | None]:
+    """Resolve the (tenant_id, user_id) that owns the configured mailbox.
+
+    The IMAP credentials are global (single shared mailbox — see audit
+    E5), so the scheduled poll has no request user. We persist the
+    configuring manager as ``email_owner_user_id`` when credentials are
+    saved; this resolves it back to a tenant so cron-ingested rows are
+    tenant-scoped exactly like the manual ``/poll`` path. Falls back to
+    ``(None, None)`` for legacy single-tenant deployments.
+    """
+    from sqlalchemy import select
+
+    from app.models.setting import Setting
+    from app.models.user import User
+
+    row = await db.execute(
+        select(Setting.value).where(Setting.key == "email_owner_user_id")
+    )
+    raw = row.scalar_one_or_none()
+    if not raw:
+        return None, None
+    try:
+        owner_id = int(raw)
+    except (TypeError, ValueError):
+        return None, None
+    rec = (
+        await db.execute(select(User.id, User.tenant_id).where(User.id == owner_id))
+    ).first()
+    if rec is None:
+        return None, None
+    return rec.tenant_id, rec.id
+
+
 async def _run_imap_poll(db) -> int:
     """Fetch emails via IMAP and create EmailRequest records for new ones.
 
-    Returns the number of new emails saved.
+    Returns the number of new emails saved. Row construction is delegated
+    to the shared ``email_ingestion_service`` so the scheduled path stamps
+    ``sender_auth_status`` / ``tenant_id`` / ``attachments_json`` and runs
+    the AV scan exactly like the manual ``/poll`` endpoint (audit E1/E2).
     """
-    from datetime import datetime, timezone
-
-    from sqlalchemy import select
-
     from app.api.v1.emails import _fetch_emails_via_imap
-    from app.models.email_request import EmailRequest
+    from app.services.email_ingestion_service import ingest_fetched_email
 
     credentials = await _get_imap_credentials(db)
     if not credentials:
@@ -109,31 +141,20 @@ async def _run_imap_poll(db) -> int:
     if not fetched:
         return 0
 
-    # Collect message IDs and check for duplicates in one query
-    message_ids = [e["message_id"] for e in fetched]
-    result = await db.execute(
-        select(EmailRequest.message_id).where(
-            EmailRequest.message_id.in_(message_ids)
-        )
-    )
-    existing_ids = {row[0] for row in result.all()}
+    tenant_id, assigned_to = await _resolve_mailbox_owner(db)
 
     saved_count = 0
-    for email_data in fetched:
-        if email_data["message_id"] in existing_ids:
-            continue
-
-        email_record = EmailRequest(
-            message_id=email_data["message_id"],
-            from_address=email_data["from_addr"],
-            subject=email_data.get("subject", ""),
-            body_text=email_data.get("body", ""),
-            is_read=email_data.get("is_read", False),
-            status="new",
-            received_at=datetime.now(timezone.utc),
-        )
-        db.add(email_record)
-        saved_count += 1
+    for item in fetched:
+        try:
+            row = await ingest_fetched_email(
+                db, item, tenant_id=tenant_id, assigned_to=assigned_to
+            )
+            if row is not None:
+                saved_count += 1
+        except Exception as exc:  # noqa: BLE001 — one bad message can't abort the poll
+            logger.warning(
+                "IMAP ingest failed for %s: %s", item.get("message_id"), exc
+            )
 
     if saved_count:
         await db.commit()

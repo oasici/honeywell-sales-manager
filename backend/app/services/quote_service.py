@@ -16,10 +16,46 @@ from app.models.quote_item import QuoteItem
 from app.models.spare_part import SparePart
 from app.models.user import User
 from app.services.opportunity_linking_service import ensure_opportunity_for_email
+from app.services.part_pricing import PRICE_SOURCE_UNPRICED, resolve_unit_price
 
 logger = logging.getLogger(__name__)
 
 AUTO_CONFIRM_THRESHOLD = 80
+
+# Phase-2 (spare-parts audit P2/P3): below this score the parts_matcher
+# fallback must NOT auto-populate a line's ``spare_part_id``/price — the
+# match is recorded as a suggestion only and the line is forced to review.
+# 80 keeps exact (100) and prefix (85) matches but rejects fuzzy_code (75)
+# and fuzzy_name (50) — exactly the "valve fuzzy-matched at 50%" defect.
+LINE_ITEM_MATCH_THRESHOLD = 80.0
+
+# The catalog resolver (the engine the auto-quote *gate* uses) is the
+# source of truth for the line item's SKU. Only these two statuses are
+# gate-approvable; the fuzzy ones are populated as review-only suggestions.
+_GATE_OK_STATUSES = {"exact", "normalized"}
+_RESOLVER_SUGGEST_STATUSES = {"fuzzy_prefix", "fuzzy_levenshtein"}
+
+# Q5 — quantity bounds at line creation. Out-of-range values are kept
+# (never silently coerced to 1) but flag the line as unconfirmed so a
+# human reviews it.
+MAX_LINE_QUANTITY = 100_000
+
+
+def _safe_quantity(raw) -> tuple[int, bool]:
+    """Coerce a parsed quantity to a sane int. Returns ``(qty, suspect)``.
+
+    ``suspect`` is True when the input was missing/unparseable/out-of-range
+    so the caller can refuse to auto-confirm the line.
+    """
+    try:
+        qty = int(raw)
+    except (TypeError, ValueError):
+        return 1, True
+    if qty < 1:
+        return 1, True
+    if qty > MAX_LINE_QUANTITY:
+        return qty, True  # keep the value; flag for review
+    return qty, False
 
 
 class QuoteService:
@@ -256,7 +292,7 @@ class QuoteService:
         """Create QuoteItem records from a list of item dicts."""
         for i, item_data in enumerate(items_data):
             spare_part_id = item_data.get("spare_part_id")
-            quantity = int(item_data.get("quantity", 1))
+            quantity, _qty_suspect = _safe_quantity(item_data.get("quantity", 1))
             unit_price = float(item_data.get("unit_price", 0.0))
             discount_pct = float(item_data.get("discount_pct", 0.0))
 
@@ -294,7 +330,16 @@ class QuoteService:
     async def _create_items_with_matching(
         self, quote_id: int, parsed_data_json: str
     ) -> None:
-        """Create quote items from parsed data with parts matching."""
+        """Create quote items from parsed data with parts matching.
+
+        Phase-2 unification (spare-parts audit P2/P3): the catalog resolver
+        — the same engine the auto-quote gate trusts — is the source of
+        truth for the line's SKU. ``parts_matcher`` is only a fallback for
+        codes the resolver couldn't resolve, and even then its result is
+        accepted only at/above :data:`LINE_ITEM_MATCH_THRESHOLD`; below
+        that the SKU + price are left unset so the line is reviewed rather
+        than silently bound to a low-confidence match.
+        """
         try:
             parsed = json.loads(parsed_data_json)
         except json.JSONDecodeError:
@@ -304,14 +349,25 @@ class QuoteService:
         if not parsed_parts:
             return
 
-        # Run parts matcher for best catalog matches
-        try:
-            from app.services.parts_matcher import match_parts
+        preferred_currency = await self._quote_currency(quote_id)
 
-            match_results = await match_parts(self._db, parsed_parts)
-        except Exception as exc:
-            logger.warning("Parts matching failed, falling back to code lookup: %s", exc)
-            match_results = None
+        # Only run the (relatively expensive) matcher when at least one part
+        # lacks a resolver verdict — i.e. the resolver returned unknown /
+        # no_code, or this is legacy parsed_data from before the resolver.
+        needs_matcher = any(
+            not p.get("catalog_part_id") for p in parsed_parts
+        )
+        match_results = None
+        if needs_matcher:
+            try:
+                from app.services.parts_matcher import match_parts
+
+                match_results = await match_parts(self._db, parsed_parts)
+            except Exception as exc:
+                logger.warning(
+                    "Parts matching failed, falling back to code lookup: %s", exc
+                )
+                match_results = None
 
         for i, part_req in enumerate(parsed_parts):
             code = (
@@ -323,74 +379,166 @@ class QuoteService:
                 part_req.get("part_description")
                 or part_req.get("description", "")
             )
-            quantity = int(part_req.get("quantity", 1))
+            quantity, qty_suspect = _safe_quantity(part_req.get("quantity", 1))
             original_text = part_req.get("original_text", "")
 
-            spare_part_id = None
-            unit_price = 0.0
-            match_score = None
-            match_strategy = None
-            is_confirmed = False
-            honeywell_code = code
+            resolution = await self._resolve_line_match(
+                part_req=part_req,
+                code=code,
+                match_result=(
+                    match_results[i]
+                    if match_results and i < len(match_results)
+                    else None
+                ),
+                preferred_currency=preferred_currency,
+            )
 
-            # Use match results if available
-            if match_results and i < len(match_results):
-                matches = match_results[i].get("matches", [])
-                if matches:
-                    best = matches[0]
-                    spare_part_id = best["spare_part_id"]
-                    honeywell_code = best.get("honeywell_code", code)
-                    match_score = best["score"]
-                    match_strategy = best["strategy"]
-                    is_confirmed = match_score >= AUTO_CONFIRM_THRESHOLD
+            if not description:
+                description = resolution["description"]
+            honeywell_code = resolution["honeywell_code"] or code
 
-                    # Look up price from spare part
-                    part = await self._find_spare_part_by_id(spare_part_id)
-                    if part:
-                        if part.transfer_price:
-                            unit_price = part.transfer_price
-                        elif part.supplier_price:
-                            unit_price = part.supplier_price
-                        elif part.prices:
-                            unit_price = part.prices[0].net_price
-                        if not description:
-                            description = part.name_en or part.name_tr or ""
-            else:
-                # Fallback: direct code lookup
-                if code:
-                    part = await self._find_spare_part_by_code(code)
-                    if part:
-                        spare_part_id = part.id
-                        honeywell_code = part.honeywell_code
-                        match_score = 100.0
-                        match_strategy = "exact_code"
-                        is_confirmed = True
-                        if part.transfer_price:
-                            unit_price = part.transfer_price
-                        elif part.supplier_price:
-                            unit_price = part.supplier_price
-                        elif part.prices:
-                            unit_price = part.prices[0].net_price
+            # A line can only be auto-confirmed if the matcher confirmed it,
+            # the quantity is sane, AND it carries a real price.
+            is_confirmed = (
+                resolution["is_confirmed"]
+                and not qty_suspect
+                and resolution["unit_price"] > 0
+            )
 
-            line_total = quantity * unit_price
+            line_total = quantity * resolution["unit_price"]
 
             qi = QuoteItem(
                 quote_id=quote_id,
-                spare_part_id=spare_part_id,
+                spare_part_id=resolution["spare_part_id"],
                 original_text=original_text,
                 honeywell_code=honeywell_code,
                 description=description,
                 quantity=quantity,
-                unit_price=unit_price,
+                unit_price=resolution["unit_price"],
                 line_total=round(line_total, 2),
-                match_score=match_score,
-                match_strategy=match_strategy,
+                match_score=resolution["match_score"],
+                match_strategy=resolution["match_strategy"],
                 is_confirmed=is_confirmed,
                 sort_order=i,
             )
             self._db.add(qi)
 
         await self._db.flush()
+
+    async def _resolve_line_match(
+        self,
+        *,
+        part_req: dict,
+        code: str,
+        match_result: dict | None,
+        preferred_currency: str | None,
+    ) -> dict:
+        """Resolve one parsed part to a line-item SKU + price.
+
+        Priority:
+          1. Resolver gate verdict (exact/normalized) — auto-confirm + price.
+          2. Resolver suggestion (fuzzy_prefix/levenshtein) — populate as a
+             review-only suggestion (never auto-confirmed).
+          3. parts_matcher top result, but only if score ≥ threshold.
+          4. Direct exact-code lookup (legacy parsed_data without resolver).
+        Anything else leaves ``spare_part_id`` unset (forced review).
+        """
+        out = {
+            "spare_part_id": None,
+            "honeywell_code": code,
+            "description": "",
+            "unit_price": 0.0,
+            "match_score": None,
+            "match_strategy": None,
+            "is_confirmed": False,
+        }
+
+        catalog_part_id = part_req.get("catalog_part_id")
+        catalog_status = part_req.get("catalog_status")
+
+        # 1 + 2 — trust the resolver verdict (gate's own engine).
+        if catalog_part_id and catalog_status in (
+            _GATE_OK_STATUSES | _RESOLVER_SUGGEST_STATUSES
+        ):
+            part = await self._find_spare_part_by_id(catalog_part_id)
+            if part:
+                gate_ok = catalog_status in _GATE_OK_STATUSES
+                self._apply_part_to_resolution(
+                    out, part, preferred_currency, code=code
+                )
+                out["match_strategy"] = f"catalog_{catalog_status}"
+                out["match_score"] = 100.0 if catalog_status == "exact" else 96.0
+                if not gate_ok:
+                    out["match_score"] = 70.0  # suggestion strength
+                out["is_confirmed"] = gate_ok and out["unit_price"] > 0
+                return out
+
+        # 3 — parts_matcher fallback, score-guarded.
+        if match_result:
+            matches = match_result.get("matches", [])
+            if matches:
+                best = matches[0]
+                score = float(best.get("score", 0.0))
+                # Always record the suggestion for the review UI.
+                out["match_score"] = score
+                out["match_strategy"] = best["strategy"]
+                if score >= LINE_ITEM_MATCH_THRESHOLD:
+                    part = await self._find_spare_part_by_id(best["spare_part_id"])
+                    if part:
+                        self._apply_part_to_resolution(
+                            out, part, preferred_currency, code=code
+                        )
+                        out["match_score"] = score
+                        out["match_strategy"] = best["strategy"]
+                        out["is_confirmed"] = (
+                            score >= AUTO_CONFIRM_THRESHOLD and out["unit_price"] > 0
+                        )
+                return out
+
+        # 4 — legacy direct exact-code lookup.
+        if code:
+            part = await self._find_spare_part_by_code(code)
+            if part:
+                self._apply_part_to_resolution(
+                    out, part, preferred_currency, code=code
+                )
+                out["match_score"] = 100.0
+                out["match_strategy"] = "exact_code"
+                out["is_confirmed"] = out["unit_price"] > 0
+
+        return out
+
+    def _apply_part_to_resolution(
+        self,
+        out: dict,
+        part: SparePart,
+        preferred_currency: str | None,
+        *,
+        code: str,
+    ) -> None:
+        """Populate ``out`` with a part's SKU, canonical code, and sell price."""
+        out["spare_part_id"] = part.id
+        out["honeywell_code"] = part.honeywell_code or code
+        unit_price, source = resolve_unit_price(
+            part, preferred_currency=preferred_currency
+        )
+        out["unit_price"] = unit_price
+        if source == PRICE_SOURCE_UNPRICED:
+            logger.info(
+                "Part %s (%s) resolved but has no safe sell price — line left "
+                "unpriced for review.",
+                part.id,
+                part.honeywell_code,
+            )
+        if not out["description"]:
+            out["description"] = part.name_en or part.name_tr or ""
+
+    async def _quote_currency(self, quote_id: int) -> str | None:
+        """Best-effort fetch of the quote's currency for price selection."""
+        result = await self._db.execute(
+            select(Quote.currency).where(Quote.id == quote_id)
+        )
+        return result.scalar_one_or_none()
 
     async def _create_items_from_parsed_data(
         self, quote_id: int, parsed_data_json: str
@@ -404,7 +552,7 @@ class QuoteService:
         items = parsed.get("items", [])
         for i, item in enumerate(items):
             code = item.get("honeywell_code") or item.get("code", "")
-            quantity = int(item.get("quantity", 1))
+            quantity, _qty_suspect = _safe_quantity(item.get("quantity", 1))
 
             spare_part_id = None
             unit_price = 0.0
@@ -412,8 +560,7 @@ class QuoteService:
                 part = await self._find_spare_part_by_code(code)
                 if part:
                     spare_part_id = part.id
-                    if part.prices:
-                        unit_price = part.prices[0].net_price
+                    unit_price, _src = resolve_unit_price(part)
 
             line_total = quantity * unit_price
 
