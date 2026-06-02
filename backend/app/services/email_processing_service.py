@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.exceptions import NotFoundException
 from app.models.email_request import EmailRequest
 from app.models.enums import EmailStatus, ReviewStatus
@@ -493,7 +494,9 @@ class EmailProcessingService:
                 )
                 for hp in entry.get("heuristic_parts") or []:
                     heuristic_rows.append(hp)
-            attachment_text_blob = merge_for_llm(body, recon)
+            attachment_text_blob = merge_for_llm(
+                body, recon, max_attachment_chars=settings.AI_MAX_ATTACHMENT_CHARS
+            )
 
         llm_input_body = attachment_text_blob or body
 
@@ -512,6 +515,24 @@ class EmailProcessingService:
                 "Thread-context lookup failed for email %d (continuing without): %s",
                 email.id,
                 exc,
+            )
+
+        # Hard backstop on total prompt size (body + attachments + thread
+        # context). The per-attachment cap above bounds the common case;
+        # this guarantees a ceiling on tokens-per-call even when several
+        # attachments or a long thread stack up. Structured rows are
+        # preserved via the heuristic_parts merge, so end-truncation here
+        # can't drop a part the parser already extracted.
+        max_input = settings.AI_MAX_INPUT_CHARS
+        if max_input and len(llm_input_body) > max_input:
+            logger.info(
+                "Email %d LLM input truncated %d->%d chars to bound token usage",
+                email.id,
+                len(llm_input_body),
+                max_input,
+            )
+            llm_input_body = (
+                llm_input_body[:max_input] + "\n\n[...truncated for length...]"
             )
 
         filter_result = pre_filter_email(llm_input_body, subject)

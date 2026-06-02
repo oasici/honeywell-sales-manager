@@ -154,6 +154,14 @@ class Settings(BaseSettings):
     AI_TEMPERATURE: float = 1.0
     AI_MAX_RETRIES: int = 3
     AI_TIMEOUT_SECONDS: int = 30
+    # Per-call INPUT caps (chars ≈ 4× tokens) to bound tokens-per-email
+    # against the org's per-minute token budget. Attachment text — a large
+    # spreadsheet rendered to markdown — is the unbounded variable; cap
+    # each attachment and the whole assembled prompt. Structured part rows
+    # survive truncation: they ride the separate ``heuristic_parts`` merge,
+    # not the LLM prompt text. Set to 0 to disable a cap.
+    AI_MAX_ATTACHMENT_CHARS: int = 8000
+    AI_MAX_INPUT_CHARS: int = 24000
     AI_FALLBACK_STRATEGY: str = "claude-first"  # claude-first | regex-first
 
     # ── Notification Channels ──

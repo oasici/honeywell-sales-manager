@@ -500,7 +500,12 @@ def parse_attachments(
 # ── Body merge helper ─────────────────────────────────────────────
 
 
-def merge_for_llm(body_text: str, parsed_attachments: list[ParsedAttachment]) -> str:
+def merge_for_llm(
+    body_text: str,
+    parsed_attachments: list[ParsedAttachment],
+    *,
+    max_attachment_chars: int | None = None,
+) -> str:
     """Combine the email body and parsed attachments into one prompt
     payload for ``claude_parser.parse_email``.
 
@@ -509,6 +514,11 @@ def merge_for_llm(body_text: str, parsed_attachments: list[ParsedAttachment]) ->
     source. Attachments that errored out are listed at the end with
     their error message — Claude is told "skip these but flag in
     confidence" by the system prompt.
+
+    ``max_attachment_chars`` (when set) caps each attachment's text so a
+    single large spreadsheet can't blow the per-call token budget. The
+    structured rows are unaffected — they ride the separate
+    ``heuristic_parts`` path, not this prompt text.
     """
     parts: list[str] = []
     body_clean = (body_text or "").strip()
@@ -521,7 +531,13 @@ def merge_for_llm(body_text: str, parsed_attachments: list[ParsedAttachment]) ->
     failed = [a for a in parsed_attachments if a.error is not None]
 
     for i, a in enumerate(ok, start=1):
-        parts.append(f"# Attachment {i}: {a.filename}\n\n{a.text}")
+        text = a.text
+        if max_attachment_chars and len(text) > max_attachment_chars:
+            text = (
+                text[:max_attachment_chars]
+                + "\n\n_[attachment truncated for length]_"
+            )
+        parts.append(f"# Attachment {i}: {a.filename}\n\n{text}")
 
     if failed:
         parts.append("# Attachments not parsed")
