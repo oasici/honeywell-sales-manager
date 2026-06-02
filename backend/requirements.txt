@@ -35,7 +35,7 @@ msal==1.36.0  # accepts cryptography 46.x for CVE chain
 httpx>=0.28.1
 
 # Fuzzy matching
-rapidfuzz==3.10.1
+rapidfuzz==3.14.5
 
 # PDF generation
 weasyprint==68.1  # CVE-2025-68616
