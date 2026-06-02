@@ -9,6 +9,13 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.22.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.21.0...v1.22.0) (2026-06-02)
+
+
+### Added
+
+* **email,quotes:** zero-tolerance spare-parts extraction + email-feature hardening ([38d7337](https://github.com/oasici/honeywell-sales-manager/commit/38d73378a047aca00a40b54929d3df0d2d260fa0))
+
 ## [1.21.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.20.0...v1.21.0) (2026-06-01)
 
 
