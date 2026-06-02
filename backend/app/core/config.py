@@ -179,6 +179,15 @@ class Settings(BaseSettings):
 
     # ── Scheduling ──
     EMAIL_POLL_INTERVAL_MINUTES: int = 5
+    # Batch email parse throttle. ``batch_process_pending_emails`` parses
+    # pending emails back-to-back; each parse is one Claude call whose
+    # input (body + attachment text + thread context) counts against the
+    # org's per-minute token budget. Pacing the loop keeps the batch under
+    # that budget proactively (the 429 Retry-After backoff in
+    # claude_client is the reactive safety net). Defaults: ≤50 per run,
+    # 2s between parses → ≤30 parses/min.
+    EMAIL_BATCH_SIZE: int = 50
+    EMAIL_BATCH_DELAY_SECONDS: float = 2.0
 
     # ── Rate Limiting ──
     RATE_LIMIT_LOGIN: str = "5/minute"

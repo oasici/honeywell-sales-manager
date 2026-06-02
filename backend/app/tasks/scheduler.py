@@ -222,24 +222,32 @@ async def batch_process_pending_emails():
     from app.models.email_request import EmailRequest
     from app.services.email_processing_service import EmailProcessingService
 
+    batch_size = max(1, settings.EMAIL_BATCH_SIZE)
+    delay = max(0.0, settings.EMAIL_BATCH_DELAY_SECONDS)
+
     try:
         async with async_session() as db:
             result = await db.execute(
                 select(EmailRequest)
                 .where(EmailRequest.status == "new")
                 .order_by(EmailRequest.created_at)
-                .limit(50)
+                .limit(batch_size)
             )
             emails = result.scalars().all()
 
             if not emails:
                 return
 
-            logger.info("Batch processing %d pending emails", len(emails))
+            logger.info(
+                "Batch processing %d pending emails (%.1fs between parses)",
+                len(emails),
+                delay,
+            )
             service = EmailProcessingService(db)
 
             processed = 0
-            for email in emails:
+            last_index = len(emails) - 1
+            for i, email in enumerate(emails):
                 try:
                     await service.process_email(email.id)
                     processed += 1
@@ -249,6 +257,11 @@ async def batch_process_pending_emails():
                         email.id,
                         exc,
                     )
+                # Throttle: pace Claude calls to stay under the org's
+                # per-minute token budget. Skip the wait after the last
+                # email so we don't idle the worker for nothing.
+                if delay and i < last_index:
+                    await asyncio.sleep(delay)
 
             await db.commit()
             logger.info("Batch processed %d/%d emails", processed, len(emails))
