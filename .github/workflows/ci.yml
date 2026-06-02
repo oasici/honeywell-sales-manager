@@ -6,6 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel superseded runs for the same ref. A burst of merges (e.g. the
+# release PR + a batch of dependabot PRs) used to spawn one full CI run
+# per commit, all executing concurrently — they starved each other's
+# runners and amplified Docker Hub rate-limit / pull timeouts in
+# docker-build. Only the latest commit's state is what actually ships,
+# so cancel the older in-flight runs.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-migrations:
     runs-on: ubuntu-latest
@@ -319,4 +329,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Build Docker images
-        run: docker compose build
+        # Retry on transient Docker Hub failures. The base-image pulls
+        # (python:3.11-slim, node:20-alpine, nginx:1.25-alpine) hit
+        # ``registry-1.docker.io`` and occasionally fail with
+        # ``DeadlineExceeded`` / ``dial tcp ... i/o timeout`` when the
+        # registry is degraded or anonymous-pull rate-limited. That's
+        # infrastructure flakiness, not a build error — retry a few times
+        # with backoff before failing the gate.
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::docker compose build (attempt ${attempt}/3)"
+            if docker compose build; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "::warning::docker compose build failed (attempt ${attempt}/3) — likely a transient registry timeout; retrying in 20s"
+            sleep 20
+          done
+          echo "::error::docker compose build failed after 3 attempts"
+          exit 1
