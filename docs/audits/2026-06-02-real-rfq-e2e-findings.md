@@ -18,7 +18,10 @@
 
 ## Findings (real-world)
 
-### F-A (HIGH) — the regex/heuristic extractors don't recognize real Honeywell codes
+### F-A (HIGH) — the regex/heuristic extractors don't recognize real Honeywell codes  ·  ✅ FIXED 2026-06-02
+**Resolution:** rather than widening the regex (which can't tell `764744` from a price/year), extraction is now **catalog-aware** — new `app/services/catalog_code_scanner.py` matches email tokens against the *actual uploaded catalog codes*, so it recognizes any code we sell (numeric `764744`, short alnum `HDZWM2`, spaced `HDZ WM2`→`HDZWM2`) with ~zero false positives. Wired into `_parse_email_with_fallback` as an always-on augmentation (merged via the existing dedup path), so codes the LLM misses **and** codes left to the Claude-down regex fallback are recovered with a best-effort line quantity (flagged when uncertain). Tests: `test_catalog_code_scanner.py` (9) + `test_real_rfq_emails::TestClaudeDownCatalogRecovery` (Claude-down → 3 codes recovered → routed to review, not dropped). The shape regex stays intentionally narrow (`TestRealCodeExtractionGap`).
+
+Original finding (for the record):
 `_TABULAR_PART_PATTERN` and `regex_fallback_parse` match **none** of `764744`, `581239`, `HDZWM2`, `HDZ WM2`. Consequences:
 - **Claude-down fallback** (`regex_fallback_parse`) returns `parts=[]` and classifies these as *not* a spare-part request → a real RFQ is silently dropped during an Anthropic outage.
 - **Attachment-table extraction** (`extract_rows_as_parts`, used for Excel/CSV/PDF) won't find these codes; on the türbinmetre table it actually mis-picks `DN100` (a diameter) as a "part code".

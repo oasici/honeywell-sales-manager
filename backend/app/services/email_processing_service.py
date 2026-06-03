@@ -531,6 +531,26 @@ class EmailProcessingService:
                     pass
             part_req["unit_price"] = price
 
+    async def _scan_for_catalog_codes(self, text: str) -> list[dict]:
+        """F-A — recover catalog codes present in ``text`` that pattern-based
+        extraction (and a Claude outage's regex fallback) would miss. Matches
+        against the active catalog, so only real SKUs are added."""
+        if not text:
+            return []
+        from app.models.spare_part import SparePart
+        from app.services.catalog_code_scanner import scan_text_for_catalog_codes
+        from app.services.part_catalog_resolver import _normalize
+
+        rows = (
+            await self._db.execute(
+                select(SparePart.honeywell_code).where(SparePart.is_active.is_(True))
+            )
+        ).all()
+        norm_to_code = {
+            _normalize(r[0]): r[0] for r in rows if r and r[0]
+        }
+        return scan_text_for_catalog_codes(text, norm_to_code)
+
     async def _parse_email_with_fallback(
         self,
         email: EmailRequest,
@@ -592,6 +612,16 @@ class EmailProcessingService:
         # it; truncate here only in the pathological case where the current
         # email alone exceeds the ceiling.
         current_blob = attachment_text_blob or body
+
+        # F-A — catalog-aware code recovery on the current email text. Codes
+        # the LLM misses (or that a Claude outage hands to the pattern-blind
+        # regex fallback) are merged in via the same heuristic-merge path
+        # (deduped by normalized code). Scans the current email only, never
+        # the prepended thread history.
+        catalog_rows = await self._scan_for_catalog_codes(current_blob)
+        if catalog_rows:
+            heuristic_rows = list(heuristic_rows) + catalog_rows
+
         if max_input and len(current_blob) > max_input:
             logger.info(
                 "Email %d current-email LLM input truncated %d->%d chars",

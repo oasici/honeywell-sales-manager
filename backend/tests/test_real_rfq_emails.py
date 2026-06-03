@@ -62,7 +62,8 @@ async def known_senders(db):
     await db.commit()
 
 
-async def _run(db, admin_user, *, msg_id, subject, body, from_addr, claude_result):
+async def _run(db, admin_user, *, msg_id, subject, body, from_addr,
+               claude_result=None, claude_raises=False):
     email = EmailRequest(
         message_id=msg_id, from_address=from_addr, subject=subject,
         body_text=body, status="new", sender_auth_status="pass",
@@ -72,8 +73,12 @@ async def _run(db, admin_user, *, msg_id, subject, body, from_addr, claude_resul
     db.add(email)
     await db.commit()
     await db.refresh(email)
-    with patch("app.services.claude_parser.parse_email",
-               new=AsyncMock(return_value=claude_result)), \
+    parse_mock = (
+        AsyncMock(side_effect=RuntimeError("claude down"))
+        if claude_raises
+        else AsyncMock(return_value=claude_result)
+    )
+    with patch("app.services.claude_parser.parse_email", new=parse_mock), \
          patch("app.services.email_processing_service.pre_filter_email",
                return_value="process"):
         svc = EmailProcessingService(db)
@@ -188,20 +193,49 @@ class TestRealRfqNoCode:
         assert email.review_status == "pending_review"
 
 
+# ── F-A: catalog-aware recovery when the LLM is unavailable ───────
+class TestClaudeDownCatalogRecovery:
+    @pytest.mark.asyncio
+    async def test_codes_recovered_via_catalog_when_claude_down(
+        self, db, admin_user, rfq_catalog, known_senders
+    ):
+        """F-A — with Claude down, the regex fallback is blind to real codes,
+        but the catalog-aware scan recovers them from the body so the RFQ is
+        surfaced (with parts) instead of silently dropped."""
+        email = await _run(
+            db, admin_user, msg_id="rfq-down", subject="Yedek Parça Talep",
+            from_addr="birkanege.durukan@honeywell.com",
+            body="Merhaba,\n764744 ... 2 adet\n581239 ... 3 adet\nHDZ WM2 ... 1 ADET",
+            claude_raises=True,
+        )
+        import json
+        parsed = json.loads(email.parsed_data) if email.parsed_data else {}
+        codes = {p.get("part_code") for p in parsed.get("parts", [])}
+        # all three real codes recovered (HDZ WM2 normalized to catalog HDZWM2)
+        assert codes == {"764744", "581239", "HDZWM2"}, codes
+        # low-confidence fallback → routed to review, not auto-quoted
+        quote, _ = await _quote_for(db, email.id)
+        assert quote is None
+        assert email.review_status == "pending_review"
+
+
 # ── Real-world extraction finding (regression-guard) ──────────────
 class TestRealCodeExtractionGap:
+    """The shape-based extractors stay blind to real codes *by design* — we
+    don't widen the regex (false-positive risk on prices/years). Recovery is
+    handled by the catalog-aware scanner (see TestClaudeDownCatalogRecovery),
+    so these assertions pin that the pattern itself is intentionally narrow."""
+
     def test_heuristic_pattern_blind_to_real_codes(self):
-        """Documents the finding: the tabular/regex part-code pattern does
-        not recognize real Honeywell codes (6-digit numeric, short alnum).
-        Today extraction relies on the LLM. If this is fixed, flip these."""
         from app.services.email_attachment_parser import _TABULAR_PART_PATTERN
         for code in ("764744", "581239", "HDZWM2", "HDZ WM2"):
             assert _TABULAR_PART_PATTERN.search(code) is None
 
-    def test_regex_fallback_blind_to_real_codes(self):
+    def test_regex_fallback_alone_blind_to_real_codes(self):
+        # The raw regex fallback extracts nothing; the catalog scan (wired
+        # into _parse_email_with_fallback) is what recovers these.
         from app.services.regex_fallback_parser import regex_fallback_parse
         r = regex_fallback_parse(
             "764744 2qty\n581239 3 qty\nHDZ WM2 1 qty", "Spare Part"
         )
-        # Claude-down fallback currently extracts nothing for these formats.
         assert r.get("parts") == []
