@@ -927,6 +927,18 @@ def _fetch_emails_via_imap(
 
             sender_auth = resolve_sender_auth(raw_email)
 
+            # Bulk-mail detection (RFC 3834 / 2919) — newsletters, receipts,
+            # and promos carry these headers; the junk filter drops them
+            # pre-LLM so they never cost a Claude call or clutter the queue.
+            from app.services.junk_filter import is_bulk_headers
+
+            is_bulk = is_bulk_headers(
+                list_unsubscribe=msg.get("List-Unsubscribe"),
+                list_id=msg.get("List-Id"),
+                precedence=msg.get("Precedence"),
+                auto_submitted=msg.get("Auto-Submitted"),
+            )
+
             results.append({
                 "uid": 0,
                 "message_id": message_id,
@@ -942,6 +954,7 @@ def _fetch_emails_via_imap(
                 # crosses the in-process boundary.
                 "raw_attachments": raw_attachments_payload,
                 "sender_auth_status": sender_auth,
+                "is_bulk": is_bulk,
             })
         except Exception as exc:
             import logging as _imap_log

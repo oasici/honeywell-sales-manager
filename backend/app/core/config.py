@@ -133,6 +133,16 @@ class Settings(BaseSettings):
     # ── Internal email domains (skip parsing) ──
     INTERNAL_EMAIL_DOMAINS: str = "honeywell.com,honeywell.com.tr"
 
+    # ── Junk / bulk sender filter (skip pre-LLM) ──
+    # Newsletters, receipts, and promotions aren't parts RFQs, and per
+    # RFC 3834 an auto-responder must not act on bulk mail. When enabled,
+    # such messages are dropped at ingestion (zero Claude cost, no inbox
+    # clutter). Detection is conservative — see ``junk_filter``.
+    EMAIL_JUNK_FILTER_ENABLED: bool = True
+    # Extra comma-separated substrings; if any appears in the sender
+    # address the message is treated as junk. Empty by default.
+    EMAIL_JUNK_SENDER_PATTERNS: str = ""
+
     # ── SMTP ──
     SMTP_HOST: str = "smtp.office365.com"
     SMTP_PORT: int = 587
@@ -616,6 +626,14 @@ class Settings(BaseSettings):
     @property
     def internal_domains_list(self) -> list[str]:
         return [d.strip().lower() for d in self.INTERNAL_EMAIL_DOMAINS.split(",") if d.strip()]
+
+    @property
+    def junk_sender_patterns(self) -> list[str]:
+        return [
+            p.strip().lower()
+            for p in self.EMAIL_JUNK_SENDER_PATTERNS.split(",")
+            if p.strip()
+        ]
 
     @property
     def allowed_extensions(self) -> set[str]:

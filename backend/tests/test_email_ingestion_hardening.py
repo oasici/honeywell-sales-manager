@@ -87,6 +87,24 @@ class TestSkips:
         assert row is None
 
     @pytest.mark.asyncio
+    async def test_junk_noreply_sender_skipped(self, db):
+        row = await ingest_fetched_email(
+            db,
+            _fetched_item(message_id="junk-1", from_addr="no_reply@email.apple.com"),
+            tenant_id=1, assigned_to=1,
+        )
+        assert row is None  # junk -> not persisted, zero LLM cost
+
+    @pytest.mark.asyncio
+    async def test_junk_bulk_header_sender_skipped(self, db):
+        row = await ingest_fetched_email(
+            db,
+            _fetched_item(message_id="junk-2", from_addr="hello@timeleft.com", is_bulk=True),
+            tenant_id=1, assigned_to=1,
+        )
+        assert row is None
+
+    @pytest.mark.asyncio
     async def test_internal_domain_skipped(self, db, monkeypatch):
         from app.core.config import settings
 

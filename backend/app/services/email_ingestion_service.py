@@ -163,10 +163,25 @@ async def ingest_fetched_email(
     """Build + persist one ``EmailRequest`` from a fetched IMAP message.
 
     Returns the flushed row, or ``None`` when the message is skipped
-    (internal domain, duplicate, or lost a concurrent-insert race).
+    (internal domain, junk/bulk sender, duplicate, or concurrent-insert race).
     """
     from_addr = item.get("from_addr", "")
     if _is_internal(from_addr):
+        return None
+
+    # Junk / bulk pre-LLM filter (RFC 3834): newsletters, receipts, promos,
+    # and no-reply senders are dropped here — zero Claude cost, no queue
+    # clutter. A real RFQ never trips these signals.
+    from app.services.junk_filter import is_junk_email
+
+    is_junk, junk_reason = is_junk_email(from_addr, is_bulk=bool(item.get("is_bulk")))
+    if is_junk:
+        logger.info(
+            "Skipping junk email from %s (%s): %s",
+            from_addr,
+            junk_reason,
+            (item.get("subject") or "")[:80],
+        )
         return None
 
     message_id = item.get("message_id")
