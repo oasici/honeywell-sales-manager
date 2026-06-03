@@ -2288,6 +2288,10 @@ export interface paths {
         /**
          * Approve Quote
          * @description Approve a quote and generate PDF (sales_manager only).
+         *
+         *     T3 — by default a quote with any unconfirmed or unpriced line is
+         *     rejected; a manager may pass ``?force=true`` to override, which is
+         *     recorded in the audit log.
          */
         patch: operations["approve_quote_api_v1_quotes__quote_id__approve_patch"];
         trace?: never;
@@ -26060,7 +26064,10 @@ export interface operations {
     };
     approve_quote_api_v1_quotes__quote_id__approve_patch: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Override the line-confirmation gate (T3). Approves even when lines are unconfirmed/unpriced; the override is audit-logged. */
+                force?: boolean;
+            };
             header?: never;
             path: {
                 quote_id: number;

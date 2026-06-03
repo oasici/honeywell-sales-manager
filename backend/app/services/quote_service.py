@@ -358,7 +358,15 @@ class QuoteService:
     async def _create_quote_items(
         self, quote_id: int, items_data: list[dict]
     ) -> None:
-        """Create QuoteItem records from a list of item dicts."""
+        """Create QuoteItem records from a list of item dicts.
+
+        This is the **manual** path (operator-authored create/update). Lines
+        the operator typed with an explicit price are confirmed by
+        definition — defaulting ``is_confirmed=True`` here so the T3 approval
+        guard doesn't block a hand-entered quote. (The from-email path
+        ``_create_items_with_matching`` sets ``is_confirmed`` from match
+        confidence and is unaffected.)
+        """
         for i, item_data in enumerate(items_data):
             spare_part_id = item_data.get("spare_part_id")
             quantity, _qty_suspect = _safe_quantity(item_data.get("quantity", 1))
@@ -389,7 +397,8 @@ class QuoteService:
                 line_total=_money(line_total),
                 match_score=item_data.get("match_score"),
                 match_strategy=item_data.get("match_strategy"),
-                is_confirmed=item_data.get("is_confirmed", False),
+                # Operator-authored lines default to confirmed (see docstring).
+                is_confirmed=item_data.get("is_confirmed", True),
                 sort_order=i,
             )
             self._db.add(qi)
