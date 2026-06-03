@@ -1,7 +1,7 @@
 import json
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -255,12 +255,51 @@ async def create_manual_email(
     return _email_to_dict(email, include_body=True)
 
 
+async def _parse_fetched_emails_bg(email_ids: list[int]) -> None:
+    """Background parse of freshly-polled emails.
+
+    ``/poll`` used to fetch AND Claude-parse every message inline, so the
+    "Email Kontrol" button blocked for minutes (30 messages × an LLM call,
+    plus rate-limit backoff). Now the endpoint persists the rows fast and
+    returns; this runs afterwards on its own session, paced by
+    ``EMAIL_BATCH_DELAY_SECONDS`` to respect the per-minute token budget.
+    """
+    import asyncio
+    import logging as _log
+
+    from app.core.config import settings as _cfg
+    from app.core.database import async_session
+    from app.services.email_processing_service import EmailProcessingService
+
+    _logger = _log.getLogger(__name__)
+    delay = max(0.0, _cfg.EMAIL_BATCH_DELAY_SECONDS)
+    last = len(email_ids) - 1
+    try:
+        async with async_session() as bg_db:
+            service = EmailProcessingService(bg_db)
+            for i, email_id in enumerate(email_ids):
+                try:
+                    await service.process_email(email_id)
+                    await bg_db.commit()
+                except Exception as exc:  # noqa: BLE001
+                    _logger.warning("Background parse failed for email %d: %s", email_id, exc)
+                if delay and i < last:
+                    await asyncio.sleep(delay)
+    except Exception as exc:  # noqa: BLE001
+        _logger.error("Background email parse run failed: %s", exc)
+
+
 @router.post("/poll", status_code=200, response_model=MessageResponse)
 async def poll_emails(
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(require_role(UserRole.SALES_REP, UserRole.SALES_MANAGER)),
     db: AsyncSession = Depends(get_db),
 ):
-    """Fetch last 14 days of emails via IMAP. Max 2 polls per day."""
+    """Fetch last 14 days of emails via IMAP. Max 2 polls per day.
+
+    Fetch + persist runs inline (fast); the per-email Claude parse is
+    deferred to a background task so the request returns promptly.
+    """
     import asyncio
     import logging as _log
     from datetime import datetime, timezone as tz
@@ -336,8 +375,8 @@ async def poll_emails(
     # scan, tenant stamp, idempotency) is delegated to the shared
     # ``email_ingestion_service`` so this path and the scheduled cron poll
     # can't drift (email hardening audit E1/E2/E6/E7).
-    fetched_count = 0
-    service = EmailProcessingService(db)
+    # ── Fetch + persist only (fast). Parsing is deferred. ──
+    fetched_ids: list[int] = []
     from app.services.email_ingestion_service import ingest_fetched_email
 
     for item in raw_emails:
@@ -350,18 +389,12 @@ async def poll_emails(
             )
             if email is None:
                 continue  # internal domain, duplicate, or concurrent-insert race
-
-            # Parse
-            try:
-                await service.process_email(email.id)
-            except Exception as parse_exc:
-                _logger.warning("Parse failed for email %d: %s", email.id, parse_exc)
-
-            fetched_count += 1
+            fetched_ids.append(email.id)
         except Exception as exc:
-            _logger.warning("Email processing error: %s", exc)
+            _logger.warning("Email ingest error: %s", exc)
             continue
 
+    fetched_count = len(fetched_ids)
 
     # Best-effort notification for fetched emails
     if fetched_count > 0:
@@ -369,14 +402,25 @@ async def poll_emails(
             await create_notification(
                 db, user_id=current_user.id, type="new_email",
                 title=f"{fetched_count} yeni email alindi",
-                message="IMAP uzerinden yeni emailler yuklendi.",
+                message="IMAP uzerinden yeni emailler yuklendi, ayristiriliyor.",
                 entity_type="email", entity_id=None,
             )
         except Exception:
             pass
 
+    # Commit the freshly-ingested rows so the background task (separate
+    # session) sees them, then defer the per-email Claude parse so the
+    # request returns fast instead of blocking on 30 LLM calls.
+    await db.commit()
+    if fetched_ids:
+        background_tasks.add_task(_parse_fetched_emails_bg, fetched_ids)
+
     return {
-        "message": f"{fetched_count} yeni email alindi (son 14 gun)",
+        "message": (
+            f"{fetched_count} yeni email cekildi, arka planda ayristiriliyor."
+            if fetched_count
+            else "Yeni email bulunamadi (son 14 gun)"
+        ),
         "fetched_count": fetched_count,
     }
 

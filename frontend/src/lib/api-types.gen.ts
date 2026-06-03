@@ -326,6 +326,9 @@ export interface paths {
         /**
          * Poll Emails
          * @description Fetch last 14 days of emails via IMAP. Max 2 polls per day.
+         *
+         *     Fetch + persist runs inline (fast); the per-email Claude parse is
+         *     deferred to a background task so the request returns promptly.
          */
         post: operations["poll_emails_api_v1_emails_poll_post"];
         delete?: never;
