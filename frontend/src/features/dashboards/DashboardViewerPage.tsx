@@ -230,7 +230,9 @@ export default function DashboardViewerPage() {
   // narrowing on its own, which broke ``result.widgets`` access.
   const execData = executeQuery.data;
   const result: DashboardExecuteResult | null = execData
-    ? ('data' in execData ? execData.data : execData)
+    ? 'data' in execData
+      ? execData.data
+      : execData
     : null;
   const widgets = (result?.widgets ?? []) as ExecutedWidget[];
 
