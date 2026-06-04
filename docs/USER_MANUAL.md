@@ -1,12 +1,16 @@
 # Honeywell Sales Suite — Kullanıcı Kılavuzu ve UAT El Kitabı
 
-> **Sürüm:** Round-19+ Hardening · Phase 12 (2026-06-01) · **Dil:** Türkçe · **Hedef Kitle:** Saha satış ekibi, satış müdürleri, operasyon ekibi, UAT/QA test mühendisleri
+> **Sürüm:** Round-19+ Hardening · Phase 12 (2026-06-03) · **Dil:** Türkçe · **Hedef Kitle:** Saha satış ekibi, satış müdürleri, operasyon ekibi, UAT/QA test mühendisleri
 >
 > **Phase 12'de yeni / değişen:** Fırsat toplu içe aktarım (D-031 opps), Reports Builder CSV streaming (D-035), tenant-yerel forecast snapshot cron (D-034), tüm 11 mutable entity'de OCC `row_version` (D-009), login'de JWT rotation (D-007 — session-fixation savunması), email pipeline başarısızlığı → DLQ (D-028).
 >
 > **2026-06-01 — Yedek parça çıkarımı sıfır-tolerans sertleştirmesi:** E-postadan parça çıkarımı → katalog eşleştirme → teklif fiyatlandırma zinciri baştan sona denetlendi ve düzeltildi (bkz. `docs/audits/2026-06-01-spare-parts-extraction-audit.md`). Teklif artık asla maliyetten fiyatlanmaz; satır SKU'su gate'in değerlendirdiği parçayla aynıdır; ek adetleri başlık-duyarlı okunur; tire varyasyonları çift saymaz; gerçek bir koda 1 hane uzaklıktaki farklı parça otomatik seçilmez (incelemeye yönlendirilir). Bkz. §4.10 "Parça çıkarımı & fiyatlandırma garantileri".
 >
 > **2026-06-02 — E-posta özelliği sertleştirmesi:** E-posta hattı baştan sona denetlendi (bkz. `docs/audits/2026-06-02-email-feature-hardening-audit.md`). Manuel `/poll` ve zamanlanmış cron poll artık **tek ortak alım yolunu** (`email_ingestion_service`) kullanır; zamanlanmış poll'ün auth/tenant/ek verisini düşürmesi (auth-gate atlatma) giderildi. AV tarama kancası alım hattına bağlandı (infected ek nötralize edilir + incelemeye düşer). `list_emails` ve thread görünümü artık tenant ile filtrelenir (yöneticiler başka tenant'ın postasını göremez).
+>
+> **2026-06-02 — Yedek parça yeniden denetimleri (R1–R5, T1–T5):** Çıkarım → eşleştirme → fiyatlandırma → teklif akışı iki kez daha denetlendi (`docs/audits/2026-06-02-spare-parts-extraction-reaudit.md`, `…-reaudit-3.md`). Eklenenler: katalog çözücü yalnızca **aktif** parçaları eşler (T1); aynı kanonik koda ait satırlar tek satıra toplanır (T2 — dedup); teklif onayında satırlar **`is_confirmed` + fiyatlı** olmak zorunda, değilse 400 döner (`?force=true` ile denetlenebilir override) (T3); fiyat penceresi dışı (süresi geçmiş) fiyat girişine düşülmez (T4); tüm para işlemleri `Decimal` ile yapılır (R5); katalog satış fiyatları TRY'ye çevrilir (R2/T5). Gerçek müşteri RFQ'ları ile uçtan uca test koşuldu (`docs/audits/2026-06-02-real-rfq-e2e-findings.md`).
+>
+> **2026-06-03 — E-posta hızı + maliyet optimizasyonu:** (1) **"Email Kontrol" artık hızlı döner** — manuel poll yalnızca mailleri alıp kuyruğa yazar; ağır Claude ayrıştırması arka plana (`BackgroundTasks`) ertelenir. (2) **Çöp/toplu posta ön-filtresi (junk filter)** — no-reply, bülten, makbuz ve promosyon mailleri (RFC 3834 bulk başlıkları + no-reply gönderen tespiti) Claude'a hiç gönderilmeden, alımda elenir: sıfır LLM maliyeti, temiz inceleme kuyruğu. (3) **Rate-limit savunması (3 katman):** 429 `Retry-After` geri-çekilme + toplu işlem throttle + çağrı başına girdi karakteri tavanı. Bkz. §4.10.
 >
 > **Önceki Round-19+ değişiklikleri:** Kalıcı login lockout (D-006), gerçek SMTP gönderimi (D-014), KVKK export worker + iki-kişi onayı (D-015/D-016), arka plan iş başarısızlıkları için DLQ (D-019), 7 entity için Trash/Restore (F-007), e-İmza OTP doğrulama akışı (F-006), Lead toplu içe aktarım (D-031), onay forensik audit (D-012), kvorum onay politikası (F-018), onay SLA escalation (F-028), teklif supersede zinciri (F-026), workflow döngü algılama (D-013), düşük-veri için health skor bias düzeltme (D-033), cross-tenant ihlal tespiti (D-010), aktif oturum yönetimi.
 
@@ -900,6 +904,77 @@ E-İmza akışı **token + 6 haneli OTP** ile iki faktörlü çalışır. Müşt
 
 > **Bu modül Round-17 + Round-18'de derinden güçlendirildi. Coverage ~%90.**
 
+#### Özellik: Manuel E-posta Çekme ("Email Kontrol" butonu — hızlı poll + arka plan ayrıştırma)
+
+**Nerede:** E-postalar sayfasının sağ üstündeki **"Email Kontrol"** butonu → `POST /emails/poll`
+
+**Amaç:** Zamanlanmış cron'u beklemeden gelen kutusunu hemen kontrol etmek.
+
+**2026-06-03 hız iyileştirmesi — neden artık hızlı dönüyor:**
+Önceden buton, her maili **alıp anında Claude ile ayrıştırdığı** için 20-30 mail × birkaç saniyelik LLM çağrısı = uzun bekleme demekti. Artık akış ikiye bölündü:
+1. **Ön planda (senkron):** Mailler IMAP'tan alınır, çöp filtresinden geçirilir, `EmailRequest` satırı olarak kuyruğa yazılır → buton **birkaç saniyede** döner ve "N yeni mail alındı, ayrıştırılıyor…" mesajı gösterir.
+2. **Arka planda (asenkron, `BackgroundTasks`):** Claude ayrıştırması alınan her mail için tek tek, kendi DB oturumunda, mail başına commit ile ve `EMAIL_BATCH_DELAY_SECONDS` temposuyla koşar. Parça listeleri hazır oldukça satırlar dolar.
+
+**Beklenen Sonuç:** Buton anında yanıt verir; liste yeni maillerle hemen dolar (kategori/parça sütunları "ayrıştırılıyor" durumunda başlar, saniyeler içinde dolar). Sayfayı yenilemeye gerek yok — kuyruk periyodik güncellenir.
+
+**UAT Testi:**
+
+| Adım | Eylem | Test Verisi | Beklenen Sonuç |
+|---|---|---|---|
+| 1 | 20 yeni mail varken "Email Kontrol" tıkla | - | Buton ≤ birkaç sn döner; "20 yeni mail" mesajı |
+| 2 | Hemen ardından kuyruğa bak | - | 20 satır görünür (parça sütunu "…" → dolmaya başlar) |
+| 3 | Birkaç saniye bekle | - | Parça listeleri arka planda dolar |
+| 4 | Hiç yeni mail yoksa | - | "Yeni mail yok" mesajı, anında döner |
+
+**Sınır Durumları:**
+- **Arka plan ayrıştırması bir mailde hata verirse** diğerlerini etkilemez (mail başına izole oturum + commit). Hatalı mail DLQ'ya düşer (D-028).
+- **Aynı anda iki kez tıklama:** İkinci poll yeni mail bulamaz (idempotent `message_id`), boşuna iş yapmaz.
+
+#### Özellik: Çöp / Toplu Posta Ön-Filtresi (Junk Filter — sıfır LLM maliyeti)
+
+**Amaç:** Gelen kutusundaki çöpleri (Apple/banka makbuzları, CNN/Fanatik haber bültenleri, "%30 indirim" promosyonları, no-reply gönderenler) **Claude'a hiç göndermeden, alım anında** elemek. Böylece hem inceleme kuyruğu temiz kalır hem de gereksiz LLM maliyeti **sıfırlanır**.
+
+**Nasıl çalışır (3 sinyal):** Bir mail aşağıdakilerden **herhangi birine** uyuyorsa çöp sayılır ve kaydedilmez (yalnızca log'a "skipped junk" düşer):
+
+| Sinyal | Tespit | Yakaladığı tipik çöp |
+|---|---|---|
+| **Toplu posta başlıkları (RFC 3834)** | `List-Unsubscribe`, `List-Id`, `Precedence: bulk/list/junk`, `Auto-Submitted` ≠ no/none | Bültenler, haber maileri, promosyonlar |
+| **No-reply gönderen** | Gönderen localpart'ında `no-reply`, `do-not-reply`, `mailer-daemon`, `mdaemon`, `postmaster` (örn. `testflight_no_reply@…` dahil) | Makbuzlar, sistem bildirimleri, otomatik yanıtlar |
+| **Operatör listesi** | `EMAIL_JUNK_SENDER_PATTERNS` ile eklenen alan adı/desen alt-dizgileri (örn. `fanatik.com,cnnturk`) | Operatörün manuel kara listeye aldığı kaynaklar |
+
+**Neden gerçek RFQ'ları etkilemez:** Bir insanın yazdığı gerçek parça talebi asla `no-reply` adresinden gelmez ve `List-Unsubscribe` gibi toplu-posta başlığı taşımaz. Tasarım bilinçli olarak **muhafazakârdır** — şüpheli bir şey eleyeceğine geçirir.
+
+**Konfigürasyon (Operations):**
+- `EMAIL_JUNK_FILTER_ENABLED` (varsayılan `true`) — filtreyi tamamen kapatmak için `false`.
+- `EMAIL_JUNK_SENDER_PATTERNS` — virgülle ayrılmış ek desenler (örn. `newsletter@,bulten,no-reply@partner.com`).
+
+**Kapsam:** Filtre ortak alım yolundadır (`email_ingestion_service.ingest_fetched_email`), bu yüzden **hem manuel "Email Kontrol" hem de saatlik cron** poll'ünde aynı şekilde uygulanır.
+
+**UAT Testi:**
+
+| Adım | Eylem | Test Verisi | Beklenen Sonuç |
+|---|---|---|---|
+| 1 | No-reply mail gelir | `no_reply@email.apple.com` | Kuyruğa **düşmez**, log: `noreply_sender`, Claude çağrısı yok |
+| 2 | Bülten geldi (List-Unsubscribe başlıklı) | CNN haber maili | Kuyruğa düşmez, log: `bulk_mail` |
+| 3 | Promosyon (Precedence: bulk) | "%30 indirim" | Kuyruğa düşmez, log: `bulk_mail` |
+| 4 | Gerçek RFQ | `birkanege.durukan@tanap.com` "5x C7061A1012" | Normal şekilde kuyruğa düşer + ayrıştırılır |
+| 5 | `EMAIL_JUNK_FILTER_ENABLED=false` | no-reply mail | Filtre devre dışı, mail kuyruğa düşer |
+| 6 | Operatör `fanatik.com` ekler | `bulten@fanatik.com` | Kuyruğa düşmez, log: `junk_sender` |
+
+**Sınır Durumları:**
+- **Yanlışlıkla elenen meşru mail:** Bir müşteri bülten altyapısı üzerinden yazarsa (nadir) elenebilir; bu durumda gönderenini `EMAIL_JUNK_SENDER_PATTERNS` dışında tutmak yeterli değildir (başlık sinyali baskındır) — gerekirse filtreyi geçici kapatın. Pratikte gerçek RFQ'lar bu başlıkları taşımaz.
+- **Denetlenebilirlik:** Her eleme `INFO` seviyesinde gönderen + sebep + konu(80 karakter) ile log'lanır; "neden bu mail gelmedi?" sorusu loglardan yanıtlanabilir.
+
+#### Özellik: LLM Hız-Sınırı (Rate-Limit) Savunması — 3 katman
+
+Claude API'sinin dakikalık token/istek limitine takılıp ayrıştırmanın kesilmesini önlemek için üç bağımsız katman vardır:
+
+1. **429 `Retry-After` geri-çekilme:** Tek bir Claude çağrısı `429 Too Many Requests` alırsa, sunucunun bildirdiği `Retry-After` süresince beklenip yeniden denenir (4 deneme, üst sınır 60 sn). Devre kesici (circuit breaker, eşik 3 ardışık hata, 30 sn iyileşme) art arda hatalarda hattı kısa devre yapar.
+2. **Toplu işlem throttle:** Bekleyen mailler `EMAIL_BATCH_SIZE` (varsayılan 50) gruplar hâlinde, gruplar arası `EMAIL_BATCH_DELAY_SECONDS` (varsayılan 2.0 sn) bekleyerek işlenir — ani patlama limitleri zorlamaz.
+3. **Çağrı başına girdi tavanı:** Tek bir maile/eke ait LLM girdisi `AI_MAX_INPUT_CHARS` (24.000) ve ek başına `AI_MAX_ATTACHMENT_CHARS` (8.000) ile kırpılır. Aşırı uzun mail/ek tek başına dakikalık token bütçesini tüketemez. Kırpma olduğunda mail `attachment_pages_truncated` ile işaretlenir ve **otomatik teklif gate'i bunu geçmez** (manuel inceleme).
+
+**Operatör konfigürasyonu:** Yukarıdaki dört değer `Settings` üzerinden ayarlanabilir; pilot (20-30 kullanıcı) için varsayılanlar uygundur.
+
 #### Özellik: E-posta İnceleme Kuyruğu
 
 **Nerede:** Sol menü > "E-postalar" → `/emails`
@@ -952,19 +1027,30 @@ E-İmza akışı **token + 6 haneli OTP** ile iki faktörlü çalışır. Müşt
 | 7 | "Onayla" tıkla | - | Quote taslağı oluşur, kuyruktan kalkar |
 | 8 | "Reddet" tıkla | - | Mail rejected, log'a düşer |
 
-**Doğrulama:**
-- Onaylama için **3'lü gate** sağlanmalı:
-  1. Auth durumu `pass`
-  2. Tüm parçalar `exact` veya `normalized`
-  3. Review status `approved`
-- Bu gate sağlanmazsa otomatik teklif oluşmaz, manuel oluşturulur.
+**Doğrulama — Otomatik teklif gate'i (`_auto_quote_eligible`):**
+Otomatik taslak teklif oluşması için **tüm** aşağıdaki koşullar sağlanmalı; biri bile başarısızsa mail incelemeye düşer ve teklif manuel oluşturulur:
+1. **Auth durumu `pass`** (SPF + DKIM + DMARC) — sahtecilik şüphesi yok.
+2. **Tüm parçalar `exact` veya `normalized`** — bulanık/`unknown` eşleşme yok.
+3. **Ek/sayfa kırpılmamış** (`attachment_pages_truncated=false`) — eksik veriyle teklif verilmez.
+4. **İlk-kez gönderen değil** (`first_time_sender=false`) — daha önce yazışılmış güvenilir adres.
+5. **Adet belirsizliği yok** (`quantity_suspect`/`quantity_conflict` yok) — şüpheli adet otomatik geçmez.
+6. **Değer tavanı altında** — yüksek tutarlı talepler her zaman insana gider.
+7. **AV temiz** (`parse_skipped_reason ≠ av_infected`) — infected ek varsa asla otomatik teklif yok.
 
-**Parça çıkarımı & fiyatlandırma garantileri (2026-06-01 sıfır-tolerans sertleştirmesi):**
-- **Asla maliyetten fiyatlanmaz.** Satış fiyatı önceliği: müşteri fiyat listesi (`PriceEntry.net_price`) → yalnızca liste yoksa maliyet × (1 + `min_margin_pct`). Marj 0 ise satır **fiyatsız** bırakılır (otomatik onaylanmaz), sıfır-marjlı maliyetle teklif **verilmez**.
+Ayrıca onay anında (§ "Parça çıkarımı & fiyatlandırma garantileri" T3) tüm satırların **`is_confirmed` + fiyatlı** olması zorunludur.
+
+**Parça çıkarımı & fiyatlandırma garantileri (2026-06-01/02 sıfır-tolerans sertleştirmesi):**
+- **Asla maliyetten fiyatlanmaz.** Satış fiyatı önceliği: müşteri fiyat listesi (`PriceEntry.net_price`) → yalnızca liste yoksa maliyet × (1 + `min_margin_pct`). Marj 0 ise satır **fiyatsız** bırakılır (otomatik onaylanmaz), sıfır-marjlı maliyetle teklif **verilmez**. Tüm para hesapları `Decimal` ile yapılır (float yuvarlama hatası yok — R5); katalog satış fiyatları teklif para birimine (TRY) çevrilir (R2/T5).
+- **Fiyatlar yüklenen yedek parça kataloğundan gelir, mailden değil.** Müşterinin mailde yazdığı fiyat asla teklife geçmez; fiyat daima sizin yüklediğiniz katalog/fiyat listesinden okunur.
+- **Süresi geçmiş fiyat kullanılmaz (T4).** Yalnızca geçerli tarih penceresindeki `PriceEntry` seçilir; pencere dışı (eskimiş) fiyata düşülmez — satır fiyatsız kalır ve incelemeye gider.
 - **Teklif satırındaki SKU = gate'in değerlendirdiği SKU.** Satır kalemi, otomatik-teklif gate'inin kullandığı katalog çözücünün verdiği parçayı kullanır; iki ayrı eşleştirme motorunun farklı parça seçmesi sorunu giderildi.
+- **Yalnızca aktif parçalar eşlenir (T1).** Mailden gelen kodlar katalog çözücüde `is_active=true` parçalarla eşleştirilir; pasif/arşiv parçalar otomatik yola sızmaz.
+- **Gerçek Honeywell kodlarını katalogdan tanır (F-A — katalog-duyarlı tarayıcı).** Çıkarım, mail metnindeki token'ları (ve bitişik token çiftlerini, normalize ederek) **gerçek katalog kodlarıyla** karşılaştırır; böylece `764744`, `581239`, `HDZWM2` gibi kodlar yanlış-pozitif üretmeden geri kazanılır.
+- **Aynı parça tek satıra toplanır (T2 — dedup).** Mail + ek + gövdede aynı kanonik koda denk gelen kalemler tek satırda birleşir (adetler toplanır, gerekirse `quantity_suspect` + `duplicate_merged` bayrağı). Tire/boşluk varyasyonu çift saymaz.
 - **Düşük skorlu eşleşme SKU/fiyat yazmaz.** Eşik (`80`) altındaki bulanık eşleşmeler yalnızca *öneri* olarak kaydedilir; satır SKU'su ve fiyatı boş kalır → zorunlu inceleme. (Örn. kodsuz "valf" tanımının %50 isim eşleşmesiyle gerçek bir SKU+fiyat alması engellendi.)
 - **Ek (Excel/CSV/PDF) adetleri başlık-duyarlı okunur.** Qty / Adet / Miktar / Quantity sütunu tespit edilir; baştaki satır-numarası (`#`) sütunu adet sanılmaz. 10.000 üstü toplu siparişler artık `1`'e indirgenmez.
 - **Şüpheli adet sessizce `1` olmaz.** Eksik/aralık-dışı adet `quantity_suspect` ile işaretlenir ve satır otomatik onaylanmaz.
+- **Teklif onayında satır doğrulama zorunlu (T3).** Bir teklif onaylanırken (`approve_quote`) tüm satırlar **`is_confirmed` + fiyatlı** olmak zorundadır; aksi halde `400` döner. Operatör bilinçli geçmek isterse `?force=true` ile denetlenebilir (audit'e düşen) override kullanılır. Operatörün elle eklediği satırlar tanımı gereği onaylı sayılır.
 
 **Sınır Durumları:**
 - **Aynı thread'den ikinci mail:** RFQ Aggregator otomatik bağlar (`rfq_thread_key`). Detayda "Bu mail [konu] thread'ine ait, 2 mail var" bilgisi.
@@ -1858,11 +1944,19 @@ Admin'in tüm sistem genelinde chat/destek mesajları yönetimi (varsa).
 
 **Adımlar:**
 
+0. **Junk / Bulk Ön-Filtresi (LLM öncesi, alımda)** — Ortak `email_ingestion_service` içinde, herhangi bir Claude çağrısından önce:
+   - Toplu posta başlıkları (RFC 3834): `List-Unsubscribe` / `List-Id` / `Precedence: bulk|list|junk` / `Auto-Submitted ≠ no|none` → `bulk_mail`.
+   - No-reply gönderen localpart'ı (`no-reply`, `do-not-reply`, `mailer-daemon`, `mdaemon`, `postmaster`) → `noreply_sender`.
+   - Operatör desenleri (`EMAIL_JUNK_SENDER_PATTERNS`) → `junk_sender`.
+   - Eşleşen mail **kaydedilmez** (yalnızca log) — sıfır LLM maliyeti. `EMAIL_JUNK_FILTER_ENABLED=false` ile kapatılır. İç-domain + duplicate skip kontrolleri de bu aşamadadır.
+
 1. **Sender Auth Verifier** — Authentication-Results header'ından SPF/DKIM/DMARC sonuçları parse edilir.
    - Üçü de `pass` → `pass`
    - Bir veya iki `pass`, diğerleri yok → `partial`
    - En az biri `fail` → `fail`
    - Hiçbiri yok → `none`
+
+   > **Not (2026-06-03 — manuel poll):** `POST /emails/poll` artık yalnızca 0-1 numaralı adımları (alım + çöp/auth/duplicate eleme) senkron yapar; 4-10 numaralı ağır ayrıştırma adımları arka plana (`BackgroundTasks`, mail başına oturum + commit, `EMAIL_BATCH_DELAY_SECONDS` tempolu) ertelenir. Zamanlanmış cron tüm adımları kendi içinde koşturmaya devam eder.
 
 2. **HTML Cleaner (Bleach):**
    - Allowed tags: `p, b, i, em, strong, table, tr, td, th, ul, ol, li, br, hr`
@@ -1886,21 +1980,34 @@ Admin'in tüm sistem genelinde chat/destek mesajları yönetimi (varsa).
 
 6. **Regex Fallback** — Claude breaker açıksa veya boş döndüyse, regex tabanlı parser çalışır.
 
-7. **Catalog Resolver** — her part_code için:
+6b. **Katalog-Duyarlı Kod Tarayıcı (F-A):** Mail metnindeki token'lar (ve bitişik token çiftleri, normalize edilerek) **gerçek katalog kodlarıyla** karşılaştırılır; LLM/regex'in kaçırdığı gerçek Honeywell kodları (`764744`, `581239`, `HDZWM2` …) yanlış-pozitif üretmeden geri kazanılır. Heuristic parçalar mevcut parçalarla birleştirilir (Q3/Q4).
+
+7. **Catalog Resolver** — her part_code için, **yalnızca `is_active=true` parçalar** üzerinde (T1):
    - **Exact match:** kod birebir aynı → `status=exact`
    - **Normalized:** tire/boşluk/alt çizgi temizlenip aynı → `status=normalized`
-   - **Fuzzy (Damerau-Levenshtein, OSA):** mesafe ≤ 2 ve uzunluk ≥ 6 → `status=fuzzy`
+   - **Fuzzy (Damerau-Levenshtein, OSA):** mesafe ≤ 2 ve uzunluk ≥ 6 → `status=fuzzy` (**asla otomatik onaylanmaz**); geçerli bir koda 1 hane uzaklıktaki farklı gerçek parça → `unknown` (bilerek tahmin etmez)
    - Diğer → `status=unknown`
+   - Çözücünün verdiği parça, teklif satır kalemi için **tek SKU kaynağıdır** (skor-korumalı `parts_matcher` yalnızca eşik-80 fallback).
+
+7b. **Dedup (T2):** Aynı kanonik koda denk gelen kalemler tek satıra toplanır (adetler toplanır; `quantity_suspect` + `duplicate_merged` bayrakları korunur). Tire/boşluk varyasyonu çift saymaz.
+
+7c. **Fiyatlandırma (R1–R5, T4):** Satış fiyatı önceliği `PriceEntry.net_price` (geçerli tarih penceresi) → yoksa maliyet × (1 + `min_margin_pct`); marj 0 → fiyatsız. Süresi geçmiş fiyat girişine düşülmez (T4). Tüm hesap `Decimal`; katalog satış fiyatı teklif para birimine (TRY) çevrilir (R2/T5). Fiyat **daima yüklenen katalogdan** okunur, mailden değil.
 
 8. **RFQ Aggregator:** SHA-256(tenant + thread_id || tenant + sender_domain + normalized_subject)[:16] → `rfq_thread_key`.
 
 9. **AV Scan Hook:** Her iki alım yolunda da (manuel `/poll` + zamanlanmış cron) ortak `email_ingestion_service` içinde çalışır. `AV_SCAN_BACKEND=clamav` ise ClamAV INSTREAM ile taranır; varsayılan `_NoopScanner` her eki `unscanned` işaretler. `infected` çıkan ekin metni + heuristic parçaları temizlenir (LLM'e gitmez), e-posta `pending_review`'a düşer ve otomatik teklif `av_infected` gerekçesiyle engellenir.
 
-10. **Eligibility Gate (auto-quote):**
-    - Auth = `pass` AND
-    - Tüm parts `exact` veya `normalized` AND
-    - Review status `approved`
-    - Üçü de geçerse otomatik teklif taslağı.
+10. **Eligibility Gate (auto-quote — `_auto_quote_eligible`):** Hepsi sağlanmalı:
+    - Auth = `pass`
+    - Tüm parts `exact` veya `normalized`
+    - Ek/sayfa kırpılmamış (`attachment_pages_truncated=false`)
+    - İlk-kez gönderen değil (`first_time_sender=false`)
+    - Adet belirsizliği yok (`quantity_suspect`/`quantity_conflict` yok)
+    - Değer tavanı altında
+    - AV temiz (`parse_skipped_reason ≠ av_infected`)
+    - Biri bile başarısızsa e-posta `pending_review`'a düşer. Onay anında (`approve_quote`, T3) tüm satırlar `is_confirmed` + fiyatlı olmalı; değilse `400` (`?force=true` ile audit'li override).
+
+11. **LLM Rate-Limit Savunması:** 429 `Retry-After` geri-çekilme + devre kesici (`claude_breaker`, eşik 3 / 30 sn) + toplu işlem throttle (`EMAIL_BATCH_SIZE`/`EMAIL_BATCH_DELAY_SECONDS`) + çağrı başına girdi tavanı (`AI_MAX_INPUT_CHARS`=24k, `AI_MAX_ATTACHMENT_CHARS`=8k).
 
 **Çıktı:** `EmailRequest` row + parsed parts JSON + RFQ link.
 
@@ -2139,6 +2246,18 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 - **Neden:** PDF 5 sayfayı geçti, OCR truncate edildi.
 - **Çözüm:** Mail detayında "Truncated to N pages" notu görünür; sayfa 6+ için müşteriden ayrı PDF isteyin.
 
+**Sorun:** "'Email Kontrol' bastım, '20 yeni mail' dedi ama parça sütunları boş/'ayrıştırılıyor' görünüyor."
+- **Neden:** Bu beklenen davranış (2026-06-03). Buton mailleri hızlıca alır; ağır Claude ayrıştırması arka planda koşar.
+- **Çözüm:** Birkaç saniye bekleyin; satırlar arka planda dolar. Yenilemeye gerek yok.
+
+**Sorun:** "Gelen kutuma düşen bir mail uygulamada hiç görünmedi."
+- **Neden:** Çöp/toplu posta ön-filtresi onu elemiş olabilir (no-reply gönderen, bülten/promosyon başlığı). Bu mailler maliyet ve gürültüyü önlemek için Claude'a hiç gönderilmeden atlanır.
+- **Çözüm:** Operations sunucu loglarında gönderen + sebep (`noreply_sender` / `bulk_mail` / `junk_sender`) ile kaydı bulabilir. Meşru bir mail yanlışlıkla elendiyse, `EMAIL_JUNK_SENDER_PATTERNS`'ten ilgili deseni çıkarın veya geçici olarak `EMAIL_JUNK_FILTER_ENABLED=false` yapın. Gerçek RFQ'lar bu sinyalleri taşımadığı için pratikte etkilenmez.
+
+**Sorun:** "Ayrıştırma sırasında 'rate limit' / 429 hatası görüyoruz."
+- **Neden:** Aynı anda çok mail Claude API'sinin dakikalık limitini zorluyor.
+- **Çözüm:** Sistem otomatik geri-çekilir (`Retry-After`) ve toplu işleri throttle eder; ek müdahale gerekmez. Kalıcıysa Operations `EMAIL_BATCH_SIZE`'ı düşürüp `EMAIL_BATCH_DELAY_SECONDS`'ı artırabilir.
+
 ### Teklifler & Sözleşmeler
 
 **Sorun:** "Teklif gönder butonuna basıyorum, hata alıyorum."
@@ -2236,6 +2355,13 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 | — | Active sessions yönetimi (kendi + admin) | 4.1 Auth |
 | — | Approval delegation (chain_mode, expiry cron) | 4.12 Onay Akışları |
 | — | R19 5 yeni cron job (token blocklist, nonce cleanup, SLA escalation, health batch, delegation expiry) | 6. Algoritmalar |
+| SP-14 | Yedek parça çıkarımı sıfır-tolerans (maliyet-altı engelleme, tek-SKU kaynağı, başlık-duyarlı adet, tire-dedup, ±1 hane koruması) | 4.10 E-posta |
+| R1–R5 | Çıkarım yeniden denetimi: Decimal para, currency dönüşümü, katalog satış fiyatı annotasyonu | 4.10 E-posta |
+| T1–T5 | Aktif-parça eşleşme, kanonik dedup, onayda `is_confirmed`+fiyatlı zorunluluğu, fiyat-penceresi, TRY çevirimi | 4.10 E-posta |
+| F-A | Katalog-duyarlı kod tarayıcı (gerçek Honeywell kodlarını metinden geri kazanır) | 4.10 E-posta |
+| — | Manuel poll hızlandırma (ingest senkron + Claude ayrıştırma arka planda) | 4.10 E-posta |
+| — | Çöp/toplu posta ön-filtresi (RFC 3834 — sıfır LLM maliyeti) | 4.10 E-posta, 8. SSS |
+| — | LLM rate-limit savunması (429 Retry-After + batch throttle + girdi tavanı) | 4.10 E-posta |
 
 ---
 
@@ -2243,5 +2369,7 @@ lead_score = base_score + sector_fit + engagement + recency_bonus
 - 2026-05-25 — İlk yayın (Round-18'e karşılık gelir).
 - 2026-05-26 — Round-19+ Hardening update: login lockout, KVKK worker + iki-kişi onayı, DLQ, Trash/Restore, e-Sign OTP, onay forensik/quorum/SLA, lead bulk import, workflow cycle detection, health bias correction, active sessions, cross-tenant audit. (17/40 D-NNN findings shipped — 43%.)
 - 2026-06-01 — Phase 12: D-007 JWT rotation, D-009 OCC (11 entity), D-028 email→DLQ, D-031 opportunity bulk import, D-034 tenant-yerel forecast cron, D-035 reports CSV streaming. Ayrıca kapsamlı CI sertleştirme (security-scan 4/4 yeşil: TruffleHog/ZAP/SAST/dependency-audit; restore-drill + load-test secret-yoksa-atla). (25/40 D-NNN findings shipped — 63%.)
+- 2026-06-02 — Yedek parça sıfır-tolerans sertleştirmesi + iki yeniden denetim (R1–R5, T1–T5): maliyet-altı fiyat engelleme, tek-SKU kaynağı, aktif-parça eşleşme, kanonik dedup, onayda `is_confirmed`+fiyatlı zorunluluğu, fiyat-penceresi koruması, Decimal/currency. Katalog-duyarlı kod tarayıcı (F-A) + gerçek müşteri RFQ uçtan-uca test harness'i. E-posta hattı hardening (ortak alım yolu, AV kancası, tenant filtre).
+- 2026-06-03 — E-posta hız + maliyet optimizasyonu: "Email Kontrol" hızlı poll (ağır ayrıştırma arka planda), çöp/toplu posta ön-filtresi (sıfır LLM maliyeti), 3-katmanlı LLM rate-limit savunması.
 
 **Geri bildirim:** Yanlış veya eksik gördüğünüz yerleri `docs/USER_MANUAL.md` üzerinde PR açarak iyileştirin.
