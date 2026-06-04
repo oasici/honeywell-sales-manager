@@ -9,6 +9,35 @@ since the last tag. The release-please workflow at
 `.github/workflows/release-please.yml` opens a release PR that drains
 that section into a numbered version when a new release is cut.
 
+## [1.23.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.22.0...v1.23.0) (2026-06-04)
+
+
+### Added
+
+* **email:** cap per-call LLM input to bound tokens-per-email ([7a9a820](https://github.com/oasici/honeywell-sales-manager/commit/7a9a820e54cb5f20078c93704bd1dc8188287751))
+* **email:** catalog-aware code extraction (fixes real-RFQ finding F-A) ([093ccee](https://github.com/oasici/honeywell-sales-manager/commit/093cceeecff0cd491aa438623828afb416edfe27))
+* **email:** drop junk/bulk senders pre-LLM (zero cost, clean queue) ([e8066d3](https://github.com/oasici/honeywell-sales-manager/commit/e8066d367a1b20edea6ac94da6dbda96bbbe77ea))
+* **email:** throttle batch parse to stay under Anthropic per-minute token budget ([74c5586](https://github.com/oasici/honeywell-sales-manager/commit/74c55866deb10e70ed1a9fc24ef749e4ab07ee42))
+* **scripts:** add production-safe create_admin upsert script ([4f2cffb](https://github.com/oasici/honeywell-sales-manager/commit/4f2cffb244886911184a4cb5346778227c6c9bdc))
+
+
+### Fixed
+
+* **ai:** honor Anthropic 429 Retry-After at the Claude chokepoint ([401c008](https://github.com/oasici/honeywell-sales-manager/commit/401c008f6747dee2480b64f62ae71a3b77a00e97))
+* **email,quotes:** close spare-parts re-audit findings R1-R5 (zero-tolerance) ([a06d87d](https://github.com/oasici/honeywell-sales-manager/commit/a06d87d40722595cb35918e1075aae459ded0176))
+* **quotes,email:** close spare-parts third-audit findings T1-T5 (boundary hardening) ([33b4f50](https://github.com/oasici/honeywell-sales-manager/commit/33b4f5069644bda3e32e94c75c71e52437a82988))
+* **quotes:** manual quote lines default to confirmed + regenerate api-types (T3 fallout) ([d84b707](https://github.com/oasici/honeywell-sales-manager/commit/d84b7077450614a62276ba949f31a27fd0c023ab))
+
+
+### Performance
+
+* **email:** make /poll return fast by deferring Claude parse to a background task ([8fbe6a1](https://github.com/oasici/honeywell-sales-manager/commit/8fbe6a108406b314668873f253176fb33a10e0cd))
+
+
+### Documentation
+
+* **manual:** document email speed, junk filter, rate-limit + spare-parts reaudits ([179d79b](https://github.com/oasici/honeywell-sales-manager/commit/179d79bd3fe8b4394544c2a25665b9317ab5822a))
+
 ## [1.22.0](https://github.com/oasici/honeywell-sales-manager/compare/v1.21.0...v1.22.0) (2026-06-02)
 
 
