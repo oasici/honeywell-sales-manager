@@ -28,7 +28,7 @@ jobs:
       MIN_USERS: ${{ github.event.inputs.min_users || '1' }}
       MIN_OPPORTUNITIES: ${{ github.event.inputs.min_opportunities || '0' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # The drill needs prod-backup + staging-DB secrets that aren't
       # configured for the 20-30 user pilot. Treat a missing-secret run

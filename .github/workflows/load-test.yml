@@ -23,7 +23,7 @@ jobs:
       TEST_USER_PASSWORD: ${{ secrets.LOAD_TEST_USER_PASSWORD }}
       SCRIPT: ${{ github.event.inputs.script || 'baseline' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Missing load-test secrets are not a CI failure — the run is
       # opt-in and the 20-30 user pilot doesn't depend on weekly k6
